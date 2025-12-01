@@ -13,4 +13,7 @@ export const stackServerApp = new StackServerApp({
   publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
   secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
   tokenStore: "cookie",
+  urls: {
+    handler: "/handler",
+  },
 });

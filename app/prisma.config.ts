@@ -9,7 +9,7 @@ const env = (key: string) => {
   return value;
 };
 
-export default {
+const config = {
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
@@ -19,3 +19,5 @@ export default {
     url: env("DATABASE_URL"),
   },
 };
+
+export default config;

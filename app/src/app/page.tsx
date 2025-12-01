@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { stackServerApp } from "@/lib/stack-app";
 
 export default async function Home() {
   const t = await getTranslations("home");
+  const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-50 via-white to-emerald-50 px-6 py-20">
@@ -21,13 +23,13 @@ export default async function Home() {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
-            href="/auth/login"
+            href={signInUrl}
             className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
             {t("ctaPrimary")}
           </Link>
           <Link
-            href="/auth/login"
+            href={signInUrl}
             className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-6 py-3 text-base font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
           >
             {t("ctaSecondary")}
