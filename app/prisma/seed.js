@@ -6,7 +6,7 @@ const { PrismaClient, Role, Prisma } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  const password = process.env.SEED_PASSWORD || "PoliGest!123"; // Cambia in produzione
+  const password = process.env.SEED_PASSWORD || "SORRIDI!123"; // Cambia in produzione
   const hashedPassword = await hash(password, 12);
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@poligest.local";

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
+import { NavLink } from "@/components/nav-link";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -25,36 +26,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/dashboard" className="text-lg font-semibold text-emerald-800">
               {t("brand")}
             </Link>
-            <nav className="flex items-center gap-4 text-sm font-medium text-zinc-700">
-              <Link href="/dashboard" className="hover:text-emerald-700">
-                {t("dashboard")}
-              </Link>
+            <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700">
+              <NavLink href="/dashboard" label={t("dashboard")} />
               {isStaff ? (
                 <>
-                  <Link href="/agenda" className="hover:text-emerald-700">
-                    {t("agenda")}
-                  </Link>
-                  <Link href="/pazienti" className="hover:text-emerald-700">
-                    {t("patients")}
-                  </Link>
-                  <Link href="/richiami" className="hover:text-emerald-700">
-                    {t("recalls")}
-                  </Link>
+                  <NavLink href="/agenda" label={t("agenda")} />
+                  <NavLink href="/pazienti" label={t("patients")} />
+                  <NavLink href="/richiami" label={t("recalls")} />
                   {isManagerOrAdmin ? (
                     <>
-                      <Link href="/magazzino" className="hover:text-emerald-700">
-                        {t("inventory")}
-                      </Link>
-                      <Link href="/finanza" className="hover:text-emerald-700">
-                        {t("finance")}
-                      </Link>
+                      <NavLink href="/magazzino" label={t("inventory")} />
+                      <NavLink href="/finanza" label={t("finance")} />
                     </>
                   ) : null}
-                  {isAdmin ? (
-                    <Link href="/admin" className="hover:text-emerald-700">
-                      {t("admin")}
-                    </Link>
-                  ) : null}
+                  {isAdmin ? <NavLink href="/admin" label={t("admin")} /> : null}
                 </>
               ) : null}
             </nav>

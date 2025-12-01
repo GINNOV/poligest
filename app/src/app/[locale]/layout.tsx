@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PoliGest Medical",
+  title: "SORRIDI",
   description:
     "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
 };

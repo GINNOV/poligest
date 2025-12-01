@@ -130,6 +130,16 @@ const statusLabels: Record<AppointmentStatus, string> = {
   NO_SHOW: "No-show",
 };
 
+const statusClasses: Record<AppointmentStatus, string> = {
+  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800",
+  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700",
+  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800",
+  COMPLETED: "border-green-200 bg-green-50 text-green-800",
+  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800",
+  NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700",
+};
+
 export default async function AgendaPage({
   searchParams,
 }: {
@@ -163,6 +173,12 @@ export default async function AgendaPage({
       : undefined;
 
   const dateFilter = dateValue;
+  const searchQuery =
+    typeof params.q === "string"
+      ? params.q.toLowerCase()
+      : Array.isArray(params.q)
+        ? params.q[0]?.toLowerCase()
+        : undefined;
   let dateRange:
     | {
         gte: Date;
@@ -189,6 +205,30 @@ export default async function AgendaPage({
       where: {
         ...(statusFilter ? { status: statusFilter } : {}),
         ...(dateRange ? { startsAt: dateRange } : {}),
+        ...(searchQuery
+          ? {
+              OR: [
+                { title: { contains: searchQuery, mode: "insensitive" } },
+                { serviceType: { contains: searchQuery, mode: "insensitive" } },
+                {
+                  patient: {
+                    OR: [
+                      { firstName: { contains: searchQuery, mode: "insensitive" } },
+                      { lastName: { contains: searchQuery, mode: "insensitive" } },
+                    ],
+                  },
+                },
+                {
+                  doctor: {
+                    OR: [
+                      { fullName: { contains: searchQuery, mode: "insensitive" } },
+                      { specialty: { contains: searchQuery, mode: "insensitive" } },
+                    ],
+                  },
+                },
+              ],
+            }
+          : {}),
       },
     }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
@@ -284,7 +324,7 @@ export default async function AgendaPage({
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti</h2>
-        <form className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2" method="get">
+        <form className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3" method="get">
           <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
             {t("filterDate")}
             <input
@@ -308,6 +348,22 @@ export default async function AgendaPage({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-1">
+            Cerca
+            <input
+              type="text"
+              name="q"
+              defaultValue={
+                typeof params.q === "string"
+                  ? params.q
+                  : Array.isArray(params.q)
+                    ? params.q[0]
+                    : ""
+              }
+              placeholder="Titolo, paziente, medico"
+              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
           </label>
           <div className="col-span-full flex gap-2">
             <button
@@ -349,11 +405,11 @@ export default async function AgendaPage({
                     <select
                       name="status"
                       defaultValue={appt.status}
-                      className="h-9 rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-9 rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                     >
                       {Object.values(AppointmentStatus).map((status) => (
                         <option key={status} value={status}>
-                          {statusLabels[status]}
+                          {statusLabels[status].toUpperCase()}
                         </option>
                       ))}
                     </select>
@@ -379,6 +435,13 @@ export default async function AgendaPage({
                     timeStyle: "short",
                   }).format(appt.endsAt)}
                 </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                  >
+                    {statusLabels[appt.status].toUpperCase()}
+                  </span>
+                </div>
                 <details className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3 text-xs text-zinc-700">
                   <summary className="cursor-pointer font-semibold text-emerald-800">
                     Modifica appuntamento
@@ -455,18 +518,18 @@ export default async function AgendaPage({
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
                       Stato
-                      <select
-                        name="status"
-                        defaultValue={appt.status}
-                        className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      >
-                        {Object.values(AppointmentStatus).map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <select
+                      name="status"
+                      defaultValue={appt.status}
+                      className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    >
+                      {Object.values(AppointmentStatus).map((status) => (
+                        <option key={status} value={status}>
+                          {statusLabels[status].toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                     <div className="col-span-full">
                       <button
                         type="submit"

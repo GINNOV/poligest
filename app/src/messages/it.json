@@ -45,7 +45,7 @@
     }
   },
   "app": {
-    "brand": "PoliGest",
+    "brand": "SORRIDI",
     "dashboard": "Dashboard",
     "agenda": "Agenda",
     "patients": "Pazienti",
@@ -57,7 +57,7 @@
     "logout": "Esci"
   },
   "dashboard": {
-    "welcome": "Benvenuto in PoliGest",
+    "welcome": "Benvenuto in SORRIDI",
     "upcoming": "Prossimi appuntamenti",
     "empty": "Nessun appuntamento imminente.",
     "stats": {
@@ -105,7 +105,7 @@
     "updateRole": "Aggiorna ruolo"
   },
   "login": {
-    "title": "Accesso a PoliGest",
+    "title": "Accesso a SORRIDI",
     "subtitle": "Inserisci le credenziali per continuare.",
     "email": "Email",
     "password": "Password",

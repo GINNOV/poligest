@@ -1,4 +1,4 @@
-# PoliGest Next.js Implementation Plan
+# SORRIDI Next.js Implementation Plan
 
 ## Goals
 - Build an Italian-language clinic management app (agenda, EHR lite, inventory, finance, recalls) deployed on Vercel with EU-only data flows.

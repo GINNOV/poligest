@@ -1,3 +1,7 @@
+import fs from "fs/promises";
+import path from "path";
+import sharp from "sharp";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { Role, ConsentType, ConsentStatus } from "@prisma/client";
@@ -14,6 +18,7 @@ async function createPatient(formData: FormData) {
   const lastName = (formData.get("lastName") as string)?.trim();
   const email = (formData.get("email") as string)?.trim() || null;
   const phone = (formData.get("phone") as string)?.trim() || null;
+  const photo = formData.get("photo") as File | null;
   const consentPrivacy = formData.get("consentPrivacy") === "on";
   const consentTreatment = formData.get("consentTreatment") === "on";
 
@@ -52,6 +57,24 @@ async function createPatient(formData: FormData) {
     },
   });
 
+  if (photo && photo.size > 0) {
+    const buffer = Buffer.from(await photo.arrayBuffer());
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "patients");
+    await fs.mkdir(uploadDir, { recursive: true });
+    const outputPath = path.join(uploadDir, `${patient.id}.jpg`);
+    const publicPath = `/uploads/patients/${patient.id}.jpg?ts=${Date.now()}`;
+
+    await sharp(buffer)
+      .resize(512, 512, { fit: "cover" })
+      .jpeg({ quality: 85 })
+      .toFile(outputPath);
+
+    await prisma.patient.update({
+      where: { id: patient.id },
+      data: { photoUrl: publicPath },
+    });
+  }
+
   await logAudit(user, {
     action: "patient.created",
     entity: "Patient",
@@ -73,9 +96,22 @@ async function deletePatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
-export default async function PazientiPage() {
+export default async function PazientiPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const t = await getTranslations("patients");
+
+  const qParam = params.q;
+  const searchQuery =
+    typeof qParam === "string"
+      ? qParam.toLowerCase()
+      : Array.isArray(qParam)
+        ? qParam[0]?.toLowerCase()
+        : undefined;
 
   const patients = await prisma.patient.findMany({
     orderBy: { createdAt: "desc" },
@@ -85,6 +121,7 @@ export default async function PazientiPage() {
       lastName: true,
       email: true,
       phone: true,
+      photoUrl: true,
       consents: {
         select: {
           type: true,
@@ -93,6 +130,16 @@ export default async function PazientiPage() {
       },
       createdAt: true,
     },
+    where: searchQuery
+      ? {
+          OR: [
+            { firstName: { contains: searchQuery, mode: "insensitive" } },
+            { lastName: { contains: searchQuery, mode: "insensitive" } },
+            { email: { contains: searchQuery, mode: "insensitive" } },
+            { phone: { contains: searchQuery, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
   });
 
   return (
@@ -104,6 +151,7 @@ export default async function PazientiPage() {
         <form
           action={createPatient}
           className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+          encType="multipart/form-data"
         >
           <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
             Nome
@@ -140,6 +188,18 @@ export default async function PazientiPage() {
               autoComplete="tel"
             />
           </label>
+          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            Foto (opzionale)
+            <input
+              type="file"
+              name="photo"
+              accept="image/*"
+              className="h-11 rounded-xl border border-dashed border-emerald-200 px-3 text-sm text-zinc-900 outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-emerald-800 hover:border-emerald-300"
+            />
+            <span className="text-xs font-normal text-zinc-500">
+              Verrà ridimensionata automaticamente a 512x512.
+            </span>
+          </label>
           <div className="col-span-full flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
             <span className="font-semibold text-zinc-900">Consensi</span>
             <label className="inline-flex items-center gap-2 text-sm">
@@ -164,6 +224,38 @@ export default async function PazientiPage() {
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Elenco pazienti</h2>
+        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
+            Cerca
+            <input
+              type="text"
+              name="q"
+              defaultValue={
+                typeof params.q === "string"
+                  ? params.q
+                  : Array.isArray(params.q)
+                    ? params.q[0]
+                    : ""
+              }
+              placeholder="Nome, cognome, email, telefono"
+              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            >
+              Applica
+            </button>
+            <a
+              href="/pazienti"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+            >
+              Mostra tutto
+            </a>
+          </div>
+        </form>
         <div className="mt-4 divide-y divide-zinc-100">
           {patients.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
@@ -171,9 +263,12 @@ export default async function PazientiPage() {
             patients.map((patient) => (
               <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-zinc-900">
+                  <Link
+                    href={`/pazienti/${patient.id}`}
+                    className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+                  >
                     {patient.firstName} {patient.lastName}
-                  </span>
+                  </Link>
                   <span className="text-xs text-zinc-600">
                     {patient.email ?? "—"} · {patient.phone ?? "—"}
                   </span>
@@ -187,6 +282,12 @@ export default async function PazientiPage() {
                       {consent.type}
                     </span>
                   ))}
+                  <Link
+                    href={`/pazienti/${patient.id}`}
+                    className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    Scheda / Foto
+                  </Link>
                   <form action={deletePatient}>
                     <input type="hidden" name="patientId" value={patient.id} />
                     <button
