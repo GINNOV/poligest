@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { StackProvider } from "@stackframe/stack";
 import { stackServerApp } from "@/lib/stack-app";
-import "./globals.css";
+import "../globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +22,8 @@ export const metadata: Metadata = {
     "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
 };
 
+import { TooltipProvider } from "@/components/ui/tooltip";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -37,11 +39,13 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased`}
       >
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <StackProvider app={stackServerApp} lang={stackLang}>
-            {children}
-          </StackProvider>
-        </NextIntlClientProvider>
+        <TooltipProvider>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <StackProvider app={stackServerApp} lang={stackLang}>
+              {children}
+            </StackProvider>
+          </NextIntlClientProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

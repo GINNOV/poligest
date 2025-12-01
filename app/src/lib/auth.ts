@@ -23,8 +23,23 @@ async function getUserFromStack(): Promise<AppUser | null> {
     : null;
   if (!email) return null;
 
-  const dbUser = await prisma.user.findUnique({ where: { email } });
-  if (!dbUser) return null;
+  let dbUser = await prisma.user.findUnique({ where: { email } });
+
+  if (!dbUser) {
+    try {
+      dbUser = await prisma.user.create({
+        data: {
+          email,
+          name: stackUser.displayName ?? email.split("@")[0],
+          role: "SECRETARY",
+          // hashedPassword is optional now
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create user in local DB:", error);
+      return null;
+    }
+  }
 
   return {
     id: dbUser.id,

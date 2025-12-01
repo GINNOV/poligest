@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { stackServerApp } from "@/lib/stack-app";
+import { redirect } from "next/navigation";
 
 export default async function Home() {
+  const user = await stackServerApp.getUser();
+  if (user) {
+    redirect("/dashboard");
+  }
+
   const t = await getTranslations("home");
   const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
 
