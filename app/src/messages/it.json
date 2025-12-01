@@ -49,6 +49,7 @@
     "dashboard": "Dashboard",
     "agenda": "Agenda",
     "patients": "Pazienti",
+    "doctors": "Medici",
     "inventory": "Magazzino",
     "finance": "Finanza",
     "recalls": "Richiami",
@@ -66,14 +67,26 @@
     }
   },
   "agenda": {
-    "title": "Agenda",
+    "title": "Appuntamenti",
     "subtitle": "Vista multi-dottore con stati e tipologie di prestazione.",
-    "placeholder": "Prossimo step: implementare la vista agenda con filtri e stati."
+    "placeholder": "Prossimo step: implementare la vista agenda con filtri e stati.",
+    "filterDate": "Filtra per data",
+    "filterStatus": "Filtra per stato"
   },
   "patients": {
     "title": "Pazienti",
     "subtitle": "Anagrafica, consensi GDPR e storico visite.",
     "placeholder": "Prossimo step: elenco pazienti, ricerca e dettagli."
+  },
+  "doctors": {
+    "title": "Medici",
+    "subtitle": "Gestisci l'elenco dei medici dello studio.",
+    "name": "Nome",
+    "lastName": "Cognome",
+    "specialty": "Specialità",
+    "save": "Salva medico",
+    "odontoiatra": "Odontoiatra",
+    "cardiologo": "Cardiologo"
   },
   "admin": {
     "title": "Pannello amministratore",

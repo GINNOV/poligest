@@ -62,6 +62,17 @@ async function createPatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
+async function deletePatient(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN]);
+  const patientId = formData.get("patientId") as string;
+  if (!patientId) throw new Error("Paziente non valido");
+
+  await prisma.patient.delete({ where: { id: patientId } });
+  revalidatePath("/pazienti");
+}
+
 export default async function PazientiPage() {
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const t = await getTranslations("patients");
@@ -158,7 +169,7 @@ export default async function PazientiPage() {
             <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
           ) : (
             patients.map((patient) => (
-              <div key={patient.id} className="flex items-center justify-between py-3">
+              <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col">
                   <span className="text-sm font-semibold text-zinc-900">
                     {patient.firstName} {patient.lastName}
@@ -167,15 +178,24 @@ export default async function PazientiPage() {
                     {patient.email ?? "—"} · {patient.phone ?? "—"}
                   </span>
                 </div>
-                <div className="flex gap-2 text-xs text-emerald-800">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                   {patient.consents.map((consent) => (
                     <span
                       key={consent.type}
-                      className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 font-semibold"
+                      className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
                     >
                       {consent.type}
                     </span>
                   ))}
+                  <form action={deletePatient}>
+                    <input type="hidden" name="patientId" value={patient.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                    >
+                      Elimina
+                    </button>
+                  </form>
                 </div>
               </div>
             ))

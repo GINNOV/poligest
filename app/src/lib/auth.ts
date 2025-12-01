@@ -14,6 +14,25 @@ type AppUser = {
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+async function ensurePatientRecord(email: string, fullName?: string | null) {
+  const existing = await prisma.patient.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+  if (existing) return existing;
+
+  const [firstName, ...rest] = (fullName ?? email.split("@")[0]).split(" ");
+  const lastName = rest.join(" ").trim() || firstName;
+
+  return prisma.patient.create({
+    data: {
+      firstName: firstName || email,
+      lastName,
+      email,
+      notes: "Creato automaticamente dall'account paziente.",
+    },
+  });
+}
+
 async function getUserFromStack(): Promise<AppUser | null> {
   const stackUser = await stackServerApp.getUser();
   if (!stackUser) return null;
@@ -40,6 +59,14 @@ async function getUserFromStack(): Promise<AppUser | null> {
     } catch (error) {
       console.error("Failed to create user in local DB:", error);
       return null;
+    }
+  }
+
+  if (dbUser.role === Role.PATIENT) {
+    try {
+      await ensurePatientRecord(email, dbUser.name ?? stackUser.displayName);
+    } catch (error) {
+      console.error("Failed to ensure patient record:", error);
     }
   }
 

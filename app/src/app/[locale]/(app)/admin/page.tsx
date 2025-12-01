@@ -91,6 +91,17 @@ async function setUserRole(formData: FormData) {
   revalidatePath("/admin");
 }
 
+async function deleteUser(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN]);
+  const userId = formData.get("userId") as string;
+  if (!userId) throw new Error("Utente non valido");
+
+  await prisma.user.delete({ where: { id: userId } });
+  revalidatePath("/admin");
+}
+
 export default async function AdminPage() {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
@@ -114,6 +125,14 @@ export default async function AdminPage() {
       <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <p className="text-sm text-zinc-600">{t("subtitle")}</p>
         <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <a
+            href="/medici"
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+          >
+            Gestione medici
+          </a>
+        </div>
 
         <div className="mt-4 rounded-xl border border-zinc-100 bg-zinc-50 p-4">
           <h2 className="text-sm font-semibold text-zinc-900">{t("createUser")}</h2>
@@ -234,6 +253,15 @@ export default async function AdminPage() {
                         className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
                       >
                         {t("toggle")}
+                      </button>
+                    </form>
+                    <form action={deleteUser} className="flex justify-start sm:justify-end">
+                      <input type="hidden" name="userId" value={user.id} />
+                      <button
+                        type="submit"
+                        className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                      >
+                        Elimina
                       </button>
                     </form>
                   </div>

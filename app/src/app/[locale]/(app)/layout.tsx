@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.ADMIN ||
     user?.role === Role.MANAGER ||
     user?.role === Role.SECRETARY;
+  const isManager = user?.role === Role.MANAGER;
 
   return (
     <div className="min-h-screen bg-zinc-50">
