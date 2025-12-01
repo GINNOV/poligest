@@ -122,9 +122,6 @@ export default async function PatientDetailPage({
                   accept="image/*"
                   className="hidden"
                   required
-                  onChange={(e) => {
-                    // form submission handled server-side; keep default behavior
-                  }}
                 />
               </label>
               <button

@@ -64,9 +64,8 @@ async function deleteDoctor(formData: FormData) {
     where: { doctorId: id },
     data: { doctorId: null },
   });
-  await prisma.cashAdvance.updateMany({
+  await prisma.cashAdvance.deleteMany({
     where: { doctorId: id },
-    data: { doctorId: "" },
   });
 
   await prisma.doctor.delete({ where: { id } });
@@ -121,6 +120,7 @@ export default async function MediciPage() {
               >
                 <option value="Odontoiatra">{t("odontoiatra")}</option>
                 <option value="Cardiologo">{t("cardiologo")}</option>
+                <option value="Igenista">{t("igenista")}</option>
               </select>
             </label>
             <div className="col-span-full">
@@ -161,6 +161,7 @@ export default async function MediciPage() {
                   >
                     <option value="Odontoiatra">{t("odontoiatra")}</option>
                     <option value="Cardiologo">{t("cardiologo")}</option>
+                    <option value="Igenista">{t("igenista")}</option>
                   </select>
                   <button
                     type="submit"

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { FormSubmitButton } from "@/components/form-submit-button";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -312,12 +313,9 @@ export default async function AgendaPage({
             </select>
           </label>
           <div className="col-span-full">
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
+            <FormSubmitButton className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
               Aggiungi appuntamento
-            </button>
+            </FormSubmitButton>
           </div>
         </form>
       </div>
