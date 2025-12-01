@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { StackHandler, StackTheme } from "@stackframe/stack";
+import { StackHandler } from "@stackframe/stack";
 
 export default function StackAuthHandlerPage() {
   return (
@@ -45,11 +45,9 @@ export default function StackAuthHandlerPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">
                 Accedi o registrati
               </p>
-              <StackTheme theme="light">
-                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
-                  <StackHandler fullPage={false} />
-                </div>
-              </StackTheme>
+              <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
+                <StackHandler fullPage={false} />
+              </div>
               <p className="text-xs text-zinc-500">
                 Se hai bisogno di assistenza per l&apos;accesso, contatta la segreteria dello studio.
               </p>
