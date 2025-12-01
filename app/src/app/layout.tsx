@@ -2,7 +2,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { AuthSessionProvider } from "@/components/auth-session-provider";
+import { StackProvider } from "@stackframe/stack";
+import { stackServerApp } from "@/lib/stack-app";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,6 +29,8 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const stackLang =
+    locale === "it" ? "it-IT" : undefined; // Stack expects full locale tags
 
   return (
     <html lang={locale}>
@@ -35,7 +38,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <AuthSessionProvider>{children}</AuthSessionProvider>
+          <StackProvider app={stackServerApp} lang={stackLang}>
+            {children}
+          </StackProvider>
         </NextIntlClientProvider>
       </body>
     </html>

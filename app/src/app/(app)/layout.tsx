@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getCurrentSession } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/sign-out-button";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const session = await getCurrentSession();
+  const user = await getCurrentUser();
   const t = await getTranslations("app");
 
   return (
@@ -31,10 +31,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3 text-sm text-zinc-700">
             <div className="flex flex-col leading-tight">
               <span className="font-semibold text-zinc-900">
-                {session?.user?.name ?? session?.user?.email}
+                {user?.name ?? user?.email}
               </span>
               <span className="text-xs uppercase text-emerald-700">
-                {session?.user?.role ?? ""}
+                {user?.role ?? ""}
               </span>
             </div>
             <SignOutButton label={t("logout")} />

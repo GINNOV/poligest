@@ -16,7 +16,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 export default async function DashboardPage() {
-  const session = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const t = await getTranslations("dashboard");
 
   const since = new Date();
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
         <div>
           <p className="text-sm text-zinc-600">{t("welcome")}</p>
           <h1 className="text-3xl font-semibold text-zinc-900">
-            {session.user.name ?? session.user.email}
+            {user.name ?? user.email}
           </h1>
         </div>
       </div>
