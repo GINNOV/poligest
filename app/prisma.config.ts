@@ -1,5 +1,8 @@
-// Load environment variables for Prisma CLI commands
-import "dotenv/config";
+// Load environment variables for Prisma CLI commands (prefer .env.local)
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.local" });
+dotenv.config();
 
 const env = (key: string) => {
   const value = process.env[key];

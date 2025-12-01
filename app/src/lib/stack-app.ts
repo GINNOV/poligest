@@ -12,7 +12,7 @@ export const stackServerApp = new StackServerApp({
   projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
   publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
   secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
-  tokenStore: "cookie",
+  tokenStore: "nextjs-cookie",
   urls: {
     handler: "/handler",
   },
