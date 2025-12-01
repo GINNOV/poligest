@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "title": "PoliGest Medical",
+    "description": "Piattaforma unica per agenda, cartelle cliniche, magazzino e finanza della clinica."
+  },
+  "home": {
+    "heroTitle": "PoliGest Medical",
+    "heroSubtitle": "Gestione clinica centralizzata in un'unica interfaccia italiana.",
+    "ctaPrimary": "Accedi",
+    "ctaSecondary": "Scopri il piano",
+    "tagline": "Pensata per Segreteria, Manager e Amministratore con controlli di privacy e audit."
+  },
+  "app": {
+    "brand": "PoliGest",
+    "dashboard": "Dashboard",
+    "agenda": "Agenda",
+    "patients": "Pazienti",
+    "logout": "Esci"
+  },
+  "dashboard": {
+    "welcome": "Benvenuto in PoliGest",
+    "upcoming": "Prossimi appuntamenti",
+    "empty": "Nessun appuntamento imminente.",
+    "stats": {
+      "patients": "Pazienti",
+      "doctors": "Dottori",
+      "upcoming": "Appuntamenti imminenti"
+    }
+  },
+  "agenda": {
+    "title": "Agenda",
+    "subtitle": "Vista multi-dottore con stati e tipologie di prestazione.",
+    "placeholder": "Prossimo step: implementare la vista agenda con filtri e stati."
+  },
+  "patients": {
+    "title": "Pazienti",
+    "subtitle": "Anagrafica, consensi GDPR e storico visite.",
+    "placeholder": "Prossimo step: elenco pazienti, ricerca e dettagli."
+  },
+  "login": {
+    "title": "Accesso a PoliGest",
+    "subtitle": "Inserisci le credenziali per continuare.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Entra",
+    "error": "Credenziali non valide. Verifica email e password.",
+    "back": "Torna alla home"
+  }
+}

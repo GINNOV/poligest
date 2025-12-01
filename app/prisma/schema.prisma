@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  SECRETARY
+}
+
+enum AppointmentStatus {
+  TO_CONFIRM
+  CONFIRMED
+  IN_WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum ConsentType {
+  PRIVACY
+  MARKETING
+  TREATMENT
+  RECALL
+}
+
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+  EXPIRED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  hashedPassword String
+  role         Role     @default(SECRETARY)
+  locale       String   @default("it")
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  doctor       Doctor?
+  auditLogs    AuditLog[]
+}
+
+model Doctor {
+  id          String    @id @default(cuid())
+  fullName    String
+  specialty   String
+  color       String?   // Optional color code for agenda
+  userId      String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User?     @relation(fields: [userId], references: [id])
+  appointments Appointment[]
+  clinicalNotes ClinicalNote[]
+}
+
+model Patient {
+  id           String        @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  birthDate    DateTime?
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  consents     Consent[]
+  appointments Appointment[]
+  clinicalNotes ClinicalNote[]
+}
+
+model Consent {
+  id         String        @id @default(cuid())
+  type       ConsentType
+  status     ConsentStatus @default(GRANTED)
+  channel    String?       // e.g. email/sms/firmato
+  givenAt    DateTime      @default(now())
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  patientId  String
+
+  patient    Patient       @relation(fields: [patientId], references: [id])
+
+  @@unique([patientId, type], name: "patientId_type")
+  @@index([patientId, type])
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  title       String
+  status      AppointmentStatus @default(TO_CONFIRM)
+  serviceType String
+  startsAt    DateTime
+  endsAt      DateTime
+  notes       String?
+  patientId   String
+  doctorId    String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  patient     Patient           @relation(fields: [patientId], references: [id])
+  doctor      Doctor?           @relation(fields: [doctorId], references: [id])
+
+  @@index([startsAt])
+  @@index([doctorId])
+  @@index([patientId])
+}
+
+model ClinicalNote {
+  id         String   @id @default(cuid())
+  content    String
+  patientId  String
+  doctorId   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  patient    Patient  @relation(fields: [patientId], references: [id])
+  doctor     Doctor?  @relation(fields: [doctorId], references: [id])
+
+  @@index([patientId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  userId    String?
+  role      Role?
+  ip        String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId])
+}
