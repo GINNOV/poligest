@@ -28,6 +28,37 @@ async function createDoctor(formData: FormData) {
   revalidatePath("/medici");
 }
 
+async function updateDoctor(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const id = formData.get("doctorId") as string;
+  const fullName = (formData.get("fullName") as string)?.trim();
+  const specialty = (formData.get("specialty") as string)?.trim() || "Odontoiatra";
+
+  if (!id || !fullName) {
+    throw new Error("Dati medico non validi");
+  }
+
+  await prisma.doctor.update({
+    where: { id },
+    data: { fullName, specialty },
+  });
+
+  revalidatePath("/medici");
+}
+
+async function deleteDoctor(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const id = formData.get("doctorId") as string;
+  if (!id) throw new Error("Medico non valido");
+
+  await prisma.doctor.delete({ where: { id } });
+  revalidatePath("/medici");
+}
+
 export default async function MediciPage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const t = await getTranslations("doctors");
@@ -101,17 +132,44 @@ export default async function MediciPage() {
               <p className="py-4 text-sm text-zinc-600">Nessun medico registrato.</p>
             ) : (
               doctors.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between py-3">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-zinc-900">{doc.fullName}</span>
-                    <span className="text-xs text-zinc-600">{doc.specialty ?? "—"}</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+              <div key={doc.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <form action={updateDoctor} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                  <input type="hidden" name="doctorId" value={doc.id} />
+                  <input
+                    name="fullName"
+                    defaultValue={doc.fullName}
+                    className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                  <select
+                    name="specialty"
+                    defaultValue={doc.specialty ?? "Odontoiatra"}
+                    className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="Odontoiatra">{t("odontoiatra")}</option>
+                    <option value="Cardiologo">{t("cardiologo")}</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                  >
+                    Salva
+                  </button>
+                </form>
+                <form action={deleteDoctor} className="flex justify-end">
+                  <input type="hidden" name="doctorId" value={doc.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                  >
+                    Elimina
+                  </button>
+                </form>
+              </div>
+            ))
+          )}
         </div>
       </div>
+    </div>
     </div>
   );
 }
