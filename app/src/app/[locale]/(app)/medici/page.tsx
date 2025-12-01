@@ -55,6 +55,20 @@ async function deleteDoctor(formData: FormData) {
   const id = formData.get("doctorId") as string;
   if (!id) throw new Error("Medico non valido");
 
+  // detach related appointments and records before deletion
+  await prisma.appointment.updateMany({
+    where: { doctorId: id },
+    data: { doctorId: null },
+  });
+  await prisma.financeEntry.updateMany({
+    where: { doctorId: id },
+    data: { doctorId: null },
+  });
+  await prisma.cashAdvance.updateMany({
+    where: { doctorId: id },
+    data: { doctorId: "" },
+  });
+
   await prisma.doctor.delete({ where: { id } });
   revalidatePath("/medici");
 }
