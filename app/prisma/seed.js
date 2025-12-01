@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
 const { hash } = require("bcryptjs");
-const { PrismaClient, Role } = require("@prisma/client");
+const { PrismaClient, Role, Prisma } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
@@ -115,6 +115,87 @@ async function main() {
       notes: "Appuntamento di esempio per agenda.",
     },
   });
+
+  const supplier =
+    (await prisma.supplier.findFirst()) ||
+    (await prisma.supplier.create({
+      data: {
+        name: "Fornitore Medicale",
+        email: "fornitore@poligest.local",
+        phone: "+39000000001",
+        notes: "Fornitore demo per materiali.",
+      },
+    }));
+
+  const product =
+    (await prisma.product.findFirst()) ||
+    (await prisma.product.create({
+      data: {
+        name: "Mascherine chirurgiche",
+        sku: "MASK-001",
+        unitCost: new Prisma.Decimal("0.25"),
+        minThreshold: 100,
+        supplierId: supplier.id,
+      },
+    }));
+
+  await prisma.stockMovement.create({
+    data: {
+      productId: product.id,
+      quantity: 500,
+      movement: "IN",
+      note: "Carico iniziale magazzino",
+      userId: admin.id,
+    },
+  });
+
+  await prisma.financeEntry.create({
+    data: {
+      type: "EXPENSE",
+      description: "Materiale di consumo",
+      amount: new Prisma.Decimal("125.00"),
+      occurredAt: new Date(),
+      doctorId: doctor.id,
+      userId: manager.id,
+    },
+  });
+
+  await prisma.cashAdvance.create({
+    data: {
+      doctorId: doctor.id,
+      amount: new Prisma.Decimal("300.00"),
+      issuedAt: new Date(),
+      note: "Anticipo su compensi",
+      userId: admin.id,
+    },
+  });
+
+  const recallRule =
+    (await prisma.recallRule.findFirst()) ||
+    (await prisma.recallRule.create({
+      data: {
+        name: "Igiene semestrale",
+        serviceType: "Igiene",
+        intervalDays: 180,
+        message: "Promemoria visita di igiene programmata.",
+      },
+    }));
+
+  const dueAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+  const existingRecall = await prisma.recall.findFirst({
+    where: { patientId: patient.id, ruleId: recallRule.id, dueAt },
+  });
+  if (!existingRecall) {
+    await prisma.recall.create({
+      data: {
+        patientId: patient.id,
+        ruleId: recallRule.id,
+        dueAt,
+        status: "PENDING",
+        notes: "Promemoria demo",
+      },
+    });
+  }
 
   console.log("Seed completato. Admin:", admin.email);
 }

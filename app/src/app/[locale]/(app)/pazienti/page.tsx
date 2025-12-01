@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
 async function createPatient(formData: FormData) {
+  "use server";
+
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const firstName = (formData.get("firstName") as string)?.trim();

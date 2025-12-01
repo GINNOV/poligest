@@ -4,13 +4,18 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 dotenv.config();
 
-const env = (key: string) => {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Missing required env var: ${key}`);
-  }
-  return value;
-};
+const getDbUrl = () =>
+  process.env.POSTGRES_PRISMA_URL ??
+  process.env.DATABASE_URL_UNPOOLED ??
+  process.env.DATABASE_URL;
+
+const dbUrl = getDbUrl();
+
+if (!dbUrl) {
+  throw new Error(
+    "Missing database URL. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env."
+  );
+}
 
 const config = {
   schema: "prisma/schema.prisma",
@@ -19,7 +24,7 @@ const config = {
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: dbUrl,
   },
 };
 

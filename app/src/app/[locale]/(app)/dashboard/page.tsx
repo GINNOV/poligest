@@ -16,7 +16,12 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 export default async function DashboardPage() {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.SECRETARY,
+    Role.PATIENT,
+  ]);
   const t = await getTranslations("dashboard");
 
   const since = new Date();

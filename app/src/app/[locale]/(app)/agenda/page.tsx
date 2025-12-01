@@ -6,6 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
 async function createAppointment(formData: FormData) {
+  "use server";
+
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const title = (formData.get("title") as string)?.trim();

@@ -1,20 +1,58 @@
 {
   "meta": {
-    "title": "PoliGest Medical",
+    "title": "by NoMore Caries",
     "description": "Piattaforma unica per agenda, cartelle cliniche, magazzino e finanza della clinica."
   },
   "home": {
-    "heroTitle": "PoliGest Medical",
-    "heroSubtitle": "Gestione clinica centralizzata in un'unica interfaccia italiana.",
-    "ctaPrimary": "Accedi",
-    "ctaSecondary": "Scopri il piano",
-    "tagline": "Pensata per Segreteria, Manager e Amministratore con controlli di privacy e audit."
+    "badge": "Studio Agovino & Angrisano",
+    "logoAlt": "Logo Studio Agovino & Angrisano",
+    "heroTitle": "La tua salute dentale online",
+    "heroSubtitle": "Prenota visite, consulta documenti, tieni d'occhio la spesa e tanto altro.",
+    "ctaPrimary": "Area Pazienti",
+    "ctaSecondary": "Accesso Staff e Medici",
+    "taglinePrimary": "Accesso digitale allo Studio Agovino & Angrisano",
+    "tagline": "Accesso digitale allo Studio Agovino & Angrisano",
+    "support": "Accedi con le credenziali ricevute via email o in studio. Tutte le informazioni restano sotto controllo e in regola con la privacy.",
+    "ctaHint": "Se non hai ancora le credenziali, contatta la segreteria per riceverle.",
+    "pillars": {
+      "patientAccess": "Area pazienti dedicata",
+      "paperless": "Documenti e consensi digitali",
+      "privacy": "Dati protetti e auditabili"
+    },
+    "patientHighlight": "Pensata per i pazienti",
+    "patientTitle": "Prenota, controlla e resta aggiornato",
+    "patientCopy": "Gestisci le visite, ricevi promemoria e comunica con lo studio da un'unica pagina.",
+    "patientBullets": {
+      "book": "Prenotazioni e riprogrammazioni rapide",
+      "reminders": "Promemoria automatici e messaggi mirati",
+      "records": "Consensi e dati sempre aggiornati"
+    },
+    "rolesTitle": "Accessi dedicati",
+    "rolesSubtitle": "Un accesso per ogni esigenza dello studio",
+    "roles": {
+      "patients": {
+        "title": "Pazienti",
+        "desc": "Prenota visite, aggiorna contatti e gestisci consensi senza telefonate o carta."
+      },
+      "doctors": {
+        "title": "Medici",
+        "desc": "Agenda aggiornata, note cliniche e promemoria pazienti in un'unica vista."
+      },
+      "staff": {
+        "title": "Staff",
+        "desc": "Gestione appuntamenti, richiami e comunicazioni con controllo completo dei permessi."
+      }
+    }
   },
   "app": {
     "brand": "PoliGest",
     "dashboard": "Dashboard",
     "agenda": "Agenda",
     "patients": "Pazienti",
+    "inventory": "Magazzino",
+    "finance": "Finanza",
+    "recalls": "Richiami",
+    "admin": "Amministrazione",
     "logout": "Esci"
   },
   "dashboard": {
@@ -36,6 +74,22 @@
     "title": "Pazienti",
     "subtitle": "Anagrafica, consensi GDPR e storico visite.",
     "placeholder": "Prossimo step: elenco pazienti, ricerca e dettagli."
+  },
+  "admin": {
+    "title": "Pannello amministratore",
+    "subtitle": "Gestione utenti, ruoli e stato degli account.",
+    "createUser": "Crea o aggiorna utente",
+    "name": "Nome completo",
+    "email": "Email",
+    "role": "Ruolo",
+    "locale": "Lingua",
+    "active": "Account attivo",
+    "saveUser": "Salva utente",
+    "usersList": "Utenti e ruoli",
+    "statusActive": "Attivo",
+    "statusDisabled": "Disabilitato",
+    "toggle": "Attiva/Disattiva",
+    "updateRole": "Aggiorna ruolo"
   },
   "login": {
     "title": "Accesso a PoliGest",

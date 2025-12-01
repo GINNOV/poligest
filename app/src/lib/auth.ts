@@ -33,7 +33,7 @@ async function getUserFromStack(): Promise<AppUser | null> {
           name: stackUser.displayName ?? email.split("@")[0],
           // Stack-managed users authenticate via Stack tokens; keep password placeholder for NOT NULL column
           hashedPassword: "",
-          role: "SECRETARY",
+          role: "PATIENT",
           // hashedPassword is optional now
         },
       });
