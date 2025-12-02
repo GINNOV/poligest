@@ -29,13 +29,13 @@ To resolve this, you need to edit your `.env.local` file and ensure that each en
 
     **Before (incorrect):**
     ```
-    DATABASE_URL="postgresql://user:password@ep-proud-resonance-abunyz7r-pooler.e
-    u-west-2.aws.neon.tech/neondb?sslmode=require"
+    DATABASE_URL="postgresql://user:password@host.e
+    xample.com/dbname?sslmode=require"
     ```
 
     **After (correct):**
     ```
-    DATABASE_URL="postgresql://user:password@ep-proud-resonance-abunyz7r-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+    DATABASE_URL="postgresql://user:password@host.region.provider.com/dbname?sslmode=require"
     ```
 
 After correcting the `.env.local` file, re-run your Prisma migration command (`npm run db:migrate`). It should now execute successfully.
