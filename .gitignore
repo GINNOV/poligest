@@ -38,3 +38,4 @@ app/.cache
 app/.npm-cache
 app/Library
 app/.genkit
+firebase-debug.log
