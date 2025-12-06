@@ -54,6 +54,7 @@ export default async function StackAuthHandlerPage(props: {
               </p>
               <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
                 <StackHandler
+                  fullPage={false}
                   app={stackServerApp}
                   params={params}
                   searchParams={searchParams}
