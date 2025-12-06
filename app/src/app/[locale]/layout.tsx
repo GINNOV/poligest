@@ -31,8 +31,6 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const stackLang =
-    locale === "it" ? "it-IT" : undefined; // Stack expects full locale tags
 
   return (
     <html lang={locale}>
@@ -41,7 +39,7 @@ export default async function RootLayout({
       >
         <TooltipProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <StackProvider app={stackServerApp} lang={stackLang}>
+            <StackProvider app={stackServerApp}>
               {children}
             </StackProvider>
           </NextIntlClientProvider>

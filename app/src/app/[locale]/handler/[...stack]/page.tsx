@@ -1,8 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { StackHandler } from "@stackframe/stack";
+import { stackServerApp } from "@/lib/stack-app";
 
-export default function StackAuthHandlerPage() {
+export default async function StackAuthHandlerPage(props: {
+  params: Promise<{ stack: string[] }>;
+  searchParams: Promise<Record<string, string>>;
+}) {
+  const params = await props.params;
+  const searchParams = await props.searchParams;
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-4 py-10 sm:px-6 sm:py-12">
       <div className="pointer-events-none absolute left-10 top-16 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
@@ -46,7 +53,11 @@ export default function StackAuthHandlerPage() {
                 Accedi o registrati
               </p>
               <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
-                <StackHandler fullPage={false} />
+                <StackHandler
+                  app={stackServerApp}
+                  params={params}
+                  searchParams={searchParams}
+                />
               </div>
               <p className="text-xs text-zinc-500">
                 Se hai bisogno di assistenza per l&apos;accesso, contatta la segreteria dello studio.
