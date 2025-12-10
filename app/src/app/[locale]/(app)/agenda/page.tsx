@@ -447,25 +447,27 @@ export default async function AgendaPage({
                       </span>
                     </div>
                     <p className="text-xs text-zinc-700">
-                      🧑‍⚕️ Patient <span className="font-semibold">{appt.patient.lastName} {appt.patient.firstName}</span>{" "}
-                      to be seen by <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                      on{" "}
-                      {new Intl.DateTimeFormat("en-GB", {
+                      🧑‍⚕️ Paziente{" "}
+                      <span className="font-semibold">
+                        {appt.patient.lastName} {appt.patient.firstName}
+                      </span>{" "}
+                      sarà visitato da{" "}
+                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
+                      {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
                         day: "numeric",
                         month: "short",
                       }).format(appt.startsAt)}{" "}
-                      at{" "}
-                      {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                     </p>
                     <p className="text-xs text-zinc-700">
-                      🕒 Service should end by{" "}
-                      {new Intl.DateTimeFormat("en-GB", {
+                      🕒 Il servizio dovrebbe terminare entro{" "}
+                      {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
                         day: "numeric",
                         month: "short",
                       }).format(appt.endsAt)}{" "}
-                      at {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">

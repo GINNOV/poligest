@@ -216,63 +216,61 @@ export default async function DashboardPage({
             listAppointments.map((appt) => (
               <div
                 key={appt.id}
-                className="mb-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                className="mb-3 rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm"
               >
-                <div className="flex items-start gap-4">
-                  <div className="flex flex-col items-center">
-                    <span className="text-2xl font-semibold text-zinc-900">
-                      {format(appt.startsAt, "HH:mm", { locale: it })}
-                    </span>
-                    <span className="text-[11px] font-semibold uppercase text-zinc-500">
-                      {format(appt.startsAt, "aaa", { locale: it })}
-                    </span>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-semibold text-zinc-900">
-                          <Link
-                            href={`/pazienti/${appt.patient.id}`}
-                            className="hover:text-emerald-700"
-                          >
-                            {appt.patient.firstName} {appt.patient.lastName}
-                          </Link>
-                        </p>
-                        <p className="text-xs text-zinc-600">
-                          {appt.title} · {appt.serviceType}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {appt.doctor?.fullName ?? "—"}{" "}
-                          {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""}
-                        </p>
-                      </div>
-                      {appt.patient.photoUrl ? (
-                        <Image
-                          src={appt.patient.photoUrl}
-                          alt={`${appt.patient.firstName} ${appt.patient.lastName}`}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-sm font-semibold text-emerald-800">
-                          {`${(appt.patient.firstName ?? "P")[0] ?? "P"}${(appt.patient.lastName ?? " ")?.[0] ?? ""}`}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold uppercase">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${statusClasses[appt.status]}`}
-                        >
-                          <span aria-hidden="true">{statusIcons[appt.status]}</span>
-                          {statusLabels[appt.status].toUpperCase()}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                        <span aria-hidden="true">
+                          {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                          (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                            ? "🦷"
+                            : "❤️"}
                         </span>
-                      </div>
-                      <span className="text-xs font-semibold text-zinc-600">
-                        {format(appt.startsAt, "d MMM", { locale: it })}
+                        {appt.title}
+                      </span>
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                        {appt.serviceType}
                       </span>
                     </div>
+                    <p className="text-sm text-zinc-800">
+                      🧑‍⚕️ Paziente{" "}
+                      <Link
+                        href={`/pazienti/${appt.patient.id}`}
+                        className="font-semibold hover:text-emerald-700"
+                      >
+                        {appt.patient.lastName} {appt.patient.firstName}
+                      </Link>{" "}
+                      sarà visitato da{" "}
+                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                      {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                      {new Intl.DateTimeFormat("it-IT", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      }).format(appt.startsAt)}{" "}
+                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                    </p>
+                    <p className="text-sm text-zinc-800">
+                      🕒 Il servizio dovrebbe terminare entro{" "}
+                      {new Intl.DateTimeFormat("it-IT", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      }).format(appt.endsAt)}{" "}
+                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                    >
+                      {statusLabels[appt.status].toUpperCase()}
+                    </span>
+                    <span className="text-xs font-semibold text-zinc-600">
+                      {format(appt.startsAt, "d MMM", { locale: it })}
+                    </span>
                   </div>
                 </div>
               </div>

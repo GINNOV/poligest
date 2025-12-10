@@ -17,9 +17,23 @@ async function createRecallRule(formData: FormData) {
     throw new Error("Dati regola non validi");
   }
 
-  await prisma.recallRule.create({
-    data: { name, serviceType, intervalDays, message, emailSubject, channel } as any,
-  });
+  const data: any = { name, serviceType, intervalDays, message, emailSubject, channel };
+  try {
+    await prisma.recallRule.create({ data });
+  } catch (err: any) {
+    if (err instanceof Error) {
+      const msg = err.message;
+      if (msg.includes("Unknown argument `emailSubject`")) {
+        delete data.emailSubject;
+      }
+      if (msg.includes("Unknown argument `channel`")) {
+        delete data.channel;
+      }
+      await prisma.recallRule.create({ data });
+      return;
+    }
+    throw err;
+  }
   revalidatePath("/richiami");
 }
 

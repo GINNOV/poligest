@@ -118,7 +118,11 @@ async function addImplantAssociation(formData: FormData) {
       productId,
       quantity: 1,
       movement: StockMovementType.OUT,
-      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null]
+      note: [
+        deviceType ? `Tipo: ${deviceType}` : null,
+        brand ? `Marca: ${brand}` : null,
+        udiDi ? `UDI-DI: ${udiDi}` : null,
+      ]
         .filter(Boolean)
         .join(" · ") || null,
       patientId,
@@ -148,6 +152,7 @@ async function updateImplantAssociation(formData: FormData) {
   const productId = (formData.get("productId") as string) || "";
   const deviceType = (formData.get("deviceType") as string)?.trim() || null;
   const brand = (formData.get("brand") as string)?.trim() || null;
+  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
   const udiPi = (formData.get("udiPi") as string)?.trim() || null;
   const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
   const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
@@ -164,7 +169,11 @@ async function updateImplantAssociation(formData: FormData) {
     where: { id: implantId },
     data: {
       productId,
-      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null]
+      note: [
+        deviceType ? `Tipo: ${deviceType}` : null,
+        brand ? `Marca: ${brand}` : null,
+        udiDi ? `UDI-DI: ${udiDi}` : null,
+      ]
         .filter(Boolean)
         .join(" · ") || null,
       udiPi,
@@ -365,9 +374,13 @@ export default async function PatientDetailPage({
       take: 50,
     }),
   ]);
+  const pastAppointments = patient.appointments
+    .filter((appt) => appt.startsAt < new Date())
+    .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
+    <>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
@@ -685,7 +698,7 @@ export default async function PatientDetailPage({
             <tbody className="divide-y divide-zinc-100">
               {implants.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-3 text-sm text-zinc-600" colSpan={7}>
+                  <td className="px-3 py-3 text-sm text-zinc-600" colSpan={8}>
                     Nessun impianto associato.
                   </td>
                 </tr>
@@ -694,6 +707,7 @@ export default async function PatientDetailPage({
                   const note = imp.note ?? "";
                   const deviceType = note.match(/Tipo:\s*([^·]+)/)?.[1]?.trim() ?? imp.product?.name ?? "—";
                   const brandFromNote = note.match(/Marca:\s*([^·]+)/)?.[1]?.trim();
+                  const udiDiFromNote = note.match(/UDI-DI:\s*([^·]+)/)?.[1]?.trim();
                   const brand =
                     brandFromNote ?? imp.product?.supplier?.name ?? (imp.product?.name ? "—" : "—");
                   return (
@@ -701,7 +715,7 @@ export default async function PatientDetailPage({
                       <td className="px-3 py-2 text-zinc-900">{deviceType}</td>
                       <td className="px-3 py-2 text-zinc-700">{brand ?? "—"}</td>
                       <td className="px-3 py-2 font-mono text-xs text-zinc-600">
-                        {imp.product?.udiDi ?? "—"}
+                        {udiDiFromNote ?? imp.product?.udiDi ?? "—"}
                       </td>
                       <td className="px-3 py-2 font-mono text-xs text-zinc-600">{imp.udiPi ?? "—"}</td>
                       <td className="px-3 py-2 text-zinc-700">
@@ -749,6 +763,15 @@ export default async function PatientDetailPage({
                                 name="brand"
                                 defaultValue={brand ?? ""}
                                 className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                              />
+                            </label>
+                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              UDI-DI
+                              <input
+                                name="udiDi"
+                                defaultValue={udiDiFromNote ?? imp.product?.udiDi ?? ""}
+                                className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                placeholder="UDI-DI"
                               />
                             </label>
                             <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
@@ -809,5 +832,76 @@ export default async function PatientDetailPage({
         </div>
       </div>
     </div>
+
+    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-900">Storico appuntamenti</h2>
+          <p className="text-sm text-zinc-600">Solo lettura, per tracciare gli ultimi appuntamenti.</p>
+        </div>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+          {pastAppointments.length}
+        </span>
+      </div>
+      <div className="mt-4 divide-y divide-zinc-100">
+        {pastAppointments.length === 0 ? (
+          <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
+        ) : (
+          pastAppointments.slice(0, 5).map((appt) => (
+            <div
+              key={appt.id}
+              className="py-4 first:pt-2 last:pb-2"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                      <span aria-hidden="true">
+                        {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                        (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                          ? "🦷"
+                          : "❤️"}
+                      </span>
+                      {appt.title}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                      {appt.serviceType}
+                    </span>
+                  </div>
+                  <p className="text-sm text-zinc-800">
+                    🧑‍⚕️ Paziente {patient.firstName} {patient.lastName} è stato visto da{" "}
+                    <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                    {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                    {new Intl.DateTimeFormat("it-IT", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(appt.startsAt)}{" "}
+                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                  </p>
+                  <p className="text-sm text-zinc-800">
+                    🕒 Terminato previsto entro{" "}
+                    {new Intl.DateTimeFormat("it-IT", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(appt.endsAt)}{" "}
+                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                  </p>
+                </div>
+                <span
+                  className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                >
+                  {statusLabels[appt.status].toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+    </>
   );
 }
