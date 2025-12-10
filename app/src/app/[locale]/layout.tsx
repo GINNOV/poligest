@@ -40,7 +40,7 @@ export default async function RootLayout({
       >
         <TooltipProvider>
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <StackProvider app={stackServerApp}>
+            <StackProvider app={stackServerApp} lang="it-IT">
               {children}
               <PreventDoubleSubmit />
             </StackProvider>
