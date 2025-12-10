@@ -13,6 +13,8 @@ async function createDoctor(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const lastName = (formData.get("lastName") as string)?.trim();
   const specialty = (formData.get("specialty") as string)?.trim() || "Odontoiatra";
+  const phone = (formData.get("phone") as string)?.trim() || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
 
   if (!name || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
@@ -22,6 +24,8 @@ async function createDoctor(formData: FormData) {
     data: {
       fullName: `${name} ${lastName}`.trim(),
       specialty,
+      phone,
+      notes,
     },
   });
 
@@ -35,6 +39,8 @@ async function updateDoctor(formData: FormData) {
   const id = formData.get("doctorId") as string;
   const fullName = (formData.get("fullName") as string)?.trim();
   const specialty = (formData.get("specialty") as string)?.trim() || "Odontoiatra";
+  const phone = (formData.get("phone") as string)?.trim() || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
 
   if (!id || !fullName) {
     throw new Error("Dati medico non validi");
@@ -42,7 +48,7 @@ async function updateDoctor(formData: FormData) {
 
   await prisma.doctor.update({
     where: { id },
-    data: { fullName, specialty },
+    data: { fullName, specialty, phone, notes },
   });
 
   revalidatePath("/medici");
@@ -78,7 +84,7 @@ export default async function MediciPage() {
 
   const doctors = await prisma.doctor.findMany({
     orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true, specialty: true },
+    select: { id: true, fullName: true, specialty: true, phone: true, notes: true },
   });
 
   return (
@@ -94,7 +100,7 @@ export default async function MediciPage() {
           <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
           <p className="mt-2 text-sm text-zinc-600">{t("subtitle")}</p>
 
-          <form action={createDoctor} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <form action={createDoctor} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               {t("name")}
               <input
@@ -123,6 +129,24 @@ export default async function MediciPage() {
                 <option value="Igenista">{t("igenista")}</option>
               </select>
             </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              {t("phone")}
+              <input
+                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                name="phone"
+                type="tel"
+                placeholder="+39..."
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 lg:col-span-3">
+              {t("notes")}
+              <textarea
+                name="notes"
+                rows={2}
+                className="rounded-xl border border-zinc-200 px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                placeholder={t("notesPlaceholder")}
+              />
+            </label>
             <div className="col-span-full">
               <button
                 type="submit"
@@ -146,41 +170,61 @@ export default async function MediciPage() {
               <p className="py-4 text-sm text-zinc-600">Nessun medico registrato.</p>
             ) : (
               doctors.map((doc) => (
-              <div key={doc.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <form action={updateDoctor} className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                  <input type="hidden" name="doctorId" value={doc.id} />
-                  <input
-                    name="fullName"
-                    defaultValue={doc.fullName}
-                    className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  />
-                  <select
-                    name="specialty"
-                    defaultValue={doc.specialty ?? "Odontoiatra"}
-                    className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                <div
+                  key={doc.id}
+                  className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <form
+                    action={updateDoctor}
+                    className="flex flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
                   >
-                    <option value="Odontoiatra">{t("odontoiatra")}</option>
-                    <option value="Cardiologo">{t("cardiologo")}</option>
-                    <option value="Igenista">{t("igenista")}</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                  >
-                    Salva
-                  </button>
-                </form>
-                <form action={deleteDoctor} className="flex justify-end">
-                  <input type="hidden" name="doctorId" value={doc.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                  >
-                    Elimina
-                  </button>
-                </form>
-              </div>
-            ))
+                    <input type="hidden" name="doctorId" value={doc.id} />
+                    <input
+                      name="fullName"
+                      defaultValue={doc.fullName}
+                      className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      placeholder={t("name")}
+                    />
+                    <select
+                      name="specialty"
+                      defaultValue={doc.specialty ?? "Odontoiatra"}
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    >
+                      <option value="Odontoiatra">{t("odontoiatra")}</option>
+                      <option value="Cardiologo">{t("cardiologo")}</option>
+                      <option value="Igenista">{t("igenista")}</option>
+                    </select>
+                    <input
+                      name="phone"
+                      defaultValue={doc.phone ?? ""}
+                      className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      placeholder={t("phone")}
+                    />
+                    <textarea
+                      name="notes"
+                      defaultValue={doc.notes ?? ""}
+                      rows={1}
+                      className="min-h-[40px] flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      placeholder={t("notes")}
+                    />
+                    <button
+                      type="submit"
+                      className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                    >
+                      Salva
+                    </button>
+                  </form>
+                  <form action={deleteDoctor} className="flex justify-end sm:pt-1">
+                    <input type="hidden" name="doctorId" value={doc.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                    >
+                      Elimina
+                    </button>
+                  </form>
+                </div>
+              ))
           )}
         </div>
       </div>

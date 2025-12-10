@@ -11,12 +11,14 @@ async function createRecallRule(formData: FormData) {
   const serviceType = (formData.get("serviceType") as string)?.trim();
   const intervalDays = Number(formData.get("intervalDays"));
   const message = (formData.get("message") as string)?.trim() || null;
+  const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
+  const channel = (formData.get("channel") as string) as any;
   if (!name || !serviceType || Number.isNaN(intervalDays) || intervalDays <= 0) {
     throw new Error("Dati regola non validi");
   }
 
   await prisma.recallRule.create({
-    data: { name, serviceType, intervalDays, message },
+    data: { name, serviceType, intervalDays, message, emailSubject, channel } as any,
   });
   revalidatePath("/richiami");
 }
@@ -58,13 +60,27 @@ async function updateRecallStatus(formData: FormData) {
   revalidatePath("/richiami");
 }
 
+async function deleteRecallRule(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN]);
+  const ruleId = formData.get("ruleId") as string;
+  if (!ruleId) throw new Error("Regola non valida");
+
+  await prisma.$transaction([
+    prisma.recall.deleteMany({ where: { ruleId } }),
+    prisma.recallRule.delete({ where: { id: ruleId } }),
+  ]);
+  revalidatePath("/richiami");
+}
+
 export default async function RichiamiPage() {
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const now = new Date();
   const soon = new Date();
   soon.setDate(soon.getDate() + 30);
 
-  const [recalls, rules, patients] = await Promise.all([
+  const [recalls, rules, patients, services] = await Promise.all([
     prisma.recall.findMany({
       where: { status: RecallStatus.PENDING, dueAt: { lte: soon } },
       orderBy: { dueAt: "asc" },
@@ -73,6 +89,9 @@ export default async function RichiamiPage() {
     }),
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
+    (prisma as any).service?.findMany
+      ? (prisma as any).service.findMany({ orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -144,10 +163,34 @@ export default async function RichiamiPage() {
               required
               className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
-            <input
+            <select
               name="serviceType"
-              placeholder="Tipo servizio"
               required
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Seleziona servizio
+              </option>
+              {services.map((s: any) => (
+                <option key={s.id} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <select
+              name="channel"
+              required
+              defaultValue="EMAIL"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="EMAIL">Email</option>
+              <option value="SMS">SMS</option>
+              <option value="BOTH">Email + SMS</option>
+            </select>
+            <input
+              name="emailSubject"
+              placeholder="Oggetto email (facoltativo)"
               className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
             <input
@@ -171,6 +214,42 @@ export default async function RichiamiPage() {
               Salva regola
             </button>
           </form>
+
+          {rules.length ? (
+            <div className="mt-4 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">Regole esistenti</p>
+              <div className="mt-3 space-y-2 text-sm">
+                {rules.map((rule) => {
+                  const channel = (rule as any).channel ?? "EMAIL";
+                  const emailSubject = (rule as any).emailSubject as string | null;
+                  return (
+                  <form
+                    key={rule.id}
+                    action={deleteRecallRule}
+                    className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                  >
+                    <div>
+                      <p className="font-semibold text-zinc-900">{rule.name}</p>
+                      <p className="text-xs text-zinc-600">
+                        {rule.serviceType} · ogni {rule.intervalDays} giorni · {channel}
+                      </p>
+                      {emailSubject ? (
+                        <p className="text-[11px] text-zinc-500">Oggetto email: {emailSubject}</p>
+                      ) : null}
+                    </div>
+                    <input type="hidden" name="ruleId" value={rule.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                    >
+                      Elimina
+                    </button>
+                  </form>
+                );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">

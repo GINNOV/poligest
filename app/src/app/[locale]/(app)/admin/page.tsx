@@ -1,275 +1,148 @@
-import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
-import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 
-const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
-
-async function upsertUser(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const email = (formData.get("email") as string)?.trim().toLowerCase();
-  const name = (formData.get("name") as string)?.trim() || null;
-  const role = formData.get("role") as Role;
-  const locale = (formData.get("locale") as string) || "it";
-  const isActive = formData.get("active") === "on";
-
-  if (!email || !role || !roles.includes(role)) {
-    throw new Error("Dati utente non validi");
-  }
-
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { name, role, locale, isActive },
-    create: {
-      email,
-      name,
-      role,
-      locale,
-      isActive,
-      hashedPassword: "", // Stack-auth users authenticate via Stack tokens
-    },
-  });
-
-  await logAudit(admin, {
-    action: "admin.user.upsert",
-    entity: "User",
-    entityId: user.id,
-    metadata: { role, isActive },
-  });
-
-  revalidatePath("/admin");
-}
-
-async function setUserStatus(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const userId = formData.get("userId") as string;
-  const active = formData.get("active") === "true";
-  if (!userId) throw new Error("Utente non valido");
-
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { isActive: active },
-  });
-
-  await logAudit(admin, {
-    action: active ? "admin.user.activate" : "admin.user.deactivate",
-    entity: "User",
-    entityId: user.id,
-  });
-
-  revalidatePath("/admin");
-}
-
-async function setUserRole(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const userId = formData.get("userId") as string;
-  const role = formData.get("role") as Role;
-  if (!userId || !role || !roles.includes(role)) {
-    throw new Error("Ruolo non valido");
-  }
-
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { role },
-  });
-
-  await logAudit(admin, {
-    action: "admin.user.role_change",
-    entity: "User",
-    entityId: user.id,
-    metadata: { role },
-  });
-
-  revalidatePath("/admin");
-}
-
-async function deleteUser(formData: FormData) {
-  "use server";
-
-  await requireUser([Role.ADMIN]);
-  const userId = formData.get("userId") as string;
-  if (!userId) throw new Error("Utente non valido");
-
-  await prisma.user.delete({ where: { id: userId } });
-  revalidatePath("/admin");
-}
+type AdminShortcut = {
+  key: string;
+  title: string;
+  description: string;
+  href?: string;
+  badge?: string;
+  tone?: "neutral" | "primary" | "warning";
+  disabled?: boolean;
+};
 
 export default async function AdminPage() {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
 
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      isActive: true,
-      locale: true,
-      createdAt: true,
-      lastLoginAt: true,
+  const serviceClient = (prisma as any).service as { count: () => Promise<number> };
+
+  const [usersCount, doctorsCount, auditCount, servicesCount] = await Promise.all([
+    prisma.user.count(),
+    prisma.doctor.count(),
+    prisma.auditLog.count(),
+    serviceClient?.count ? serviceClient.count() : Promise.resolve(0),
+  ]);
+
+  const shortcuts: AdminShortcut[] = [
+    {
+      key: "doctors",
+      title: t("doctors"),
+      description: "Crea, aggiorna e assegna i medici dello studio.",
+      href: "/medici",
+      badge: `${doctorsCount} medici`,
+      tone: "primary",
     },
-  });
+    {
+      key: "users",
+      title: t("users"),
+      description: "Ruoli, accessi e attivazione degli account di sistema.",
+      href: "/admin/utenti",
+      badge: `${usersCount} utenti`,
+      tone: "neutral",
+    },
+    {
+      key: "audit",
+      title: t("audit"),
+      description: "Registro di tutti gli eventi di sistema e modifiche ai dati.",
+      href: "/admin/audit",
+      badge: t("auditBadge", { count: auditCount }),
+      tone: "neutral",
+    },
+    {
+      key: "services",
+      title: t("services"),
+      description: "Catalogo delle prestazioni: nome, descrizione e costo base.",
+      href: "/admin/servizi",
+      badge: `${servicesCount} servizi`,
+      tone: "neutral",
+    },
+    {
+      key: "inventory",
+      title: t("inventory"),
+      description: "Giacenze e movimenti del magazzino.",
+      href: "/magazzino",
+      badge: "Operativo",
+      tone: "neutral",
+    },
+    {
+      key: "settings",
+      title: t("settings"),
+      description: "Preferenze generali e integrazioni (presto disponibile).",
+      disabled: true,
+      badge: t("comingSoon"),
+      tone: "neutral",
+    },
+    {
+      key: "reset",
+      title: t("reset"),
+      description: "Ripristino del sistema ai dati di esempio ed esportazione dati.",
+      href: "/admin/reset",
+      badge: t("dangerZone"),
+      tone: "warning",
+    },
+  ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-zinc-600">{t("subtitle")}</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <a
-            href="/medici"
-            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-          >
-            Gestione medici
-          </a>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-zinc-100 bg-zinc-50 p-4">
-          <h2 className="text-sm font-semibold text-zinc-900">{t("createUser")}</h2>
-          <form action={upsertUser} className="mt-3 space-y-3 text-sm">
-            <input
-              name="name"
-              placeholder={t("name")}
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-            <input
-              name="email"
-              type="email"
-              placeholder={t("email")}
-              required
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-            <select
-              name="role"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              defaultValue={Role.SECRETARY}
-            >
-              {roles.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-            <select
-              name="locale"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              defaultValue="it"
-            >
-              <option value="it">Italiano (it)</option>
-              <option value="en">English (en)</option>
-            </select>
-            <label className="inline-flex items-center gap-2 text-sm text-zinc-800">
-              <input type="checkbox" name="active" className="h-4 w-4 rounded border-zinc-300" defaultChecked />
-              {t("active")}
-            </label>
-            <button
-              type="submit"
-              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
-            >
-              {t("saveUser")}
-            </button>
-          </form>
-        </div>
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+          {t("title")}
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold text-zinc-900">
+          {t("subtitle")}
+        </h1>
+        <p className="mt-3 text-sm text-zinc-600">
+          {t("dashboardHint")}
+        </p>
       </div>
 
-      <div className="lg:col-span-2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">{t("usersList")}</h2>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-            {users.length} utenti
-          </span>
-        </div>
-
-        <div className="mt-4 divide-y divide-zinc-100">
-          {users.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">Nessun utente.</p>
-          ) : (
-            users.map((user) => (
-              <div
-                key={user.id}
-                className="flex flex-col gap-4 rounded-xl py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6"
-              >
-                <div className="min-w-0 sm:flex-1">
-                  <div className="font-semibold text-zinc-900">{user.name ?? user.email}</div>
-                  <div className="text-xs text-zinc-600">
-                    {user.email} · {user.locale} ·{" "}
-                    {user.lastLoginAt
-                      ? new Intl.DateTimeFormat("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        }).format(user.lastLoginAt)
-                      : "Mai"}
-                  </div>
-                </div>
-                <div className="flex w-full flex-col gap-2 sm:max-w-md">
-                  <form
-                    action={setUserRole}
-                    className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-start sm:gap-3"
-                  >
-                    <input type="hidden" name="userId" value={user.id} />
-                    <select
-                      name="role"
-                      defaultValue={user.role}
-                      className="block h-10 w-full min-w-[160px] rounded-full border border-zinc-200 bg-white px-3 pr-8 text-left text-xs font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:h-9 sm:w-[180px]"
-                    >
-                      {roles.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="submit"
-                      className="inline-flex w-full items-center justify-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800 sm:w-auto sm:px-4 sm:py-2"
-                    >
-                      {t("updateRole")}
-                    </button>
-                  </form>
-                  <div className="flex flex-col gap-2 text-xs font-semibold sm:flex-row sm:items-center sm:justify-start sm:gap-3">
-                    <span
-                      className={`inline-flex items-center justify-center rounded-full px-3 py-1 ${
-                        user.isActive
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {shortcuts.map((item) => (
+          <div
+            key={item.key}
+            className="relative flex h-full flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                {item.badge ? (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      item.tone === "warning"
+                        ? "bg-amber-50 text-amber-800"
+                        : item.tone === "primary"
                           ? "bg-emerald-50 text-emerald-800"
-                          : "bg-zinc-100 text-zinc-600"
-                      }`}
-                    >
-                      {user.isActive ? t("statusActive") : t("statusDisabled")}
-                    </span>
-                    <form action={setUserStatus} className="flex justify-start sm:justify-end">
-                      <input type="hidden" name="userId" value={user.id} />
-                      <input type="hidden" name="active" value={(!user.isActive).toString()} />
-                      <button
-                        type="submit"
-                        className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-                      >
-                        {t("toggle")}
-                      </button>
-                    </form>
-                    <form action={deleteUser} className="flex justify-start sm:justify-end">
-                      <input type="hidden" name="userId" value={user.id} />
-                      <button
-                        type="submit"
-                        className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                      >
-                        Elimina
-                      </button>
-                    </form>
-                  </div>
-                </div>
+                          : "bg-zinc-100 text-zinc-700"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                ) : null}
               </div>
-            ))
-          )}
-        </div>
+              <p className="text-sm text-zinc-600">{item.description}</p>
+            </div>
+
+            {item.disabled ? (
+              <button
+                className="mt-4 inline-flex items-center justify-center rounded-full border border-dashed border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-500"
+                aria-disabled="true"
+              >
+                {t("comingSoon")}
+              </button>
+            ) : (
+              <Link
+                href={item.href ?? "#"}
+                className="mt-4 inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              >
+                {t("open")}
+              </Link>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

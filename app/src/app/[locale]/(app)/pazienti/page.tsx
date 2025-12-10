@@ -112,6 +112,7 @@ async function createPatient(formData: FormData) {
     entity: "Patient",
     entityId: patient.id,
     metadata: {
+      patientName: `${patient.firstName} ${patient.lastName}`,
       consentAgreement,
       taxIdProvided: Boolean(taxId),
       conditionsCount: conditions.length,
@@ -180,12 +181,94 @@ export default async function PazientiPage({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-zinc-900">Elenco pazienti</h2>
+        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
+            Cerca
+            <input
+              type="text"
+              name="q"
+              defaultValue={
+                typeof params.q === "string"
+                  ? params.q
+                  : Array.isArray(params.q)
+                    ? params.q[0]
+                    : ""
+              }
+              placeholder="Nome, cognome, email, telefono"
+              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            >
+              Applica
+            </button>
+            <a
+              href="/pazienti"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+            >
+              Mostra tutto
+            </a>
+          </div>
+        </form>
+        <div className="mt-4 divide-y divide-zinc-100">
+          {patients.length === 0 ? (
+            <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
+          ) : (
+            patients.map((patient) => (
+              <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col">
+                  <Link
+                    href={`/pazienti/${patient.id}`}
+                    className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+                  >
+                    {patient.firstName} {patient.lastName}
+                  </Link>
+                  <span className="text-xs text-zinc-600">
+                    {patient.email ?? "—"} · {patient.phone ?? "—"}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                  {patient.consents.map((consent) => (
+                    <span
+                      key={consent.type}
+                      className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
+                    >
+                      {consent.type}
+                    </span>
+                  ))}
+                  <Link
+                    href={`/pazienti/${patient.id}`}
+                    className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    Scheda / Foto
+                  </Link>
+                  <form action={deletePatient}>
+                    <input type="hidden" name="patientId" value={patient.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                    >
+                      Elimina
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-semibold text-zinc-900">Modulo di Registrazione Paziente</h1>
           <p className="text-sm text-zinc-600">Si prega di compilare tutti i campi con attenzione.</p>
         </div>
 
-        <form action={createPatient} className="mt-6 space-y-6" encType="multipart/form-data">
+        <form action={createPatient} className="mt-6 space-y-6">
           <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
@@ -400,88 +483,6 @@ export default async function PazientiPage({
             </FormSubmitButton>
           </div>
         </form>
-      </div>
-
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-zinc-900">Elenco pazienti</h2>
-        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
-            Cerca
-            <input
-              type="text"
-              name="q"
-              defaultValue={
-                typeof params.q === "string"
-                  ? params.q
-                  : Array.isArray(params.q)
-                    ? params.q[0]
-                    : ""
-              }
-              placeholder="Nome, cognome, email, telefono"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
-              Applica
-            </button>
-            <a
-              href="/pazienti"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-            >
-              Mostra tutto
-            </a>
-          </div>
-        </form>
-        <div className="mt-4 divide-y divide-zinc-100">
-          {patients.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
-          ) : (
-            patients.map((patient) => (
-              <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col">
-                  <Link
-                    href={`/pazienti/${patient.id}`}
-                    className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
-                  >
-                    {patient.firstName} {patient.lastName}
-                  </Link>
-                  <span className="text-xs text-zinc-600">
-                    {patient.email ?? "—"} · {patient.phone ?? "—"}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                  {patient.consents.map((consent) => (
-                    <span
-                      key={consent.type}
-                      className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
-                    >
-                      {consent.type}
-                    </span>
-                  ))}
-                  <Link
-                    href={`/pazienti/${patient.id}`}
-                    className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
-                  >
-                    Scheda / Foto
-                  </Link>
-                  <form action={deletePatient}>
-                    <input type="hidden" name="patientId" value={patient.id} />
-                    <button
-                      type="submit"
-                      className="rounded-full border border-rose-200 px-3 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                    >
-                      Elimina
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
       </div>
     </div>
   );

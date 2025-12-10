@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { StackProvider } from "@stackframe/stack";
 import { stackServerApp } from "@/lib/stack-app";
 import "../globals.css";
+import { PreventDoubleSubmit } from "@/components/prevent-double-submit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default async function RootLayout({
           <NextIntlClientProvider locale={locale} messages={messages}>
             <StackProvider app={stackServerApp}>
               {children}
+              <PreventDoubleSubmit />
             </StackProvider>
           </NextIntlClientProvider>
         </TooltipProvider>

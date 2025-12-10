@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { RecallStatus } from "@prisma/client";
+
+// Stubbed email/SMS senders; replace with real provider integrations.
+async function sendEmail(to: string, subject: string, body: string) {
+  console.log("[recalls] email", { to, subject, body });
+}
+
+async function sendSms(to: string, body: string) {
+  console.log("[recalls] sms", { to, body });
+}
+
+export async function GET(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (secret && req.headers.get("x-cron-secret") !== secret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const now = new Date();
+  const dueRecalls = await prisma.recall.findMany({
+    where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
+    include: {
+      patient: { select: { email: true, phone: true, firstName: true, lastName: true } },
+      rule: true,
+    },
+    take: 50,
+  });
+
+  for (const recall of dueRecalls) {
+    const patient = recall.patient;
+    const rule = recall.rule as any;
+    const subject = rule?.emailSubject ?? `Promemoria ${rule?.serviceType ?? ""}`;
+    const body =
+      rule?.message ??
+      `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per ${rule.serviceType}.`;
+
+    const channel = rule?.channel ?? "EMAIL";
+    const wantsEmail = channel === "EMAIL" || channel === "BOTH";
+    const wantsSms = channel === "SMS" || channel === "BOTH";
+
+    if (wantsEmail && patient.email) {
+      await sendEmail(patient.email, subject, body);
+    }
+    if (wantsSms && patient.phone) {
+      await sendSms(patient.phone, body);
+    }
+
+    await prisma.recall.update({
+      where: { id: recall.id },
+      data: { status: RecallStatus.CONTACTED, lastContactAt: new Date() },
+    });
+  }
+
+  return NextResponse.json({ processed: dueRecalls.length });
+}

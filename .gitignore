@@ -39,3 +39,8 @@ app/.npm-cache
 app/Library
 app/.genkit
 firebase-debug.log
+
+.gemini/
+gha-creds-*.json
+.github
+app/.gemini-clipboard

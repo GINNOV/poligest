@@ -16,7 +16,9 @@ async function createAppointment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const title = (formData.get("title") as string)?.trim();
-  const serviceType = (formData.get("serviceType") as string)?.trim();
+  const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
+  const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
+  const serviceType = serviceTypeCustom || serviceTypeSelected;
   const startsAt = formData.get("startsAt") as string;
   const endsAt = formData.get("endsAt") as string;
   const patientId = formData.get("patientId") as string;
@@ -60,6 +62,15 @@ async function updateAppointmentStatus(formData: FormData) {
     throw new Error("Dati aggiornamento non validi");
   }
 
+  const current = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: { status: true },
+  });
+  if (!current) throw new Error("Appuntamento non trovato");
+  if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
+    throw new Error("Solo l'admin può modificare appuntamenti completati");
+  }
+
   await prisma.appointment.update({
     where: { id: appointmentId },
     data: { status },
@@ -82,7 +93,9 @@ async function updateAppointment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const appointmentId = formData.get("appointmentId") as string;
   const title = (formData.get("title") as string)?.trim();
-  const serviceType = (formData.get("serviceType") as string)?.trim();
+  const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
+  const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
+  const serviceType = serviceTypeCustom || serviceTypeSelected;
   const startsAt = formData.get("startsAt") as string;
   const endsAt = formData.get("endsAt") as string;
   const patientId = formData.get("patientId") as string;
@@ -95,6 +108,15 @@ async function updateAppointment(formData: FormData) {
 
   if (!Object.keys(AppointmentStatus).includes(status)) {
     throw new Error("Stato non valido");
+  }
+
+  const current = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: { status: true },
+  });
+  if (!current) throw new Error("Appuntamento non trovato");
+  if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
+    throw new Error("Solo l'admin può modificare appuntamenti completati");
   }
 
   await prisma.appointment.update({
@@ -195,7 +217,7 @@ export default async function AgendaPage({
     dateRange = { gte: start, lt: end };
   }
 
-  const [appointments, patients, doctors] = await Promise.all([
+  const [appointments, patients, doctors, services] = await Promise.all([
     prisma.appointment.findMany({
       orderBy: { startsAt: "asc" },
       take: 100,
@@ -234,6 +256,9 @@ export default async function AgendaPage({
     }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
     prisma.doctor.findMany({ orderBy: { fullName: "asc" } }),
+    (prisma as any).service?.findMany
+      ? (prisma as any).service.findMany({ orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   const filteredAppointments = appointments;
@@ -255,11 +280,29 @@ export default async function AgendaPage({
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
             Servizio
-            <input
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              name="serviceType"
-              required
-            />
+            <div className="grid grid-cols-[2fr,1fr] gap-2">
+              <select
+                name="serviceType"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                defaultValue={services[0]?.name ?? ""}
+                required
+              >
+                {services.map((s: any) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+                <option value="">Personalizzato</option>
+              </select>
+              <input
+                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                name="serviceTypeCustom"
+                placeholder="Altro..."
+              />
+            </div>
+            <span className="text-xs text-zinc-500">
+              Scegli un servizio oppure inserisci un nome personalizzato.
+            </span>
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
             Inizio
@@ -383,64 +426,81 @@ export default async function AgendaPage({
             <p className="py-4 text-sm text-zinc-600">Nessun appuntamento.</p>
           ) : (
             filteredAppointments.map((appt) => (
-              <div key={appt.id} className="flex flex-col gap-1 py-3">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-                    <span aria-hidden="true" className="text-base">
-                      {(appt.serviceType ?? "")
-                        .toLowerCase()
-                        .includes("odo") ||
-                      (appt.doctor?.specialty ?? "")
-                        .toLowerCase()
-                        .includes("odo")
-                        ? "🦷"
-                        : "❤️"}
+              <div
+                key={appt.id}
+                className="mb-3 rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                        <span aria-hidden="true">
+                          {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                          (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                            ? "🦷"
+                            : "❤️"}
+                        </span>
+                        {appt.title}
+                      </span>
+                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                        {appt.serviceType}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-700">
+                      🧑‍⚕️ Patient <span className="font-semibold">{appt.patient.lastName} {appt.patient.firstName}</span>{" "}
+                      to be seen by <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                      on{" "}
+                      {new Intl.DateTimeFormat("en-GB", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      }).format(appt.startsAt)}{" "}
+                      at{" "}
+                      {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                    </p>
+                    <p className="text-xs text-zinc-700">
+                      🕒 Service should end by{" "}
+                      {new Intl.DateTimeFormat("en-GB", {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                      }).format(appt.endsAt)}{" "}
+                      at {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                    >
+                      {statusLabels[appt.status].toUpperCase()}
                     </span>
-                    {appt.title}
-                  </span>
-                  <form action={updateAppointmentStatus} className="flex items-center gap-2 text-xs">
-                    <input type="hidden" name="appointmentId" value={appt.id} />
-                    <select
-                      name="status"
-                      defaultValue={appt.status}
-                      className="h-9 rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    <form
+                      action={updateAppointmentStatus}
+                      className="flex items-center gap-2 text-xs"
                     >
-                      {Object.values(AppointmentStatus).map((status) => (
-                        <option key={status} value={status}>
-                          {statusLabels[status].toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="submit"
-                      className="rounded-full bg-emerald-700 px-3 py-1 font-semibold text-white transition hover:bg-emerald-600"
-                    >
-                      Aggiorna
-                    </button>
-                  </form>
+                      <input type="hidden" name="appointmentId" value={appt.id} />
+                      <select
+                        name="status"
+                        defaultValue={appt.status}
+                        className="h-9 rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      >
+                        {Object.values(AppointmentStatus).map((status) => (
+                          <option key={status} value={status}>
+                            {statusLabels[status].toUpperCase()}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="submit"
+                        className="rounded-full bg-emerald-700 px-3 py-1 font-semibold text-white transition hover:bg-emerald-600"
+                      >
+                        Aggiorna
+                      </button>
+                    </form>
+                  </div>
                 </div>
-                <span className="text-xs text-zinc-600">
-                  {appt.patient.lastName} {appt.patient.firstName} ·{" "}
-                  {appt.doctor ? `${appt.doctor.fullName} (${appt.doctor.specialty ?? "—"})` : "—"}
-                </span>
-                <span className="text-xs text-zinc-600">
-                  {new Intl.DateTimeFormat("it-IT", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  }).format(appt.startsAt)}{" "}
-                  -{" "}
-                  {new Intl.DateTimeFormat("it-IT", {
-                    timeStyle: "short",
-                  }).format(appt.endsAt)}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                  >
-                    {statusLabels[appt.status].toUpperCase()}
-                  </span>
-                </div>
-                <details className="mt-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3 text-xs text-zinc-700">
+
+                <details className="mt-3 rounded-xl border border-zinc-200 bg-white/70 p-3 text-xs text-zinc-700">
                   <summary className="cursor-pointer font-semibold text-emerald-800">
                     Modifica appuntamento
                   </summary>
@@ -457,12 +517,34 @@ export default async function AgendaPage({
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
                       Servizio
-                      <input
-                        name="serviceType"
-                        defaultValue={appt.serviceType}
-                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        required
-                      />
+                      <div className="grid grid-cols-[2fr,1fr] gap-2">
+                        <select
+                          name="serviceType"
+                          defaultValue={
+                            services.find((s: any) => s.name === appt.serviceType)?.name ??
+                            services[0]?.name ??
+                            ""
+                          }
+                          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        >
+                          {services.map((s: any) => (
+                            <option key={s.id} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                          <option value="">Personalizzato</option>
+                        </select>
+                        <input
+                          name="serviceTypeCustom"
+                          defaultValue={
+                            services.find((s: any) => s.name === appt.serviceType)
+                              ? ""
+                              : appt.serviceType
+                          }
+                          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          placeholder="Altro..."
+                        />
+                      </div>
                     </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
                       Inizio

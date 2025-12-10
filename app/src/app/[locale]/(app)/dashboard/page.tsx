@@ -145,6 +145,11 @@ export default async function DashboardPage({
             {format(weekEnd, "d MMM", { locale: it })}
           </span>
         </div>
+        <p className="mt-2 text-sm text-zinc-600">
+          Sommario degli appuntamenti di questa settimana. Clicca su un giorno per mostrare,
+          nella lista sotto, solo gli appuntamenti di quel giorno. Clicca il bottone SETTIMANA
+          per mostrare tutti gli appuntamenti di questa settimana.
+        </p>
         <div className="mt-4 grid grid-cols-7 items-end gap-2 sm:gap-3">
           {perDay.map((day) => (
             <Link
