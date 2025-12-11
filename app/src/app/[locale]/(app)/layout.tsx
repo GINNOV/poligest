@@ -6,6 +6,8 @@ import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
 import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
+import { SiteFooter } from "@/components/site-footer";
+import { execSync } from "node:child_process";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -19,6 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.SECRETARY;
   const isManager = user?.role === Role.MANAGER;
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
+  const version = execSync("git rev-parse --short HEAD").toString().trim();
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -61,6 +64,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <SiteFooter version={version} />
     </div>
   );
 }

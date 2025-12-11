@@ -74,15 +74,18 @@ export function GlobalLoadingOverlay() {
 
       try {
         const response = await originalFetch(...args);
-        if (method.toUpperCase() !== "GET" && response.ok) {
+        const shouldNotify = hasRecentInteraction.current;
+        if (method.toUpperCase() !== "GET" && response.ok && shouldNotify) {
           emitToast("Salvato con successo", "success");
         }
-        if (!response.ok) {
+        if (!response.ok && shouldNotify) {
           emitToast("Si è verificato un errore. Riprova.", "error");
         }
         return response;
       } catch (error) {
-        emitToast("Errore di rete. Controlla la connessione.", "error");
+        if (hasRecentInteraction.current) {
+          emitToast("Errore di rete. Controlla la connessione.", "error");
+        }
         throw error;
       } finally {
         pendingRequests.current = Math.max(0, pendingRequests.current - 1);
