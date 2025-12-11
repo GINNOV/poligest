@@ -1,39 +1,56 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { AppointmentCreateForm } from "@/components/appointment-create-form";
+import { AppointmentsCalendar } from "@/components/appointments-calendar";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
 async function createAppointment(formData: FormData) {
   "use server";
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const title = (formData.get("title") as string)?.trim();
+  const titleFromSelect = (formData.get("title") as string)?.trim();
+  const titleCustom = (formData.get("titleCustom") as string)?.trim();
+  const title = titleCustom || titleFromSelect || "Richiamo";
   const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
   const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
-  const serviceType = serviceTypeCustom || serviceTypeSelected;
+  const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
   const startsAt = formData.get("startsAt") as string;
   const endsAt = formData.get("endsAt") as string;
   const patientId = formData.get("patientId") as string;
   const doctorId = (formData.get("doctorId") as string) || null;
 
   if (!title || !serviceType || !startsAt || !endsAt || !patientId) {
-    throw new Error("Campi obbligatori mancanti");
+    throw new Error("Compila titolo, servizio, orari e paziente.");
   }
+
+  const startsAtDate = new Date(startsAt);
+  const endsAtDate = new Date(endsAt);
+  if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+    throw new Error("Formato data/ora non valido.");
+  }
+  const adjustedEndsAt =
+    endsAtDate <= startsAtDate
+      ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
+      : endsAtDate;
 
   const appointment = await prisma.appointment.create({
     data: {
       title,
       serviceType,
-      startsAt: new Date(startsAt),
-      endsAt: new Date(endsAt),
+      startsAt: startsAtDate,
+      endsAt: adjustedEndsAt,
       patientId,
       doctorId,
       status: AppointmentStatus.TO_CONFIRM,
@@ -92,10 +109,12 @@ async function updateAppointment(formData: FormData) {
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const appointmentId = formData.get("appointmentId") as string;
-  const title = (formData.get("title") as string)?.trim();
+  const titleFromSelect = (formData.get("title") as string)?.trim();
+  const titleCustom = (formData.get("titleCustom") as string)?.trim();
+  const title = titleCustom || titleFromSelect || "Richiamo";
   const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
   const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
-  const serviceType = serviceTypeCustom || serviceTypeSelected;
+  const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
   const startsAt = formData.get("startsAt") as string;
   const endsAt = formData.get("endsAt") as string;
   const patientId = formData.get("patientId") as string;
@@ -103,8 +122,18 @@ async function updateAppointment(formData: FormData) {
   const status = formData.get("status") as AppointmentStatus;
 
   if (!appointmentId || !title || !serviceType || !startsAt || !endsAt || !patientId) {
-    throw new Error("Campi obbligatori mancanti");
+    throw new Error("Compila titolo, servizio, orari e paziente.");
   }
+
+  const startsAtDate = new Date(startsAt);
+  const endsAtDate = new Date(endsAt);
+  if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+    throw new Error("Formato data/ora non valido.");
+  }
+  const adjustedEndsAt =
+    endsAtDate <= startsAtDate
+      ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
+      : endsAtDate;
 
   if (!Object.keys(AppointmentStatus).includes(status)) {
     throw new Error("Stato non valido");
@@ -124,8 +153,8 @@ async function updateAppointment(formData: FormData) {
     data: {
       title,
       serviceType,
-      startsAt: new Date(startsAt),
-      endsAt: new Date(endsAt),
+      startsAt: startsAtDate,
+      endsAt: adjustedEndsAt,
       patientId,
       doctorId,
       status,
@@ -137,6 +166,28 @@ async function updateAppointment(formData: FormData) {
     entity: "Appointment",
     entityId: appointmentId,
     metadata: { patientId, doctorId, status },
+  });
+
+  revalidatePath("/agenda");
+  redirect("/agenda");
+}
+
+async function deleteAppointment(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const appointmentId = (formData.get("appointmentId") as string) || "";
+
+  if (!appointmentId) {
+    throw new Error("Appuntamento mancante");
+  }
+
+  await prisma.appointment.delete({ where: { id: appointmentId } });
+
+  await logAudit(user, {
+    action: "appointment.deleted",
+    entity: "Appointment",
+    entityId: appointmentId,
   });
 
   revalidatePath("/agenda");
@@ -262,6 +313,20 @@ export default async function AgendaPage({
   ]);
 
   const filteredAppointments = appointments;
+  const serviceOptions = Array.from(
+    new Set([
+      ...services.map((s: any) => s.name as string),
+      ...FALLBACK_SERVICES,
+    ]).values()
+  );
+  const calendarEvents = filteredAppointments.map((appt) => ({
+    id: appt.id,
+    title: appt.title,
+    serviceType: appt.serviceType,
+    startsAt: appt.startsAt.toISOString(),
+    endsAt: appt.endsAt.toISOString(),
+    patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
+  }));
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -269,99 +334,15 @@ export default async function AgendaPage({
         <h1 className="text-2xl font-semibold text-zinc-900">Aggiungi appuntamento</h1>
         <p className="mt-2 text-sm text-zinc-600">{t("subtitle")}</p>
 
-        <form action={createAppointment} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Titolo
-            <input
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              name="title"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Servizio
-            <div className="grid grid-cols-[2fr,1fr] gap-2">
-              <select
-                name="serviceType"
-                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                defaultValue={services[0]?.name ?? ""}
-                required
-              >
-                {services.map((s: any) => (
-                  <option key={s.id} value={s.name}>
-                    {s.name}
-                  </option>
-                ))}
-                <option value="">Personalizzato</option>
-              </select>
-              <input
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                name="serviceTypeCustom"
-                placeholder="Altro..."
-              />
-            </div>
-            <span className="text-xs text-zinc-500">
-              Scegli un servizio oppure inserisci un nome personalizzato.
-            </span>
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Inizio
-            <input
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              type="datetime-local"
-              name="startsAt"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Fine
-            <input
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              type="datetime-local"
-              name="endsAt"
-              required
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Paziente
-            <select
-              name="patientId"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              required
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Seleziona paziente
-              </option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.lastName} {p.firstName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            Medico (opzionale)
-            <select
-              name="doctorId"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              defaultValue=""
-            >
-              <option value="">—</option>
-              {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.fullName} {d.specialty ? `· ${d.specialty}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="col-span-full">
-            <FormSubmitButton className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-              Aggiungi appuntamento
-            </FormSubmitButton>
-          </div>
-        </form>
+        <AppointmentCreateForm
+          patients={patients}
+          doctors={doctors}
+          serviceOptions={serviceOptions}
+          action={createAppointment}
+        />
       </div>
+
+      <AppointmentsCalendar events={calendarEvents} />
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti</h2>
@@ -446,13 +427,16 @@ export default async function AgendaPage({
                         {appt.serviceType}
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-700">
-                      🧑‍⚕️ Paziente{" "}
-                      <span className="font-semibold">
+                    <p className="text-sm text-zinc-800">
+                      <span className="font-semibold">{appt.title}</span> - 🧑‍⚕️ Paziente{" "}
+                      <Link
+                        href={`/pazienti/${appt.patientId}`}
+                        className="font-semibold hover:text-emerald-700"
+                      >
                         {appt.patient.lastName} {appt.patient.firstName}
-                      </span>{" "}
-                      sarà visitato da{" "}
-                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
+                      </Link>{" "}
+                      sarà visitato da <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                      {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
                       {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
                         day: "numeric",
@@ -460,7 +444,7 @@ export default async function AgendaPage({
                       }).format(appt.startsAt)}{" "}
                       alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                     </p>
-                    <p className="text-xs text-zinc-700">
+                    <p className="text-sm text-zinc-800">
                       🕒 Il servizio dovrebbe terminare entro{" "}
                       {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
@@ -543,11 +527,11 @@ export default async function AgendaPage({
                               ? ""
                               : appt.serviceType
                           }
-                          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          placeholder="Altro..."
-                        />
-                      </div>
-                    </label>
+                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        placeholder="Altro..."
+                      />
+                    </div>
+                  </label>
                     <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
                       Inizio
                       <input
@@ -611,7 +595,7 @@ export default async function AgendaPage({
                         </option>
                       ))}
                     </select>
-                  </label>
+                    </label>
                     <div className="col-span-full">
                       <button
                         type="submit"
@@ -620,6 +604,15 @@ export default async function AgendaPage({
                         Salva modifiche
                       </button>
                     </div>
+                  </form>
+                  <form action={deleteAppointment} className="mt-3 flex justify-end">
+                    <input type="hidden" name="appointmentId" value={appt.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                    >
+                      Elimina appuntamento
+                    </button>
                   </form>
                 </details>
               </div>

@@ -11,6 +11,7 @@ import {
 import { it } from "date-fns/locale";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
+import { DoctorFilter } from "@/components/doctor-filter";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -115,7 +116,104 @@ export default async function DashboardPage({
   const selectedAppointments = appointments.filter(
     (appt) => format(appt.startsAt, "yyyy-MM-dd") === selectedDay
   );
-  const listAppointments = view === "day" ? selectedAppointments : appointments;
+  const doctors = Array.from(
+    new Map(
+      appointments
+        .filter((a) => a.doctor?.fullName)
+        .map((a) => [a.doctor?.fullName ?? "", a.doctor?.fullName ?? ""])
+    ).values()
+  );
+  const selectedDoctor =
+    typeof params.doctor === "string"
+      ? params.doctor
+      : Array.isArray(params.doctor)
+        ? params.doctor[0] ?? ""
+        : "";
+  const filteredByDoctor =
+    selectedDoctor && selectedDoctor !== "all"
+      ? (view === "day" ? selectedAppointments : appointments).filter(
+          (appt) => (appt.doctor?.fullName ?? "") === selectedDoctor
+        )
+      : view === "day"
+        ? selectedAppointments
+        : appointments;
+  const listAppointments = filteredByDoctor;
+
+  if (isPatient) {
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <p className="text-sm text-zinc-600">{t("welcome")}</p>
+          <h1 className="text-3xl font-semibold text-zinc-900">
+            {user.name ?? user.email}
+          </h1>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-zinc-900">I tuoi appuntamenti</h2>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {listAppointments.length}
+            </span>
+          </div>
+          <div className="mt-4 divide-y divide-zinc-100">
+            {listAppointments.length === 0 ? (
+              <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
+            ) : (
+              listAppointments.map((appt) => (
+                <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                          <span aria-hidden="true">
+                            {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                            (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                              ? "🦷"
+                              : "❤️"}
+                          </span>
+                          {appt.title}
+                        </span>
+                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                          {appt.serviceType}
+                        </span>
+                      </div>
+                      <p className="text-sm text-zinc-800">
+                        🧑‍⚕️ Paziente {appt.patient.lastName} {appt.patient.firstName} è stato visto da{" "}
+                        <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                        {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                        {new Intl.DateTimeFormat("it-IT", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }).format(appt.startsAt)}{" "}
+                        alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                      </p>
+                      <p className="text-sm text-zinc-800">
+                        🕒 Terminato previsto entro{" "}
+                        {new Intl.DateTimeFormat("it-IT", {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        }).format(appt.endsAt)}{" "}
+                        alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                      </p>
+                    </div>
+                    <span
+                      className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                    >
+                      {statusLabels[appt.status].toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -128,17 +226,10 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {!isPatient ? (
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard label="Appuntamenti settimana" value={appointments.length} />
-          <StatCard label="Pazienti settimana" value={uniquePatientsWeek} />
-        </section>
-      ) : null}
-
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-zinc-900">
-            Pazienti questa settimana
+            Appuntamenti di questa settimana
           </h2>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
             {format(weekStart, "d MMM", { locale: it })} -{" "}
@@ -173,13 +264,13 @@ export default async function DashboardPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold text-zinc-900">
               {view === "day"
                 ? `Appuntamenti ${format(new Date(selectedDay), "d MMMM", {
                     locale: it,
                   })}`
-                : "Appuntamenti settimana"}
+                : "Elenco degli appuntamenti"}
             </h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
               <Link
@@ -196,13 +287,16 @@ export default async function DashboardPage({
                 href={`/dashboard?view=day&day=${selectedDay}`}
                 className={`rounded-full px-2 py-1 ${
                   view === "day"
-                    ? "bg-emerald-700 text-white"
-                    : "hover:text-emerald-700"
+                  ? "bg-emerald-700 text-white"
+                  : "hover:text-emerald-700"
                 }`}
               >
                 Giorno
               </Link>
             </div>
+            {!isPatient && (
+              <DoctorFilter doctors={doctors} selectedDoctor={selectedDoctor} />
+            )}
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
             {listAppointments.length} appuntamenti

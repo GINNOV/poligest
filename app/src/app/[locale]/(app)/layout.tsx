@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
 import { NavLink } from "@/components/nav-link";
+import { stackServerApp } from "@/lib/stack-app";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -17,6 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.MANAGER ||
     user?.role === Role.SECRETARY;
   const isManager = user?.role === Role.MANAGER;
+  const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -27,7 +29,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               {t("brand")}
             </Link>
             <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700">
-              <NavLink href="/dashboard" label={t("dashboard")} />
+              <NavLink href="/dashboard" label="Cruscotto" />
               {isStaff ? (
                 <>
                   <NavLink href="/agenda" label={t("agenda")} />
@@ -53,7 +55,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 {user?.role ?? ""}
               </span>
             </div>
-            <SignOutButton label={t("logout")} />
+            <SignOutButton label={t("logout")} signOutUrl={signOutUrl} />
           </div>
         </div>
       </header>

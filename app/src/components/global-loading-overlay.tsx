@@ -41,7 +41,7 @@ export function GlobalLoadingOverlay() {
   }, []);
 
   useEffect(() => {
-    const handleInteraction = () => {
+    const handleSubmit = () => {
       hasRecentInteraction.current = true;
       requestShow();
 
@@ -52,12 +52,10 @@ export function GlobalLoadingOverlay() {
       }, 1200);
     };
 
-    document.addEventListener("click", handleInteraction, true);
-    document.addEventListener("submit", handleInteraction, true);
+    document.addEventListener("submit", handleSubmit, true);
 
     return () => {
-      document.removeEventListener("click", handleInteraction, true);
-      document.removeEventListener("submit", handleInteraction, true);
+      document.removeEventListener("submit", handleSubmit, true);
     };
   }, [requestHide, requestShow]);
 
