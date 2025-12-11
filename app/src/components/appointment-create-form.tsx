@@ -17,6 +17,8 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [localEndsAt, setLocalEndsAt] = useState<string>("");
+  const [allowSubmit, setAllowSubmit] = useState(false);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -41,11 +43,26 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
 
   return (
     <form
-      action={async (formData) => {
-        const form = document.querySelector<HTMLFormElement>('form[data-appointment-form="create"]');
-        if (!form || !handleValidate(form)) {
+      action={action}
+      className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+      data-appointment-form="create"
+      onSubmit={async (e) => {
+        const form = e.currentTarget;
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as
+          | HTMLButtonElement
+          | HTMLInputElement
+          | null;
+
+        if (allowSubmit) {
+          setAllowSubmit(false);
           return;
         }
+
+        e.preventDefault();
+        setError(null);
+        setConflictMessage(null);
+
+        if (!handleValidate(form)) return;
 
         const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
         const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
@@ -71,29 +88,30 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
               setError(
                 "Sovrapposizione per il medico selezionato: scegli un altro orario o medico."
               );
+              setChecking(false);
               return;
             }
           } catch (err) {
             console.error("Conflict check failed", err);
-          } finally {
             setChecking(false);
+            return;
           }
+          setChecking(false);
         }
 
-        try {
-          await action(formData);
-        } catch (err: any) {
-          const message =
-            err?.message ??
-            "Impossibile creare l'appuntamento. Verifica i dati e riprova.";
-          setError(message);
+        // Re-enable the original submitter in case a guard disabled it.
+        if (submitter) {
+          submitter.dataset.submitting = "false";
+          submitter.removeAttribute("aria-busy");
+          submitter.classList.remove("pointer-events-none", "opacity-70");
+          submitter.disabled = false;
         }
-      }}
-      className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
-      data-appointment-form="create"
-      onSubmit={(e) => {
-        if (!handleValidate(e.currentTarget)) {
-          e.preventDefault();
+
+        setAllowSubmit(true);
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit(submitter ?? undefined);
+        } else {
+          form.submit();
         }
       }}
     >
@@ -152,6 +170,17 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"
           name="startsAt"
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value) {
+              const start = new Date(value);
+              if (!Number.isNaN(start.getTime())) {
+                const end = new Date(start.getTime() + 60 * 60 * 1000);
+                const iso = end.toISOString().slice(0, 16);
+                setLocalEndsAt(iso);
+              }
+            }
+          }}
           required
         />
       </label>
@@ -161,6 +190,8 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"
           name="endsAt"
+          value={localEndsAt}
+          onChange={(e) => setLocalEndsAt(e.target.value)}
           required
         />
       </label>

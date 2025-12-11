@@ -34,10 +34,13 @@ export function AppointmentUpdateForm({
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [allowSubmit, setAllowSubmit] = useState(false);
 
   const originalStartsAt = useMemo(() => appointment.startsAt, [appointment.startsAt]);
   const originalEndsAt = useMemo(() => appointment.endsAt, [appointment.endsAt]);
   const originalDoctorId = useMemo(() => appointment.doctorId ?? "", [appointment.doctorId]);
+  const originalStartMs = useMemo(() => new Date(appointment.startsAt).getTime(), [appointment.startsAt]);
+  const originalEndMs = useMemo(() => new Date(appointment.endsAt).getTime(), [appointment.endsAt]);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -59,20 +62,35 @@ export function AppointmentUpdateForm({
   return (
     <form
       className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+      action={action}
       onSubmit={async (e) => {
+        const form = e.currentTarget;
+
+        // If we already green-lit submission, let it flow through.
+        if (allowSubmit) {
+          setAllowSubmit(false);
+          return;
+        }
+
         e.preventDefault();
         setError(null);
-        const form = e.currentTarget;
+        setConflictMessage(null);
+
         if (!handleValidate(form)) return;
 
         const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
         const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
         const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
 
-        const isUnchangedTime =
-          doctorId === originalDoctorId &&
-          startsAt === originalStartsAt &&
-          endsAt === originalEndsAt;
+        const isUnchangedTime = (() => {
+          if (doctorId !== originalDoctorId) return false;
+          // Prefer string equality (exact same input values), fallback to millisecond comparison.
+          if (startsAt === originalStartsAt && endsAt === originalEndsAt) return true;
+          const startMs = new Date(startsAt ?? "").getTime();
+          const endMs = new Date(endsAt ?? "").getTime();
+          if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
+          return Math.abs(startMs - originalStartMs) < 1000 && Math.abs(endMs - originalEndMs) < 1000;
+        })();
 
         if (doctorId && startsAt && endsAt && !isUnchangedTime) {
           setChecking(true);
@@ -94,23 +112,20 @@ export function AppointmentUpdateForm({
               setError(
                 "Sovrapposizione per il medico selezionato: scegli un altro orario o medico."
               );
+              setChecking(false);
               return;
             }
           } catch (err) {
             console.error("Conflict check failed", err);
-          } finally {
             setChecking(false);
+            return;
           }
+          setChecking(false);
         }
 
-        const formData = new FormData(form);
-        try {
-          await action(formData);
-        } catch (err: any) {
-          const message =
-            err?.message ?? "Impossibile aggiornare l'appuntamento. Riprova.";
-          setError(message);
-        }
+        // No conflicts: allow the native submit so the server action can redirect without errors.
+        setAllowSubmit(true);
+        form.requestSubmit();
       }}
     >
       <input type="hidden" name="appointmentId" value={appointment.id} />
@@ -199,23 +214,19 @@ export function AppointmentUpdateForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-        Stato
-        <input type="hidden" name="status" value={appointment.status} />
-        <div className="text-[12px] text-zinc-600">Lo stato viene aggiornato dal selettore in alto.</div>
-      </label>
+      <input type="hidden" name="status" value={appointment.status} />
       {error ? (
         <p className="col-span-full rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{error}</p>
       ) : null}
       <div className="col-span-full">
         <button
           type="submit"
-          disabled={checking}
-          className="h-10 w-full rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {checking ? "Controllo sovrapposizioni..." : "Aggiorna appuntamento"}
-        </button>
-      </div>
+        disabled={checking}
+        className="h-10 w-full rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {checking ? "Controllo sovrapposizioni..." : "Aggiorna appuntamento"}
+      </button>
+    </div>
       {conflictMessage ? (
         <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
       ) : null}

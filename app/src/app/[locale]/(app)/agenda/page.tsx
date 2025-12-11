@@ -10,11 +10,17 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentsCalendar } from "@/components/appointments-calendar";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
+import { AgendaFilters } from "@/components/agenda-filters";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
+
+const formatLocalInput = (date: Date) => {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+};
 
 async function hasDoctorConflict(params: {
   doctorId: string | null;
@@ -39,65 +45,71 @@ async function hasDoctorConflict(params: {
 async function createAppointment(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  try {
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const titleFromSelect = (formData.get("title") as string)?.trim();
-  const titleCustom = (formData.get("titleCustom") as string)?.trim();
-  const title = titleCustom || titleFromSelect || "Richiamo";
-  const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
-  const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
-  const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
-  const startsAt = formData.get("startsAt") as string;
-  const endsAt = formData.get("endsAt") as string;
-  const patientId = formData.get("patientId") as string;
-  const doctorId = (formData.get("doctorId") as string) || null;
+    const titleFromSelect = (formData.get("title") as string)?.trim();
+    const titleCustom = (formData.get("titleCustom") as string)?.trim();
+    const title = titleCustom || titleFromSelect || "Richiamo";
+    const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
+    const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
+    const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
+    const startsAt = formData.get("startsAt") as string;
+    const endsAt = formData.get("endsAt") as string;
+    const patientId = formData.get("patientId") as string;
+    const doctorId = (formData.get("doctorId") as string) || null;
 
-  if (!title || !serviceType || !startsAt || !endsAt || !patientId) {
-    throw new Error("Compila titolo, servizio, orari e paziente.");
-  }
+    if (!title || !serviceType || !startsAt || !endsAt || !patientId) {
+      throw new Error("Compila titolo, servizio, orari e paziente.");
+    }
 
-  const startsAtDate = new Date(startsAt);
-  const endsAtDate = new Date(endsAt);
-  if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
-    throw new Error("Formato data/ora non valido.");
-  }
-  const adjustedEndsAt =
-    endsAtDate <= startsAtDate
-      ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
-      : endsAtDate;
+    const startsAtDate = new Date(startsAt);
+    const endsAtDate = new Date(endsAt);
+    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+      throw new Error("Formato data/ora non valido.");
+    }
+    const adjustedEndsAt =
+      endsAtDate <= startsAtDate
+        ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
+        : endsAtDate;
 
-  const hasConflict = await hasDoctorConflict({
-    doctorId,
-    startsAt: startsAtDate,
-    endsAt: adjustedEndsAt,
-  });
-  if (hasConflict) {
-    throw new Error(
-      "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
-    );
-  }
-
-  const appointment = await prisma.appointment.create({
-    data: {
-      title,
-      serviceType,
+    const hasConflict = await hasDoctorConflict({
+      doctorId,
       startsAt: startsAtDate,
       endsAt: adjustedEndsAt,
-      patientId,
-      doctorId,
-      status: AppointmentStatus.TO_CONFIRM,
-    },
-  });
+    });
+    if (hasConflict) {
+      throw new Error(
+        "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+      );
+    }
 
-  await logAudit(user, {
-    action: "appointment.created",
-    entity: "Appointment",
-    entityId: appointment.id,
-    metadata: { patientId, doctorId },
-  });
+    const appointment = await prisma.appointment.create({
+      data: {
+        title,
+        serviceType,
+        startsAt: startsAtDate,
+        endsAt: adjustedEndsAt,
+        patientId,
+        doctorId,
+        status: AppointmentStatus.TO_CONFIRM,
+      },
+    });
 
-  revalidatePath("/agenda");
-  redirect("/agenda");
+    await logAudit(user, {
+      action: "appointment.created",
+      entity: "Appointment",
+      entityId: appointment.id,
+      metadata: { patientId, doctorId },
+    });
+
+    revalidatePath("/agenda");
+    redirect("/agenda");
+  } catch (err: any) {
+    const message = err?.message ?? "Errore durante la creazione dell'appuntamento.";
+    console.error("Create appointment failed:", err);
+    redirect(`/agenda?error=${encodeURIComponent(message)}`);
+  }
 }
 
 async function updateAppointmentStatus(formData: FormData) {
@@ -167,29 +179,39 @@ async function updateAppointment(formData: FormData) {
       ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
       : endsAtDate;
 
-  const hasConflict = await hasDoctorConflict({
-    doctorId,
-    startsAt: startsAtDate,
-    endsAt: adjustedEndsAt,
-    excludeId: appointmentId,
-  });
-  if (hasConflict) {
-    throw new Error(
-      "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
-    );
-  }
-
   if (!Object.keys(AppointmentStatus).includes(status)) {
     throw new Error("Stato non valido");
   }
 
   const current = await prisma.appointment.findUnique({
     where: { id: appointmentId },
-    select: { status: true },
+    select: { status: true, startsAt: true, endsAt: true, doctorId: true },
   });
   if (!current) throw new Error("Appuntamento non trovato");
   if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
     throw new Error("Solo l'admin può modificare appuntamenti completati");
+  }
+
+  const currentStartsInput = formatLocalInput(current.startsAt);
+  const currentEndsInput = formatLocalInput(current.endsAt);
+
+  const isSameSlot =
+    current.doctorId === doctorId &&
+    Math.abs(current.startsAt.getTime() - startsAtDate.getTime()) < 1000 &&
+    Math.abs(current.endsAt.getTime() - adjustedEndsAt.getTime()) < 1000;
+
+  if (!isSameSlot) {
+    const hasConflict = await hasDoctorConflict({
+      doctorId,
+      startsAt: startsAtDate,
+      endsAt: adjustedEndsAt,
+      excludeId: appointmentId,
+    });
+    if (hasConflict) {
+      throw new Error(
+        "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+      );
+    }
   }
 
   await prisma.appointment.update({
@@ -266,6 +288,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const statusParam = params.status;
   const dateParam = params.date;
+  const errorParam = params.error;
 
   const statusValue =
     typeof statusParam === "string"
@@ -391,62 +414,19 @@ export default async function AgendaPage({
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti</h2>
-        <form className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3" method="get">
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            {t("filterDate")}
-            <input
-              type="date"
-              name="date"
-              defaultValue={dateValue ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-            {t("filterStatus")}
-            <select
-              name="status"
-              defaultValue={statusValue ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            >
-              <option value="">{t("filterStatus")}</option>
-              {Object.values(AppointmentStatus).map((status) => (
-                <option key={status} value={status}>
-                  {statusLabels[status]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-1">
-            Cerca
-            <input
-              type="text"
-              name="q"
-              defaultValue={
-                typeof params.q === "string"
-                  ? params.q
-                  : Array.isArray(params.q)
-                    ? params.q[0]
-                    : ""
-              }
-              placeholder="Titolo, paziente, medico"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <div className="col-span-full flex gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
-              Applica filtri
-            </button>
-            <a
-              href="/agenda"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-            >
-              Mostra tutto
-            </a>
+        {typeof errorParam === "string" && errorParam ? (
+          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {errorParam}
           </div>
-        </form>
+        ) : null}
+        <AgendaFilters
+          statusLabels={statusLabels}
+          statusValue={statusValue}
+          dateValue={dateValue}
+          searchValue={
+            typeof params.q === "string" ? params.q : Array.isArray(params.q) ? params.q[0] : ""
+          }
+        />
         <div className="mt-4 divide-y divide-zinc-100">
           {filteredAppointments.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600">Nessun appuntamento.</p>
@@ -540,8 +520,8 @@ export default async function AgendaPage({
                       id: appt.id,
                       title: appt.title,
                       serviceType: appt.serviceType,
-                      startsAt: appt.startsAt.toISOString().slice(0, 16),
-                      endsAt: appt.endsAt.toISOString().slice(0, 16),
+                      startsAt: formatLocalInput(appt.startsAt),
+                      endsAt: formatLocalInput(appt.endsAt),
                       patientId: appt.patientId,
                       doctorId: appt.doctorId,
                       status: appt.status,
