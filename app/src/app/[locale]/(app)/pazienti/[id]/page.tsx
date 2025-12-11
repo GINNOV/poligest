@@ -10,6 +10,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { DentalChart } from "@/components/dental-chart";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -362,7 +363,7 @@ export default async function PatientDetailPage({
   const extraLine = notesLines.find((line) => line.startsWith("Note:"));
   const parsedExtra = extraLine?.replace("Note:", "").trim() ?? "";
 
-  const [products, implants] = await Promise.all([
+  const [products, implants, dentalRecords] = await Promise.all([
     prisma.product.findMany({
       orderBy: { name: "asc" },
       include: { supplier: true },
@@ -373,224 +374,258 @@ export default async function PatientDetailPage({
       include: { product: { include: { supplier: true } } },
       take: 50,
     }),
+    prisma.dentalRecord.findMany({
+      where: { patientId },
+      orderBy: { performedAt: "desc" },
+    }),
   ]);
   const pastAppointments = patient.appointments
     .filter((appt) => appt.startsAt < new Date())
     .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
+  const dentalRecordsSerialized = dentalRecords.map((record) => ({
+    ...record,
+    performedAt: record.performedAt.toISOString(),
+  }));
 
   return (
     <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-zinc-600">Scheda paziente</p>
-            <h1 className="text-2xl font-semibold text-zinc-900">
-              {patient.firstName} {patient.lastName}
-            </h1>
-            <p className="mt-1 text-sm text-zinc-700">
-              {patient.email ?? "—"} · {patient.phone ?? "—"}
-            </p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <form
-              action={uploadPhoto}
-              className="flex flex-col items-center gap-2 text-xs"
-            >
-              <input type="hidden" name="patientId" value={patient.id} />
-              {patient.photoUrl ? (
-                <Image
-                  src={patient.photoUrl}
-                  alt={`${patient.firstName} ${patient.lastName}`}
-                  width={96}
-                  height={96}
-                  className="h-24 w-24 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-emerald-50 text-xl font-semibold text-emerald-800">
-                  {`${(patient.firstName ?? "P")[0] ?? "P"}${(patient.lastName ?? " ")?.[0] ?? ""}`}
-                </div>
-              )}
-              <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
-                <span>Carica foto</span>
-                <input
-                  type="file"
-                  name="photo"
-                  accept="image/*"
-                  className="hidden"
-                  required
-                />
-              </label>
-              <button
-                type="submit"
-                className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
-              >
-                Salva foto
-              </button>
-            </form>
-          </div>
-          <Link
-            href="/pazienti"
-            className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-700"
-          >
-            ← Pazienti
-          </Link>
-        </div>
-
-        <form action={updatePatient} className="mt-6 space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-          <input type="hidden" name="patientId" value={patient.id} />
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-zinc-900">Modifica dati</p>
-            <p className="text-xs text-zinc-500">Aggiorna informazioni di contatto e note.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Nome
-              <input
-                name="firstName"
-                defaultValue={patient.firstName}
-                className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Cognome
-              <input
-                name="lastName"
-                defaultValue={patient.lastName}
-                className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Email
-              <input
-                name="email"
-                type="email"
-                defaultValue={patient.email ?? ""}
-                className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="email@esempio.it"
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Telefono
-              <input
-                name="phone"
-                defaultValue={patient.phone ?? ""}
-                className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="+39..."
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-              Data di nascita
-              <input
-                type="date"
-                name="birthDate"
-                defaultValue={
-                  patient.birthDate
-                    ? new Date(patient.birthDate).toISOString().split("T")[0]
-                    : ""
-                }
-                className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              />
-            </label>
-            <div className="sm:col-span-2 rounded-lg border border-zinc-200 bg-white p-3">
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
-                <p className="text-xs text-zinc-500">
-                  Seleziona eventuali condizioni mediche presenti o passate.
-                </p>
-              </div>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {conditionsList.map((condition) => (
-                  <label
-                    key={condition}
-                    className="inline-flex items-start gap-2 rounded-lg px-2 py-1 text-sm text-zinc-800"
-                  >
-                    <input
-                      type="checkbox"
-                      name="conditions"
-                      value={condition}
-                      defaultChecked={parsedConditions.includes(condition)}
-                      className="mt-1 h-4 w-4 rounded border-zinc-300"
+        <div className="space-y-6">
+          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
+                  {patient.photoUrl ? (
+                    <Image
+                      src={patient.photoUrl}
+                      alt={`${patient.firstName} ${patient.lastName}`}
+                      width={56}
+                      height={56}
+                      className="h-full w-full object-cover"
                     />
-                    <span>{condition}</span>
+                  ) : (
+                    `${(patient.firstName ?? "P")[0] ?? "P"}${(patient.lastName ?? " ")?.[0] ?? ""}`
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-600">Scheda paziente</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl font-semibold text-zinc-900">
+                      {patient.firstName} {patient.lastName}
+                    </h1>
+                    <p className="text-sm text-zinc-700">
+                      {patient.email ?? "—"} · {patient.phone ?? "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-2xl font-semibold text-emerald-700 transition-transform duration-200 group-open:rotate-180">
+                ⌄
+              </span>
+              <Link
+                href="/pazienti"
+                className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-700"
+              >
+                ← Pazienti
+              </Link>
+            </summary>
+            <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
+                <form
+                  action={uploadPhoto}
+                  className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
+                >
+                  <input type="hidden" name="patientId" value={patient.id} />
+                  {patient.photoUrl ? (
+                    <Image
+                      src={patient.photoUrl}
+                      alt={`${patient.firstName} ${patient.lastName}`}
+                      width={112}
+                      height={112}
+                      className="h-28 w-28 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white text-2xl font-semibold text-emerald-800">
+                      {`${(patient.firstName ?? "P")[0] ?? "P"}${(patient.lastName ?? " ")?.[0] ?? ""}`}
+                    </div>
+                  )}
+                  <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
+                    <span>Carica foto</span>
+                    <input
+                      type="file"
+                      name="photo"
+                      accept="image/*"
+                      className="hidden"
+                      required
+                    />
                   </label>
-                ))}
+                  <button
+                    type="submit"
+                    className="w-full rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
+                  >
+                    Salva foto
+                  </button>
+                </form>
+
+                <div className="space-y-6">
+                  <form action={updatePatient} className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                    <input type="hidden" name="patientId" value={patient.id} />
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-zinc-900">Modifica dati</p>
+                      <p className="text-xs text-zinc-500">Aggiorna informazioni di contatto e note.</p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        Nome
+                        <input
+                          name="firstName"
+                          defaultValue={patient.firstName}
+                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          required
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        Cognome
+                        <input
+                          name="lastName"
+                          defaultValue={patient.lastName}
+                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          required
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        Email
+                        <input
+                          name="email"
+                          type="email"
+                          defaultValue={patient.email ?? ""}
+                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          placeholder="email@esempio.it"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        Telefono
+                        <input
+                          name="phone"
+                          defaultValue={patient.phone ?? ""}
+                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          placeholder="+39..."
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+                        Data di nascita
+                        <input
+                          type="date"
+                          name="birthDate"
+                          defaultValue={
+                            patient.birthDate
+                              ? new Date(patient.birthDate).toISOString().split("T")[0]
+                              : ""
+                          }
+                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </label>
+                      <div className="sm:col-span-2 rounded-lg border border-zinc-200 bg-white p-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
+                          <p className="text-xs text-zinc-500">
+                            Seleziona eventuali condizioni mediche presenti o passate.
+                          </p>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {conditionsList.map((condition) => (
+                            <label
+                              key={condition}
+                              className="inline-flex items-start gap-2 rounded-lg px-2 py-1 text-sm text-zinc-800"
+                            >
+                              <input
+                                type="checkbox"
+                                name="conditions"
+                                value={condition}
+                                defaultChecked={parsedConditions.includes(condition)}
+                                className="mt-1 h-4 w-4 rounded border-zinc-300"
+                              />
+                              <span>{condition}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+                        Farmaci
+                        <textarea
+                          name="medications"
+                          defaultValue={parsedMedications}
+                          rows={2}
+                          className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          placeholder="Farmaci assunti regolarmente"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+                        Note aggiuntive
+                        <textarea
+                          name="extraNotes"
+                          defaultValue={parsedExtra}
+                          rows={2}
+                          className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          placeholder="Annotazioni cliniche o amministrative"
+                        />
+                      </label>
+                    </div>
+                    <div className="flex justify-end">
+                      <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
+                        Salva modifiche
+                      </FormSubmitButton>
+                    </div>
+                  </form>
+
+                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                      Consensi
+                    </p>
+                    {patient.consents.length === 0 ? (
+                      <p className="mt-2 text-sm text-zinc-600">Nessun consenso registrato.</p>
+                    ) : (
+                      <div className="mt-2 space-y-2">
+                        {patient.consents.map((consent) => (
+                          <div
+                            key={consent.id}
+                            className="flex flex-col gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
+                                {consent.type}
+                              </span>
+                              <span className="rounded-full bg-emerald-700 px-2 py-1 text-[11px] font-semibold uppercase text-white">
+                                {consentStatusLabels[consent.status] ?? consent.status}
+                              </span>
+                              <span className="text-[11px] font-semibold text-emerald-900">
+                                {new Date(consent.givenAt).toLocaleString("it-IT", {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                })}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-emerald-900">
+                              Canale: {consent.channel ?? "—"}
+                              {consent.expiresAt
+                                ? ` · Scadenza: ${new Date(consent.expiresAt).toLocaleDateString("it-IT")}`
+                                : ""}
+                              {consent.revokedAt
+                                ? ` · Revocato: ${new Date(consent.revokedAt).toLocaleDateString("it-IT")}`
+                                : ""}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-              Farmaci
-              <textarea
-                name="medications"
-                defaultValue={parsedMedications}
-                rows={2}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Farmaci assunti regolarmente"
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-              Note aggiuntive
-              <textarea
-                name="extraNotes"
-                defaultValue={parsedExtra}
-                rows={2}
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Annotazioni cliniche o amministrative"
-              />
-            </label>
-          </div>
-          <div className="flex justify-end">
-            <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-              Salva modifiche
-            </FormSubmitButton>
-          </div>
-        </form>
+          </details>
 
-        <div className="mt-6 space-y-3">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
-              Consensi
-            </p>
-            {patient.consents.length === 0 ? (
-              <p className="mt-2 text-sm text-zinc-600">Nessun consenso registrato.</p>
-            ) : (
-              <div className="mt-2 space-y-2">
-                {patient.consents.map((consent) => (
-                  <div
-                    key={consent.id}
-                    className="flex flex-col gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
-                        {consent.type}
-                      </span>
-                      <span className="rounded-full bg-emerald-700 px-2 py-1 text-[11px] font-semibold uppercase text-white">
-                        {consentStatusLabels[consent.status] ?? consent.status}
-                      </span>
-                      <span className="text-[11px] font-semibold text-emerald-900">
-                        {new Date(consent.givenAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-emerald-900">
-                      Canale: {consent.channel ?? "—"}
-                      {consent.expiresAt
-                        ? ` · Scadenza: ${new Date(consent.expiresAt).toLocaleDateString("it-IT")}`
-                        : ""}
-                      {consent.revokedAt
-                        ? ` · Revocato: ${new Date(consent.revokedAt).toLocaleDateString("it-IT")}`
-                        : ""}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <DentalChart patientId={patient.id} initialRecords={dentalRecordsSerialized} />
         </div>
-      </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Associa impianti</h2>
@@ -598,237 +633,246 @@ export default async function PatientDetailPage({
           Registra impianti/protesi collegati al paziente utilizzando i dati di magazzino.
         </p>
 
-        <form action={addImplantAssociation} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input type="hidden" name="patientId" value={patient.id} />
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Prodotto / Tipo di DM
-            <select
-              name="productId"
-              className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              required
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Seleziona prodotto
-              </option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Marca
-            <input
-              name="brand"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              placeholder="Marca"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Tipo di DM (personalizzato)
-            <input
-              name="deviceType"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              placeholder="Es. Impianto, Protesi..."
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Codice UDI-DI
-            <input
-              name="udiDi"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              placeholder="UDI-DI"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Codice UDI-PI
-            <input
-              name="udiPi"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              placeholder="UDI-PI / Lotto"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Data acquisto
-            <input
-              type="date"
-              name="purchaseDate"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Data intervento
-            <input
-              type="date"
-              name="interventionDate"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
-            Sede intervento
-            <input
-              name="interventionSite"
-              className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              placeholder="Es. 1.1, 2.4..."
-            />
-          </label>
-          <div className="sm:col-span-2 flex justify-end">
-            <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-              Associa impianto
-            </FormSubmitButton>
-          </div>
-        </form>
-
-        <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200">
-          <table className="min-w-full divide-y divide-zinc-100 text-sm">
-            <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
-              <tr>
-                <th className="px-3 py-2 text-left">Tipo di DM</th>
-                <th className="px-3 py-2 text-left">Marca</th>
-                <th className="px-3 py-2 text-left">UDI-DI</th>
-                <th className="px-3 py-2 text-left">UDI-PI</th>
-                <th className="px-3 py-2 text-left">Data acquisto</th>
-                <th className="px-3 py-2 text-left">Data intervento</th>
-                <th className="px-3 py-2 text-left">Sede intervento</th>
-                <th className="px-3 py-2 text-left">Modifica</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {implants.length === 0 ? (
+        <div className="mt-4 space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-zinc-200">
+            <table className="min-w-full divide-y divide-zinc-100 text-sm">
+              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 <tr>
-                  <td className="px-3 py-3 text-sm text-zinc-600" colSpan={8}>
-                    Nessun impianto associato.
-                  </td>
+                  <th className="px-3 py-2 text-left">Tipo di DM</th>
+                  <th className="px-3 py-2 text-left">Marca</th>
+                  <th className="px-3 py-2 text-left">UDI-DI</th>
+                  <th className="px-3 py-2 text-left">UDI-PI</th>
+                  <th className="px-3 py-2 text-left">Data acquisto</th>
+                  <th className="px-3 py-2 text-left">Data intervento</th>
+                  <th className="px-3 py-2 text-left">Sede intervento</th>
+                  <th className="px-3 py-2 text-left">Modifica</th>
                 </tr>
-              ) : (
-                implants.map((imp) => {
-                  const note = imp.note ?? "";
-                  const deviceType = note.match(/Tipo:\s*([^·]+)/)?.[1]?.trim() ?? imp.product?.name ?? "—";
-                  const brandFromNote = note.match(/Marca:\s*([^·]+)/)?.[1]?.trim();
-                  const udiDiFromNote = note.match(/UDI-DI:\s*([^·]+)/)?.[1]?.trim();
-                  const brand =
-                    brandFromNote ?? imp.product?.supplier?.name ?? (imp.product?.name ? "—" : "—");
-                  return (
-                    <tr key={imp.id} className="hover:bg-zinc-50">
-                      <td className="px-3 py-2 text-zinc-900">{deviceType}</td>
-                      <td className="px-3 py-2 text-zinc-700">{brand ?? "—"}</td>
-                      <td className="px-3 py-2 font-mono text-xs text-zinc-600">
-                        {udiDiFromNote ?? imp.product?.udiDi ?? "—"}
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs text-zinc-600">{imp.udiPi ?? "—"}</td>
-                      <td className="px-3 py-2 text-zinc-700">
-                        {imp.purchaseDate
-                          ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.purchaseDate)
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-zinc-700">
-                        {imp.interventionDate
-                          ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.interventionDate)
-                          : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-zinc-700">{imp.interventionSite ?? "—"}</td>
-                      <td className="px-3 py-2">
-                        <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm">
-                          <summary className="cursor-pointer font-semibold text-emerald-800">Modifica</summary>
-                          <form action={updateImplantAssociation} className="mt-2 grid grid-cols-1 gap-2">
-                            <input type="hidden" name="implantId" value={imp.id} />
-                            <input type="hidden" name="patientId" value={patient.id} />
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Prodotto
-                              <select
-                                name="productId"
-                                defaultValue={imp.productId}
-                                className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              >
-                                {products.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Tipo DM
-                              <input
-                                name="deviceType"
-                                defaultValue={deviceType !== "—" ? deviceType : ""}
-                                className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Marca
-                              <input
-                                name="brand"
-                                defaultValue={brand ?? ""}
-                                className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              UDI-DI
-                              <input
-                                name="udiDi"
-                                defaultValue={udiDiFromNote ?? imp.product?.udiDi ?? ""}
-                                className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                                placeholder="UDI-DI"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              UDI-PI
-                              <input
-                                name="udiPi"
-                                defaultValue={imp.udiPi ?? ""}
-                                className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Data acquisto
-                              <input
-                                type="date"
-                                name="purchaseDate"
-                                defaultValue={
-                                  imp.purchaseDate ? imp.purchaseDate.toISOString().split("T")[0] : ""
-                                }
-                                className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Data intervento
-                              <input
-                                type="date"
-                                name="interventionDate"
-                                defaultValue={
-                                  imp.interventionDate ? imp.interventionDate.toISOString().split("T")[0] : ""
-                                }
-                                className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
-                              Sede
-                              <input
-                                name="interventionSite"
-                                defaultValue={imp.interventionSite ?? ""}
-                                className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <div className="flex justify-end pt-1">
-                              <button
-                                type="submit"
-                                className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                              >
-                                Salva
-                              </button>
-                            </div>
-                          </form>
-                        </details>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {implants.length === 0 ? (
+                  <tr>
+                    <td className="px-3 py-3 text-sm text-zinc-600" colSpan={8}>
+                      Nessun impianto associato.
+                    </td>
+                  </tr>
+                ) : (
+                  implants.map((imp) => {
+                    const note = imp.note ?? "";
+                    const deviceType = note.match(/Tipo:\s*([^·]+)/)?.[1]?.trim() ?? imp.product?.name ?? "—";
+                    const brandFromNote = note.match(/Marca:\s*([^·]+)/)?.[1]?.trim();
+                    const udiDiFromNote = note.match(/UDI-DI:\s*([^·]+)/)?.[1]?.trim();
+                    const brand =
+                      brandFromNote ?? imp.product?.supplier?.name ?? (imp.product?.name ? "—" : "—");
+                    return (
+                      <tr key={imp.id} className="hover:bg-zinc-50">
+                        <td className="px-3 py-2 text-zinc-900">{deviceType}</td>
+                        <td className="px-3 py-2 text-zinc-700">{brand ?? "—"}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-zinc-600">
+                          {udiDiFromNote ?? imp.product?.udiDi ?? "—"}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs text-zinc-600">{imp.udiPi ?? "—"}</td>
+                        <td className="px-3 py-2 text-zinc-700">
+                          {imp.purchaseDate
+                            ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.purchaseDate)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-zinc-700">
+                          {imp.interventionDate
+                            ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.interventionDate)
+                            : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-zinc-700">{imp.interventionSite ?? "—"}</td>
+                        <td className="px-3 py-2">
+                          <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm">
+                            <summary className="cursor-pointer font-semibold text-emerald-800">Modifica</summary>
+                            <form action={updateImplantAssociation} className="mt-2 grid grid-cols-1 gap-2">
+                              <input type="hidden" name="implantId" value={imp.id} />
+                              <input type="hidden" name="patientId" value={patient.id} />
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Prodotto
+                                <select
+                                  name="productId"
+                                  defaultValue={imp.productId}
+                                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                >
+                                  {products.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Tipo DM
+                                <input
+                                  name="deviceType"
+                                  defaultValue={deviceType !== "—" ? deviceType : ""}
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Marca
+                                <input
+                                  name="brand"
+                                  defaultValue={brand ?? ""}
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                UDI-DI
+                                <input
+                                  name="udiDi"
+                                  defaultValue={udiDiFromNote ?? imp.product?.udiDi ?? ""}
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  placeholder="UDI-DI"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                UDI-PI
+                                <input
+                                  name="udiPi"
+                                  defaultValue={imp.udiPi ?? ""}
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Data acquisto
+                                <input
+                                  type="date"
+                                  name="purchaseDate"
+                                  defaultValue={
+                                    imp.purchaseDate ? imp.purchaseDate.toISOString().split("T")[0] : ""
+                                  }
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Data intervento
+                                <input
+                                  type="date"
+                                  name="interventionDate"
+                                  defaultValue={
+                                    imp.interventionDate ? imp.interventionDate.toISOString().split("T")[0] : ""
+                                  }
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                                Sede
+                                <input
+                                  name="interventionSite"
+                                  defaultValue={imp.interventionSite ?? ""}
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <div className="flex justify-end pt-1">
+                                <button
+                                  type="submit"
+                                  className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                                >
+                                  Salva
+                                </button>
+                              </div>
+                            </form>
+                          </details>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50">
+              <span>Collega un nuovo impianto</span>
+              <span className="text-xs font-medium text-emerald-700 group-open:hidden">Mostra modulo</span>
+              <span className="text-xs font-medium text-emerald-700 hidden group-open:inline">Nascondi</span>
+            </summary>
+            <form action={addImplantAssociation} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <input type="hidden" name="patientId" value={patient.id} />
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Prodotto / Tipo di DM
+                <select
+                  name="productId"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  required
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Seleziona prodotto
+                  </option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Marca
+                <input
+                  name="brand"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="Marca"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Tipo di DM (personalizzato)
+                <input
+                  name="deviceType"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="Es. Impianto, Protesi..."
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Codice UDI-DI
+                <input
+                  name="udiDi"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="UDI-DI"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Codice UDI-PI
+                <input
+                  name="udiPi"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="UDI-PI / Lotto"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Data acquisto
+                <input
+                  type="date"
+                  name="purchaseDate"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Data intervento
+                <input
+                  type="date"
+                  name="interventionDate"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+                Sede intervento
+                <input
+                  name="interventionSite"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  placeholder="Es. 1.1, 2.4..."
+                />
+              </label>
+              <div className="sm:col-span-2 flex justify-end">
+                <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
+                  Associa impianto
+                </FormSubmitButton>
+              </div>
+            </form>
+          </details>
         </div>
       </div>
     </div>

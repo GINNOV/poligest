@@ -114,6 +114,7 @@ model Patient {
   clinicalNotes  ClinicalNote[]
   recalls        Recall[]
   stockMovements StockMovement[]
+  dentalRecords  DentalRecord[]
 }
 
 model Consent {
@@ -165,6 +166,22 @@ model ClinicalNote {
   doctor  Doctor? @relation(fields: [doctorId], references: [id])
 
   @@index([patientId])
+}
+
+model DentalRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  tooth       Int
+  procedure   String
+  notes       String?
+  performedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([patientId, tooth])
 }
 
 model AuditLog {

@@ -1,0 +1,378 @@
+import React, { useState, useMemo } from 'react';
+import { Save, Trash2, X, FileText, User, Calendar, Activity } from 'lucide-react';
+
+/**
+ * Simplified geometry for tooth shapes.
+ */
+const TOOTH_PATHS = {
+  molar: "M10,2 C5,2 2,5 2,12 C2,18 5,22 10,22 C15,22 18,18 18,12 C18,5 15,2 10,2 Z M6,8 C6,7 7,6 8,6 C9,6 10,7 10,8 C10,7 11,6 12,6 C13,6 14,7 14,8 M5,12 L15,12",
+  premolar: "M10,2 C6,2 3,5 3,12 C3,18 6,22 10,22 C14,22 17,18 17,12 C17,5 14,2 10,2 Z M7,8 C7,7 8,6 9,6 C10,6 11,7 11,8 C11,7 12,6 13,6 M5,12 L15,12",
+  canine: "M10,2 C7,2 4,6 4,12 C4,18 7,22 10,22 C13,22 16,18 16,12 C16,6 13,2 10,2 Z M10,6 L10,16",
+  incisor: "M10,4 C7,4 5,6 5,12 C5,18 7,22 10,22 C13,22 15,18 15,12 C15,6 13,4 10,4 Z M8,8 L12,8"
+};
+
+// Data structure defining the 32 adult teeth using FDI Notation (ISO 3950)
+const INITIAL_TEETH_DATA = [
+  // --- UPPER JAW (Maxilla) ---
+
+  // Quadrant 1 (Patient Right)
+  { id: 18, type: 'molar', label: '18', x: 20, y: 140, rot: -20 },
+  { id: 17, type: 'molar', label: '17', x: 35, y: 110, rot: -15 },
+  { id: 16, type: 'molar', label: '16', x: 55, y: 85, rot: -10 },
+  { id: 15, type: 'premolar', label: '15', x: 80, y: 65, rot: -5 },
+  { id: 14, type: 'premolar', label: '14', x: 105, y: 50, rot: 0 },
+  { id: 13, type: 'canine', label: '13', x: 135, y: 40, rot: 5 },
+  { id: 12, type: 'incisor', label: '12', x: 165, y: 35, rot: 5 },
+  { id: 11, type: 'incisor', label: '11', x: 195, y: 35, rot: 0 },
+
+  // Quadrant 2 (Patient Left)
+  { id: 21, type: 'incisor', label: '21', x: 225, y: 35, rot: 0 },
+  { id: 22, type: 'incisor', label: '22', x: 255, y: 35, rot: -5 },
+  { id: 23, type: 'canine', label: '23', x: 285, y: 40, rot: -5 },
+  { id: 24, type: 'premolar', label: '24', x: 315, y: 50, rot: 0 },
+  { id: 25, type: 'premolar', label: '25', x: 340, y: 65, rot: 5 },
+  { id: 26, type: 'molar', label: '26', x: 365, y: 85, rot: 10 },
+  { id: 27, type: 'molar', label: '27', x: 385, y: 110, rot: 15 },
+  { id: 28, type: 'molar', label: '28', x: 400, y: 140, rot: 20 },
+
+  // --- LOWER JAW (Mandible) ---
+
+  // Quadrant 4 (Patient Right)
+  { id: 48, type: 'molar', label: '48', x: 20, y: 360, rot: 20 },
+  { id: 47, type: 'molar', label: '47', x: 35, y: 390, rot: 15 },
+  { id: 46, type: 'molar', label: '46', x: 55, y: 415, rot: 10 },
+  { id: 45, type: 'premolar', label: '45', x: 80, y: 435, rot: 5 },
+  { id: 44, type: 'premolar', label: '44', x: 105, y: 450, rot: 0 },
+  { id: 43, type: 'canine', label: '43', x: 135, y: 460, rot: -5 },
+  { id: 42, type: 'incisor', label: '42', x: 165, y: 465, rot: -5 },
+  { id: 41, type: 'incisor', label: '41', x: 195, y: 465, rot: 0 },
+
+  // Quadrant 3 (Patient Left)
+  { id: 31, type: 'incisor', label: '31', x: 225, y: 465, rot: 0 },
+  { id: 32, type: 'incisor', label: '32', x: 255, y: 465, rot: 5 },
+  { id: 33, type: 'canine', label: '33', x: 285, y: 460, rot: 5 },
+  { id: 34, type: 'premolar', label: '34', x: 315, y: 450, rot: 0 },
+  { id: 35, type: 'premolar', label: '35', x: 340, y: 435, rot: -5 },
+  { id: 36, type: 'molar', label: '36', x: 365, y: 415, rot: -10 },
+  { id: 37, type: 'molar', label: '37', x: 385, y: 390, rot: -15 },
+  { id: 38, type: 'molar', label: '38', x: 400, y: 360, rot: -20 },
+];
+
+const PROCEDURES = [
+  { id: 'exam', label: 'General Exam', color: 'bg-blue-100 text-blue-800' },
+  { id: 'cleaning', label: 'Cleaning (Prophy)', color: 'bg-green-100 text-green-800' },
+  { id: 'filling', label: 'Composite Filling', color: 'bg-yellow-100 text-yellow-800' },
+  { id: 'crown', label: 'Crown (Porcelain)', color: 'bg-purple-100 text-purple-800' },
+  { id: 'rootcanal', label: 'Root Canal', color: 'bg-red-100 text-red-800' },
+  { id: 'extraction', label: 'Extraction', color: 'bg-gray-100 text-gray-800' },
+  { id: 'implant', label: 'Implant', color: 'bg-teal-100 text-teal-800' },
+  { id: 'veneer', label: 'Veneer', color: 'bg-pink-100 text-pink-800' },
+];
+
+const Tooth = ({ data, isSelected, hasRecord, onClick }) => {
+  const path = TOOTH_PATHS[data.type] || TOOTH_PATHS.molar;
+
+  let fill = "white";
+  let stroke = "#94a3b8"; // slate-400
+  let strokeWidth = 1.5;
+
+  if (hasRecord) {
+    fill = "#dbeafe"; // blue-100
+    stroke = "#2563eb"; // blue-600
+  }
+
+  if (isSelected) {
+    fill = "#3b82f6"; // blue-500
+    stroke = "#1d4ed8"; // blue-700
+    strokeWidth = 2;
+  }
+
+  return (
+    <g
+      transform={`translate(${data.x}, ${data.y}) rotate(${data.rot}) scale(1.5)`}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(data.id);
+      }}
+      className="cursor-pointer hover:opacity-80 transition-opacity"
+    >
+      <path
+        d={path}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+      />
+      <text
+        x="10"
+        y="12"
+        fontSize="6"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={isSelected ? "white" : "#64748b"}
+        className="pointer-events-none select-none font-bold"
+      >
+        {data.label}
+      </text>
+    </g>
+  );
+};
+
+export default function DentalChartApp() {
+  const [selectedToothId, setSelectedToothId] = useState(null);
+  const [records, setRecords] = useState({}); // Map: toothId -> { procedure, notes, date }
+
+  const [procedure, setProcedure] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const selectedToothData = useMemo(() =>
+    INITIAL_TEETH_DATA.find(t => t.id === selectedToothId),
+  [selectedToothId]);
+
+  const handleToothClick = (id) => {
+    setSelectedToothId(id);
+    if (records[id]) {
+      setProcedure(records[id].procedure);
+      setNotes(records[id].notes);
+    } else {
+      setProcedure('');
+      setNotes('');
+    }
+  };
+
+  const handleSave = () => {
+    if (!selectedToothId || !procedure) return;
+
+    setRecords(prev => ({
+      ...prev,
+      [selectedToothId]: {
+        procedure,
+        notes,
+        date: new Date().toLocaleDateString(),
+        procedureDetails: PROCEDURES.find(p => p.id === procedure)
+      }
+    }));
+  };
+
+  const handleDelete = () => {
+    if (!selectedToothId) return;
+    const newRecords = { ...records };
+    delete newRecords[selectedToothId];
+    setRecords(newRecords);
+    setProcedure('');
+    setNotes('');
+  };
+
+  const handleClearSelection = () => {
+    setSelectedToothId(null);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+        <div className="flex items-center space-x-3">
+          <div className="bg-blue-600 p-2 rounded-lg">
+            <Activity className="text-white w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">DentalChart Pro</h1>
+            <p className="text-xs text-slate-500">FDI Notation (ISO 3950)</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-6 text-sm">
+          <div className="flex items-center space-x-2 text-slate-600">
+            <User className="w-4 h-4" />
+            <span className="font-medium">Doe, John (M, 34)</span>
+          </div>
+          <div className="flex items-center space-x-2 text-slate-600">
+            <Calendar className="w-4 h-4" />
+            <span className="font-medium">{new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 flex overflow-hidden">
+
+        {/* Left: Treatment Plan & Summary */}
+        <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden md:flex">
+          <div className="p-4 border-b border-slate-100">
+            <h2 className="font-semibold text-slate-700 flex items-center">
+              <FileText className="w-4 h-4 mr-2" />
+              Treatment Plan
+            </h2>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {Object.keys(records).length === 0 ? (
+              <div className="text-center py-10 text-slate-400">
+                <p>No treatments recorded.</p>
+                <p className="text-xs mt-2">Select a tooth to begin.</p>
+              </div>
+            ) : (
+              Object.entries(records).map(([toothId, data]) => (
+                <div
+                  key={toothId}
+                  className={`p-3 rounded-lg border border-slate-100 shadow-sm cursor-pointer transition-colors ${parseInt(toothId) === selectedToothId ? 'bg-blue-50 border-blue-200' : 'bg-white hover:bg-slate-50'}`}
+                  onClick={() => handleToothClick(parseInt(toothId))}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="font-bold text-slate-700">Tooth #{toothId}</span>
+                    <span className="text-xs text-slate-400">{data.date}</span>
+                  </div>
+                  <div className={`inline-block px-2 py-0.5 rounded text-xs font-medium mb-2 ${data.procedureDetails?.color}`}>
+                    {data.procedureDetails?.label}
+                  </div>
+                  {data.notes && (
+                    <p className="text-xs text-slate-500 line-clamp-2">"{data.notes}"</p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t border-slate-200 bg-slate-50">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-slate-600">Total Procedures:</span>
+              <span className="font-bold text-slate-800">{Object.keys(records).length}</span>
+            </div>
+          </div>
+        </aside>
+
+        {/* Center: Interactive Chart */}
+        <section className="flex-1 relative bg-slate-100 overflow-hidden flex flex-col">
+          <div className="absolute top-4 left-4 z-10 flex space-x-4">
+             <div className="flex items-center space-x-2 bg-white/80 backdrop-blur px-3 py-1 rounded-full shadow-sm text-xs">
+                <div className="w-3 h-3 rounded-full bg-white border border-slate-400"></div>
+                <span>Healthy</span>
+             </div>
+             <div className="flex items-center space-x-2 bg-white/80 backdrop-blur px-3 py-1 rounded-full shadow-sm text-xs">
+                <div className="w-3 h-3 rounded-full bg-blue-100 border border-blue-600"></div>
+                <span>Treated</span>
+             </div>
+             <div className="flex items-center space-x-2 bg-white/80 backdrop-blur px-3 py-1 rounded-full shadow-sm text-xs">
+                <div className="w-3 h-3 rounded-full bg-blue-500 border border-blue-700"></div>
+                <span>Selected</span>
+             </div>
+          </div>
+
+          {/* Dental Arch SVG */}
+          <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+            <div className="relative w-full max-w-2xl aspect-[4/5] md:aspect-square">
+               <svg viewBox="0 0 420 500" className="w-full h-full drop-shadow-xl filter">
+                  {/* Quadrant Lines (The Cross) */}
+                  <line x1="210" y1="0" x2="210" y2="500" stroke="#cbd5e1" strokeWidth="2" />
+                  <line x1="0" y1="250" x2="420" y2="250" stroke="#cbd5e1" strokeWidth="2" />
+
+                  {/* Quadrant Labels */}
+                  <text x="10" y="20" className="fill-slate-800 text-lg font-bold">Upper Right</text>
+                  <text x="10" y="40" className="fill-slate-500 text-xs font-semibold">Quadrant 1</text>
+
+                  <text x="410" y="20" textAnchor="end" className="fill-slate-800 text-lg font-bold">Upper Left</text>
+                  <text x="410" y="40" textAnchor="end" className="fill-slate-500 text-xs font-semibold">Quadrant 2</text>
+
+                  <text x="10" y="480" className="fill-slate-800 text-lg font-bold">Lower Right</text>
+                  <text x="10" y="460" className="fill-slate-500 text-xs font-semibold">Quadrant 4</text>
+
+                  <text x="410" y="480" textAnchor="end" className="fill-slate-800 text-lg font-bold">Lower Left</text>
+                  <text x="410" y="460" textAnchor="end" className="fill-slate-500 text-xs font-semibold">Quadrant 3</text>
+
+                  {/* Teeth */}
+                  {INITIAL_TEETH_DATA.map(tooth => (
+                    <Tooth
+                      key={tooth.id}
+                      data={tooth}
+                      isSelected={selectedToothId === tooth.id}
+                      hasRecord={!!records[tooth.id]}
+                      onClick={handleToothClick}
+                    />
+                  ))}
+               </svg>
+            </div>
+          </div>
+        </section>
+
+        {/* Right Panel: Action / Details */}
+        {selectedToothId && (
+          <aside className="w-full md:w-96 bg-white border-l border-slate-200 shadow-2xl md:shadow-none absolute md:relative inset-y-0 right-0 z-20 flex flex-col transition-transform duration-300 ease-in-out">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-50/50">
+               <div>
+                  <h2 className="text-2xl font-bold text-slate-800">Tooth #{selectedToothId}</h2>
+                  <p className="text-sm text-slate-500 capitalize">{selectedToothData?.type}</p>
+               </div>
+               <button onClick={handleClearSelection} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                 <X className="w-5 h-5 text-slate-500" />
+               </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* Existing Record Alert */}
+              {records[selectedToothId] && (
+                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex items-start space-x-3">
+                    <Activity className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-blue-900 text-sm">Existing Record</h4>
+                      <p className="text-xs text-blue-700 mt-1">Last treated on {records[selectedToothId].date}</p>
+                    </div>
+                 </div>
+              )}
+
+              {/* Procedure Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">Select Procedure</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PROCEDURES.map((proc) => (
+                    <button
+                      key={proc.id}
+                      onClick={() => setProcedure(proc.id)}
+                      className={`
+                        p-3 rounded-lg text-sm font-medium text-left transition-all border
+                        ${procedure === proc.id
+                          ? 'border-blue-500 ring-2 ring-blue-100 ' + proc.color
+                          : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50 text-slate-600'}
+                      `}
+                    >
+                      {proc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Clinical Notes</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Enter details about surface, materials, or complications..."
+                  className="w-full p-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none h-32 resize-none text-sm"
+                />
+              </div>
+
+            </div>
+
+            {/* Actions Footer */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex space-x-3">
+              <button
+                onClick={handleSave}
+                disabled={!procedure}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Record
+              </button>
+
+              {records[selectedToothId] && (
+                <button
+                  onClick={handleDelete}
+                  className="bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-200 py-3 px-4 rounded-lg font-medium transition-colors"
+                  title="Remove Record"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </aside>
+        )}
+      </main>
+    </div>
+  );
+}
