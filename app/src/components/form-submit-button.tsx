@@ -7,16 +7,18 @@ type Props = {
   children: React.ReactNode;
   className?: string;
   pendingLabel?: string;
+  disabled?: boolean;
 };
 
-export function FormSubmitButton({ children, className, pendingLabel }: Props) {
+export function FormSubmitButton({ children, className, pendingLabel, disabled }: Props) {
   const { pending } = useFormStatus();
+  const isDisabled = disabled || pending;
 
   return (
     <button
       type="submit"
       className={cn(className, pending && "opacity-70")}
-      disabled={pending}
+      disabled={isDisabled}
     >
       {pending && pendingLabel ? pendingLabel : children}
     </button>

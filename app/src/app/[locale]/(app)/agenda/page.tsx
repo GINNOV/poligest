@@ -9,11 +9,32 @@ import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentsCalendar } from "@/components/appointments-calendar";
+import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
+
+async function hasDoctorConflict(params: {
+  doctorId: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  excludeId?: string;
+}) {
+  const { doctorId, startsAt, endsAt, excludeId } = params;
+  if (!doctorId) return false;
+
+  const conflicts = await prisma.appointment.count({
+    where: {
+      doctorId,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      startsAt: { lt: endsAt },
+      endsAt: { gt: startsAt },
+    },
+  });
+  return conflicts > 0;
+}
 
 async function createAppointment(formData: FormData) {
   "use server";
@@ -44,6 +65,17 @@ async function createAppointment(formData: FormData) {
     endsAtDate <= startsAtDate
       ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
       : endsAtDate;
+
+  const hasConflict = await hasDoctorConflict({
+    doctorId,
+    startsAt: startsAtDate,
+    endsAt: adjustedEndsAt,
+  });
+  if (hasConflict) {
+    throw new Error(
+      "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+    );
+  }
 
   const appointment = await prisma.appointment.create({
     data: {
@@ -134,6 +166,18 @@ async function updateAppointment(formData: FormData) {
     endsAtDate <= startsAtDate
       ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
       : endsAtDate;
+
+  const hasConflict = await hasDoctorConflict({
+    doctorId,
+    startsAt: startsAtDate,
+    endsAt: adjustedEndsAt,
+    excludeId: appointmentId,
+  });
+  if (hasConflict) {
+    throw new Error(
+      "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+    );
+  }
 
   if (!Object.keys(AppointmentStatus).includes(status)) {
     throw new Error("Stato non valido");
@@ -319,6 +363,7 @@ export default async function AgendaPage({
       ...FALLBACK_SERVICES,
     ]).values()
   );
+  const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
   const calendarEvents = filteredAppointments.map((appt) => ({
     id: appt.id,
     title: appt.title,
@@ -490,121 +535,22 @@ export default async function AgendaPage({
                   <summary className="cursor-pointer font-semibold text-emerald-800">
                     Modifica appuntamento
                   </summary>
-                  <form action={updateAppointment} className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <input type="hidden" name="appointmentId" value={appt.id} />
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Titolo
-                      <input
-                        name="title"
-                        defaultValue={appt.title}
-                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        required
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Servizio
-                      <div className="grid grid-cols-[2fr,1fr] gap-2">
-                        <select
-                          name="serviceType"
-                          defaultValue={
-                            services.find((s: any) => s.name === appt.serviceType)?.name ??
-                            services[0]?.name ??
-                            ""
-                          }
-                          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        >
-                          {services.map((s: any) => (
-                            <option key={s.id} value={s.name}>
-                              {s.name}
-                            </option>
-                          ))}
-                          <option value="">Personalizzato</option>
-                        </select>
-                        <input
-                          name="serviceTypeCustom"
-                          defaultValue={
-                            services.find((s: any) => s.name === appt.serviceType)
-                              ? ""
-                              : appt.serviceType
-                          }
-                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        placeholder="Altro..."
-                      />
-                    </div>
-                  </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Inizio
-                      <input
-                        type="datetime-local"
-                        name="startsAt"
-                        defaultValue={appt.startsAt.toISOString().slice(0, 16)}
-                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        required
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Fine
-                      <input
-                        type="datetime-local"
-                        name="endsAt"
-                        defaultValue={appt.endsAt.toISOString().slice(0, 16)}
-                        className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        required
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Paziente
-                      <select
-                        name="patientId"
-                        defaultValue={appt.patientId}
-                        className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        required
-                      >
-                        {patients.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.lastName} {p.firstName}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Medico
-                      <select
-                        name="doctorId"
-                        defaultValue={appt.doctorId ?? ""}
-                        className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      >
-                        <option value="">—</option>
-                        {doctors.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.fullName} {d.specialty ? `· ${d.specialty}` : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
-                      Stato
-                    <select
-                      name="status"
-                      defaultValue={appt.status}
-                      className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                    >
-                      {Object.values(AppointmentStatus).map((status) => (
-                        <option key={status} value={status}>
-                          {statusLabels[status].toUpperCase()}
-                        </option>
-                      ))}
-                    </select>
-                    </label>
-                    <div className="col-span-full">
-                      <button
-                        type="submit"
-                        className="inline-flex h-9 items-center justify-center rounded-full bg-zinc-900 px-4 text-xs font-semibold text-white transition hover:bg-zinc-800"
-                      >
-                        Salva modifiche
-                      </button>
-                    </div>
-                  </form>
+                  <AppointmentUpdateForm
+                    appointment={{
+                      id: appt.id,
+                      title: appt.title,
+                      serviceType: appt.serviceType,
+                      startsAt: appt.startsAt.toISOString().slice(0, 16),
+                      endsAt: appt.endsAt.toISOString().slice(0, 16),
+                      patientId: appt.patientId,
+                      doctorId: appt.doctorId,
+                      status: appt.status,
+                    }}
+                    patients={patients}
+                    doctors={doctors}
+                    services={serviceOptionObjects}
+                    action={updateAppointment}
+                  />
                   <form action={deleteAppointment} className="mt-3 flex justify-end">
                     <input type="hidden" name="appointmentId" value={appt.id} />
                     <button

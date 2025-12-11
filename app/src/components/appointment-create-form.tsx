@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { ConflictDialog } from "@/components/conflict-dialog";
 
 type Option = { value: string; label: string };
 
@@ -14,6 +15,8 @@ type Props = {
 
 export function AppointmentCreateForm({ patients, doctors, serviceOptions, action }: Props) {
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -40,10 +43,51 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
     <form
       action={async (formData) => {
         const form = document.querySelector<HTMLFormElement>('form[data-appointment-form="create"]');
-        if (form && !handleValidate(form)) {
+        if (!form || !handleValidate(form)) {
           return;
         }
-        await action(formData);
+
+        const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
+        const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
+        const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
+
+        // Check conflicts for the selected doctor before submitting.
+        if (doctorId && startsAt && endsAt) {
+          setChecking(true);
+          try {
+            const params = new URLSearchParams({
+              doctorId,
+              startsAt,
+              endsAt,
+            });
+            const res = await fetch(`/api/appointments/check-conflict?${params.toString()}`, {
+              credentials: "same-origin",
+            });
+            const data = res.ok ? await res.json() : { conflict: false, message: "" };
+            if (data?.conflict) {
+              setConflictMessage(
+                "Questo medico ha già un appuntamento in questo intervallo. Gli appuntamenti sovrapposti per lo stesso medico non sono consentiti. Modifica l'orario o il medico prima di salvare."
+              );
+              setError(
+                "Sovrapposizione per il medico selezionato: scegli un altro orario o medico."
+              );
+              return;
+            }
+          } catch (err) {
+            console.error("Conflict check failed", err);
+          } finally {
+            setChecking(false);
+          }
+        }
+
+        try {
+          await action(formData);
+        } catch (err: any) {
+          const message =
+            err?.message ??
+            "Impossibile creare l'appuntamento. Verifica i dati e riprova.";
+          setError(message);
+        }
       }}
       className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
       data-appointment-form="create"
@@ -155,10 +199,16 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
       </label>
       {error ? <p className="col-span-full text-sm text-rose-600">{error}</p> : null}
       <div className="col-span-full">
-        <FormSubmitButton className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-          Aggiungi appuntamento
+        <FormSubmitButton
+          disabled={checking}
+          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {checking ? "Controllo sovrapposizioni..." : "Aggiungi appuntamento"}
         </FormSubmitButton>
       </div>
+      {conflictMessage ? (
+        <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
+      ) : null}
     </form>
   );
 }
