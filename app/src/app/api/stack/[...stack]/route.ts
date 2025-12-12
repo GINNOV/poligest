@@ -15,7 +15,9 @@ function requireEnv(key: string) {
 }
 
 async function proxyToStack(request: NextRequest, stackPath: string[]) {
-  const targetUrl = `${STACK_API_BASE}/${stackPath.join("/")}${request.nextUrl.search}`;
+  const normalizedPath =
+    stackPath[0] === "v1" ? ["api", ...stackPath] : stackPath;
+  const targetUrl = `${STACK_API_BASE}/${normalizedPath.join("/")}${request.nextUrl.search}`;
 
   const headers = new Headers(request.headers);
   headers.set("X-Stack-Project-Id", requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"));
