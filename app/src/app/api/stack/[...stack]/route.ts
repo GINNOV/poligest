@@ -42,6 +42,9 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
 
   const response = await fetch(targetUrl, init);
   const responseHeaders = new Headers(response.headers);
+  // Avoid double-decoding issues when the upstream is already compressed.
+  responseHeaders.delete("content-encoding");
+  responseHeaders.delete("content-length");
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
