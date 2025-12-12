@@ -48,9 +48,15 @@ export async function deleteProduct(formData: FormData) {
   const productId = formData.get("productId") as string;
   if (!productId) throw new Error("Prodotto mancante");
 
-  // Ripulisci movimenti collegati per evitare vincoli FK
-  await prisma.stockMovement.deleteMany({ where: { productId } });
-  await prisma.product.delete({ where: { id: productId } });
+  try {
+    console.info("[magazzino] deleting product", productId);
+    // Ripulisci movimenti collegati per evitare vincoli FK
+    await prisma.stockMovement.deleteMany({ where: { productId } });
+    await prisma.product.delete({ where: { id: productId } });
+  } catch (err) {
+    console.error("[magazzino] delete product failed", err);
+    throw err;
+  }
 
   revalidatePath("/magazzino");
 }
@@ -60,12 +66,18 @@ export async function deleteSupplier(formData: FormData) {
   const supplierId = formData.get("supplierId") as string;
   if (!supplierId) throw new Error("Fornitore mancante");
 
-  // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
-  await prisma.product.updateMany({
-    where: { supplierId },
-    data: { supplierId: null },
-  });
-  await prisma.supplier.delete({ where: { id: supplierId } });
+  try {
+    console.info("[magazzino] deleting supplier", supplierId);
+    // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
+    await prisma.product.updateMany({
+      where: { supplierId },
+      data: { supplierId: null },
+    });
+    await prisma.supplier.delete({ where: { id: supplierId } });
+  } catch (err) {
+    console.error("[magazzino] delete supplier failed", err);
+    throw err;
+  }
 
   revalidatePath("/magazzino");
 }

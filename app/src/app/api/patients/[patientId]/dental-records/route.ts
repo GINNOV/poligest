@@ -58,28 +58,39 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Patient mancante" }, { status: 400 });
   }
 
-  const body = await req.json();
-  const recordId = (body?.recordId as string | undefined) ?? "";
+  let recordId = "";
+  try {
+    const body = await req.json();
+    recordId = (body?.recordId as string | undefined) ?? "";
+  } catch (err) {
+    // Allow DELETE without body (some proxies strip it) and fallback to querystring
+    const url = new URL(req.url);
+    recordId = url.searchParams.get("recordId") ?? "";
+  }
 
   if (!recordId) {
     return NextResponse.json({ error: "ID record mancante" }, { status: 400 });
   }
 
-  const record = await prisma.dentalRecord.findUnique({ where: { id: recordId } });
-  if (!record || record.patientId !== patientId) {
-    return NextResponse.json({ error: "Record non trovato" }, { status: 404 });
+  try {
+    const record = await prisma.dentalRecord.findUnique({ where: { id: recordId } });
+    if (!record || record.patientId !== patientId) {
+      return NextResponse.json({ error: "Record non trovato" }, { status: 404 });
+    }
+
+    await prisma.dentalRecord.delete({ where: { id: recordId } });
+
+    await logAudit(user, {
+      action: "patient.dental_record_deleted",
+      entity: "Patient",
+      entityId: patientId,
+      metadata: { tooth: record.tooth },
+    });
+
+    revalidatePath(`/pazienti/${patientId}`);
+
+    return NextResponse.json({ ok: true, recordId });
+  } catch (err) {
+    return NextResponse.json({ error: "Errore eliminazione record" }, { status: 500 });
   }
-
-  await prisma.dentalRecord.delete({ where: { id: recordId } });
-
-  await logAudit(user, {
-    action: "patient.dental_record_deleted",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { tooth: record.tooth },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-
-  return NextResponse.json({ ok: true });
 }

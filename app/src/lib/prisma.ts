@@ -1,8 +1,24 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+type PrismaClientWithLogs = PrismaClient<
+  Prisma.PrismaClientOptions,
+  "query" | "info" | "warn" | "error"
+>;
+
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientWithLogs };
+const isDev = process.env.NODE_ENV !== "production";
+
+const devLogLevels: Prisma.LogDefinition[] = [
+  { level: "warn", emit: "event" },
+  { level: "error", emit: "event" },
+];
+
+const prodLogLevels: Prisma.LogDefinition[] = [
+  { level: "warn", emit: "stdout" },
+  { level: "error", emit: "stdout" },
+];
 
 const connectionString =
   process.env.POSTGRES_PRISMA_URL ??
@@ -30,19 +46,17 @@ pool.on("error", (err) => {
 
 const adapter = new PrismaPg(pool);
 
-if (globalForPrisma.prisma) {
-  console.log("⚠️ src/lib/prisma.ts: Reusing existing PrismaClient from globalThis");
-} else {
-  console.log("🆕 src/lib/prisma.ts: Creating NEW PrismaClient instance");
-}
-
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({
+  new PrismaClient<
+    Prisma.PrismaClientOptions,
+    "query" | "info" | "warn" | "error"
+  >({
     adapter,
-    log: ["warn", "error"],
-  });
+    log: isDev ? devLogLevels : prodLogLevels,
+    errorFormat: "pretty",
+});
 
-if (process.env.NODE_ENV !== "production") {
+if (isDev) {
   globalForPrisma.prisma = prisma;
 }

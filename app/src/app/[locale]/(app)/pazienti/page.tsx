@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { PatientDeleteButton } from "@/components/patient-delete-button";
 
 const consentLabels: Partial<Record<ConsentType, string>> = {
   [ConsentType.PRIVACY]: "Privacy",
@@ -127,31 +128,6 @@ async function createPatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
-async function deletePatient(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN]);
-  const patientId = formData.get("patientId") as string;
-  if (!patientId) throw new Error("Paziente non valido");
-
-  await prisma.$transaction([
-    prisma.dentalRecord.deleteMany({ where: { patientId } }),
-    prisma.clinicalNote.deleteMany({ where: { patientId } }),
-    prisma.recall.deleteMany({ where: { patientId } }),
-    prisma.appointment.deleteMany({ where: { patientId } }),
-    prisma.stockMovement.deleteMany({ where: { patientId } }),
-    prisma.consent.deleteMany({ where: { patientId } }),
-    prisma.patient.delete({ where: { id: patientId } }),
-  ]);
-
-  await logAudit(user, {
-    action: "patient.deleted",
-    entity: "Patient",
-    entityId: patientId,
-  });
-  revalidatePath("/pazienti");
-}
-
 export default async function PazientiPage({
   searchParams,
 }: {
@@ -265,18 +241,7 @@ export default async function PazientiPage({
                   >
                     Scheda
                   </Link>
-                  <form
-                    action={deletePatient}
-                    data-confirm="Confermi l'eliminazione definitiva del paziente e di tutti i dati collegati?"
-                  >
-                    <input type="hidden" name="patientId" value={patient.id} />
-                    <button
-                      type="submit"
-                      className="rounded-full border border-rose-200 px-3 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                    >
-                      Elimina
-                    </button>
-                  </form>
+                  <PatientDeleteButton patientId={patient.id} />
                 </div>
               </div>
             ))

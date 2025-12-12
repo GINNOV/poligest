@@ -251,7 +251,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         </span>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-        Inizio
+        Inizio visita
         <input
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"
@@ -270,7 +270,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-        Fine
+        Stima di fine visita
         <input
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"

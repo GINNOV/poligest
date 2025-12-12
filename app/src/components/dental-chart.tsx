@@ -285,13 +285,16 @@ export function DentalChart({
   const deleteRecord = async (recordId: string, tooth?: number) => {
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/patients/${patientId}/dental-records`, {
+      const res = await fetch(`/api/patients/${patientId}/dental-records?recordId=${encodeURIComponent(recordId)}`, {
         method: "DELETE",
+        // Some proxies strip DELETE bodies; send JSON for our handler but keep query param too.
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recordId }),
+        cache: "no-store",
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+        const body = await res.json().catch(() => ({} as any));
+        console.error("[dental-chart] delete failed", { status: res.status, body });
         throw new Error(body?.error || "Eliminazione non riuscita");
       }
       setRecords((prev) => prev.filter((r) => r.id !== recordId));
