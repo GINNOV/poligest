@@ -21,7 +21,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.SECRETARY;
   const isManager = user?.role === Role.MANAGER;
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
-  const version = execSync("git rev-parse --short HEAD").toString().trim();
+  const version =
+    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
+    (() => {
+      try {
+        return execSync("git rev-parse --short HEAD").toString().trim();
+      } catch {
+        return "unknown";
+      }
+    })();
 
   return (
     <div className="min-h-screen bg-zinc-50">

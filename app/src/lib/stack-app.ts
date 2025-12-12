@@ -8,11 +8,11 @@ function requireEnv(key: string) {
   return value;
 }
 
-const STACK_API_BASE =
-  (process.env.NEXT_PUBLIC_STACK_API_URL || process.env.STACK_API_URL || "https://api.stack-auth.com").replace(
-    /\/$/,
-    "",
-  );
+const rawStackApiUrl = process.env.NEXT_PUBLIC_STACK_API_URL || process.env.STACK_API_URL;
+const STACK_API_BASE = (rawStackApiUrl && /^https?:\/\//.test(rawStackApiUrl)
+  ? rawStackApiUrl
+  : "https://api.stack-auth.com"
+).replace(/\/$/, "");
 
 export const stackServerApp = new StackServerApp({
   projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),

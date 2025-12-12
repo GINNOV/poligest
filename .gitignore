@@ -44,3 +44,4 @@ firebase-debug.log
 gha-creds-*.json
 .github
 app/.gemini-clipboard
+app/logs
