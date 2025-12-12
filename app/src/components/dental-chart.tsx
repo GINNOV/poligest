@@ -6,7 +6,7 @@ import { emitToast } from "./global-toasts";
 
 type DentalRecord = {
   id: string;
-  tooth: number;
+  tooth: number; // 0 means "Tutta la bocca"
   procedure: string;
   notes: string | null;
   performedAt: string;
@@ -209,7 +209,8 @@ export function DentalChart({
     [records]
   );
 
-  const selectedRecord = selectedTooth ? recordsByTooth.get(selectedTooth) : undefined;
+  const selectedRecord =
+    selectedTooth === null ? undefined : recordsByTooth.get(selectedTooth);
 
   const resetSelection = () => {
     setSelectedTooth(null);
@@ -226,8 +227,8 @@ export function DentalChart({
 
   const handleSave = async () => {
     const chosenProcedure = procedure === "altro" ? customProcedure.trim() : procedure;
-    if (!selectedTooth || !chosenProcedure) {
-      emitToast("Seleziona un dente e una procedura", "error");
+    if (selectedTooth === null || !chosenProcedure) {
+      emitToast("Seleziona un dente (o tutta la bocca) e una procedura", "error");
       return;
     }
 
@@ -276,7 +277,7 @@ export function DentalChart({
         throw new Error(body?.error || "Eliminazione non riuscita");
       }
       setRecords((prev) => prev.filter((r) => r.id !== recordId));
-      if (tooth && selectedTooth === tooth) {
+      if (typeof tooth === "number" && selectedTooth === tooth) {
         resetSelection();
       }
       emitToast("Record eliminato", "success");
@@ -299,6 +300,18 @@ export function DentalChart({
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
             Seleziona dente e salva procedura
           </span>
+          <button
+            type="button"
+            onClick={() => handleSelectTooth(0)}
+            className={clsx(
+              "rounded-full border px-3 py-1 text-[11px] font-semibold transition",
+              selectedTooth === 0
+                ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-200 hover:text-emerald-700"
+            )}
+          >
+            Tutta la bocca
+          </button>
         </div>
       </div>
 
@@ -317,6 +330,8 @@ export function DentalChart({
               sortedRecords.map((rec) => {
                 const proc = resolveProcedure(rec.procedure);
                 const isActive = selectedTooth === rec.tooth;
+                const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
+                const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
                 return (
                   <div
                     key={rec.id}
@@ -338,18 +353,26 @@ export function DentalChart({
                   >
                     <div className="flex items-center gap-4">
                       <div className="relative h-12 w-12 overflow-hidden">
-                        <img
-                          src={TOOTH_IMAGES[getToothType(rec.tooth)]}
-                          alt={`Dente ${rec.tooth}`}
-                          className="h-full w-full object-contain"
-                        />
-                        <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
-                          {rec.tooth}
-                        </span>
+                        {toothImage ? (
+                          <>
+                            <img
+                              src={toothImage}
+                              alt={toothLabel}
+                              className="h-full w-full object-contain"
+                            />
+                            <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
+                              {rec.tooth}
+                            </span>
+                          </>
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-800">
+                            Tutta la bocca
+                          </div>
+                        )}
                       </div>
-                    <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-1">
                         <div className="flex items-center justify-between text-sm text-zinc-600">
-                          <span>Dente {rec.tooth}</span>
+                          <span>{toothLabel}</span>
                           <span>{new Date(rec.performedAt).toLocaleDateString("it-IT")}</span>
                         </div>
                         <div
@@ -424,11 +447,15 @@ export function DentalChart({
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                {selectedTooth ? `Dente ${selectedTooth}` : "Nessun dente selezionato"}
+                {selectedTooth === null
+                  ? "Nessun dente selezionato"
+                  : selectedTooth === 0
+                    ? "Tutta la bocca"
+                    : `Dente ${selectedTooth}`}
               </p>
               <h3 className="text-lg font-semibold text-zinc-900">Procedura</h3>
             </div>
-            {selectedTooth && (
+            {selectedTooth !== null && (
               <button
                 onClick={resetSelection}
                 className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-zinc-300"
@@ -496,7 +523,7 @@ export function DentalChart({
             <button
               type="button"
               onClick={handleSave}
-              disabled={!selectedTooth || !procedure || isSubmitting}
+              disabled={selectedTooth === null || !procedure || isSubmitting}
               className="flex-1 rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Salva su diario

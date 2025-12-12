@@ -443,7 +443,6 @@ export default async function PatientDetailPage({
                 <form
                   action={uploadPhoto}
                   className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
-                  encType="multipart/form-data"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
                   {patient.photoUrl ? (

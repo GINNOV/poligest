@@ -1,8 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function GlobalError({
   error,
@@ -11,48 +9,46 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Generate a stable fallback ID if digest is missing.
+  const fallbackId = useMemo(() => crypto.randomUUID(), []);
+  const errorId = error.digest || fallbackId;
+
   useEffect(() => {
-    console.error("Global error boundary:", error);
+    console.error("Unhandled app error", { digest: error.digest, error });
   }, [error]);
 
   return (
-    <div className="flex min-h-[70vh] items-center justify-center px-6 py-12">
-      <div className="max-w-xl rounded-2xl border border-rose-100 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-6 flex justify-center">
-          <Image
-            src="/status/error.png"
-            alt="Errore applicazione"
-            width={360}
-            height={220}
-            className="h-auto max-w-full"
-            priority
-          />
+    <div className="min-h-screen bg-emerald-50 text-zinc-900">
+      <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-14 text-center sm:px-6">
+        <div className="inline-flex items-center justify-center self-center rounded-full bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700">
+          Errore di sistema
         </div>
-        <h1 className="text-2xl font-bold text-rose-800">Si è verificato un errore</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          Qualcosa è andato storto. Puoi riprovare oppure tornare alla pagina principale.
+        <h1 className="text-3xl font-semibold text-zinc-900">Qualcosa è andato storto</h1>
+        <p className="text-sm leading-6 text-zinc-600">
+          Si è verificato un problema inatteso. Se il problema persiste, contatta il supporto e
+          comunica il codice sottostante così possiamo cercarlo nei log.
         </p>
-        {error?.message ? (
-          <p className="mt-3 rounded-lg bg-rose-50 px-4 py-2 text-left text-xs text-rose-700">
-            Dettagli: {error.message}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+            Codice errore
           </p>
-        ) : null}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <p className="mt-2 select-all text-lg font-mono font-semibold text-zinc-900">{errorId}</p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
           <button
-            type="button"
             onClick={reset}
-            className="rounded-full bg-emerald-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+            className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
             Riprova
           </button>
-          <Link
+          <a
             href="/"
-            className="rounded-full border border-zinc-200 px-5 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-300 hover:text-emerald-700"
+            className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
           >
-            Vai alla home
-          </Link>
+            Torna alla home
+          </a>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
