@@ -8,11 +8,22 @@ function requireEnv(key: string) {
   return value;
 }
 
+const STACK_API_BASE =
+  (process.env.NEXT_PUBLIC_STACK_API_URL || process.env.STACK_API_URL || "https://api.stack-auth.com").replace(
+    /\/$/,
+    "",
+  );
+
 export const stackServerApp = new StackServerApp({
   projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
   publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
   secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
   tokenStore: "nextjs-cookie",
+  baseUrl: {
+    // Force browser requests through our Next.js proxy to keep keys server-side.
+    browser: "/api/stack",
+    server: STACK_API_BASE,
+  },
   urls: {
     handler: "/handler",
   },
