@@ -56,10 +56,11 @@ async function createAppointment(formData: FormData) {
     const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
     const startsAt = formData.get("startsAt") as string;
     const endsAt = formData.get("endsAt") as string;
-    const patientId = formData.get("patientId") as string;
+    const patientIdRaw = formData.get("patientId") as string;
     const doctorId = (formData.get("doctorId") as string) || null;
+    const notes = (formData.get("notes") as string)?.trim() || null;
 
-    if (!title || !serviceType || !startsAt || !endsAt || !patientId) {
+    if (!title || !serviceType || !startsAt || !endsAt || !patientIdRaw) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
     }
 
@@ -84,6 +85,24 @@ async function createAppointment(formData: FormData) {
       );
     }
 
+    let patientId = patientIdRaw;
+    if (patientIdRaw === "new") {
+      const newFirstName = (formData.get("newFirstName") as string)?.trim();
+      const newLastName = (formData.get("newLastName") as string)?.trim();
+      const newPhone = (formData.get("newPhone") as string)?.trim();
+      if (!newFirstName || !newLastName || !newPhone) {
+        throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
+      }
+      const patient = await prisma.patient.create({
+        data: {
+          firstName: newFirstName,
+          lastName: newLastName,
+          phone: newPhone,
+        },
+      });
+      patientId = patient.id;
+    }
+
     const appointment = await prisma.appointment.create({
       data: {
         title,
@@ -92,6 +111,7 @@ async function createAppointment(formData: FormData) {
         endsAt: adjustedEndsAt,
         patientId,
         doctorId,
+        notes,
         status: AppointmentStatus.CONFIRMED,
       },
     });

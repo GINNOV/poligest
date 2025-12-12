@@ -19,6 +19,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [localEndsAt, setLocalEndsAt] = useState<string>("");
   const [allowSubmit, setAllowSubmit] = useState(false);
+  const [isNewPatient, setIsNewPatient] = useState(false);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -115,6 +116,57 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         }
       }}
     >
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+        Paziente
+        <select
+          name="patientId"
+          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          required
+          defaultValue=""
+          onChange={(e) => setIsNewPatient(e.target.value === "new")}
+        >
+          <option value="" disabled>
+            Seleziona paziente
+          </option>
+          <option value="new">+ Nuovo cliente</option>
+          {patients.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.lastName} {p.firstName}
+            </option>
+          ))}
+        </select>
+      </label>
+      {isNewPatient && (
+        <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+            Nome
+            <input
+              name="newFirstName"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Nome"
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+            Cognome
+            <input
+              name="newLastName"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Cognome"
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+            Telefono
+            <input
+              name="newPhone"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Telefono"
+              required
+            />
+          </label>
+        </div>
+      )}
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Appuntamento per...
         <div className="grid grid-cols-[2fr,1fr] gap-2">
@@ -196,24 +248,6 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-        Paziente
-        <select
-          name="patientId"
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          required
-          defaultValue=""
-        >
-          <option value="" disabled>
-            Seleziona paziente
-          </option>
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.lastName} {p.firstName}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Medico assegnato
         <select
           name="doctorId"
@@ -229,6 +263,14 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         </select>
       </label>
       {error ? <p className="col-span-full text-sm text-rose-600">{error}</p> : null}
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+        Note (opzionali)
+        <textarea
+          name="notes"
+          className="min-h-[80px] rounded-xl border border-zinc-200 px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          placeholder="Note per il team o dettagli sul paziente/servizio"
+        />
+      </label>
       <div className="col-span-full">
         <FormSubmitButton
           disabled={checking}
