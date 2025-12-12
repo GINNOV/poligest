@@ -196,7 +196,7 @@ async function updateImplantAssociation(formData: FormData) {
 async function uploadPhoto(formData: FormData) {
   "use server";
 
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const patientId = formData.get("patientId") as string;
   const file = formData.get("photo") as File | null;
@@ -223,6 +223,15 @@ async function uploadPhoto(formData: FormData) {
     where: { id: patientId },
     data: { photoUrl: publicPath },
   });
+
+  await logAudit(user, {
+    action: "patient.photo_uploaded",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: { size: file.size },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
 }
 
 async function updatePatient(formData: FormData) {
@@ -434,6 +443,7 @@ export default async function PatientDetailPage({
                 <form
                   action={uploadPhoto}
                   className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
+                  encType="multipart/form-data"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
                   {patient.photoUrl ? (

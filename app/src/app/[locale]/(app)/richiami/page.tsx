@@ -241,6 +241,7 @@ export default async function RichiamiPage() {
                     key={rule.id}
                     action={deleteRecallRule}
                     className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                    data-confirm="Eliminare definitivamente questa regola di richiamo?"
                   >
                     <div>
                       <p className="font-semibold text-zinc-900">{rule.name}</p>

@@ -2,12 +2,13 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { StackProvider } from "@stackframe/stack";
+import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackServerApp } from "@/lib/stack-app";
 import "../globals.css";
 import { PreventDoubleSubmit } from "@/components/prevent-double-submit";
 import { GlobalLoadingOverlay } from "@/components/global-loading-overlay";
 import { GlobalToasts } from "@/components/global-toasts";
+import { ConfirmBeforeSubmit } from "@/components/confirm-before-submit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,16 +41,19 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased`}
       >
-        <TooltipProvider>
-          <NextIntlClientProvider locale={locale} messages={messages}>
-            <StackProvider app={stackServerApp} lang="it-IT">
-              {children}
-              <GlobalToasts />
-              <GlobalLoadingOverlay />
-              <PreventDoubleSubmit />
-            </StackProvider>
-          </NextIntlClientProvider>
-        </TooltipProvider>
+        <StackTheme>
+          <TooltipProvider>
+            <NextIntlClientProvider locale={locale} messages={messages}>
+              <StackProvider app={stackServerApp} lang="it-IT">
+                {children}
+                <GlobalToasts />
+                <GlobalLoadingOverlay />
+                <PreventDoubleSubmit />
+                <ConfirmBeforeSubmit />
+              </StackProvider>
+            </NextIntlClientProvider>
+          </TooltipProvider>
+        </StackTheme>
       </body>
     </html>
   );

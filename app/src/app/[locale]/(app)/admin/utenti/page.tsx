@@ -287,7 +287,13 @@ export default async function AdminUsersPage() {
                           {t("toggle")}
                         </button>
                       </form>
-                      <form action={deleteUser} className="flex justify-start sm:justify-end">
+                      <form
+                        action={deleteUser}
+                        className="flex justify-start sm:justify-end"
+                        data-confirm={t("deleteConfirm", {
+                          defaultValue: "Eliminare definitivamente questo utente?",
+                        })}
+                      >
                         <input type="hidden" name="userId" value={user.id} />
                         <button
                           type="submit"

@@ -554,7 +554,11 @@ export default async function AgendaPage({
                     services={serviceOptionObjects}
                     action={updateAppointment}
                   />
-                  <form action={deleteAppointment} className="mt-3 flex justify-end">
+                  <form
+                    action={deleteAppointment}
+                    className="mt-3 flex justify-end"
+                    data-confirm="Eliminare definitivamente questo appuntamento?"
+                  >
                     <input type="hidden" name="appointmentId" value={appt.id} />
                     <button
                       type="submit"

@@ -214,7 +214,11 @@ export default async function MediciPage() {
                       Salva
                     </button>
                   </form>
-                  <form action={deleteDoctor} className="flex justify-end sm:pt-1">
+                  <form
+                    action={deleteDoctor}
+                    className="flex justify-end sm:pt-1"
+                    data-confirm="Eliminare definitivamente questo medico e le relative informazioni?"
+                  >
                     <input type="hidden" name="doctorId" value={doc.id} />
                     <button
                       type="submit"

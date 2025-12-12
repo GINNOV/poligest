@@ -125,11 +125,25 @@ async function createPatient(formData: FormData) {
 async function deletePatient(formData: FormData) {
   "use server";
 
-  await requireUser([Role.ADMIN]);
+  const user = await requireUser([Role.ADMIN]);
   const patientId = formData.get("patientId") as string;
   if (!patientId) throw new Error("Paziente non valido");
 
-  await prisma.patient.delete({ where: { id: patientId } });
+  await prisma.$transaction([
+    prisma.dentalRecord.deleteMany({ where: { patientId } }),
+    prisma.clinicalNote.deleteMany({ where: { patientId } }),
+    prisma.recall.deleteMany({ where: { patientId } }),
+    prisma.appointment.deleteMany({ where: { patientId } }),
+    prisma.stockMovement.deleteMany({ where: { patientId } }),
+    prisma.consent.deleteMany({ where: { patientId } }),
+    prisma.patient.delete({ where: { id: patientId } }),
+  ]);
+
+  await logAudit(user, {
+    action: "patient.deleted",
+    entity: "Patient",
+    entityId: patientId,
+  });
   revalidatePath("/pazienti");
 }
 
@@ -246,7 +260,10 @@ export default async function PazientiPage({
                   >
                     Scheda / Foto
                   </Link>
-                  <form action={deletePatient}>
+                  <form
+                    action={deletePatient}
+                    data-confirm="Confermi l'eliminazione definitiva del paziente e di tutti i dati collegati?"
+                  >
                     <input type="hidden" name="patientId" value={patient.id} />
                     <button
                       type="submit"
