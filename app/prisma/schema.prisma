@@ -60,6 +60,35 @@ enum NotificationChannel {
   BOTH
 }
 
+model SmsTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs SmsLog[]
+}
+
+model SmsLog {
+  id          String    @id @default(cuid())
+  to          String
+  body        String
+  status      String
+  error       String?
+  templateId  String?
+  patientId   String?
+  userId      String?
+  createdAt   DateTime  @default(now())
+
+  template SmsTemplate? @relation(fields: [templateId], references: [id])
+  patient  Patient?     @relation(fields: [patientId], references: [id])
+  user     User?        @relation(fields: [userId], references: [id])
+
+  @@index([to])
+  @@index([createdAt])
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
@@ -77,6 +106,7 @@ model User {
   stockMovements StockMovement[] @relation("StockMovementUser")
   financeEntries FinanceEntry[]  @relation("FinanceEntryUser")
   cashAdvances   CashAdvance[]   @relation("CashAdvanceUser")
+  smsLogs        SmsLog[]
 }
 
 model Doctor {
@@ -115,6 +145,7 @@ model Patient {
   recalls        Recall[]
   stockMovements StockMovement[]
   dentalRecords  DentalRecord[]
+  smsLogs        SmsLog[]
 }
 
 model Consent {

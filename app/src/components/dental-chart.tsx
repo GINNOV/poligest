@@ -131,18 +131,34 @@ function Tooth({
 }) {
   const path = TOOTH_PATHS[data.type];
 
-  const stroke = isSelected ? "#0f766e" : hasRecord ? "#22c55e" : "transparent";
-  const strokeWidth = stroke === "transparent" ? 0 : isSelected ? 3 : 2;
+  const stroke = hasRecord ? "#22c55e" : "transparent";
+  const strokeWidth = stroke === "transparent" ? 0 : 2;
+
+  // Ease compression between arches (looks less squished) and lift everything upward to use top space.
+  const yScaled = 140 + (data.y - 210) * 0.6;
+  const xShifted = data.x - 80; // nudge entire mouth further left to keep right side visible
 
   return (
     <g
-      transform={`translate(${data.x}, ${data.y}) rotate(${data.rot}) scale(1.45)`}
+      transform={`translate(${xShifted}, ${yScaled}) rotate(${data.rot}) scale(1.45)`}
       onClick={(e) => {
         e.stopPropagation();
         onClick(data.id);
       }}
       className="cursor-pointer transition-opacity hover:opacity-80"
     >
+      {isSelected && (
+        <circle
+          cx="10"
+          cy="12"
+          r="14.4"
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
       <defs>
         <pattern
           id={`tooth-img-${data.id}`}
@@ -184,9 +200,11 @@ function Tooth({
 export function DentalChart({
   patientId,
   initialRecords,
+  defaultCollapsed = true,
 }: {
   patientId: string;
   initialRecords: DentalRecord[];
+  defaultCollapsed?: boolean;
 }) {
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -290,7 +308,48 @@ export function DentalChart({
   };
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <details
+      className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden"
+      open={!defaultCollapsed}
+    >
+      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+        <span className="flex items-center gap-3">
+          <svg
+            className="h-8 w-8 text-emerald-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+            <path d="M9 2v4" />
+            <path d="M15 2v4" />
+            <path d="M7 10h10" />
+            <path d="M7 14h6" />
+          </svg>
+          Diario clinico
+        </span>
+        <svg
+          className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </summary>
+      <div className="p-0">
+        <div className="px-6 pt-2 text-sm text-zinc-600">
+          Seleziona un dente o “Tutta la bocca” per registrare una procedura.
+        </div>
+    <div className="rounded-2xl bg-white">
       <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
         <div>
           <p className="text-sm text-zinc-600">Diario clinico</p>
@@ -332,6 +391,7 @@ export function DentalChart({
                 const isActive = selectedTooth === rec.tooth;
                 const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
                 const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
+                const showThumbnail = rec.tooth !== 0;
                 return (
                   <div
                     key={rec.id}
@@ -352,24 +412,22 @@ export function DentalChart({
                     }}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="relative h-12 w-12 overflow-hidden">
-                        {toothImage ? (
-                          <>
-                            <img
-                              src={toothImage}
-                              alt={toothLabel}
-                              className="h-full w-full object-contain"
-                            />
-                            <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
-                              {rec.tooth}
-                            </span>
-                          </>
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-800">
-                            Tutta la bocca
-                          </div>
-                        )}
-                      </div>
+                      {showThumbnail ? (
+                        <div className="relative h-12 w-12 overflow-hidden">
+                          <img
+                            src={toothImage ?? ""}
+                            alt={toothLabel}
+                            className="h-full w-full object-contain"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
+                            {rec.tooth}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-800">
+                          Tutta la bocca
+                        </div>
+                      )}
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center justify-between text-sm text-zinc-600">
                           <span>{toothLabel}</span>
@@ -410,25 +468,48 @@ export function DentalChart({
         </aside>
 
         <section className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
-          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-zinc-600">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1">
-              <span className="h-3 w-3 rounded-full border border-zinc-300 bg-white" />
-              Sano
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1">
-              <span className="h-3 w-3 rounded-full border border-emerald-400 bg-emerald-50" />
-              Trattato
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1">
-              <span className="h-3 w-3 rounded-full border border-emerald-700 bg-emerald-500" />
-              Selezionato
-            </span>
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
+            {[
+              {
+                label: "Sano",
+                render: (
+                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
+                    <path d={TOOTH_PATHS.incisor} fill="#fff" stroke="#d4d4d8" strokeWidth="1.5" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Trattato",
+                render: (
+                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
+                    <path d={TOOTH_PATHS.incisor} fill="#ecfeff" stroke="#22c55e" strokeWidth="2" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Selezionato",
+                render: (
+                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="#ef4444" strokeWidth="2.5" />
+                    <path d={TOOTH_PATHS.incisor} fill="#fff" stroke="#d4d4d8" strokeWidth="1.2" />
+                  </svg>
+                ),
+              },
+            ].map((item) => (
+              <span
+                key={item.label}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-2.5 py-1.5"
+              >
+                {item.render}
+                <span className="font-semibold text-zinc-700">{item.label}</span>
+              </span>
+            ))}
           </div>
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-inner">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-inner">
             <div className="relative h-full w-full">
-              <svg viewBox="-10 -10 440 520" className="h-full w-full">
-                <line x1="210" y1="0" x2="210" y2="500" stroke="#e4e4e7" strokeWidth="2" />
-                <line x1="0" y1="250" x2="420" y2="250" stroke="#e4e4e7" strokeWidth="2" />
+              <svg viewBox="-80 0 440 340" className="h-full w-full">
+                <line x1="140" y1="0" x2="140" y2="340" stroke="#e4e4e7" strokeWidth="2" />
+                <line x1="-80" y1="170" x2="360" y2="170" stroke="#e4e4e7" strokeWidth="2" />
                 {TEETH.map((tooth) => (
                   <Tooth
                     key={tooth.id}
@@ -526,7 +607,7 @@ export function DentalChart({
               disabled={selectedTooth === null || !procedure || isSubmitting}
               className="flex-1 rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Salva su diario
+              {selectedRecord ? "Aggiorna questa procedura" : "Aggiungi al diario"}
             </button>
             {selectedRecord ? (
               <button
@@ -542,5 +623,7 @@ export function DentalChart({
         </aside>
       </div>
     </div>
+      </div>
+    </details>
   );
 }

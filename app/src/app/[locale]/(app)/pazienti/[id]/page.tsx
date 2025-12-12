@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role, AppointmentStatus, StockMovementType } from "@prisma/client";
+import { Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -11,6 +11,7 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
+import { sendSms } from "@/lib/sms";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -32,6 +33,13 @@ const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
   REVOKED: "Revocato",
   EXPIRED: "Scaduto",
+};
+
+const consentTypeLabels: Record<ConsentType, string> = {
+  PRIVACY: "Privacy",
+  TREATMENT: "Trattamento",
+  MARKETING: "Marketing",
+  RECALL: "Richiami",
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -316,6 +324,88 @@ async function updatePatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
+async function addConsent(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+
+  const patientId = (formData.get("patientId") as string) ?? "";
+  const type = formData.get("consentType") as ConsentType;
+  const status = (formData.get("consentStatus") as ConsentStatus) ?? ConsentStatus.GRANTED;
+  const channel = ((formData.get("consentChannel") as string) ?? "manual").trim() || "manual";
+  const givenAtStr = formData.get("consentGivenAt") as string;
+  const expiresAtStr = formData.get("consentExpiresAt") as string;
+  const revokedAtStr = formData.get("consentRevokedAt") as string;
+
+  if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
+    throw new Error("Dati consenso non validi");
+  }
+
+  const givenAt = givenAtStr ? new Date(givenAtStr) : new Date();
+  const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
+  const revokedAt = revokedAtStr ? new Date(revokedAtStr) : null;
+
+  await prisma.consent.create({
+    data: {
+      patientId,
+      type,
+      status,
+      channel,
+      givenAt,
+      expiresAt,
+      revokedAt,
+    },
+  });
+
+  await logAudit(user, {
+    action: "consent.added",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: { type, status, channel },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
+async function sendPatientSms(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const patientId = (formData.get("patientId") as string) ?? "";
+  const templateId = (formData.get("templateId") as string) ?? "";
+
+  if (!patientId || !templateId) {
+    throw new Error("Seleziona un template e un paziente");
+  }
+
+  const [template, patient] = await Promise.all([
+    prisma.smsTemplate.findUnique({ where: { id: templateId } }),
+    prisma.patient.findUnique({ where: { id: patientId }, select: { phone: true, firstName: true, lastName: true } }),
+  ]);
+
+  if (!template) throw new Error("Template non trovato");
+  if (!patient?.phone) throw new Error("Numero di telefono mancante");
+
+  const body = template.body.replace("{{nome}}", patient.firstName ?? "").replace("{{cognome}}", patient.lastName ?? "");
+
+  await sendSms({
+    to: patient.phone,
+    body,
+    templateId,
+    patientId,
+    userId: user.id,
+  });
+
+  await logAudit(user, {
+    action: "sms.sent",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: { templateId },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
 export default async function PatientDetailPage({
   params,
 }: {
@@ -395,6 +485,15 @@ export default async function PatientDetailPage({
     ...record,
     performedAt: record.performedAt.toISOString(),
   }));
+  const [smsTemplates, smsLogs] = await Promise.all([
+    prisma.smsTemplate.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.smsLog.findMany({
+      where: { patientId },
+      orderBy: { createdAt: "desc" },
+      take: 15,
+      include: { template: true },
+    }),
+  ]);
 
   return (
     <>
@@ -428,9 +527,18 @@ export default async function PatientDetailPage({
                   </div>
                 </div>
               </div>
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 text-2xl font-semibold text-emerald-700 transition-transform duration-200 group-open:rotate-180">
-                ⌄
-              </span>
+              <svg
+                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
               <Link
                 href="/pazienti"
                 className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-700"
@@ -602,7 +710,7 @@ export default async function PatientDetailPage({
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
-                                {consent.type}
+                                {consentTypeLabels[consent.type] ?? consent.type}
                               </span>
                               <span className="rounded-full bg-emerald-700 px-2 py-1 text-[11px] font-semibold uppercase text-white">
                                 {consentStatusLabels[consent.status] ?? consent.status}
@@ -627,6 +735,80 @@ export default async function PatientDetailPage({
                         ))}
                       </div>
                     )}
+                    <form action={addConsent} className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-800 sm:grid-cols-2">
+                      <input type="hidden" name="patientId" value={patient.id} />
+                      <label className="flex flex-col gap-1">
+                        Tipo
+                        <select
+                          name="consentType"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          defaultValue={ConsentType.PRIVACY}
+                        >
+                          {Object.values(ConsentType).map((type) => (
+                            <option key={type} value={type}>
+                              {consentTypeLabels[type] ?? type}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Stato
+                        <select
+                          name="consentStatus"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          defaultValue={ConsentStatus.GRANTED}
+                        >
+                          {Object.values(ConsentStatus).map((status) => (
+                            <option key={status} value={status}>
+                              {consentStatusLabels[status] ?? status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Canale
+                        <select
+                          name="consentChannel"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          defaultValue="Manuale"
+                        >
+                          <option>Telefono</option>
+                          <option>Manuale</option>
+                          <option>Digitale</option>
+                          <option>Di persona</option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Data/Ora consenso
+                        <input
+                          type="datetime-local"
+                          name="consentGivenAt"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          defaultValue={new Date().toISOString().slice(0, 16)}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Scadenza (opzionale)
+                        <input
+                          type="date"
+                          name="consentExpiresAt"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Revoca (opzionale)
+                        <input
+                          type="date"
+                          name="consentRevokedAt"
+                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </label>
+                      <div className="sm:col-span-2 flex justify-end">
+                        <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
+                          Aggiungi consenso
+                        </FormSubmitButton>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -634,11 +816,144 @@ export default async function PatientDetailPage({
           </details>
 
           <DentalChart patientId={patient.id} initialRecords={dentalRecordsSerialized} />
+
+          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+              <span className="flex items-center gap-3">
+                <svg
+                  className="h-6 w-6 text-emerald-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+                  <path d="M22 7 12 13 2 7" />
+                </svg>
+                Invia SMS al paziente
+              </span>
+              <svg
+                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
+            <div className="grid gap-4 p-6 lg:grid-cols-[340px,1fr]">
+              <form action={sendPatientSms} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                <input type="hidden" name="patientId" value={patient.id} />
+                <label className="flex flex-col gap-1">
+                  Template
+                  <select
+                    name="templateId"
+                    required
+                    className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    defaultValue={smsTemplates[0]?.id ?? ""}
+                  >
+                    <option value="" disabled>
+                      Seleziona template
+                    </option>
+                    {smsTemplates.map((tpl) => (
+                      <option key={tpl.id} value={tpl.id}>
+                        {tpl.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-xs text-zinc-600">
+                  Usa i template definiti nell'area Admin. Placeholder supportati: {"{{nome}}, {{cognome}}"}.
+                </p>
+                <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
+                  Invia SMS
+                </FormSubmitButton>
+              </form>
+
+              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-zinc-900">Log invii</h3>
+                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-[11px] font-semibold text-zinc-700">
+                    {smsLogs.length}
+                  </span>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {smsLogs.length === 0 ? (
+                    <p className="text-sm text-zinc-600">Nessun SMS inviato.</p>
+                  ) : (
+                    smsLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-zinc-900">{log.to}</span>
+                          <span
+                            className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                              log.status === "SENT" || log.status === "SIMULATED"
+                                ? "bg-emerald-50 text-emerald-800"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
+                          >
+                            {log.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-600">
+                          {log.template?.name ? `${log.template.name} · ` : ""}
+                          {new Date(log.createdAt).toLocaleString("it-IT")}
+                        </p>
+                        <p className="text-sm text-zinc-700 line-clamp-2">{log.body}</p>
+                        {log.error ? (
+                          <p className="text-[11px] text-rose-600">Errore: {log.error}</p>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-zinc-900">Associa impianti</h2>
-        <p className="text-sm text-zinc-600">
+      <details className="group rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-base font-semibold text-zinc-900">
+          <span className="flex items-center gap-3">
+            <svg
+              className="h-6 w-6 text-emerald-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+              <path d="M14 3v5h5" />
+            </svg>
+            Associa impianti
+          </span>
+          <svg
+            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+        <p className="pt-4 text-sm text-zinc-600">
           Registra impianti/protesi collegati al paziente utilizzando i dati di magazzino.
         </p>
 
@@ -795,9 +1110,19 @@ export default async function PatientDetailPage({
 
           <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50">
-              <span>Collega un nuovo impianto</span>
-              <span className="text-xs font-medium text-emerald-700 group-open:hidden">Mostra modulo</span>
-              <span className="text-xs font-medium text-emerald-700 hidden group-open:inline">Nascondi</span>
+              <span>Dettagli impianto</span>
+              <svg
+                className="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </summary>
             <form action={addImplantAssociation} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input type="hidden" name="patientId" value={patient.id} />
@@ -883,7 +1208,7 @@ export default async function PatientDetailPage({
             </form>
           </details>
         </div>
-      </div>
+      </details>
     </div>
 
     <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -896,17 +1221,17 @@ export default async function PatientDetailPage({
           {pastAppointments.length}
         </span>
       </div>
-      <div className="mt-4 divide-y divide-zinc-100">
+      <div className="mt-4 space-y-3">
         {pastAppointments.length === 0 ? (
           <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
         ) : (
           pastAppointments.slice(0, 5).map((appt) => (
             <div
               key={appt.id}
-              className="py-4 first:pt-2 last:pb-2"
+              className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm"
             >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                       <span aria-hidden="true">
@@ -934,21 +1259,29 @@ export default async function PatientDetailPage({
                     alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                   </p>
                   <p className="text-sm text-zinc-800">
-                    🕒 Terminato previsto entro{" "}
-                    {new Intl.DateTimeFormat("it-IT", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }).format(appt.endsAt)}{" "}
-                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                    🕒 Il servizio ha richiesto circa{" "}
+                    {Math.max(
+                      1,
+                      Math.round(
+                        (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
+                      )
+                    )}{" "}
+                    ora/e.
                   </p>
                 </div>
-                <span
-                  className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                >
-                  {statusLabels[appt.status].toUpperCase()}
-                </span>
+                <div className="flex flex-col items-end gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                  >
+                    {statusLabels[appt.status].toUpperCase()}
+                  </span>
+                  <span className="text-xs font-semibold text-zinc-600">
+                    {new Intl.DateTimeFormat("it-IT", {
+                      day: "numeric",
+                      month: "short",
+                    }).format(appt.startsAt)}
+                  </span>
+                </div>
               </div>
             </div>
           ))

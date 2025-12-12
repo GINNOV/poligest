@@ -5,6 +5,71 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role, StockMovementType } from "@prisma/client";
 
+export async function updateProduct(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const id = formData.get("productId") as string;
+  const name = (formData.get("name") as string)?.trim();
+  const sku = (formData.get("sku") as string)?.trim() || null;
+  const serviceType = (formData.get("serviceType") as string)?.trim() || null;
+  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
+  const minThreshold = Number(formData.get("minThreshold")) || 0;
+  const supplierId = (formData.get("supplierId") as string) || null;
+
+  if (!id || !name) throw new Error("Dati prodotto non validi");
+
+  await prisma.product.update({
+    where: { id },
+    data: { name, sku, serviceType, udiDi, minThreshold, supplierId },
+  });
+
+  revalidatePath("/magazzino");
+}
+
+export async function updateSupplier(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const id = formData.get("supplierId") as string;
+  const name = (formData.get("name") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim() || null;
+  const phone = (formData.get("phone") as string)?.trim() || null;
+  const notes = (formData.get("notes") as string)?.trim() || null;
+
+  if (!id || !name) throw new Error("Dati fornitore non validi");
+
+  await prisma.supplier.update({
+    where: { id },
+    data: { name, email, phone, notes },
+  });
+
+  revalidatePath("/magazzino");
+}
+
+export async function deleteProduct(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const productId = formData.get("productId") as string;
+  if (!productId) throw new Error("Prodotto mancante");
+
+  // Ripulisci movimenti collegati per evitare vincoli FK
+  await prisma.stockMovement.deleteMany({ where: { productId } });
+  await prisma.product.delete({ where: { id: productId } });
+
+  revalidatePath("/magazzino");
+}
+
+export async function deleteSupplier(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const supplierId = formData.get("supplierId") as string;
+  if (!supplierId) throw new Error("Fornitore mancante");
+
+  // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
+  await prisma.product.updateMany({
+    where: { supplierId },
+    data: { supplierId: null },
+  });
+  await prisma.supplier.delete({ where: { id: supplierId } });
+
+  revalidatePath("/magazzino");
+}
+
 export async function createSupplier(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const name = (formData.get("name") as string)?.trim();

@@ -1,8 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { createSupplier, createProduct, addStockMovement } from "./actions";
+import {
+  createSupplier,
+  createProduct,
+  addStockMovement,
+  deleteProduct,
+  deleteSupplier,
+  updateProduct,
+  updateSupplier,
+} from "./actions";
 import { format } from "date-fns";
+
+export const dynamic = "force-dynamic";
 
 export default async function MagazzinoPage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);
@@ -53,12 +63,13 @@ export default async function MagazzinoPage() {
                   <th className="px-4 py-3">Fornitore</th>
                   <th className="px-4 py-3">Stock</th>
                   <th className="px-4 py-3">Soglia</th>
+                  <th className="px-4 py-3 text-right">Azioni</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 text-sm">
                 {products.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-zinc-600" colSpan={5}>
+                    <td className="px-4 py-4 text-zinc-600" colSpan={6}>
                       Nessun prodotto a catalogo.
                     </td>
                   </tr>
@@ -93,6 +104,83 @@ export default async function MagazzinoPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-zinc-700">{p.minThreshold}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <details className="inline-block rounded-lg border border-zinc-200 bg-white px-2 py-1 text-left text-xs text-zinc-700 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+                              <summary className="cursor-pointer font-semibold text-emerald-700">
+                                Modifica
+                              </summary>
+                              <form action={updateProduct} className="mt-2 space-y-2">
+                                <input type="hidden" name="productId" value={p.id} />
+                                <label className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                                  <input
+                                    name="name"
+                                    defaultValue={p.name}
+                                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                    required
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-semibold uppercase text-zinc-500">UDI-DI / SKU</span>
+                                  <input
+                                    name="udiDi"
+                                    defaultValue={p.udiDi ?? p.sku ?? ""}
+                                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  />
+                                  <input type="hidden" name="sku" value={p.sku ?? ""} />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo servizio</span>
+                                  <input
+                                    name="serviceType"
+                                    defaultValue={p.serviceType ?? ""}
+                                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia</span>
+                                  <input
+                                    type="number"
+                                    name="minThreshold"
+                                    defaultValue={p.minThreshold}
+                                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  />
+                                </label>
+                                <label className="flex flex-col gap-1">
+                                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                                  <select
+                                    name="supplierId"
+                                    defaultValue={p.supplierId ?? ""}
+                                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  >
+                                    <option value="">—</option>
+                                    {suppliers.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        {s.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <button
+                                  type="submit"
+                                  className="w-full rounded-full bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                                >
+                                  Salva
+                                </button>
+                              </form>
+                            </details>
+                          <form action={deleteProduct} data-confirm="Confermi l'eliminazione di questo prodotto?">
+                            <input type="hidden" name="productId" value={p.id} />
+                            <button
+                              type="submit"
+                              className="text-xs font-semibold text-rose-700 hover:text-rose-800"
+                            >
+                              Elimina
+                            </button>
+                          </form>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
@@ -173,6 +261,82 @@ export default async function MagazzinoPage() {
       <div className="space-y-4">
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">Nuovo fornitore</h2>
+          <details className="group mt-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between font-semibold text-emerald-700">
+              Modifica fornitore
+              <span className="text-[11px] text-zinc-500">(admin/manager)</span>
+            </summary>
+            <form action={updateSupplier} className="mt-2 space-y-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                <select
+                  name="supplierId"
+                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  defaultValue=""
+                  required
+                >
+                  <option value="" disabled>
+                    Seleziona fornitore
+                  </option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input
+                name="name"
+                placeholder="Nome"
+                className="h-9 w-full rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                required
+              />
+              <input
+                name="email"
+                placeholder="Email"
+                className="h-9 w-full rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+              <input
+                name="phone"
+                placeholder="Telefono"
+                className="h-9 w-full rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+              <textarea
+                name="notes"
+                placeholder="Note"
+                className="w-full rounded-lg border border-zinc-200 px-2 py-1 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                rows={2}
+              />
+              <button
+                type="submit"
+                className="w-full rounded-full bg-emerald-700 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+              >
+                Salva modifiche
+              </button>
+            </form>
+          </details>
+          <form action={deleteSupplier} className="mt-2 flex items-center gap-2 text-xs text-rose-700">
+            <select
+              name="supplierId"
+              className="h-9 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Elimina fornitore…
+              </option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+            >
+              Elimina
+            </button>
+          </form>
           <form action={createSupplier} className="mt-3 space-y-3 text-sm">
             <input name="name" placeholder="Nome" required className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
             <input name="email" placeholder="Email" className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />

@@ -346,13 +346,14 @@ export default async function DashboardPage({
                       alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                     </p>
                     <p className="text-sm text-zinc-800">
-                      🕒 Il servizio dovrebbe terminare entro{" "}
-                      {new Intl.DateTimeFormat("it-IT", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      }).format(appt.endsAt)}{" "}
-                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                      🕒 Il servizio richiederà circa{" "}
+                      {Math.max(
+                        1,
+                        Math.round(
+                          (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
+                        )
+                      )}{" "}
+                      ora/e.
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">

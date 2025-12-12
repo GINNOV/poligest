@@ -77,6 +77,14 @@ export default async function AdminPage() {
       tone: "neutral",
     },
     {
+      key: "sms-templates",
+      title: "Template SMS",
+      description: "Gestisci testi predefiniti e consulta gli ultimi invii.",
+      href: "/admin/sms-templates",
+      badge: "Notifiche",
+      tone: "primary",
+    },
+    {
       key: "reset",
       title: t("reset"),
       description: "Ripristino del sistema ai dati di esempio ed esportazione dati.",

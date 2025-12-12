@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RecallStatus } from "@prisma/client";
+import { sendSms } from "@/lib/sms";
 
 // Stubbed email/SMS senders; replace with real provider integrations.
 async function sendEmail(to: string, subject: string, body: string) {
   console.log("[recalls] email", { to, subject, body });
-}
-
-async function sendSms(to: string, body: string) {
-  console.log("[recalls] sms", { to, body });
 }
 
 export async function GET(req: Request) {
@@ -43,7 +40,11 @@ export async function GET(req: Request) {
       await sendEmail(patient.email, subject, body);
     }
     if (wantsSms && patient.phone) {
-      await sendSms(patient.phone, body);
+      await sendSms({
+        to: patient.phone,
+        body,
+        patientId: recall.patientId,
+      });
     }
 
     await prisma.recall.update({

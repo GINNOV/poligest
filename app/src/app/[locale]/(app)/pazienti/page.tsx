@@ -9,6 +9,11 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
 
+const consentLabels: Partial<Record<ConsentType, string>> = {
+  [ConsentType.PRIVACY]: "Privacy",
+  [ConsentType.TREATMENT]: "Trattamento",
+};
+
 async function createPatient(formData: FormData) {
   "use server";
 
@@ -251,14 +256,14 @@ export default async function PazientiPage({
                       key={consent.type}
                       className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
                     >
-                      {consent.type}
+                      {consentLabels[consent.type] ?? consent.type}
                     </span>
                   ))}
                   <Link
                     href={`/pazienti/${patient.id}`}
                     className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
                   >
-                    Scheda / Foto
+                    Scheda
                   </Link>
                   <form
                     action={deletePatient}
