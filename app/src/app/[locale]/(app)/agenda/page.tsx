@@ -55,23 +55,25 @@ async function createAppointment(formData: FormData) {
     const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
     const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
     const startsAt = formData.get("startsAt") as string;
-    const endsAt = formData.get("endsAt") as string;
+    // Force end to +1h from start regardless of submitted value.
+    const endsAtRaw = formData.get("endsAt") as string;
+    const endsAtDate =
+      endsAtRaw && !endsAtRaw.endsWith(":") ? new Date(endsAtRaw) : startsAt ? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000) : null;
     const patientIdRaw = formData.get("patientId") as string;
     const doctorId = (formData.get("doctorId") as string) || null;
     const notes = (formData.get("notes") as string)?.trim() || null;
 
-    if (!title || !serviceType || !startsAt || !endsAt || !patientIdRaw) {
+    if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
     }
 
     const startsAtDate = new Date(startsAt);
-    const endsAtDate = new Date(endsAt);
     if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
       throw new Error("Formato data/ora non valido.");
     }
     const adjustedEndsAt =
       endsAtDate <= startsAtDate
-        ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
+        ? new Date(startsAtDate.getTime() + 60 * 60 * 1000)
         : endsAtDate;
 
     const hasConflict = await hasDoctorConflict({
@@ -437,8 +439,8 @@ export default async function AgendaPage({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">Aggiungi appuntamento</h1>
-        <p className="mt-2 text-sm text-zinc-600">{t("subtitle")}</p>
+        <h1 className="text-2xl font-semibold text-zinc-900">📅 Aggiungi appuntamento</h1>
+        <p className="mt-2 text-sm text-zinc-600">Schedula un appuntamento per nuovi clienti o pazienti esistenti.</p>
 
         <AppointmentCreateForm
           patients={patients}

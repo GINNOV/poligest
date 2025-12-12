@@ -20,6 +20,8 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
   const [localEndsAt, setLocalEndsAt] = useState<string>("");
   const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
+  const [forcedTitle, setForcedTitle] = useState<string | null>(null);
+  const [forcedService, setForcedService] = useState<string | null>(null);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -40,6 +42,13 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
 
     setError(null);
     return true;
+  };
+
+  const formatLocalInput = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+      date.getHours()
+    )}:${pad(date.getMinutes())}`;
   };
 
   return (
@@ -123,7 +132,17 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           required
           defaultValue=""
-          onChange={(e) => setIsNewPatient(e.target.value === "new")}
+          onChange={(e) => {
+            const isNew = e.target.value === "new";
+            setIsNewPatient(isNew);
+            if (isNew) {
+              setForcedTitle("Prima visita");
+              setForcedService("Visita di controllo");
+            } else {
+              setForcedTitle(null);
+              setForcedService(null);
+            }
+          }}
         >
           <option value="" disabled>
             Seleziona paziente
@@ -168,13 +187,21 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         </div>
       )}
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-        Appuntamento per...
+        Richiede visita per...
         <div className="grid grid-cols-[2fr,1fr] gap-2">
           <select
             name="title"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            value={forcedTitle ?? undefined}
             defaultValue="Richiamo"
             required
+            onChange={(e) => {
+              if (!forcedTitle) {
+                // only allow changes when not forced
+                setForcedTitle(e.target.value);
+              }
+            }}
+            disabled={Boolean(forcedTitle)}
           >
             <option value="Richiamo">Richiamo</option>
             <option value="Prima visita">Prima visita</option>
@@ -188,7 +215,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
             aria-label="Titolo personalizzato"
           />
         </div>
-        <span className="text-xs text-zinc-500">Scegli un titolo o inserisci uno personalizzato.</span>
+        <span className="text-xs text-zinc-500">Motivo della visita.</span>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Servizio
@@ -196,8 +223,15 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           <select
             name="serviceType"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            value={forcedService ?? undefined}
             defaultValue={serviceOptions[0] ?? ""}
             required
+            onChange={(e) => {
+              if (!forcedService) {
+                setForcedService(e.target.value);
+              }
+            }}
+            disabled={Boolean(forcedService)}
           >
             {serviceOptions.map((name) => (
               <option key={name} value={name}>
@@ -228,8 +262,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
               const start = new Date(value);
               if (!Number.isNaN(start.getTime())) {
                 const end = new Date(start.getTime() + 60 * 60 * 1000);
-                const iso = end.toISOString().slice(0, 16);
-                setLocalEndsAt(iso);
+                setLocalEndsAt(formatLocalInput(end));
               }
             }
           }}
@@ -246,6 +279,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           onChange={(e) => setLocalEndsAt(e.target.value)}
           required
         />
+        <span className="text-xs text-zinc-500">Proposta automatica +1h, puoi modificarla.</span>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Medico assegnato
