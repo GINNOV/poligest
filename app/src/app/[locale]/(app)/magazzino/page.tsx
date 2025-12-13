@@ -5,12 +5,12 @@ import {
   createSupplier,
   createProduct,
   addStockMovement,
-  deleteProduct,
   deleteSupplier,
   updateProduct,
   updateSupplier,
 } from "./actions";
 import { format } from "date-fns";
+import { ProductDeleteButton } from "@/components/product-delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -170,15 +170,7 @@ export default async function MagazzinoPage() {
                                 </button>
                               </form>
                             </details>
-                          <form action={deleteProduct} data-confirm="Confermi l'eliminazione di questo prodotto?">
-                            <input type="hidden" name="productId" value={p.id} />
-                            <button
-                              type="submit"
-                              className="text-xs font-semibold text-rose-700 hover:text-rose-800"
-                            >
-                              Elimina
-                            </button>
-                          </form>
+                          <ProductDeleteButton productId={p.id} />
                           </div>
                         </td>
                       </tr>

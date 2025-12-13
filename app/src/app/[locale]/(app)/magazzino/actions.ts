@@ -49,12 +49,10 @@ export async function deleteProduct(formData: FormData) {
   if (!productId) throw new Error("Prodotto mancante");
 
   try {
-    console.info("[magazzino] deleting product", productId);
     // Ripulisci movimenti collegati per evitare vincoli FK
     await prisma.stockMovement.deleteMany({ where: { productId } });
     await prisma.product.delete({ where: { id: productId } });
   } catch (err) {
-    console.error("[magazzino] delete product failed", err);
     throw err;
   }
 
@@ -67,7 +65,6 @@ export async function deleteSupplier(formData: FormData) {
   if (!supplierId) throw new Error("Fornitore mancante");
 
   try {
-    console.info("[magazzino] deleting supplier", supplierId);
     // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
     await prisma.product.updateMany({
       where: { supplierId },
@@ -75,7 +72,6 @@ export async function deleteSupplier(formData: FormData) {
     });
     await prisma.supplier.delete({ where: { id: supplierId } });
   } catch (err) {
-    console.error("[magazzino] delete supplier failed", err);
     throw err;
   }
 
