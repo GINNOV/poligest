@@ -7,8 +7,8 @@ import { Role, ConsentType, ConsentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { FormSubmitButton } from "@/components/form-submit-button";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
+import { PatientConsentSection } from "@/components/patient-consent-modal";
 
 const consentLabels: Partial<Record<ConsentType, string>> = {
   [ConsentType.PRIVACY]: "Privacy",
@@ -35,7 +35,13 @@ async function createPatient(formData: FormData) {
   const consentDate = (formData.get("consentDate") as string)?.trim();
   const patientSignature = (formData.get("patientSignature") as string)?.trim();
   const doctorSignature = (formData.get("doctorSignature") as string)?.trim();
+  const consentSignatureData = (formData.get("consentSignatureData") as string)?.trim();
   const photo = formData.get("photo") as File | null;
+
+  const signatureBase64 = consentSignatureData?.startsWith("data:image/png")
+    ? consentSignatureData.replace(/^data:image\/png;base64,/, "")
+    : null;
+  const signatureBuffer = signatureBase64 ? Buffer.from(signatureBase64, "base64") : null;
 
   let birthDate: Date | null = null;
   if (birthDateStr) {
@@ -48,8 +54,11 @@ async function createPatient(formData: FormData) {
   if (!firstName || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
   }
+  if (!signatureBuffer) {
+    throw new Error("Firma digitale obbligatoria");
+  }
 
-  const structuredNotes = [
+  const structuredNotesText = [
     address || city ? `Indirizzo: ${address ?? "—"}${city ? `, ${city}` : ""}` : null,
     taxId ? `Codice Fiscale: ${taxId}` : null,
     conditions.length > 0 ? `Anamnesi: ${conditions.join(", ")}` : null,
@@ -59,6 +68,7 @@ async function createPatient(formData: FormData) {
       ? `Consenso firmato${consentPlace ? ` a ${consentPlace}` : ""}${consentDate ? ` il ${consentDate}` : ""}. ` +
         `Firma paziente: ${patientSignature || "—"} · Firma medico: ${doctorSignature || "—"}`
       : "Consenso non fornito",
+    signatureBuffer ? "Firma digitale acquisita." : "Firma digitale non acquisita.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -69,7 +79,7 @@ async function createPatient(formData: FormData) {
       lastName,
       phone,
       birthDate,
-      notes: structuredNotes || null,
+      notes: structuredNotesText || null,
       consents: {
         create: [
           consentAgreement
@@ -95,6 +105,10 @@ async function createPatient(formData: FormData) {
     },
   });
 
+  const updates: Record<string, any> = {
+    notes: structuredNotesText || null,
+  };
+
   if (photo && photo.size > 0) {
     const buffer = Buffer.from(await photo.arrayBuffer());
     const uploadDir = path.join(process.cwd(), "public", "uploads", "patients");
@@ -107,11 +121,22 @@ async function createPatient(formData: FormData) {
       .jpeg({ quality: 85 })
       .toFile(outputPath);
 
-    await prisma.patient.update({
-      where: { id: patient.id },
-      data: { photoUrl: publicPath },
-    });
+    updates.photoUrl = publicPath;
   }
+
+  if (signatureBuffer) {
+    const signatureDir = path.join(process.cwd(), "public", "uploads", "signatures");
+    await fs.mkdir(signatureDir, { recursive: true });
+    const signaturePath = path.join(signatureDir, `${patient.id}.png`);
+    await fs.writeFile(signaturePath, signatureBuffer);
+    const signaturePublicPath = `/uploads/signatures/${patient.id}.png?ts=${Date.now()}`;
+    updates.notes = `${structuredNotesText}\nFirma digitale: ${signaturePublicPath}`;
+  }
+
+  await prisma.patient.update({
+    where: { id: patient.id },
+    data: updates,
+  });
 
   await logAudit(user, {
     action: "patient.created",
@@ -122,6 +147,7 @@ async function createPatient(formData: FormData) {
       consentAgreement,
       taxIdProvided: Boolean(taxId),
       conditionsCount: conditions.length,
+      hasDigitalSignature: Boolean(signatureBuffer),
     },
   });
 
@@ -172,6 +198,10 @@ export default async function PazientiPage({
         }
       : undefined,
   });
+  const privacyContent = await fs.readFile(
+    path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
+    "utf8",
+  );
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -397,78 +427,7 @@ export default async function PazientiPage({
             </div>
           </section>
 
-          <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 space-y-4">
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-zinc-900">Consenso Informato</p>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Il sottoscritto, pienamente informato in modo chiaro e comprensibile dallo staff sugli aspetti,
-                sulle opzioni terapeutiche proposte, sui benefici attesi e sui rischi connessi, ha avuto
-                l&apos;opportunità di porre domande e ricevere risposte esaurienti. Accetta di fornire tutti i
-                dati utili per la pianificazione del piano terapeutico e autorizza il trattamento dei dati ai
-                sensi della normativa vigente.
-              </p>
-            </div>
-
-            <label className="inline-flex items-start gap-2 text-sm font-medium text-zinc-800">
-              <input
-                type="checkbox"
-                name="consentAgreement"
-                required
-                className="mt-1 h-4 w-4 rounded border-zinc-300"
-              />
-              <span>Acconsento al trattamento dei dati personali e al piano di cura</span>
-            </label>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                Luogo
-                <input
-                  name="consentPlace"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Luogo"
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                Data
-                <input
-                  type="date"
-                  name="consentDate"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="dd/mm/yyyy"
-                />
-              </label>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                Firma del paziente o esercente la potestà
-                <input
-                  name="patientSignature"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Inserire nome"
-                />
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                Firma del Medico Odontoiatra
-                <input
-                  name="doctorSignature"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Inserire nome"
-                />
-              </label>
-            </div>
-          </section>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Link
-              href="/pazienti"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-            >
-              Annulla
-            </Link>
-            <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-              Salva Modulo
-            </FormSubmitButton>
-          </div>
+          <PatientConsentSection content={privacyContent} />
         </form>
       </div>
     </div>

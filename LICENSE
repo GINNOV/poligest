@@ -1,21 +1,45 @@
-MIT License
+Dual License Notice
 
-Copyright (c) 2025 Dunno Much
+Copyright (c) 2025 Garage Innovation LLC
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software is available under a dual-licensing model:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+----------------------------------------------------------------
+1) Non-Commercial License (Default)
+----------------------------------------------------------------
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to use, copy, modify, and distribute the Software for
+personal, educational, research, or other NON-COMMERCIAL purposes only.
+
+Commercial use is strictly prohibited under this license.
+
+"Commercial use" includes, but is not limited to:
+- Selling the Software or derivatives
+- Offering the Software as part of a paid product or service
+- Using the Software in SaaS, hosted services, or internal business operations
+- Bundling the Software with commercial hardware or software
+- Any use primarily intended for commercial advantage or monetary compensation
+
+----------------------------------------------------------------
+2) Commercial License
+----------------------------------------------------------------
+
+Commercial use of the Software requires a separate, paid commercial
+license obtained directly from the copyright holder.
+
+For commercial licensing inquiries, see COMMERCIAL.md or contact:
+📧 licensing@YOURDOMAIN.com
+
+----------------------------------------------------------------
+Disclaimer
+----------------------------------------------------------------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

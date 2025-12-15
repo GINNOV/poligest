@@ -45,6 +45,14 @@ export default async function AdminPage() {
       tone: "neutral",
     },
     {
+      key: "feature-access",
+      title: t("featureAccess"),
+      description: t("featureAccessDescription"),
+      href: "/admin/feature-access",
+      badge: "Permessi",
+      tone: "primary",
+    },
+    {
       key: "audit",
       title: t("audit"),
       description: "Registro di tutti gli eventi di sistema e modifiche ai dati.",

@@ -1,0 +1,363 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { FormSubmitButton } from "@/components/form-submit-button";
+
+type Props = {
+  content: string;
+};
+
+type Page = string[];
+
+const chunkContent = (text: string): Page[] => {
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const pages: Page[] = [];
+  let current: string[] = [];
+  let length = 0;
+
+  paragraphs.forEach((paragraph) => {
+    const paragraphLength = paragraph.length;
+    if (length + paragraphLength > 1200 && current.length > 0) {
+      pages.push(current);
+      current = [];
+      length = 0;
+    }
+    current.push(paragraph);
+    length += paragraphLength;
+  });
+
+  if (current.length > 0) {
+    pages.push(current);
+  }
+
+  return pages.length > 0 ? pages : [text.split("\n")];
+};
+
+export function PatientConsentSection({ content }: Props) {
+  const pages = useMemo(() => chunkContent(content), [content]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [signatureData, setSignatureData] = useState<string>("");
+  const [signatureError, setSignatureError] = useState<string | null>(null);
+  const [hasStroke, setHasStroke] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastPoint = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen && canvasRef.current) {
+      clearCanvas();
+    }
+  }, [isOpen]);
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#0f172a";
+    setHasStroke(false);
+    lastPoint.current = null;
+  };
+
+  const resizeCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ratio = window.devicePixelRatio || 1;
+    const width = canvas.offsetWidth * ratio;
+    const height = canvas.offsetHeight * ratio;
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#0f172a";
+      }
+    }
+  };
+
+  useEffect(() => {
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+    return () => window.removeEventListener("resize", resizeCanvas);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(resizeCanvas, 50);
+    }
+  }, [isOpen]);
+
+  const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
+    const point = getPoint(event);
+    if (!point) return;
+    lastPoint.current = point;
+    setHasStroke(true);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!lastPoint.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const point = getPoint(event);
+    if (!point) return;
+    ctx.beginPath();
+    ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    lastPoint.current = point;
+  };
+
+  const handlePointerUp = () => {
+    lastPoint.current = null;
+  };
+
+  const saveSignature = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !hasStroke) {
+      setSignatureError("Firma obbligatoria. Disegna la firma e riprova.");
+      return;
+    }
+    const dataUrl = canvas.toDataURL("image/png");
+    setSignatureData(dataUrl);
+    setSignatureError(null);
+    setIsOpen(false);
+  };
+
+  const currentPage = pages[pageIndex] ?? [];
+  const totalPages = pages.length;
+
+  return (
+    <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-zinc-900">Consenso Informato</p>
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          Leggi l&apos;informativa privacy completa e raccogli la firma digitale del paziente.
+          La firma è obbligatoria per completare la registrazione.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+        >
+          Apri informativa privacy e firma
+        </button>
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
+          <span
+            className={`inline-flex h-2.5 w-2.5 rounded-full ${
+              signatureData ? "bg-emerald-500" : "bg-zinc-300"
+            }`}
+          />
+          {signatureData ? "Firma digitale acquisita" : "Firma digitale mancante"}
+        </div>
+      </div>
+
+      <input type="hidden" name="consentSignatureData" value={signatureData} readOnly />
+
+      {signatureData ? (
+        <div className="rounded-lg border border-emerald-100 bg-white p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Firma salvata</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <img
+              src={signatureData}
+              alt="Firma digitale"
+              className="h-16 rounded border border-emerald-100 bg-white object-contain px-2 py-1 shadow-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+            >
+              Rivedi informativa / Rifirma
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          Luogo
+          <input
+            name="consentPlace"
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            placeholder="Luogo"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          Data
+          <input
+            type="date"
+            name="consentDate"
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            placeholder="dd/mm/yyyy"
+          />
+        </label>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          Firma del paziente o esercente la potestà (nome leggibile)
+          <input
+            name="patientSignature"
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            placeholder="Inserire nome"
+          />
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          Firma del Medico Odontoiatra (nome leggibile)
+          <input
+            name="doctorSignature"
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            placeholder="Inserire nome"
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="space-y-2">
+          <label className="inline-flex items-start gap-2 text-sm font-medium text-zinc-800">
+            <input
+              type="checkbox"
+              name="consentAgreement"
+              required
+              className="mt-1 h-4 w-4 rounded border-zinc-300"
+            />
+            <span>Acconsento al trattamento dei dati personali e al piano di cura</span>
+          </label>
+          <p className="text-xs text-zinc-500">
+            Conferma dopo aver letto l&apos;informativa e raccolto la firma digitale.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <Link
+            href="/pazienti"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+          >
+            Annulla
+          </Link>
+          <FormSubmitButton
+            disabled={!signatureData}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Salva Modulo
+          </FormSubmitButton>
+        </div>
+      </div>
+
+      {isOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                  Informativa privacy
+                </p>
+                <h2 className="text-xl font-semibold text-zinc-900">Lettura e firma digitale</h2>
+                <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                Chiudi
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
+                <span>Pagina {pageIndex + 1} di {totalPages}</span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPageIndex((idx) => Math.max(0, idx - 1))}
+                    disabled={pageIndex === 0}
+                    className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Precedente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPageIndex((idx) => Math.min(totalPages - 1, idx + 1))}
+                    disabled={pageIndex === totalPages - 1}
+                    className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Successivo
+                  </button>
+                </div>
+              </div>
+              <div className="mt-3 max-h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800">
+                {currentPage.map((paragraph, idx) => (
+                  <p key={`${pageIndex}-${idx}`} className="whitespace-pre-line">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+                  <p className="text-xs text-emerald-700">Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={clearCanvas}
+                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                  >
+                    Cancella
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveSignature}
+                    className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                  >
+                    Salva firma
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                <canvas
+                  ref={canvasRef}
+                  className="h-44 w-full touch-none"
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerUp}
+                />
+              </div>
+              {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}

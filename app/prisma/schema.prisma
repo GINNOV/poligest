@@ -60,6 +60,15 @@ enum NotificationChannel {
   BOTH
 }
 
+model RoleFeatureAccess {
+  id      String @id @default(cuid())
+  role    Role
+  feature String
+  allowed Boolean @default(true)
+
+  @@unique([role, feature], name: "role_feature_unique")
+}
+
 model SmsTemplate {
   id        String   @id @default(cuid())
   name      String   @unique

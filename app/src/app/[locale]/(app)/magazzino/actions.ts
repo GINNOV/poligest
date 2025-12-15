@@ -139,6 +139,40 @@ export async function addStockMovement(formData: FormData) {
   revalidatePath("/magazzino");
 }
 
+export async function deleteStockMovement(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const movementId = formData.get("movementId") as string;
+  if (!movementId) throw new Error("Movimento mancante");
+
+  await prisma.stockMovement.delete({ where: { id: movementId } });
+
+  revalidatePath("/magazzino");
+}
+
+export async function updateStockMovement(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const movementId = formData.get("movementId") as string;
+  const quantity = Number(formData.get("quantity"));
+  const movement = formData.get("movement") as StockMovementType;
+  const note = (formData.get("note") as string)?.trim() || null;
+
+  if (!movementId || !movement || Number.isNaN(quantity) || quantity === 0) {
+    throw new Error("Dati movimento non validi");
+  }
+
+  await prisma.stockMovement.update({
+    where: { id: movementId },
+    data: {
+      quantity: Math.abs(quantity),
+      movement,
+      note,
+      userId: user.id,
+    },
+  });
+
+  revalidatePath("/magazzino");
+}
+
 export async function importStockFromCSV(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const file = formData.get("file") as File;

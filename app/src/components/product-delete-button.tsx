@@ -41,9 +41,21 @@ export function ProductDeleteButton({ productId }: { productId: string }) {
         type="button"
         onClick={() => setShowConfirm(true)}
         disabled={isSubmitting}
-        className="text-xs font-semibold text-rose-700 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-rose-200 text-rose-700 transition hover:bg-rose-50 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70"
       >
-        Elimina
+        <span className="sr-only">Elimina prodotto</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-4 w-4"
+        >
+          <path
+            fillRule="evenodd"
+            d="M7 2a2 2 0 00-2 2v1H3.5a.5.5 0 000 1h13a.5.5 0 000-1H15V4a2 2 0 00-2-2H7zm6 3V4a1 1 0 00-1-1H8a1 1 0 00-1 1v1h6zm-8 2a.5.5 0 01.5-.5h9a.5.5 0 01.5.5v8a2 2 0 01-2 2H7a2 2 0 01-2-2V7zm2.5.5a.5.5 0 00-1 0v7a.5.5 0 001 0v-7zm3 0a.5.5 0 10-1 0v7a.5.5 0 001 0v-7zm2.5 0a.5.5 0 00-1 0v7a.5.5 0 001 0v-7z"
+            clipRule="evenodd"
+          />
+        </svg>
       </button>
       {showConfirm ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
