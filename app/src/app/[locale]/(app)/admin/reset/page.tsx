@@ -1,18 +1,20 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { hash } from "bcryptjs";
 import { Prisma, Role } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { ImportForm } from "../../magazzino/import-form";
+import fs from "fs/promises";
+import path from "path";
 
 async function resetSystem(formData: FormData) {
   "use server";
 
-  await requireUser([Role.ADMIN]);
+  const adminUser = await requireUser([Role.ADMIN]);
   const confirmation = (formData.get("confirm") as string)?.trim();
+  const seedDemo = (formData.get("seedDemo") as string) === "on";
 
   if (confirmation !== "Si, confermo") {
     throw new Error("Devi digitare 'Si, confermo' per procedere.");
@@ -20,10 +22,14 @@ async function resetSystem(formData: FormData) {
 
   // Wipe data respecting FK order
   await prisma.$transaction([
+    prisma.smsLog.deleteMany(),
+    prisma.smsTemplate.deleteMany(),
+    prisma.smsProviderConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
     prisma.stockMovement.deleteMany(),
     prisma.financeEntry.deleteMany(),
     prisma.cashAdvance.deleteMany(),
+    prisma.dentalRecord.deleteMany(),
     prisma.appointment.deleteMany(),
     prisma.clinicalNote.deleteMany(),
     prisma.consent.deleteMany(),
@@ -36,162 +42,162 @@ async function resetSystem(formData: FormData) {
     prisma.user.deleteMany(),
   ]);
 
-  // Seed sample data
-  const password = process.env.SEED_PASSWORD || "SORRIDI!123";
-  const hashedPassword = await hash(password, 12);
+  if (seedDemo) {
+    const seedPath = path.join(process.cwd(), "AI", "CONTENT", "poligest-export-generated.json");
+    const raw = await fs.readFile(seedPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    const data = parsed?.data ?? {};
+    const selected: ExportTableKey[] = Array.isArray(parsed.tables)
+      ? parsed.tables.filter((t: string) =>
+          exportTables.some((table) => table.key === t)
+        )
+      : (exportTables.map((t) => t.key) as ExportTableKey[]);
 
-  const adminEmail = process.env.SEED_ADMIN_EMAIL || "admin@poligest.local";
-  const managerEmail = process.env.SEED_MANAGER_EMAIL || "manager@poligest.local";
-  const secretaryEmail =
-    process.env.SEED_SECRETARY_EMAIL || "segreteria@poligest.local";
+    const tableData = (key: ExportTableKey) =>
+      (data[key] as Record<string, any>[] | undefined) ?? [];
 
-  const admin = await prisma.user.create({
-    data: {
-      email: adminEmail,
-      name: "Amministratore",
-      role: Role.ADMIN,
-      locale: "it",
-      hashedPassword,
-      isActive: true,
-    },
-  });
+    const toDecimal = (value: unknown) =>
+      new Prisma.Decimal(value === null || value === undefined ? 0 : (value as any));
 
-  const manager = await prisma.user.create({
-    data: {
-      email: managerEmail,
-      name: "Responsabile Clinica",
-      role: Role.MANAGER,
-      locale: "it",
-      hashedPassword,
-      isActive: true,
-    },
-  });
+    await prisma.$transaction(async (tx) => {
+      if (selected.includes("users")) {
+        const entries = tableData("users") as Prisma.UserCreateManyInput[];
+        if (entries.length) {
+          await tx.user.createMany({ data: entries });
+        }
+      }
 
-  await prisma.user.create({
-    data: {
-      email: secretaryEmail,
-      name: "Segreteria",
-      role: Role.SECRETARY,
-      locale: "it",
-      hashedPassword,
-      isActive: true,
-    },
-  });
+      if (selected.includes("doctors")) {
+        const entries = tableData("doctors") as Prisma.DoctorCreateManyInput[];
+        if (entries.length) {
+          await tx.doctor.createMany({ data: entries });
+        }
+      }
 
-  const doctor = await prisma.doctor.create({
-    data: {
-      userId: manager.id,
-      fullName: "Dr. Responsabile",
-      specialty: "Odontoiatria",
-      phone: "+39000000000",
-      notes: "Medico di esempio, usato per agenda e finanza.",
-      color: "#059669",
-    },
-  });
+      if (selected.includes("patients")) {
+        const entries = tableData("patients") as Prisma.PatientCreateManyInput[];
+        if (entries.length) {
+          await tx.patient.createMany({ data: entries });
+        }
+      }
 
-  const patient = await prisma.patient.create({
-    data: {
-      firstName: "Paziente",
-      lastName: "Demo",
-      email: "paziente.demo@poligest.local",
-      phone: "+3900000000",
-      notes: "Anagrafica di esempio per test agenda.",
-    },
-  });
+      if (selected.includes("suppliers")) {
+        const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
+        if (entries.length) {
+          await tx.supplier.createMany({ data: entries });
+        }
+      }
 
-  await prisma.consent.create({
-    data: {
-      patientId: patient.id,
-      type: "PRIVACY",
-      status: "GRANTED",
-      channel: "firmato",
-    },
-  });
+      if (selected.includes("products")) {
+        const entries = (tableData("products") as Prisma.ProductCreateManyInput[]).map(
+          (p) => ({
+            ...p,
+            unitCost:
+              p.unitCost !== null && p.unitCost !== undefined ? toDecimal(p.unitCost) : null,
+          })
+        );
+        if (entries.length) {
+          await tx.product.createMany({ data: entries });
+        }
+      }
 
-  await prisma.appointment.create({
-    data: {
-      title: "Visita di controllo",
-      status: "CONFIRMED",
-      serviceType: "Controllo",
-      startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      endsAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
-      patientId: patient.id,
-      doctorId: doctor.id,
-      notes: "Appuntamento di esempio per agenda.",
-    },
-  });
+      if (selected.includes("recallRules")) {
+        const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
+        if (entries.length) {
+          await tx.recallRule.createMany({ data: entries });
+        }
+      }
 
-  const supplier = await prisma.supplier.create({
-    data: {
-      name: "Fornitore Medicale",
-      email: "fornitore@poligest.local",
-      phone: "+39000000001",
-      notes: "Fornitore demo per materiali.",
-    },
-  });
+      if (selected.includes("consents")) {
+        const entries = tableData("consents") as Prisma.ConsentCreateManyInput[];
+        if (entries.length) {
+          await tx.consent.createMany({ data: entries });
+        }
+      }
 
-  const product = await prisma.product.create({
-    data: {
-      name: "Mascherine chirurgiche",
-      sku: "MASK-001",
-      unitCost: new Prisma.Decimal("0.25"),
-      minThreshold: 100,
-      supplierId: supplier.id,
-    },
-  });
+      if (selected.includes("appointments")) {
+        const entries = tableData("appointments") as Prisma.AppointmentCreateManyInput[];
+        if (entries.length) {
+          await tx.appointment.createMany({ data: entries });
+        }
+      }
 
-  await prisma.stockMovement.create({
-    data: {
-      productId: product.id,
-      quantity: 500,
-      movement: "IN",
-      note: "Carico iniziale magazzino",
-      userId: admin.id,
-    },
-  });
+      if (selected.includes("clinicalNotes")) {
+        const entries = tableData("clinicalNotes") as Prisma.ClinicalNoteCreateManyInput[];
+        if (entries.length) {
+          await tx.clinicalNote.createMany({ data: entries });
+        }
+      }
 
-  await prisma.financeEntry.create({
-    data: {
-      type: "EXPENSE",
-      description: "Materiale di consumo",
-      amount: new Prisma.Decimal("125.00"),
-      occurredAt: new Date(),
-      doctorId: doctor.id,
-      userId: manager.id,
-    },
-  });
+      if (selected.includes("stockMovements")) {
+        const entries = tableData("stockMovements") as Prisma.StockMovementCreateManyInput[];
+        if (entries.length) {
+          await tx.stockMovement.createMany({ data: entries });
+        }
+      }
 
-  await prisma.cashAdvance.create({
-    data: {
-      doctorId: doctor.id,
-      amount: new Prisma.Decimal("300.00"),
-      issuedAt: new Date(),
-      note: "Anticipo su compensi",
-      userId: admin.id,
-    },
-  });
+      if (selected.includes("financeEntries")) {
+        const entries = (tableData("financeEntries") as Prisma.FinanceEntryCreateManyInput[]).map(
+          (f) => ({
+            ...f,
+            amount: toDecimal(f.amount),
+          })
+        );
+        if (entries.length) {
+          await tx.financeEntry.createMany({ data: entries });
+        }
+      }
 
-  const recallRule = await prisma.recallRule.create({
-    data: {
-      name: "Igiene semestrale",
-      serviceType: "Igiene",
-      intervalDays: 180,
-      message: "Promemoria visita di igiene programmata.",
-    },
-  });
+      if (selected.includes("cashAdvances")) {
+        const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
+          (c) => ({
+            ...c,
+            amount: toDecimal(c.amount),
+          })
+        );
+        if (entries.length) {
+          await tx.cashAdvance.createMany({ data: entries });
+        }
+      }
 
-  const dueAt = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
-  await prisma.recall.create({
-    data: {
-      patientId: patient.id,
-      ruleId: recallRule.id,
-      dueAt,
-      status: "PENDING",
-      notes: "Promemoria demo",
-    },
-  });
+      if (selected.includes("recalls")) {
+        const entries = tableData("recalls") as Prisma.RecallCreateManyInput[];
+        if (entries.length) {
+          await tx.recall.createMany({ data: entries });
+        }
+      }
 
-  await logAudit(admin, {
+      if (selected.includes("smsProviderConfig")) {
+        const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
+        if (entries.length) {
+          await tx.smsProviderConfig.createMany({ data: entries });
+        }
+      }
+
+      if (selected.includes("smsTemplates")) {
+        const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
+        if (entries.length) {
+          await tx.smsTemplate.createMany({ data: entries });
+        }
+      }
+
+      if (selected.includes("smsLogs")) {
+        const entries = tableData("smsLogs") as Prisma.SmsLogCreateManyInput[];
+        if (entries.length) {
+          await tx.smsLog.createMany({ data: entries });
+        }
+      }
+
+      if (selected.includes("auditLogs")) {
+        const entries = tableData("auditLogs") as Prisma.AuditLogCreateManyInput[];
+        if (entries.length) {
+          await tx.auditLog.createMany({ data: entries });
+        }
+      }
+    });
+  }
+
+  await logAudit(adminUser, {
     action: "admin.reset_system",
     entity: "System",
     entityId: "reset",
@@ -207,6 +213,9 @@ const exportTables = [
   { key: "consents", label: "Consensi" },
   { key: "appointments", label: "Appuntamenti" },
   { key: "clinicalNotes", label: "Note cliniche" },
+  { key: "smsTemplates", label: "Template SMS" },
+  { key: "smsLogs", label: "Log SMS" },
+  { key: "smsProviderConfig", label: "Config ClickSend" },
   { key: "auditLogs", label: "Audit log" },
   { key: "suppliers", label: "Fornitori" },
   { key: "products", label: "Prodotti" },
@@ -256,10 +265,14 @@ async function importData(formData: FormData) {
 
   await prisma.$transaction(async (tx) => {
     // wipe
+    await tx.smsLog.deleteMany();
+    await tx.smsTemplate.deleteMany();
+    await tx.smsProviderConfig.deleteMany();
     await tx.auditLog.deleteMany();
     await tx.stockMovement.deleteMany();
     await tx.financeEntry.deleteMany();
     await tx.cashAdvance.deleteMany();
+    await tx.dentalRecord.deleteMany();
     await tx.appointment.deleteMany();
     await tx.clinicalNote.deleteMany();
     await tx.consent.deleteMany();
@@ -385,6 +398,27 @@ async function importData(formData: FormData) {
         await tx.auditLog.createMany({ data: entries });
       }
     }
+
+    if (selected.includes("smsProviderConfig")) {
+      const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
+      if (entries.length) {
+        await tx.smsProviderConfig.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("smsTemplates")) {
+      const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
+      if (entries.length) {
+        await tx.smsTemplate.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("smsLogs")) {
+      const entries = tableData("smsLogs") as Prisma.SmsLogCreateManyInput[];
+      if (entries.length) {
+        await tx.smsLog.createMany({ data: entries });
+      }
+    }
   });
 
   await logAudit(admin, {
@@ -438,6 +472,15 @@ export default async function ResetPage() {
                 className="h-11 rounded-xl border border-rose-200 px-3 text-base text-rose-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
                 autoComplete="off"
               />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-semibold text-rose-900">
+              <input
+                type="checkbox"
+                name="seedDemo"
+                defaultChecked
+                className="h-4 w-4 rounded border-rose-300"
+              />
+              Ripristina anche i dati demo
             </label>
             <button
               type="submit"

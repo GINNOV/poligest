@@ -651,17 +651,13 @@ export default async function PatientDetailPage({
             <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
-                  {patient.photoUrl ? (
-                    <Image
-                      src={patient.photoUrl}
-                      alt={`${patient.firstName} ${patient.lastName}`}
-                      width={56}
-                      height={56}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    `${(patient.firstName ?? "P")[0] ?? "P"}${(patient.lastName ?? " ")?.[0] ?? ""}`
-                  )}
+                  <Image
+                    src={patient.photoUrl || "/avatars/missing_patient.jpg"}
+                    alt={`${patient.firstName} ${patient.lastName}`}
+                    width={56}
+                    height={56}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm text-zinc-600">Scheda paziente</p>
@@ -695,19 +691,13 @@ export default async function PatientDetailPage({
                   className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
-                  {patient.photoUrl ? (
-                    <Image
-                      src={patient.photoUrl}
-                      alt={`${patient.firstName} ${patient.lastName}`}
-                      width={112}
-                      height={112}
-                      className="h-28 w-28 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-28 w-28 items-center justify-center rounded-full bg-white text-2xl font-semibold text-emerald-800">
-                      {`${(patient.firstName ?? "P")[0] ?? "P"}${(patient.lastName ?? " ")?.[0] ?? ""}`}
-                    </div>
-                  )}
+                  <Image
+                    src={patient.photoUrl || "/avatars/missing_patient.jpg"}
+                    alt={`${patient.firstName} ${patient.lastName}`}
+                    width={112}
+                    height={112}
+                    className="h-28 w-28 rounded-full object-cover"
+                  />
                   <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
                     <span>Scegli foto</span>
                     <input
