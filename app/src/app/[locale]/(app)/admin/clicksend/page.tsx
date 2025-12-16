@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { sendSms } from "@/lib/sms";
 
 function mask(value?: string | null, show = 3) {
   if (!value) return "—";
@@ -29,6 +30,30 @@ async function saveClickSendConfig(formData: FormData) {
     where: { id: "clicksend" },
     update: { username, apiKey, from },
     create: { id: "clicksend", username, apiKey, from },
+  });
+
+  revalidatePath("/admin/clicksend");
+}
+
+async function sendTestSms(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN]);
+  const to = (formData.get("to") as string)?.trim();
+  const body =
+    (formData.get("body") as string)?.trim() ||
+    "Messaggio di test dal pannello ClickSend.";
+
+  if (!to) {
+    throw new Error("Inserisci un numero di telefono");
+  }
+
+  await sendSms({
+    to,
+    body,
+    templateId: null,
+    patientId: null,
+    userId: admin.id,
   });
 
   revalidatePath("/admin/clicksend");
@@ -133,6 +158,37 @@ export default async function ClickSendSettingsPage() {
           <p className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
             Puoi verificare l&apos;invio dagli <Link href="/admin/sms-templates" className="font-semibold underline">ultimi invii SMS</Link>
             . Se le credenziali mancano, l&apos;app userà la modalità simulata e registrerà comunque il log.
+          </p>
+        </div>
+
+        <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <p className="text-sm font-semibold text-zinc-900">Invio di test</p>
+          <form action={sendTestSms} className="space-y-3">
+            <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              Numero di destinazione
+              <input
+                name="to"
+                required
+                className="h-10 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                placeholder="+39..."
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              Testo (opzionale)
+              <textarea
+                name="body"
+                rows={2}
+                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                placeholder="Messaggio di test dal pannello ClickSend."
+              />
+            </label>
+            <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
+              Invia SMS di test
+            </FormSubmitButton>
+          </form>
+          <p className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+            L&apos;invio viene registrato nei log SMS. Se ClickSend non è configurato verrà usata la modalità
+            simulata.
           </p>
         </div>
       </div>

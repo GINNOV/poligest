@@ -1,6 +1,6 @@
-# **INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI del paziente**
+# INFORMATIVA SUL TRATTAMENTO DEI DATI PERSONALI del paziente
 
-# **Premessa**
+## Premessa
 
 L’informativa descrive le caratteristiche dei trattamenti svolti dal Dott. Gaetano Agovino sui Suoi dati personali e Le indica i diritti che la normativa Le garantisce.
 
@@ -105,28 +105,17 @@ La presente informativa ha lo scopo di informarLa su quali siano i Suoi dati per
 
 **Qualora il paziente sia minore**
 
-Il sottoscritto \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_, consapevole delle conseguenze previste dal **D.P.R.** 445/2000 in caso di affermazioni mendaci, dichiara di aver acquisito il consenso dell’altra persona esercente la responsabilità genitoriale sul minore.
+Il sottoscritto èconsapevole delle conseguenze previste dal **D.P.R.** 445/2000 in caso di affermazioni mendaci, dichiara di aver acquisito il consenso dell’altra persona esercente la responsabilità genitoriale sul minore.
 
-Data \_\_\_\_\_\_\_\_ Firma \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+Il sottoscritto autorizza il Dott./Lo Studio a comunicare i dati personali necessari alla banca o alla finanziaria per l’istruzione della pratica di finanziamento (consenso obbligatorio solo qualora si voglia finanziare l’importo da pagare).
 
-Il sottoscritto \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ autorizza il Dott./Lo Studio a comunicare i dati personali necessari alla banca o alla finanziaria per l’istruzione della pratica di finanziamento (consenso obbligatorio solo qualora si voglia finanziare l’importo da pagare).
-
-Data \_\_\_\_\_\_\_\_ Firma \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-
-Il sottoscritto \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ presta il consenso a ricevere informazioni e inviti ad eventi o a giornate di prevenzione via email o telefonicamente (consenso facoltativo).
-
-Data \_\_\_\_\_\_\_\_ Firma\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+Il sottoscritto presta il consenso a ricevere informazioni e inviti ad eventi o a giornate di prevenzione via email o telefonicamente (consenso facoltativo).
 
 **Liberatoria per l’utilizzazione dell’immagine e consenso al trattamento**
 
 **(ex art. 96 e 97 della l. 633/1941 ed ex art. 10 c.c., art. 7 del GDPR 2016/679)**
 
-L’interessato \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_, nato a \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_, il \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+L’interessato con %CODICE_FISCALE%, in data associata a questo documento
 
 AUTORIZZA
-
 Il Titolare a utilizzare l’immagine per la finalità sopra descritta, di cura e assistenza
-
-\[ \] SI \[ \] NO
-
-Luogo e data \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ Firma \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_

@@ -3,7 +3,7 @@ import path from "path";
 import sharp from "sharp";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { Role, ConsentType, ConsentStatus } from "@prisma/client";
+import { Prisma, Role, ConsentType, ConsentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -157,21 +157,39 @@ async function createPatient(formData: FormData) {
 export default async function PazientiPage({
   searchParams,
 }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  searchParams: Promise<Record<string, string | string[] | undefined> | URLSearchParams>;
 }) {
-  const params = await searchParams;
+  const rawParams = await searchParams;
+  // Normalize Next searchParams (can be a plain object or URLSearchParams in newer releases).
+  const params =
+    rawParams instanceof URLSearchParams
+      ? rawParams
+      : new URLSearchParams(
+          Object.entries(rawParams).flatMap(([key, value]) =>
+            value === undefined ? [] : Array.isArray(value) ? value.map((v) => [key, v]) : [[key, value]],
+          ),
+        );
+
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const qParam = params.q;
-  const searchQuery =
-    typeof qParam === "string"
-      ? qParam.toLowerCase()
-      : Array.isArray(qParam)
-        ? qParam[0]?.toLowerCase()
-        : undefined;
+  const qParam = params.get("q") ?? undefined;
+  const searchQuery = qParam?.toLowerCase();
+
+  const sortRaw = params.get("sort") ?? undefined;
+  const sortOption =
+    sortRaw === "name_desc" || sortRaw === "date_asc" || sortRaw === "date_desc" ? sortRaw : "name_asc";
+
+  const orderBy: Prisma.PatientOrderByWithRelationInput[] =
+    sortOption === "name_desc"
+      ? [{ lastName: "desc" }, { firstName: "desc" }]
+      : sortOption === "date_desc"
+        ? [{ createdAt: "desc" }]
+      : sortOption === "date_asc"
+        ? [{ createdAt: "asc" }]
+        : [{ lastName: "asc" }, { firstName: "asc" }];
 
   const patients = await prisma.patient.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy,
     select: {
       id: true,
       firstName: true,
@@ -198,6 +216,31 @@ export default async function PazientiPage({
         }
       : undefined,
   });
+  const compareNames = (a: typeof patients[number], b: typeof patients[number]) => {
+    const lastA = (a.lastName ?? "").trim().toLowerCase();
+    const lastB = (b.lastName ?? "").trim().toLowerCase();
+    if (lastA !== lastB) {
+      return lastA.localeCompare(lastB, "it", { sensitivity: "base" });
+    }
+    const firstA = (a.firstName ?? "").trim().toLowerCase();
+    const firstB = (b.firstName ?? "").trim().toLowerCase();
+    if (firstA !== firstB) {
+      return firstA.localeCompare(firstB, "it", { sensitivity: "base" });
+    }
+    return (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0);
+  };
+
+  const sortedPatients =
+    sortOption === "name_desc" || sortOption === "name_asc"
+      ? [...patients].sort((a, b) => (sortOption === "name_desc" ? -compareNames(a, b) : compareNames(a, b)))
+      : patients;
+
+  if (process.env.NODE_ENV !== "production") {
+    const preview = sortedPatients
+      .slice(0, 5)
+      .map((p) => `${p.lastName ?? ""} ${p.firstName ?? ""}`.trim() || "—");
+    console.info("[pazienti] sort applied", { sortRaw, sortOption, preview, count: sortedPatients.length });
+  }
   const privacyContent = await fs.readFile(
     path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
     "utf8",
@@ -205,87 +248,23 @@ export default async function PazientiPage({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-zinc-900">Elenco pazienti</h2>
-        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
-            Cerca
-            <input
-              type="text"
-              name="q"
-              defaultValue={
-                typeof params.q === "string"
-                  ? params.q
-                  : Array.isArray(params.q)
-                    ? params.q[0]
-                    : ""
-              }
-              placeholder="Nome, cognome, email, telefono"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
-              Applica
-            </button>
-            <a
-              href="/pazienti"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-            >
-              Mostra tutto
-            </a>
+      <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+              ➕
+            </span>
+            <div>
+              <h1 className="text-lg font-semibold text-zinc-900">Modulo di Registrazione Paziente</h1>
+              <p className="text-sm text-zinc-600">
+                Compila per creare una nuova scheda paziente, includendo consenso e firma digitale.
+              </p>
+            </div>
           </div>
-        </form>
-        <div className="mt-4 divide-y divide-zinc-100">
-          {patients.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
-          ) : (
-            patients.map((patient) => (
-              <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-col">
-                  <Link
-                    href={`/pazienti/${patient.id}`}
-                    className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
-                  >
-                    {patient.firstName} {patient.lastName}
-                  </Link>
-                  <span className="text-xs text-zinc-600">
-                    {patient.email ?? "—"} · {patient.phone ?? "—"}
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                  {patient.consents.map((consent) => (
-                    <span
-                      key={consent.type}
-                      className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
-                    >
-                      {consentLabels[consent.type] ?? consent.type}
-                    </span>
-                  ))}
-                  <Link
-                    href={`/pazienti/${patient.id}`}
-                    className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
-                  >
-                    Scheda
-                  </Link>
-                  <PatientDeleteButton patientId={patient.id} />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+          <span className="text-sm font-semibold text-emerald-700">Crea nuovo</span>
+        </summary>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-zinc-900">Modulo di Registrazione Paziente</h1>
-          <p className="text-sm text-zinc-600">Si prega di compilare tutti i campi con attenzione.</p>
-        </div>
-
-        <form action={createPatient} className="mt-6 space-y-6">
+        <form action={createPatient} className="space-y-6 px-6 pb-6">
           <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
@@ -427,8 +406,139 @@ export default async function PazientiPage({
             </div>
           </section>
 
-          <PatientConsentSection content={privacyContent} />
+          <section className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-emerald-900">Consenso e firma digitale</p>
+              <p className="text-xs text-emerald-700">
+                Leggi l&apos;informativa e acquisisci la firma digitale del paziente.
+              </p>
+            </div>
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-white">
+              <PatientConsentSection content={privacyContent} />
+            </div>
+          </section>
         </form>
+      </details>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-zinc-900">Elenco pazienti</h2>
+        <form className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
+            Cerca
+            <input
+              type="text"
+              name="q"
+              defaultValue={qParam ?? ""}
+              placeholder="Nome, cognome, email, telefono"
+              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 sm:max-w-xs">
+            Ordina per
+            <select
+              name="sort"
+              defaultValue={sortRaw ?? sortOption}
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="name_asc">Alfabetico (A-Z)</option>
+              <option value="name_desc">Alfabetico (Z-A)</option>
+              <option value="date_desc">Data di inserimento (recenti)</option>
+              <option value="date_asc">Data di inserimento (meno recenti)</option>
+            </select>
+          </label>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            >
+              Applica
+            </button>
+            <a
+              href={`/pazienti${sortOption ? `?sort=${sortOption}` : ""}`}
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+            >
+              Mostra tutto
+            </a>
+          </div>
+        </form>
+        <div className="mt-4 divide-y divide-zinc-100">
+          {sortedPatients.length === 0 ? (
+            <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
+          ) : (
+            sortedPatients.map((patient) => {
+              const missingEmail = !patient.email;
+              const missingPhone = !patient.phone;
+              const missingCount = Number(missingEmail) + Number(missingPhone);
+              const hasPrivacy =
+                patient.consents?.some(
+                  (c) => c.type === ConsentType.PRIVACY && c.status === ConsentStatus.GRANTED,
+                ) ?? false;
+              let badge: React.ReactNode = null;
+              if (!hasPrivacy) {
+                badge = (
+                  <span title="Consenso privacy mancante" className="text-rose-600">
+                    ▲
+                  </span>
+                );
+              } else if (missingCount > 1) {
+                badge = (
+                  <span title="Dati di contatto mancanti" className="text-amber-500">
+                    ⚠️
+                  </span>
+                );
+              } else if (missingEmail) {
+                badge = (
+                  <span title="Email mancante" className="text-zinc-500">
+                    📧
+                  </span>
+                );
+              } else if (missingPhone) {
+                badge = (
+                  <span title="Telefono mancante" className="text-zinc-500">
+                    ☎️
+                  </span>
+                );
+              }
+
+              return (
+                <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-lg sm:hidden" aria-hidden={!badge}>
+                    {badge}
+                  </div>
+                  <div className="flex flex-col">
+                    <Link
+                      href={`/pazienti/${patient.id}`}
+                      className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+                    >
+                      <span className="mr-2 inline-flex items-center gap-1 align-middle">{badge}</span>
+                      {patient.firstName} {patient.lastName}
+                    </Link>
+                    <span className="text-xs text-zinc-600">
+                      {patient.email ?? "—"} · {patient.phone ?? "—"}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    {patient.consents.map((consent) => (
+                      <span
+                        key={consent.type}
+                        className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
+                      >
+                        {consentLabels[consent.type] ?? consent.type}
+                      </span>
+                    ))}
+                    <Link
+                      href={`/pazienti/${patient.id}`}
+                      className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                    >
+                      Scheda
+                    </Link>
+                    <PatientDeleteButton patientId={patient.id} />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

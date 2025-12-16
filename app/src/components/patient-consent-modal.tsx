@@ -6,6 +6,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 
 type Props = {
   content: string;
+  fiscalCode?: string;
 };
 
 type Page = string[];
@@ -114,15 +115,20 @@ const chunkContent = (text: string): Page[] => {
   return pages.length > 0 ? pages : [text.split("\n")];
 };
 
-export function PatientConsentSection({ content }: Props) {
+export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: Props) {
   const [patientName, setPatientName] = useState("Paziente");
+  const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
   const normalizedContent = useMemo(
-    () => content.replace(/%PATIENT_NAME_HERE%/g, patientName.trim() || "Paziente"),
-    [content, patientName],
+    () =>
+      content
+        .replace(/%PATIENT_NAME_HERE%/g, patientName.trim() || "Paziente")
+        .replace(/%CODICE_FISCALE%/g, fiscalCode.trim() || "—"),
+    [content, fiscalCode, patientName],
   );
   const pages = useMemo(() => chunkContent(normalizedContent), [normalizedContent]);
   const [isOpen, setIsOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
+  const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [signatureData, setSignatureData] = useState<string>("");
   const [signatureError, setSignatureError] = useState<string | null>(null);
   const [hasStroke, setHasStroke] = useState(false);
@@ -180,6 +186,12 @@ export function PatientConsentSection({ content }: Props) {
   }, [isOpen]);
 
   useEffect(() => {
+    if (fiscalCodeProp) {
+      setFiscalCode(fiscalCodeProp);
+    }
+  }, [fiscalCodeProp]);
+
+  useEffect(() => {
     const updateName = () => {
       const first = (document.querySelector<HTMLInputElement>('input[name="firstName"]')?.value || "").trim();
       const last = (document.querySelector<HTMLInputElement>('input[name="lastName"]')?.value || "").trim();
@@ -187,17 +199,27 @@ export function PatientConsentSection({ content }: Props) {
       setPatientName(full || "Paziente");
     };
 
+    const updateFiscal = () => {
+      const tax = (document.querySelector<HTMLInputElement>('input[name="taxId"]')?.value || "").trim();
+      setFiscalCode(tax || fiscalCodeProp || "");
+    };
+
     updateName();
+    updateFiscal();
     const firstInput = document.querySelector<HTMLInputElement>('input[name="firstName"]');
     const lastInput = document.querySelector<HTMLInputElement>('input[name="lastName"]');
+    const taxInput = document.querySelector<HTMLInputElement>('input[name="taxId"]');
+
     firstInput?.addEventListener("input", updateName);
     lastInput?.addEventListener("input", updateName);
+    taxInput?.addEventListener("input", updateFiscal);
 
     return () => {
       firstInput?.removeEventListener("input", updateName);
       lastInput?.removeEventListener("input", updateName);
+      taxInput?.removeEventListener("input", updateFiscal);
     };
-  }, []);
+  }, [fiscalCodeProp]);
 
   const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -255,6 +277,12 @@ export function PatientConsentSection({ content }: Props) {
     [currentPage],
   );
 
+  useEffect(() => {
+    if (pageIndex === totalPages - 1 || signatureData) {
+      setHasReachedEnd(true);
+    }
+  }, [pageIndex, totalPages, signatureData]);
+
   return (
     <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
       <div className="space-y-1">
@@ -268,7 +296,12 @@ export function PatientConsentSection({ content }: Props) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setIsOpen(true);
+            setPageIndex(0);
+            setHasReachedEnd(Boolean(signatureData) || totalPages <= 1);
+            setSignatureError(null);
+          }}
           className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
         >
           Apri informativa privacy e firma
@@ -404,7 +437,7 @@ export function PatientConsentSection({ content }: Props) {
                     disabled={pageIndex === 0}
                     className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Precedente
+                    Indietro
                   </button>
                   <button
                     type="button"
@@ -412,7 +445,7 @@ export function PatientConsentSection({ content }: Props) {
                     disabled={pageIndex === totalPages - 1}
                     className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Successivo
+                    Avanti
                   </button>
                 </div>
               </div>
@@ -421,41 +454,47 @@ export function PatientConsentSection({ content }: Props) {
               </div>
             </div>
 
-            <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
-                  <p className="text-xs text-emerald-700">Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.</p>
+            {hasReachedEnd ? (
+              <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+                    <p className="text-xs text-emerald-700">Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={clearCanvas}
+                      className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                    >
+                      Cancella
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveSignature}
+                      className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                    >
+                      Salva firma
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={clearCanvas}
-                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
-                  >
-                    Cancella
-                  </button>
-                  <button
-                    type="button"
-                    onClick={saveSignature}
-                    className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                  >
-                    Salva firma
-                  </button>
+                <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                  <canvas
+                    ref={canvasRef}
+                    className="h-44 w-full touch-none"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerLeave={handlePointerUp}
+                  />
                 </div>
+                {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
               </div>
-              <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
-                <canvas
-                  ref={canvasRef}
-                  className="h-44 w-full touch-none"
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerLeave={handlePointerUp}
-                />
+            ) : (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                Completa la lettura di tutte le pagine per poter inserire la firma digitale.
               </div>
-              {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
-            </div>
+            )}
           </div>
         </div>
       ) : null}

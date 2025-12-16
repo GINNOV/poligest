@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -7,11 +6,13 @@ import { Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType 
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { PatientAvatar } from "@/components/patient-avatar";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
 import { sendSms } from "@/lib/sms";
+import { ConsentForm } from "@/components/consent-form";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -324,64 +325,43 @@ async function updatePatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
-async function addConsent(formData: FormData) {
+async function updateConsentStatus(formData: FormData) {
   "use server";
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const consentId = (formData.get("consentId") as string) ?? "";
+  const status = formData.get("status") as ConsentStatus;
 
-  const patientId = (formData.get("patientId") as string) ?? "";
-  const type = formData.get("consentType") as ConsentType;
-  const status = (formData.get("consentStatus") as ConsentStatus) ?? ConsentStatus.GRANTED;
-  const channel = ((formData.get("consentChannel") as string) ?? "manual").trim() || "manual";
-  const givenAtStr = formData.get("consentGivenAt") as string;
-  const expiresAtStr = formData.get("consentExpiresAt") as string;
-  const revokedAtStr = formData.get("consentRevokedAt") as string;
-
-  try {
-    if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
-      throw new Error("Dati consenso non validi");
-    }
-
-    const givenAt = givenAtStr ? new Date(givenAtStr) : new Date();
-    const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
-    const revokedAt = revokedAtStr ? new Date(revokedAtStr) : null;
-
-    await prisma.consent.create({
-      data: {
-        patientId,
-        type,
-        status,
-        channel,
-        givenAt,
-        expiresAt,
-        revokedAt,
-      },
-    });
-
-    await logAudit(user, {
-      action: "consent.added",
-      entity: "Patient",
-      entityId: patientId,
-      metadata: { type, status, channel },
-    });
-
-    revalidatePath(`/pazienti/${patientId}`);
-    redirect(
-      `/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`
-    );
-  } catch (err: any) {
-    // Let redirects bubble.
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-
-    const isUnique = err?.code === "P2002";
-    const message = isUnique
-      ? "Esiste già un consenso di questo tipo per questo paziente."
-      : err?.message ?? "Impossibile aggiungere il consenso.";
-
-    redirect(`/pazienti/${patientId || ""}?consentError=${encodeURIComponent(message)}`);
+  if (!consentId || !status || !Object.values(ConsentStatus).includes(status)) {
+    throw new Error("Dati consenso non validi");
   }
+
+  const existing = await prisma.consent.findUnique({
+    where: { id: consentId },
+    select: { patientId: true },
+  });
+
+  if (!existing) {
+    throw new Error("Consenso non trovato");
+  }
+
+  await prisma.consent.update({
+    where: { id: consentId },
+    data: {
+      status,
+      revokedAt: status === ConsentStatus.REVOKED ? new Date() : null,
+    },
+  });
+
+  await logAudit(user, {
+    action: "consent.updated",
+    entity: "Patient",
+    entityId: existing.patientId,
+    metadata: { consentId, status },
+  });
+
+  revalidatePath(`/pazienti/${existing.patientId}`);
+  redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso aggiornato.")}`);
 }
 
 async function sendPatientSms(formData: FormData) {
@@ -534,6 +514,10 @@ export default async function PatientDetailPage({
       orderBy: { performedAt: "desc" },
     }),
   ]);
+  const privacyContent = await fs.readFile(
+    path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
+    "utf8"
+  );
   const pastAppointments = patient.appointments
     .filter((appt) => appt.startsAt < new Date())
     .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
@@ -541,6 +525,20 @@ export default async function PatientDetailPage({
     ...record,
     performedAt: record.performedAt.toISOString(),
   }));
+  const readContent = async (file: string, fallback: string) => {
+    try {
+      return await fs.readFile(path.join(process.cwd(), "AI", "CONTENT", file), "utf8");
+    } catch {
+      return fallback;
+    }
+  };
+  const basePrivacy = await readContent("Patient_Privacy.md", "Contenuto non disponibile.");
+  const consentContents: Record<ConsentType, string> = {
+    [ConsentType.PRIVACY]: basePrivacy,
+    [ConsentType.MARKETING]: await readContent("patient_marketing.md", basePrivacy),
+    [ConsentType.TREATMENT]: await readContent("treatment_privacy.md", basePrivacy),
+    [ConsentType.RECALL]: await readContent("patient_recall.md", basePrivacy),
+  };
   const [smsTemplates, smsLogs] = await Promise.all([
     prisma.smsTemplate.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.smsLog.findMany({
@@ -651,12 +649,11 @@ export default async function PatientDetailPage({
             <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
-                  <Image
-                    src={patient.photoUrl || "/avatars/missing_patient.jpg"}
+                  <PatientAvatar
+                    src={patient.photoUrl}
                     alt={`${patient.firstName} ${patient.lastName}`}
-                    width={56}
-                    height={56}
-                    className="h-full w-full object-cover"
+                    size={56}
+                    className="h-full w-full rounded-full"
                   />
                 </div>
                 <div className="min-w-0">
@@ -691,12 +688,11 @@ export default async function PatientDetailPage({
                   className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
-                  <Image
-                    src={patient.photoUrl || "/avatars/missing_patient.jpg"}
+                  <PatientAvatar
+                    src={patient.photoUrl}
                     alt={`${patient.firstName} ${patient.lastName}`}
-                    width={112}
-                    height={112}
-                    className="h-28 w-28 rounded-full object-cover"
+                    size={112}
+                    className="h-28 w-28 rounded-full"
                   />
                   <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
                     <span>Scegli foto</span>
@@ -820,134 +816,161 @@ export default async function PatientDetailPage({
                         />
                       </label>
                     </div>
-                    <div className="flex justify-end">
-                      <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-                        Salva modifiche
-                      </FormSubmitButton>
-                    </div>
-                  </form>
-
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                      Consensi
-                    </p>
-                    {patient.consents.length === 0 ? (
-                      <p className="mt-2 text-sm text-zinc-600">Nessun consenso registrato.</p>
-                    ) : (
-                      <div className="mt-2 space-y-2">
-                        {patient.consents.map((consent) => (
-                          <div
-                            key={consent.id}
-                            className="flex flex-col gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"
-                          >
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
-                                {consentTypeLabels[consent.type] ?? consent.type}
-                              </span>
-                              <span className="rounded-full bg-emerald-700 px-2 py-1 text-[11px] font-semibold uppercase text-white">
-                                {consentStatusLabels[consent.status] ?? consent.status}
-                              </span>
-                              <span className="text-[11px] font-semibold text-emerald-900">
-                                {new Date(consent.givenAt).toLocaleString("it-IT", {
-                                  dateStyle: "short",
-                                  timeStyle: "short",
-                                })}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-emerald-900">
-                              Canale: {consent.channel ?? "—"}
-                              {consent.expiresAt
-                                ? ` · Scadenza: ${new Date(consent.expiresAt).toLocaleDateString("it-IT")}`
-                                : ""}
-                              {consent.revokedAt
-                                ? ` · Revocato: ${new Date(consent.revokedAt).toLocaleDateString("it-IT")}`
-                                : ""}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <form action={addConsent} className="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-xs text-zinc-800 sm:grid-cols-2">
-                      <input type="hidden" name="patientId" value={patient.id} />
-                      <label className="flex flex-col gap-1">
-                        Tipo
-                        <select
-                          name="consentType"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          defaultValue={ConsentType.PRIVACY}
-                        >
-                          {Object.values(ConsentType).map((type) => (
-                            <option key={type} value={type}>
-                              {consentTypeLabels[type] ?? type}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        Stato
-                        <select
-                          name="consentStatus"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          defaultValue={ConsentStatus.GRANTED}
-                        >
-                          {Object.values(ConsentStatus).map((status) => (
-                            <option key={status} value={status}>
-                              {consentStatusLabels[status] ?? status}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        Canale
-                        <select
-                          name="consentChannel"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          defaultValue="Manuale"
-                        >
-                          <option>Telefono</option>
-                          <option>Manuale</option>
-                          <option>Digitale</option>
-                          <option>Di persona</option>
-                        </select>
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        Data/Ora consenso
-                        <input
-                          type="datetime-local"
-                          name="consentGivenAt"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          defaultValue={new Date().toISOString().slice(0, 16)}
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        Scadenza (opzionale)
-                        <input
-                          type="date"
-                          name="consentExpiresAt"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1">
-                        Revoca (opzionale)
-                        <input
-                          type="date"
-                          name="consentRevokedAt"
-                          className="h-10 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        />
-                      </label>
-                      <div className="sm:col-span-2 flex justify-end">
-                        <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
-                          Aggiungi consenso
-                        </FormSubmitButton>
-                      </div>
-                    </form>
+                  <div className="flex justify-end">
+                    <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
+                      Salva modifiche
+                    </FormSubmitButton>
                   </div>
+                </form>
+
                 </div>
               </div>
             </div>
           </details>
 
-          <DentalChart patientId={patient.id} initialRecords={dentalRecordsSerialized} />
+          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+              <span className="flex items-center gap-3">
+                <svg
+                  className="h-6 w-6 text-emerald-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M9 3h6l3 3v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+                  <path d="M15 3v4h4" />
+                  <path d="M9 13h6" />
+                  <path d="M9 17h4" />
+                </svg>
+                <span className="uppercase tracking-wide">Consenso informato & sommario</span>
+              </span>
+              <svg
+                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
+            <div className="grid grid-cols-1 gap-4 px-6 pb-6 pt-4 lg:grid-cols-[1.1fr,0.9fr]">
+                      <div className="space-y-3">
+                        {patient.consents.length === 0 ? (
+                          <p className="text-sm text-zinc-600">Nessun consenso registrato.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {patient.consents.map((consent) => {
+                              const signaturePath = `/uploads/signatures/consent-${consent.id}.png`;
+                              return (
+                                <div
+                                  key={consent.id}
+                                  className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"
+                                >
+                                  <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase text-emerald-800">
+                                    <span className="rounded-full bg-white px-2 py-1">
+                                      {consentTypeLabels[consent.type] ?? consent.type}
+                                    </span>
+                                    <span className="rounded-full bg-emerald-700 px-3 py-1 text-white">
+                                      {consentStatusLabels[consent.status] ?? consent.status}
+                                    </span>
+                                    <span className="text-emerald-900">
+                                      {new Date(consent.givenAt).toLocaleString("it-IT", {
+                                        dateStyle: "short",
+                                        timeStyle: "short",
+                                      })}
+                                    </span>
+                                    <Link
+                                      href={signaturePath}
+                                      target="_blank"
+                                      className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                                    >
+                                      Vedi firma
+                                    </Link>
+                                  </div>
+                                  <div className="text-[11px] text-emerald-900">
+                                    Canale: {consent.channel ?? "—"}
+                                    {consent.expiresAt
+                                      ? ` · Scadenza: ${new Date(consent.expiresAt).toLocaleDateString("it-IT")}`
+                                      : ""}
+                                    {consent.revokedAt
+                                      ? ` · Revocato: ${new Date(consent.revokedAt).toLocaleDateString("it-IT")}`
+                                      : ""}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <details className="rounded-lg border border-zinc-200 bg-white text-xs text-zinc-800 [&_summary::-webkit-details-marker]:hidden">
+                          <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2">
+                            <span className="text-[11px] font-semibold uppercase text-zinc-600">Aggiorna o revoca</span>
+                            <svg
+                              className="h-4 w-4 text-zinc-500 transition-transform duration-200 group-open:rotate-180"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.8"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="m6 9 6 6 6-6" />
+                            </svg>
+                          </summary>
+                          <div className="mt-2 grid gap-2 px-3 pb-3">
+                            {patient.consents.map((consent) => (
+                              <form
+                                key={consent.id}
+                                action={updateConsentStatus}
+                                className="grid grid-cols-1 gap-2 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:grid-cols-[1fr,auto]"
+                              >
+                                <input type="hidden" name="consentId" value={consent.id} />
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
+                                    {consentTypeLabels[consent.type] ?? consent.type}
+                                  </span>
+                                  <select
+                                    name="status"
+                                    defaultValue={consent.status}
+                                    className="h-8 rounded-full border border-zinc-200 bg-white px-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  >
+                                    {Object.values(ConsentStatus).map((status) => (
+                                      <option key={status} value={status}>
+                                        {consentStatusLabels[status] ?? status}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="text-[11px] text-zinc-600">
+                                    Ultimo: {new Date(consent.revokedAt ?? consent.expiresAt ?? consent.givenAt).toLocaleString("it-IT")}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-end">
+                                  <FormSubmitButton className="inline-flex h-8 items-center justify-center rounded-full bg-emerald-700 px-3 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
+                                    Aggiorna stato
+                                  </FormSubmitButton>
+                                </div>
+                              </form>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                      <ConsentForm
+                        patientId={patient.id}
+                        typeLabels={consentTypeLabels}
+                        typeContents={consentContents as any}
+                        existingTypes={patient.consents.map((c) => c.type)}
+                      />
+                    </div>
+          </details>
+<DentalChart patientId={patient.id} initialRecords={dentalRecordsSerialized} />
 
           <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
@@ -1420,6 +1443,6 @@ export default async function PatientDetailPage({
         )}
       </div>
     </div>
-    </>
-  );
+  </>
+);
 }
