@@ -160,7 +160,7 @@ export function AppointmentsCalendar({ events }: { events: CalendarEvent[] }) {
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-lg font-semibold text-zinc-900">Calendario (settimana)</h3>
+          <h3 className="text-lg font-semibold text-zinc-900">Settimana del...</h3>
           <p className="text-xs text-zinc-500">{weekLabel}</p>
         </div>
         <div className="flex items-center gap-2">

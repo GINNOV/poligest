@@ -105,7 +105,7 @@ La presente informativa ha lo scopo di informarLa su quali siano i Suoi dati per
 
 **Qualora il paziente sia minore**
 
-Il sottoscritto \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_, consapevole delle conseguenze previste dal **D.P.R.** 445/2000 in caso di affermazioni mendaci, dichiara di aver acquisito il consenso dell’altra persona esercente la responsabilità genitoriale sul minore.
+Il sottoscritto \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_, consapevole delle conseguenze previste dal **D.P.R.** 445/2000 in caso di affermazioni mendaci, dichiara di aver acquisito il consenso dell’altra persona esercente la responsabilità genitoriale sul minore.
 
 Data \_\_\_\_\_\_\_\_ Firma \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
@@ -130,4 +130,3 @@ Il Titolare a utilizzare l’immagine per la finalità sopra descritta, di cura 
 \[ \] SI \[ \] NO
 
 Luogo e data \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ Firma \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
-

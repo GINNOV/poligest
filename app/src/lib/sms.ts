@@ -8,13 +8,59 @@ type SendSmsOptions = {
   userId?: string | null;
 };
 
-const clickSendUser = process.env.CLICKSEND_USERNAME;
-const clickSendKey = process.env.CLICKSEND_API_KEY;
-const clickSendFrom = process.env.CLICKSEND_FROM;
+const envClickSendUser = process.env.CLICKSEND_USERNAME;
+const envClickSendKey = process.env.CLICKSEND_API_KEY;
+const envClickSendFrom = process.env.CLICKSEND_FROM;
 
-async function sendViaClickSend(to: string, body: string) {
-  if (!clickSendUser || !clickSendKey) {
-    return { status: "SIMULATED" as const };
+type ClickSendConfig = {
+  username: string;
+  apiKey: string;
+  from?: string | null;
+  source: "db" | "env";
+};
+
+let cachedConfig: { value: ClickSendConfig | null; fetchedAt: number } = {
+  value: null,
+  fetchedAt: 0,
+};
+
+async function getClickSendConfig(): Promise<ClickSendConfig | null> {
+  const now = Date.now();
+  if (cachedConfig.value && now - cachedConfig.fetchedAt < 5 * 60 * 1000) {
+    return cachedConfig.value;
+  }
+
+  const dbConfig = await prisma.smsProviderConfig.findFirst({
+    orderBy: { updatedAt: "desc" },
+  });
+
+  const value: ClickSendConfig | null = dbConfig
+    ? {
+        username: dbConfig.username,
+        apiKey: dbConfig.apiKey,
+        from: dbConfig.from,
+        source: "db",
+      }
+    : envClickSendUser && envClickSendKey
+      ? {
+          username: envClickSendUser,
+          apiKey: envClickSendKey,
+          from: envClickSendFrom,
+          source: "env",
+        }
+      : null;
+
+  cachedConfig = { value, fetchedAt: now };
+  return value;
+}
+
+async function sendViaClickSend(
+  to: string,
+  body: string
+): Promise<{ status: "SENT" | "SIMULATED"; source: "db" | "env" | "none" }> {
+  const config = await getClickSendConfig();
+  if (!config) {
+    return { status: "SIMULATED" as const, source: "none" as const };
   }
 
   const payload = {
@@ -23,12 +69,12 @@ async function sendViaClickSend(to: string, body: string) {
         source: "api",
         body,
         to,
-        from: clickSendFrom || undefined,
+        from: config.from || undefined,
       },
     ],
   };
 
-  const auth = Buffer.from(`${clickSendUser}:${clickSendKey}`).toString("base64");
+  const auth = Buffer.from(`${config.username}:${config.apiKey}`).toString("base64");
   const res = await fetch("https://rest.clicksend.com/v3/sms/send", {
     method: "POST",
     headers: {
@@ -43,7 +89,7 @@ async function sendViaClickSend(to: string, body: string) {
     throw new Error(`ClickSend error ${res.status}: ${text}`);
   }
 
-  return { status: "SENT" as const };
+  return { status: "SENT" as const, source: config.source };
 }
 
 export async function sendSms({
@@ -57,12 +103,18 @@ export async function sendSms({
 
   let status: "SENT" | "SIMULATED" | "FAILED" = "SENT";
   let error: string | undefined;
+   let source: "db" | "env" | "none" = "none";
 
   try {
     const result = await sendViaClickSend(to, body);
+    source = result.source ?? "none";
     status = result.status;
     if (status === "SIMULATED") {
-      console.log("[sms] invio simulato (ClickSend non configurato)", { to, body });
+      const reason =
+        source === "none"
+          ? "ClickSend non configurato"
+          : "Configurazione ClickSend non completa";
+      console.log(`[sms] invio simulato (${reason})`, { to, body });
     }
   } catch (err: any) {
     status = "FAILED";
@@ -78,6 +130,7 @@ export async function sendSms({
       templateId: templateId ?? undefined,
       patientId: patientId ?? undefined,
       userId: userId ?? undefined,
+      provider: source,
     },
   });
 

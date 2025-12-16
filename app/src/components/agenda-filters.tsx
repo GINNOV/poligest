@@ -76,7 +76,7 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
           className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
         />
       </label>
-      <div className="col-span-full flex gap-2">
+      <div className="col-span-full flex justify-center gap-2">
         <button
           type="submit"
           disabled={pending}

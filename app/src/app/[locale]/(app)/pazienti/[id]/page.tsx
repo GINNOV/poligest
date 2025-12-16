@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType } from "@prisma/client";
@@ -337,34 +337,51 @@ async function addConsent(formData: FormData) {
   const expiresAtStr = formData.get("consentExpiresAt") as string;
   const revokedAtStr = formData.get("consentRevokedAt") as string;
 
-  if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
-    throw new Error("Dati consenso non validi");
+  try {
+    if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
+      throw new Error("Dati consenso non validi");
+    }
+
+    const givenAt = givenAtStr ? new Date(givenAtStr) : new Date();
+    const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
+    const revokedAt = revokedAtStr ? new Date(revokedAtStr) : null;
+
+    await prisma.consent.create({
+      data: {
+        patientId,
+        type,
+        status,
+        channel,
+        givenAt,
+        expiresAt,
+        revokedAt,
+      },
+    });
+
+    await logAudit(user, {
+      action: "consent.added",
+      entity: "Patient",
+      entityId: patientId,
+      metadata: { type, status, channel },
+    });
+
+    revalidatePath(`/pazienti/${patientId}`);
+    redirect(
+      `/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`
+    );
+  } catch (err: any) {
+    // Let redirects bubble.
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+
+    const isUnique = err?.code === "P2002";
+    const message = isUnique
+      ? "Esiste già un consenso di questo tipo per questo paziente."
+      : err?.message ?? "Impossibile aggiungere il consenso.";
+
+    redirect(`/pazienti/${patientId || ""}?consentError=${encodeURIComponent(message)}`);
   }
-
-  const givenAt = givenAtStr ? new Date(givenAtStr) : new Date();
-  const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
-  const revokedAt = revokedAtStr ? new Date(revokedAtStr) : null;
-
-  await prisma.consent.create({
-    data: {
-      patientId,
-      type,
-      status,
-      channel,
-      givenAt,
-      expiresAt,
-      revokedAt,
-    },
-  });
-
-  await logAudit(user, {
-    action: "consent.added",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { type, status, channel },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
 }
 
 async function sendPatientSms(formData: FormData) {
@@ -374,51 +391,90 @@ async function sendPatientSms(formData: FormData) {
   const patientId = (formData.get("patientId") as string) ?? "";
   const templateId = (formData.get("templateId") as string) ?? "";
 
-  if (!patientId || !templateId) {
-    throw new Error("Seleziona un template e un paziente");
+  try {
+    if (!patientId || !templateId) {
+      throw new Error("Seleziona un template e un paziente");
+    }
+
+    const [template, patient] = await Promise.all([
+      prisma.smsTemplate.findUnique({ where: { id: templateId } }),
+      prisma.patient.findUnique({ where: { id: patientId }, select: { phone: true, firstName: true, lastName: true } }),
+    ]);
+
+    if (!template) {
+      throw new Error("Template non trovato");
+    }
+
+    if (!patient?.phone) {
+      redirect(
+        `/pazienti/${patientId}?smsError=${encodeURIComponent(
+          "Aggiungi un numero di telefono al profilo del paziente prima di inviare un SMS."
+        )}`
+      );
+    }
+
+    const body = template.body
+      .replace("{{nome}}", patient.firstName ?? "")
+      .replace("{{cognome}}", patient.lastName ?? "");
+
+    await sendSms({
+      to: patient.phone,
+      body,
+      templateId,
+      patientId,
+      userId: user.id,
+    });
+
+    await logAudit(user, {
+      action: "sms.sent",
+      entity: "Patient",
+      entityId: patientId,
+      metadata: { templateId },
+    });
+
+    revalidatePath(`/pazienti/${patientId}`);
+    redirect(`/pazienti/${patientId}?smsSuccess=${encodeURIComponent("SMS inviato con successo.")}`);
+  } catch (err: any) {
+    // Allow redirects to propagate.
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    const message = err?.message ?? "Impossibile inviare l'SMS.";
+    redirect(`/pazienti/${patientId || ""}?smsError=${encodeURIComponent(message)}`);
   }
-
-  const [template, patient] = await Promise.all([
-    prisma.smsTemplate.findUnique({ where: { id: templateId } }),
-    prisma.patient.findUnique({ where: { id: patientId }, select: { phone: true, firstName: true, lastName: true } }),
-  ]);
-
-  if (!template) throw new Error("Template non trovato");
-  if (!patient?.phone) throw new Error("Numero di telefono mancante");
-
-  const body = template.body.replace("{{nome}}", patient.firstName ?? "").replace("{{cognome}}", patient.lastName ?? "");
-
-  await sendSms({
-    to: patient.phone,
-    body,
-    templateId,
-    patientId,
-    userId: user.id,
-  });
-
-  await logAudit(user, {
-    action: "sms.sent",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { templateId },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
 }
 
 export default async function PatientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const isAdmin = user.role === Role.ADMIN;
 
   const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
   const patientId = resolvedParams?.id;
   if (!patientId) {
     return notFound();
   }
+  const smsErrorMessage =
+    typeof resolvedSearchParams.smsError === "string" ? resolvedSearchParams.smsError : null;
+  const smsSuccessMessage =
+    typeof resolvedSearchParams.smsSuccess === "string" ? resolvedSearchParams.smsSuccess : null;
+  const consentErrorMessage =
+    typeof resolvedSearchParams.consentError === "string"
+      ? resolvedSearchParams.consentError
+      : null;
+  const consentSuccessMessage =
+    typeof resolvedSearchParams.consentSuccess === "string"
+      ? resolvedSearchParams.consentSuccess
+      : null;
+  const openContactPanel =
+    typeof resolvedSearchParams.openContact === "string" &&
+    resolvedSearchParams.openContact === "1";
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
@@ -497,9 +553,101 @@ export default async function PatientDetailPage({
 
   return (
     <>
+      {smsSuccessMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
+          {smsSuccessMessage}
+        </div>
+      ) : null}
+      {consentSuccessMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
+          {consentSuccessMessage}
+        </div>
+      ) : null}
+
+      {smsErrorMessage ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]">
+          <div
+            role="alertdialog"
+            aria-labelledby="sms-error-title"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                ⚠️
+              </div>
+              <div className="space-y-2">
+                <p id="sms-error-title" className="text-base font-semibold text-amber-900">
+                  Impossibile inviare l&apos;SMS
+                </p>
+                <p className="text-sm text-zinc-700">{smsErrorMessage}</p>
+                {smsErrorMessage.toLowerCase().includes("telefono") ? (
+                  <p className="text-xs text-zinc-500">
+                    Aggiungi o aggiorna il numero di telefono del paziente dalla sezione dati di
+                    contatto, poi riprova.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Link
+                href={`/pazienti/${patient.id}?openContact=1#contact-info`}
+                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900"
+              >
+                Vai ai dati di contatto
+              </Link>
+              <Link
+                href={`/pazienti/${patient.id}`}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-1 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              >
+                Chiudi
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {consentErrorMessage ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]">
+          <div
+            role="alertdialog"
+            aria-labelledby="consent-error-title"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                ⚠️
+              </div>
+              <div className="space-y-2">
+                <p id="consent-error-title" className="text-base font-semibold text-amber-900">
+                  Non possiamo salvare questo consenso
+                </p>
+                <p className="text-sm text-zinc-700">{consentErrorMessage}</p>
+                {consentErrorMessage.toLowerCase().includes("esiste già") ? (
+                  <p className="text-xs text-zinc-500">
+                    Ogni tipo di consenso può essere registrato una sola volta per paziente. Modifica
+                    quello esistente o scegli un tipo diverso.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Link
+                href={`/pazienti/${patient.id}`}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-1 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              >
+                Chiudi
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="space-y-6">
-          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+          <details
+            className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden"
+            open={openContactPanel}
+          >
             <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
@@ -539,12 +687,6 @@ export default async function PatientDetailPage({
               >
                 <path d="m6 9 6 6 6-6" />
               </svg>
-              <Link
-                href="/pazienti"
-                className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-700"
-              >
-                ← Pazienti
-              </Link>
             </summary>
             <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
@@ -567,7 +709,7 @@ export default async function PatientDetailPage({
                     </div>
                   )}
                   <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
-                    <span>Carica foto</span>
+                    <span>Scegli foto</span>
                     <input
                       type="file"
                       name="photo"
@@ -584,7 +726,7 @@ export default async function PatientDetailPage({
                   </button>
                 </form>
 
-                <div className="space-y-6">
+                <div className="space-y-6" id="contact-info">
                   <form action={updatePatient} className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
                     <input type="hidden" name="patientId" value={patient.id} />
                     <div className="space-y-1">

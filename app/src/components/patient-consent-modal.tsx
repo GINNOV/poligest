@@ -10,6 +10,82 @@ type Props = {
 
 type Page = string[];
 
+const renderInline = (text: string) =>
+  text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {
+    if (segment.startsWith("**") && segment.endsWith("**")) {
+      return (
+        <strong key={idx} className="font-semibold text-zinc-900">
+          {segment.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={idx}>{segment}</span>;
+  });
+
+const renderMarkdown = (markdown: string) => {
+  const lines = markdown.split(/\r?\n/);
+  const nodes: React.ReactNode[] = [];
+  let list: React.ReactNode[] = [];
+
+  const flushList = () => {
+    if (list.length > 0) {
+      nodes.push(
+        <ul key={`list-${nodes.length}`} className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-800">
+          {list}
+        </ul>,
+      );
+      list = [];
+    }
+  };
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trim();
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    if (line.startsWith("# ")) {
+      flushList();
+      nodes.push(
+        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900">
+          {line.replace(/^#\s+/, "")}
+        </h3>,
+      );
+      return;
+    }
+
+    if (line.startsWith("## ")) {
+      flushList();
+      nodes.push(
+        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900">
+          {line.replace(/^##\s+/, "")}
+        </h4>,
+      );
+      return;
+    }
+
+    if (line.startsWith("* ")) {
+      list.push(
+        <li key={`li-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+          {renderInline(line.replace(/^\*\s+/, ""))}
+        </li>,
+      );
+      return;
+    }
+
+    flushList();
+    nodes.push(
+      <p key={`p-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+        {renderInline(line)}
+      </p>,
+    );
+  });
+
+  flushList();
+  return nodes;
+};
+
 const chunkContent = (text: string): Page[] => {
   const paragraphs = text
     .split(/\n\s*\n/)
@@ -39,7 +115,12 @@ const chunkContent = (text: string): Page[] => {
 };
 
 export function PatientConsentSection({ content }: Props) {
-  const pages = useMemo(() => chunkContent(content), [content]);
+  const [patientName, setPatientName] = useState("Paziente");
+  const normalizedContent = useMemo(
+    () => content.replace(/%PATIENT_NAME_HERE%/g, patientName.trim() || "Paziente"),
+    [content, patientName],
+  );
+  const pages = useMemo(() => chunkContent(normalizedContent), [normalizedContent]);
   const [isOpen, setIsOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [signatureData, setSignatureData] = useState<string>("");
@@ -98,6 +179,26 @@ export function PatientConsentSection({ content }: Props) {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const updateName = () => {
+      const first = (document.querySelector<HTMLInputElement>('input[name="firstName"]')?.value || "").trim();
+      const last = (document.querySelector<HTMLInputElement>('input[name="lastName"]')?.value || "").trim();
+      const full = [first, last].filter(Boolean).join(" ");
+      setPatientName(full || "Paziente");
+    };
+
+    updateName();
+    const firstInput = document.querySelector<HTMLInputElement>('input[name="firstName"]');
+    const lastInput = document.querySelector<HTMLInputElement>('input[name="lastName"]');
+    firstInput?.addEventListener("input", updateName);
+    lastInput?.addEventListener("input", updateName);
+
+    return () => {
+      firstInput?.removeEventListener("input", updateName);
+      lastInput?.removeEventListener("input", updateName);
+    };
+  }, []);
+
   const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -149,6 +250,10 @@ export function PatientConsentSection({ content }: Props) {
 
   const currentPage = pages[pageIndex] ?? [];
   const totalPages = pages.length;
+  const renderedMarkdown = useMemo(
+    () => renderMarkdown(currentPage.join("\n\n")),
+    [currentPage],
+  );
 
   return (
     <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
@@ -312,11 +417,7 @@ export function PatientConsentSection({ content }: Props) {
                 </div>
               </div>
               <div className="mt-3 max-h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800">
-                {currentPage.map((paragraph, idx) => (
-                  <p key={`${pageIndex}-${idx}`} className="whitespace-pre-line">
-                    {paragraph}
-                  </p>
-                ))}
+                {renderedMarkdown}
               </div>
             </div>
 

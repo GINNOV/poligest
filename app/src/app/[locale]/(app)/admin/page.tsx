@@ -93,6 +93,14 @@ export default async function AdminPage() {
       tone: "primary",
     },
     {
+      key: "clicksend",
+      title: "ClickSend",
+      description: "Configura le credenziali per l'invio SMS e verifica lo stato.",
+      href: "/admin/clicksend",
+      badge: "Integrazione",
+      tone: "primary",
+    },
+    {
       key: "reset",
       title: t("reset"),
       description: "Ripristino del sistema ai dati di esempio ed esportazione dati.",

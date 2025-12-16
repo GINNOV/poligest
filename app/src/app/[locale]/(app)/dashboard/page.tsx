@@ -33,6 +33,16 @@ const statusClasses: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
+const statusCardBackgrounds: Record<AppointmentStatus, string> = {
+  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50",
+  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50",
+  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50",
+  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50",
+  COMPLETED: "border-green-200 bg-gradient-to-r from-green-50 via-white to-green-50",
+  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50",
+  NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
+};
+
 const statusIcons: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "📅",
   CONFIRMED: "✅",
@@ -303,14 +313,14 @@ export default async function DashboardPage({
           </span>
         </div>
         <div className="mt-4 divide-y divide-zinc-100">
-          {listAppointments.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
-          ) : (
-            listAppointments.map((appt) => (
-              <div
-                key={appt.id}
-                className="mb-3 rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm"
-              >
+            {listAppointments.length === 0 ? (
+              <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
+            ) : (
+              listAppointments.map((appt) => (
+                <div
+                  key={appt.id}
+                  className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}
+                >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
