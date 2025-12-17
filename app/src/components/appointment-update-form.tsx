@@ -22,6 +22,7 @@ type AppointmentUpdateFormProps = {
   doctors: Doctor[];
   services: ServiceOption[];
   action: (formData: FormData) => Promise<void>;
+  returnTo?: string;
 };
 
 export function AppointmentUpdateForm({
@@ -30,6 +31,7 @@ export function AppointmentUpdateForm({
   doctors,
   services,
   action,
+  returnTo,
 }: AppointmentUpdateFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -128,6 +130,7 @@ export function AppointmentUpdateForm({
         form.requestSubmit();
       }}
     >
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
       <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
         Titolo

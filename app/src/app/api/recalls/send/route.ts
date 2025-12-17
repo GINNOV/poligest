@@ -36,21 +36,46 @@ export async function GET(req: Request) {
     const wantsEmail = channel === "EMAIL" || channel === "BOTH";
     const wantsSms = channel === "SMS" || channel === "BOTH";
 
-    if (wantsEmail && patient.email) {
-      await sendEmail(patient.email, subject, body);
-    }
-    if (wantsSms && patient.phone) {
-      await sendSms({
-        to: patient.phone,
-        body,
-        patientId: recall.patientId,
-      });
+    let delivered = false;
+    let attempted = false;
+
+    if (wantsEmail) {
+      attempted = true;
+      if (patient.email) {
+        try {
+          await sendEmail(patient.email, subject, body);
+          delivered = true;
+        } catch (err) {
+          console.error("[recalls] email failed", { recallId: recall.id, err });
+        }
+      }
     }
 
-    await prisma.recall.update({
-      where: { id: recall.id },
-      data: { status: RecallStatus.CONTACTED, lastContactAt: new Date() },
-    });
+    if (wantsSms) {
+      attempted = true;
+      if (patient.phone) {
+        try {
+          await sendSms({
+            to: patient.phone,
+            body,
+            patientId: recall.patientId,
+          });
+          delivered = true;
+        } catch (err) {
+          console.error("[recalls] sms failed", { recallId: recall.id, err });
+        }
+      }
+    }
+
+    if (attempted) {
+      await prisma.recall.update({
+        where: { id: recall.id },
+        data: {
+          status: delivered ? RecallStatus.CONTACTED : RecallStatus.SKIPPED,
+          lastContactAt: new Date(),
+        },
+      });
+    }
   }
 
   return NextResponse.json({ processed: dueRecalls.length });

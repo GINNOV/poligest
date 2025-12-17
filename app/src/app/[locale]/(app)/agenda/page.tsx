@@ -6,9 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { FormSubmitButton } from "@/components/form-submit-button";
-import { AppointmentCreateForm } from "@/components/appointment-create-form";
-import { AppointmentsCalendar } from "@/components/appointments-calendar";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 import { AgendaFilters } from "@/components/agenda-filters";
 
@@ -40,102 +37,6 @@ async function hasDoctorConflict(params: {
     },
   });
   return conflicts > 0;
-}
-
-async function createAppointment(formData: FormData) {
-  "use server";
-
-  try {
-    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
-
-    const titleFromSelect = (formData.get("title") as string)?.trim();
-    const titleCustom = (formData.get("titleCustom") as string)?.trim();
-    const title = titleCustom || titleFromSelect || "Richiamo";
-    const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
-    const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
-    const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
-    const startsAt = formData.get("startsAt") as string;
-    // Force end to +1h from start regardless of submitted value.
-    const endsAtRaw = formData.get("endsAt") as string;
-    const endsAtDate =
-      endsAtRaw && !endsAtRaw.endsWith(":") ? new Date(endsAtRaw) : startsAt ? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000) : null;
-    const patientIdRaw = formData.get("patientId") as string;
-    const doctorId = (formData.get("doctorId") as string) || null;
-    const notes = (formData.get("notes") as string)?.trim() || null;
-
-    if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
-      throw new Error("Compila titolo, servizio, orari e paziente.");
-    }
-
-    const startsAtDate = new Date(startsAt);
-    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
-      throw new Error("Formato data/ora non valido.");
-    }
-    const adjustedEndsAt =
-      endsAtDate <= startsAtDate
-        ? new Date(startsAtDate.getTime() + 60 * 60 * 1000)
-        : endsAtDate;
-
-    const hasConflict = await hasDoctorConflict({
-      doctorId,
-      startsAt: startsAtDate,
-      endsAt: adjustedEndsAt,
-    });
-    if (hasConflict) {
-      throw new Error(
-        "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
-      );
-    }
-
-    let patientId = patientIdRaw;
-    if (patientIdRaw === "new") {
-      const newFirstName = (formData.get("newFirstName") as string)?.trim();
-      const newLastName = (formData.get("newLastName") as string)?.trim();
-      const newPhone = (formData.get("newPhone") as string)?.trim();
-      if (!newFirstName || !newLastName || !newPhone) {
-        throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
-      }
-      const patient = await prisma.patient.create({
-        data: {
-          firstName: newFirstName,
-          lastName: newLastName,
-          phone: newPhone,
-        },
-      });
-      patientId = patient.id;
-    }
-
-    const appointment = await prisma.appointment.create({
-      data: {
-        title,
-        serviceType,
-        startsAt: startsAtDate,
-        endsAt: adjustedEndsAt,
-        patientId,
-        doctorId,
-        notes,
-        status: AppointmentStatus.CONFIRMED,
-      },
-    });
-
-    await logAudit(user, {
-      action: "appointment.created",
-      entity: "Appointment",
-      entityId: appointment.id,
-      metadata: { patientId, doctorId },
-    });
-
-    revalidatePath("/agenda");
-    redirect("/agenda");
-  } catch (err: any) {
-    // Let framework redirects bubble through (digest contains NEXT_REDIRECT;push;...).
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Errore durante la creazione dell'appuntamento.";
-    console.error("Create appointment failed:", err);
-    redirect(`/agenda?error=${encodeURIComponent(message)}`);
-  }
 }
 
 async function updateAppointmentStatus(formData: FormData) {
@@ -429,7 +330,6 @@ export default async function AgendaPage({
       : Promise.resolve([]),
   ]);
 
-  const filteredAppointments = appointments;
   const serviceOptions = Array.from(
     new Set([
       ...services.map((s: any) => s.name as string),
@@ -437,31 +337,9 @@ export default async function AgendaPage({
     ]).values()
   );
   const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
-  const calendarEvents = filteredAppointments.map((appt) => ({
-    id: appt.id,
-    title: appt.title,
-    serviceType: appt.serviceType,
-    startsAt: appt.startsAt.toISOString(),
-    endsAt: appt.endsAt.toISOString(),
-    patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
-  }));
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">📅 Aggiungi appuntamento</h1>
-        <p className="mt-2 text-sm text-zinc-600">Schedula un appuntamento per nuovi clienti o pazienti esistenti.</p>
-
-        <AppointmentCreateForm
-          patients={patients}
-          doctors={doctors}
-          serviceOptions={serviceOptions}
-          action={createAppointment}
-        />
-      </div>
-
-      <AppointmentsCalendar events={calendarEvents} />
-
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti</h2>
         {successMessage ? (
@@ -483,10 +361,10 @@ export default async function AgendaPage({
           }
         />
         <div className="mt-4 divide-y divide-zinc-100">
-          {filteredAppointments.length === 0 ? (
+          {appointments.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600">Nessun appuntamento.</p>
           ) : (
-            filteredAppointments.map((appt) => (
+            appointments.map((appt) => (
               <div
                 key={appt.id}
                 className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}

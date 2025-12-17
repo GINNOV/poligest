@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
+import { AppointmentStatus, Role } from "@prisma/client";
 import {
   addMonths,
   eachDayOfInterval,
@@ -15,6 +18,282 @@ import {
 } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarDoctorFilter } from "@/components/calendar-doctor-filter";
+import { CalendarMonthView } from "@/components/calendar-month-view";
+
+const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
+
+type CalendarAppointmentRecord = {
+  id: string;
+  title: string;
+  serviceType: string;
+  startsAt: Date;
+  endsAt: Date;
+  patientId: string;
+  doctorId: string | null;
+  status: AppointmentStatus;
+  patient: { firstName: string; lastName: string };
+};
+
+const formatLocalInput = (date: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+};
+
+async function hasDoctorConflict(params: {
+  doctorId: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  excludeId?: string;
+}) {
+  const { doctorId, startsAt, endsAt, excludeId } = params;
+  if (!doctorId) return false;
+
+  const conflicts = await prisma.appointment.count({
+    where: {
+      doctorId,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      startsAt: { lt: endsAt },
+      endsAt: { gt: startsAt },
+    },
+  });
+  return conflicts > 0;
+}
+
+function ensureCalendarReturnTo(value: string | null) {
+  if (!value || !value.startsWith("/calendar")) return "/calendar";
+  return value;
+}
+
+function appendQueryParam(url: string, key: string, value: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}${key}=${encodeURIComponent(value)}`;
+}
+
+async function createAppointment(formData: FormData) {
+  "use server";
+
+  try {
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+
+    const titleFromSelect = (formData.get("title") as string)?.trim();
+    const titleCustom = (formData.get("titleCustom") as string)?.trim();
+    const title = titleCustom || titleFromSelect || "Richiamo";
+    const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
+    const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
+    const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
+    const startsAt = formData.get("startsAt") as string;
+    const endsAtRaw = formData.get("endsAt") as string;
+    const endsAtDate =
+      endsAtRaw && !endsAtRaw.endsWith(":")
+        ? new Date(endsAtRaw)
+        : startsAt
+          ? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000)
+          : null;
+    const patientIdRaw = formData.get("patientId") as string;
+    const doctorId = (formData.get("doctorId") as string) || null;
+    const notes = (formData.get("notes") as string)?.trim() || null;
+
+    if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
+      throw new Error("Compila titolo, servizio, orari e paziente.");
+    }
+
+    const startsAtDate = new Date(startsAt);
+    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+      throw new Error("Formato data/ora non valido.");
+    }
+    const adjustedEndsAt =
+      endsAtDate <= startsAtDate
+        ? new Date(startsAtDate.getTime() + 60 * 60 * 1000)
+        : endsAtDate;
+
+    const hasConflict = await hasDoctorConflict({
+      doctorId,
+      startsAt: startsAtDate,
+      endsAt: adjustedEndsAt,
+    });
+    if (hasConflict) {
+      throw new Error(
+        "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+      );
+    }
+
+    let patientId = patientIdRaw;
+    if (patientIdRaw === "new") {
+      const newFirstName = (formData.get("newFirstName") as string)?.trim();
+      const newLastName = (formData.get("newLastName") as string)?.trim();
+      const newPhone = (formData.get("newPhone") as string)?.trim();
+      if (!newFirstName || !newLastName || !newPhone) {
+        throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
+      }
+      const patient = await prisma.patient.create({
+        data: {
+          firstName: newFirstName,
+          lastName: newLastName,
+          phone: newPhone,
+        },
+      });
+      patientId = patient.id;
+    }
+
+    const appointment = await prisma.appointment.create({
+      data: {
+        title,
+        serviceType,
+        startsAt: startsAtDate,
+        endsAt: adjustedEndsAt,
+        patientId,
+        doctorId,
+        notes,
+        status: AppointmentStatus.CONFIRMED,
+      },
+    });
+
+    await logAudit(user, {
+      action: "appointment.created",
+      entity: "Appointment",
+      entityId: appointment.id,
+      metadata: { patientId, doctorId },
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/agenda");
+    const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+    redirect(returnTo);
+  } catch (err: any) {
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    const message = err?.message ?? "Errore durante la creazione dell'appuntamento.";
+    console.error("Create appointment failed:", err);
+    const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+    redirect(appendQueryParam(returnTo, "error", message));
+  }
+}
+
+async function updateAppointment(formData: FormData) {
+  "use server";
+
+  try {
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+    const appointmentId = formData.get("appointmentId") as string;
+    const titleFromSelect = (formData.get("title") as string)?.trim();
+    const titleCustom = (formData.get("titleCustom") as string)?.trim();
+    const title = titleCustom || titleFromSelect || "Richiamo";
+    const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
+    const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
+    const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
+    const startsAt = formData.get("startsAt") as string;
+    const endsAt = formData.get("endsAt") as string;
+    const patientId = formData.get("patientId") as string;
+    const doctorId = (formData.get("doctorId") as string) || null;
+    const status = formData.get("status") as AppointmentStatus;
+
+    if (!appointmentId || !title || !serviceType || !startsAt || !endsAt || !patientId) {
+      throw new Error("Compila titolo, servizio, orari e paziente.");
+    }
+
+    const startsAtDate = new Date(startsAt);
+    const endsAtDate = new Date(endsAt);
+    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+      throw new Error("Formato data/ora non valido.");
+    }
+    const adjustedEndsAt =
+      endsAtDate <= startsAtDate
+        ? new Date(startsAtDate.getTime() + 30 * 60 * 1000)
+        : endsAtDate;
+
+    if (!Object.keys(AppointmentStatus).includes(status)) {
+      throw new Error("Stato non valido");
+    }
+
+    const current = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { status: true, startsAt: true, endsAt: true, doctorId: true },
+    });
+    if (!current) throw new Error("Appuntamento non trovato");
+    if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
+      throw new Error("Solo l'admin può modificare appuntamenti completati");
+    }
+
+    const isSameSlot =
+      current.doctorId === doctorId &&
+      Math.abs(current.startsAt.getTime() - startsAtDate.getTime()) < 1000 &&
+      Math.abs(current.endsAt.getTime() - adjustedEndsAt.getTime()) < 1000;
+
+    if (!isSameSlot) {
+      const hasConflict = await hasDoctorConflict({
+        doctorId,
+        startsAt: startsAtDate,
+        endsAt: adjustedEndsAt,
+        excludeId: appointmentId,
+      });
+      if (hasConflict) {
+        throw new Error(
+          "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
+        );
+      }
+    }
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        title,
+        serviceType,
+        startsAt: startsAtDate,
+        endsAt: adjustedEndsAt,
+        patientId,
+        doctorId,
+        status,
+      },
+    });
+
+    await logAudit(user, {
+      action: "appointment.updated",
+      entity: "Appointment",
+      entityId: appointmentId,
+      metadata: { patientId, doctorId, status },
+    });
+
+    revalidatePath("/calendar");
+    revalidatePath("/agenda");
+    const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+    redirect(returnTo);
+  } catch (err: any) {
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    const message = err?.message ?? "Errore durante l'aggiornamento dell'appuntamento.";
+    console.error("Update appointment failed:", err);
+    const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+    redirect(appendQueryParam(returnTo, "error", message));
+  }
+}
+
+async function deleteAppointment(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const appointmentId = (formData.get("appointmentId") as string) || "";
+
+  if (!appointmentId) {
+    throw new Error("Appuntamento mancante");
+  }
+
+  await prisma.appointment.delete({ where: { id: appointmentId } });
+
+  await logAudit(user, {
+    action: "appointment.deleted",
+    entity: "Appointment",
+    entityId: appointmentId,
+  });
+
+  revalidatePath("/calendar");
+  revalidatePath("/agenda");
+  const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+  redirect(returnTo);
+}
 
 export default async function CalendarPage({
   searchParams,
@@ -49,7 +328,6 @@ export default async function CalendarPage({
 
   const selectedDoctorId =
     doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
-  const selectedDoctor = doctors.find((doc) => doc.id === selectedDoctorId);
 
   const monthStart = startOfMonth(baseMonth);
   const monthEnd = endOfMonth(baseMonth);
@@ -57,20 +335,30 @@ export default async function CalendarPage({
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  const appointments = selectedDoctorId
-    ? await prisma.appointment.findMany({
-        where: {
-          doctorId: selectedDoctorId,
-          startsAt: { gte: monthStart, lte: monthEnd },
-        },
-        orderBy: { startsAt: "asc" },
-        include: {
-          patient: { select: { firstName: true, lastName: true } },
-        },
-      })
-    : [];
+  const [appointmentsRaw, patients, services] = await Promise.all([
+    selectedDoctorId
+      ? prisma.appointment.findMany({
+          where: {
+            doctorId: selectedDoctorId,
+            startsAt: { gte: monthStart, lte: monthEnd },
+          },
+          orderBy: { startsAt: "asc" },
+          include: {
+            patient: { select: { firstName: true, lastName: true } },
+          },
+        })
+      : Promise.resolve([] as CalendarAppointmentRecord[]),
+    prisma.patient.findMany({
+      orderBy: { lastName: "asc" },
+      select: { id: true, firstName: true, lastName: true },
+    }),
+    (prisma as any).service?.findMany
+      ? (prisma as any).service.findMany({ orderBy: { name: "asc" } })
+      : Promise.resolve([]),
+  ]);
+  const appointments = appointmentsRaw as CalendarAppointmentRecord[];
 
-  const appointmentsByDay = new Map<string, typeof appointments>();
+  const appointmentsByDay = new Map<string, CalendarAppointmentRecord[]>();
   appointments.forEach((appt) => {
     const key = format(appt.startsAt, "yyyy-MM-dd");
     if (!appointmentsByDay.has(key)) {
@@ -90,6 +378,13 @@ export default async function CalendarPage({
     id: doc.id,
     label: `${doc.fullName}${doc.specialty ? ` (${doc.specialty})` : ""}`,
   }));
+  const serviceOptions = Array.from(
+    new Set([
+      ...services.map((service: any) => service.name as string),
+      ...FALLBACK_SERVICES,
+    ]).values()
+  );
+  const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
 
   const buildMonthLink = (monthValue: string) => {
     const nextParams = new URLSearchParams();
@@ -97,21 +392,37 @@ export default async function CalendarPage({
     if (selectedDoctorId) nextParams.set("doctor", selectedDoctorId);
     return `/calendar?${nextParams.toString()}`;
   };
+  const selectedMonthKey = format(baseMonth, "yyyy-MM");
+  const returnParams = new URLSearchParams();
+  if (selectedDoctorId) returnParams.set("doctor", selectedDoctorId);
+  returnParams.set("month", selectedMonthKey);
+  const returnTo = `/calendar?${returnParams.toString()}`;
+  const calendarDays = days.map((day) => {
+    const key = format(day, "yyyy-MM-dd");
+    const dayAppointments = appointmentsByDay.get(key) ?? [];
+    return {
+      date: key,
+      label: format(day, "d", { locale: it }),
+      inMonth: isSameMonth(day, monthStart),
+      isToday: isToday(day),
+      appointments: dayAppointments.map((appt) => ({
+        id: appt.id,
+        title: appt.title,
+        startsAt: formatLocalInput(appt.startsAt),
+        endsAt: formatLocalInput(appt.endsAt),
+        serviceType: appt.serviceType,
+        patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
+        patientId: appt.patientId,
+        doctorId: appt.doctorId,
+        status: appt.status,
+      })),
+    };
+  });
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/dashboard" className="hover:text-emerald-700">
-          Cruscotto
-        </Link>{" "}
-        / <span className="text-zinc-900">Calendario</span>
-      </nav>
-
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Calendario
-          </p>
           <h1 className="text-2xl font-semibold text-zinc-900">
             Calendario mensile
           </h1>
@@ -124,9 +435,6 @@ export default async function CalendarPage({
             doctors={doctorOptionList}
             selectedDoctorId={selectedDoctorId}
           />
-          <span className="rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-800">
-            {selectedDoctor ? selectedDoctor.fullName : "Nessun medico"}
-          </span>
         </div>
       </div>
 
@@ -141,9 +449,6 @@ export default async function CalendarPage({
               <h2 className="text-lg font-semibold text-zinc-900 capitalize">
                 {monthLabel}
               </h2>
-              <p className="text-xs text-zinc-500">
-                {selectedDoctor?.fullName ?? "Medico"}
-              </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600">
               <Link
@@ -170,69 +475,18 @@ export default async function CalendarPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-[11px] font-semibold uppercase text-zinc-500">
-            {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((label) => (
-              <div key={label} className="px-2">
-                {label}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-2 grid grid-cols-7 gap-2">
-            {days.map((day) => {
-              const key = format(day, "yyyy-MM-dd");
-              const dayAppointments = appointmentsByDay.get(key) ?? [];
-              const inMonth = isSameMonth(day, monthStart);
-              const dayLabel = format(day, "d", { locale: it });
-              return (
-                <div
-                  key={key}
-                  className={`flex min-h-[140px] flex-col rounded-xl border p-2 ${
-                    inMonth ? "border-zinc-200 bg-white" : "border-zinc-100 bg-zinc-50 text-zinc-400"
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span
-                      className={`h-6 w-6 rounded-full text-center leading-6 ${
-                        isToday(day) && inMonth ? "bg-emerald-100 text-emerald-800" : ""
-                      }`}
-                    >
-                      {dayLabel}
-                    </span>
-                    {dayAppointments.length ? (
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800">
-                        {dayAppointments.length}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-2 flex-1 space-y-1 overflow-y-auto">
-                    {dayAppointments.length === 0 ? (
-                      <p className="text-[10px] text-zinc-400">Nessun appuntamento</p>
-                    ) : (
-                      dayAppointments.map((appt) => {
-                        const timeLabel = new Intl.DateTimeFormat("it-IT", {
-                          timeStyle: "short",
-                        }).format(appt.startsAt);
-                        return (
-                          <div
-                            key={appt.id}
-                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1 text-[10px] text-zinc-700"
-                          >
-                            <div className="font-semibold text-zinc-800">
-                              {timeLabel} · {appt.serviceType}
-                            </div>
-                            <div className="truncate">
-                              {appt.patient.lastName} {appt.patient.firstName}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CalendarMonthView
+            days={calendarDays}
+            patients={patients}
+            doctors={doctors}
+            serviceOptions={serviceOptions}
+            services={serviceOptionObjects}
+            action={createAppointment}
+            updateAction={updateAppointment}
+            deleteAction={deleteAppointment}
+            selectedDoctorId={selectedDoctorId}
+            returnTo={returnTo}
+          />
         </div>
       )}
     </div>

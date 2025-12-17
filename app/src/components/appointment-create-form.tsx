@@ -11,13 +11,42 @@ type Props = {
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   action: (formData: FormData) => Promise<void>;
+  initialStartsAt?: string;
+  initialEndsAt?: string;
+  initialDoctorId?: string;
+  returnTo?: string;
 };
 
-export function AppointmentCreateForm({ patients, doctors, serviceOptions, action }: Props) {
+export function AppointmentCreateForm({
+  patients,
+  doctors,
+  serviceOptions,
+  action,
+  initialStartsAt,
+  initialEndsAt,
+  initialDoctorId,
+  returnTo,
+}: Props) {
+  const formatLocalInput = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+      date.getHours()
+    )}:${pad(date.getMinutes())}`;
+  };
+
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
-  const [localEndsAt, setLocalEndsAt] = useState<string>("");
+  const [localEndsAt, setLocalEndsAt] = useState<string>(() => {
+    if (initialEndsAt) return initialEndsAt;
+    if (initialStartsAt) {
+      const start = new Date(initialStartsAt);
+      if (!Number.isNaN(start.getTime())) {
+        return formatLocalInput(new Date(start.getTime() + 60 * 60 * 1000));
+      }
+    }
+    return "";
+  });
   const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [forcedTitle, setForcedTitle] = useState<string | null>(null);
@@ -42,13 +71,6 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
 
     setError(null);
     return true;
-  };
-
-  const formatLocalInput = (date: Date) => {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-      date.getHours()
-    )}:${pad(date.getMinutes())}`;
   };
 
   return (
@@ -125,6 +147,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         }
       }}
     >
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
         Paziente
         <select
@@ -256,6 +279,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"
           name="startsAt"
+          defaultValue={initialStartsAt ?? ""}
           onChange={(e) => {
             const value = e.target.value;
             if (value) {
@@ -286,7 +310,7 @@ export function AppointmentCreateForm({ patients, doctors, serviceOptions, actio
         <select
           name="doctorId"
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          defaultValue=""
+          defaultValue={initialDoctorId ?? ""}
         >
           <option value="">—</option>
           {doctors.map((d) => (

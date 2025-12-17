@@ -48,12 +48,19 @@
     "brand": "SORRIDI",
     "dashboard": "Dashboard",
     "agenda": "Agenda",
+    "calendar": "Calendario",
     "patients": "Pazienti",
     "doctors": "Medici",
     "inventory": "Magazzino",
     "finance": "Finanza",
     "recalls": "Richiami",
     "admin": "Amministrazione",
+    "roleLabels": {
+      "admin": "Admin",
+      "manager": "Manager",
+      "secretary": "Segreteria",
+      "patient": "Paziente"
+    },
     "logout": "Esci"
   },
   "dashboard": {

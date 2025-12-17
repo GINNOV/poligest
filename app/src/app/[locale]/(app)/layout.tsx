@@ -8,6 +8,8 @@ import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { execSync } from "node:child_process";
+import { prisma } from "@/lib/prisma";
+import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -20,6 +22,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.MANAGER ||
     user?.role === Role.SECRETARY;
   const isManager = user?.role === Role.MANAGER;
+  const featureAccess = isStaff && user?.role
+    ? await prisma.roleFeatureAccess.findMany({ where: { role: user.role } })
+    : [];
+  const featureAccessMap = new Map(
+    featureAccess.map((access) => [`${access.role}-${access.feature}`, access.allowed])
+  );
+  const isCalendarAllowed =
+    isStaff && user?.role
+      ? featureAccessMap.get(`${user.role}-calendar`) ??
+        (FALLBACK_PERMISSIONS[user.role]?.has("calendar") ?? false)
+      : false;
+  const roleLabels: Record<Role, string> = {
+    [Role.ADMIN]: t("roleLabels.admin"),
+    [Role.MANAGER]: t("roleLabels.manager"),
+    [Role.SECRETARY]: t("roleLabels.secretary"),
+    [Role.PATIENT]: t("roleLabels.patient"),
+  };
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
   const version =
     process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
@@ -44,7 +63,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               {isStaff ? (
                 <>
                   <NavLink href="/agenda" label={t("agenda")} />
-                  <NavLink href="/calendar" label="CALENDAR" />
+                  {isCalendarAllowed ? (
+                    <NavLink href="/calendar" label={t("calendar")} />
+                  ) : null}
                   <NavLink href="/pazienti" label={t("patients")} />
                   <NavLink href="/richiami" label={t("recalls")} />
                   {isManagerOrAdmin ? (
@@ -64,7 +85,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 {user?.name ?? user?.email}
               </span>
               <span className="text-xs uppercase text-emerald-700">
-                {user?.role ?? ""}
+                {user?.role ? roleLabels[user.role] : ""}
               </span>
             </div>
             <SignOutButton label={t("logout")} signOutUrl={signOutUrl} />
