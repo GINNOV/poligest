@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { AppointmentStatus } from "@prisma/client";
+import { APPOINTMENT_STATUSES, type AppointmentStatus } from "@/lib/client-enums";
 
 type Props = {
   statusLabels: Record<AppointmentStatus, string>;
@@ -59,7 +59,7 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
           className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
         >
           <option value="">Tutti</option>
-          {Object.values(AppointmentStatus).map((status) => (
+          {APPOINTMENT_STATUSES.map((status) => (
             <option key={status} value={status}>
               {statusLabels[status]}
             </option>

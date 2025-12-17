@@ -15,7 +15,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-pg": "^7.1.0",
-    "@prisma/client": "^7.1.0",
+    "@prisma/client": "^7.2.0",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@stackframe/stack": "^2.8.54",
     "@types/pg": "^8.15.6",

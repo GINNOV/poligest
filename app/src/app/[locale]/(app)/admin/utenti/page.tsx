@@ -139,11 +139,32 @@ async function updateUserDetails(formData: FormData) {
   revalidatePath("/admin/utenti");
 }
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
+  const params = await searchParams;
+  const queryParam = params.q;
+  const queryValue =
+    typeof queryParam === "string"
+      ? queryParam.trim()
+      : Array.isArray(queryParam)
+        ? queryParam[0]?.trim()
+        : "";
+  const query = queryValue || undefined;
 
   const users = await prisma.user.findMany({
+    where: query
+      ? {
+          OR: [
+            { email: { contains: query, mode: "insensitive" } },
+            { name: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -174,9 +195,38 @@ export default async function AdminUsersPage() {
           <h1 className="text-2xl font-semibold text-zinc-900">{t("usersHeading")}</h1>
           <p className="mt-1 text-sm text-zinc-600">{t("usersSubtitle")}</p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-800">
-          {users.length} utenti
-        </span>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          <form
+            method="get"
+            action="/admin/utenti"
+            className="flex w-full items-center gap-2 sm:w-auto"
+          >
+            <input
+              type="search"
+              name="q"
+              defaultValue={query ?? ""}
+              placeholder="Cerca per nome o email"
+              className="h-10 w-full rounded-full border border-zinc-200 px-4 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:w-64"
+            />
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+            >
+              Cerca
+            </button>
+            {query ? (
+              <Link
+                href="/admin/utenti"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                Reset
+              </Link>
+            ) : null}
+          </form>
+          <span className="rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-800">
+            {users.length} utenti
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr,0.85fr]">

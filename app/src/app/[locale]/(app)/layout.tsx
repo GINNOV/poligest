@@ -44,6 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               {isStaff ? (
                 <>
                   <NavLink href="/agenda" label={t("agenda")} />
+                  <NavLink href="/calendar" label="CALENDAR" />
                   <NavLink href="/pazienti" label={t("patients")} />
                   <NavLink href="/richiami" label={t("recalls")} />
                   {isManagerOrAdmin ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ConsentType } from "@prisma/client";
+import { CONSENT_TYPES, type ConsentType } from "@/lib/client-enums";
 import { addConsentAction } from "@/app/_actions/consent";
 import { PatientConsentSection } from "@/components/patient-consent-modal";
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -14,11 +14,12 @@ type Props = {
 };
 
 const CHANNELS = ["Di persona", "Telefono", "Manuale", "Digitale"];
+const DEFAULT_CONSENT_TYPE: ConsentType = "PRIVACY";
 
 export function ConsentForm({ patientId, typeLabels, typeContents, existingTypes }: Props) {
-  const [selectedType, setSelectedType] = useState<ConsentType>(ConsentType.PRIVACY);
+  const [selectedType, setSelectedType] = useState<ConsentType>(DEFAULT_CONSENT_TYPE);
   const content = useMemo(
-    () => typeContents[selectedType] ?? typeContents[ConsentType.PRIVACY] ?? "",
+    () => typeContents[selectedType] ?? typeContents[DEFAULT_CONSENT_TYPE] ?? "",
     [selectedType, typeContents]
   );
 
@@ -34,7 +35,7 @@ export function ConsentForm({ patientId, typeLabels, typeContents, existingTypes
             onChange={(e) => setSelectedType(e.target.value as ConsentType)}
             className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           >
-            {Object.values(ConsentType).map((type) => (
+            {CONSENT_TYPES.map((type) => (
               <option key={type} value={type}>
                 {typeLabels[type] ?? type}
               </option>
