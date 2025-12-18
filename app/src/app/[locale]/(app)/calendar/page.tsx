@@ -34,12 +34,52 @@ type CalendarAppointmentRecord = {
   patient: { firstName: string; lastName: string };
 };
 
+type AvailabilityWindow = {
+  id: string;
+  doctorId: string;
+  dayOfWeek: number;
+  startMinute: number;
+  endMinute: number;
+  color: string | null;
+};
+
+type PracticeClosure = {
+  id: string;
+  type: string;
+  title: string | null;
+  startsAt: Date;
+  endsAt: Date;
+};
+
+function weekdayIso(date: Date) {
+  const jsDay = date.getDay(); // 0=Sun ... 6=Sat
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+function dateStart(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function dateEndExclusive(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1, 0, 0, 0, 0);
+}
+
 const formatLocalInput = (date: Date) => {
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
     date.getHours()
   )}:${pad(date.getMinutes())}`;
 };
+
+function isNextRedirectError(err: unknown): err is { digest: string } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    typeof (err as { digest?: unknown }).digest === "string" &&
+    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
 async function hasDoctorConflict(params: {
   doctorId: string | null;
@@ -161,11 +201,12 @@ async function createAppointment(formData: FormData) {
     revalidatePath("/agenda");
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
     redirect(returnTo);
-  } catch (err: any) {
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Errore durante la creazione dell'appuntamento.";
+  } catch (err: unknown) {
+    if (isNextRedirectError(err)) throw err;
+    const message =
+      typeof (err as { message?: unknown })?.message === "string"
+        ? ((err as { message: string }).message ?? "")
+        : "Errore durante la creazione dell'appuntamento.";
     console.error("Create appointment failed:", err);
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
     redirect(appendQueryParam(returnTo, "error", message));
@@ -260,11 +301,12 @@ async function updateAppointment(formData: FormData) {
     revalidatePath("/agenda");
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
     redirect(returnTo);
-  } catch (err: any) {
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Errore durante l'aggiornamento dell'appuntamento.";
+  } catch (err: unknown) {
+    if (isNextRedirectError(err)) throw err;
+    const message =
+      typeof (err as { message?: unknown })?.message === "string"
+        ? ((err as { message: string }).message ?? "")
+        : "Errore durante l'aggiornamento dell'appuntamento.";
     console.error("Update appointment failed:", err);
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
     redirect(appendQueryParam(returnTo, "error", message));
@@ -316,7 +358,7 @@ export default async function CalendarPage({
 
   const doctors = await prisma.doctor.findMany({
     orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true, specialty: true },
+    select: { id: true, fullName: true, specialty: true, color: true },
   });
 
   const doctorParam =
@@ -335,7 +377,21 @@ export default async function CalendarPage({
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-  const [appointmentsRaw, patients, services] = await Promise.all([
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const serviceClient = prismaModels["service"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+  const availabilityClient = prismaModels["doctorAvailabilityWindow"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+  const closureClient = prismaModels["practiceClosure"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+
+  type ServiceRow = { name: string };
+
+  const [appointmentsRaw, patients, servicesRaw, availabilityWindows, practiceClosures] =
+    await Promise.all([
     selectedDoctorId
       ? prisma.appointment.findMany({
           where: {
@@ -352,11 +408,33 @@ export default async function CalendarPage({
       orderBy: { lastName: "asc" },
       select: { id: true, firstName: true, lastName: true },
     }),
-    (prisma as any).service?.findMany
-      ? (prisma as any).service.findMany({ orderBy: { name: "asc" } })
+    serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
+    selectedDoctorId && availabilityClient?.findMany
+      ? availabilityClient.findMany({ where: { doctorId: selectedDoctorId } })
+      : Promise.resolve([]),
+    closureClient?.findMany
+      ? closureClient.findMany({
+          where: {
+            startsAt: { lt: calendarEnd },
+            endsAt: { gt: calendarStart },
+          },
+        })
       : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
+  const services = servicesRaw as ServiceRow[];
+  const windows = availabilityWindows as AvailabilityWindow[];
+  const closures = practiceClosures as PracticeClosure[];
+
+  const doctorColorById = new Map<string, string | null>();
+  doctors.forEach((doctor) => doctorColorById.set(doctor.id, doctor.color ?? null));
+
+  const windowsByWeekday = new Map<number, AvailabilityWindow[]>();
+  windows.forEach((win) => {
+    const list = windowsByWeekday.get(win.dayOfWeek) ?? [];
+    list.push(win);
+    windowsByWeekday.set(win.dayOfWeek, list);
+  });
 
   const appointmentsByDay = new Map<string, CalendarAppointmentRecord[]>();
   appointments.forEach((appt) => {
@@ -380,7 +458,7 @@ export default async function CalendarPage({
   }));
   const serviceOptions = Array.from(
     new Set([
-      ...services.map((service: any) => service.name as string),
+      ...services.map((service) => service.name),
       ...FALLBACK_SERVICES,
     ]).values()
   );
@@ -400,11 +478,23 @@ export default async function CalendarPage({
   const calendarDays = days.map((day) => {
     const key = format(day, "yyyy-MM-dd");
     const dayAppointments = appointmentsByDay.get(key) ?? [];
+    const dayWindows = selectedDoctorId ? windowsByWeekday.get(weekdayIso(day)) ?? [] : [];
+    const dayStart = dateStart(day);
+    const dayEnd = dateEndExclusive(day);
+    const isPracticeClosed = closures.some(
+      (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
+    );
+    const fallbackColor = selectedDoctorId ? doctorColorById.get(selectedDoctorId) : null;
+    const availabilityColors = dayWindows
+      .map((win) => win.color ?? fallbackColor ?? "#10b981")
+      .filter((color): color is string => Boolean(color));
     return {
       date: key,
       label: format(day, "d", { locale: it }),
       inMonth: isSameMonth(day, monthStart),
       isToday: isToday(day),
+      availabilityColors,
+      isPracticeClosed,
       appointments: dayAppointments.map((appt) => ({
         id: appt.id,
         title: appt.title,

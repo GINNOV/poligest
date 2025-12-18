@@ -21,6 +21,8 @@ type CalendarDay = {
   label: string;
   inMonth: boolean;
   isToday: boolean;
+  availabilityColors?: string[];
+  isPracticeClosed?: boolean;
   appointments: CalendarAppointment[];
 };
 
@@ -201,10 +203,27 @@ export function CalendarMonthView({
             }}
             className={`flex min-h-[140px] flex-col rounded-xl border p-2 text-left transition ${
               day.inMonth
-                ? "border-zinc-200 bg-white hover:border-emerald-200"
-                : "border-zinc-100 bg-zinc-50 text-zinc-400"
+                ? day.isPracticeClosed
+                  ? "cursor-pointer border-zinc-200 bg-zinc-100 hover:border-zinc-300"
+                  : day.availabilityColors?.length
+                    ? "cursor-pointer border-zinc-200 bg-white hover:border-emerald-200"
+                    : "cursor-pointer border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                : "cursor-default border-zinc-100 bg-zinc-50 text-zinc-400"
             }`}
           >
+            {day.inMonth ? (
+              <div className="mb-2 flex h-1 overflow-hidden rounded-full bg-zinc-200">
+                {day.isPracticeClosed ? (
+                  <div className="h-full flex-1 bg-zinc-400" />
+                ) : day.availabilityColors && day.availabilityColors.length ? (
+                  day.availabilityColors.map((color) => (
+                    <div key={color} className="h-full flex-1" style={{ backgroundColor: color }} />
+                  ))
+                ) : (
+                  <div className="h-full flex-1 bg-zinc-300" />
+                )}
+              </div>
+            ) : null}
             <div className="flex items-center justify-between text-xs font-semibold">
               <span
                 className={`h-6 w-6 rounded-full text-center leading-6 ${
@@ -213,11 +232,22 @@ export function CalendarMonthView({
               >
                 {day.label}
               </span>
-              {day.appointments.length ? (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800">
-                  {day.appointments.length}
-                </span>
-              ) : null}
+              <div className="flex items-center gap-1">
+                {day.isPracticeClosed && day.inMonth ? (
+                  <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700">
+                    CHIUSO
+                  </span>
+                ) : !day.isPracticeClosed && day.inMonth && !day.availabilityColors?.length ? (
+                  <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700">
+                    OFF
+                  </span>
+                ) : null}
+                {day.appointments.length ? (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] text-emerald-800">
+                    {day.appointments.length}
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="mt-2 flex-1 space-y-1 overflow-y-auto">
               {day.appointments.length === 0 ? (

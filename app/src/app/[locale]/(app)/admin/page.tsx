@@ -18,13 +18,18 @@ export default async function AdminPage() {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
 
-  const serviceClient = (prisma as any).service as { count: () => Promise<number> };
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const serviceClient = prismaModels["service"] as { count?: () => Promise<number> } | undefined;
+  const closureClient = prismaModels["practiceClosure"] as
+    | { count?: () => Promise<number> }
+    | undefined;
 
-  const [usersCount, doctorsCount, auditCount, servicesCount] = await Promise.all([
+  const [usersCount, doctorsCount, auditCount, servicesCount, closuresCount] = await Promise.all([
     prisma.user.count(),
     prisma.doctor.count(),
     prisma.auditLog.count(),
     serviceClient?.count ? serviceClient.count() : Promise.resolve(0),
+    closureClient?.count ? closureClient.count() : Promise.resolve(0),
   ]);
 
   const shortcuts: AdminShortcut[] = [
@@ -34,6 +39,14 @@ export default async function AdminPage() {
       description: "Crea, aggiorna e assegna i medici dello studio.",
       href: "/medici",
       badge: `${doctorsCount} medici`,
+      tone: "primary",
+    },
+    {
+      key: "calendar",
+      title: t("calendar"),
+      description: t("calendarDescription"),
+      href: "/admin/calendario",
+      badge: closuresCount ? `${closuresCount} chiusure` : "Disponibilità",
       tone: "primary",
     },
     {

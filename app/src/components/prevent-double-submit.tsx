@@ -14,6 +14,12 @@ export function PreventDoubleSubmit() {
         (form.querySelector("button[type=submit], input[type=submit]") as HTMLElement | null);
 
       if (!submitter) return;
+
+      const confirmMessage =
+        submitter.getAttribute?.("data-confirm") ?? form.getAttribute("data-confirm");
+      const awaitingConfirmation = Boolean(confirmMessage) && form.dataset.confirmedSubmit !== "true";
+      if (awaitingConfirmation) return;
+
       if (submitter.dataset.submitting === "true") {
         event.preventDefault();
         event.stopPropagation();

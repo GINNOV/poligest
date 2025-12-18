@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-type PendingSubmit = {
-  form: HTMLFormElement;
-  submitter?: HTMLElement;
-  message: string;
-};
+import { useEffect, useRef, useState } from "react";
 
 // Globally intercepts submissions with data-confirm and shows a branded dialog.
 export function ConfirmBeforeSubmit() {
-  const [pending, setPending] = useState<PendingSubmit | null>(null);
-  const confirmedSubmissions = useMemo(() => new WeakSet<HTMLFormElement>(), []);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const pendingFormRef = useRef<HTMLFormElement | null>(null);
+  const pendingSubmitterRef = useRef<HTMLElement | null>(null);
+  const confirmedSubmissionsRef = useRef(new WeakSet<HTMLFormElement>());
 
   useEffect(() => {
     const handler = (event: SubmitEvent) => {
@@ -19,8 +15,8 @@ export function ConfirmBeforeSubmit() {
       if (!form) return;
 
       // Skip if we already confirmed this specific form submission.
-      if (confirmedSubmissions.has(form)) {
-        confirmedSubmissions.delete(form);
+      if (confirmedSubmissionsRef.current.has(form)) {
+        confirmedSubmissionsRef.current.delete(form);
         return;
       }
 
@@ -32,31 +28,43 @@ export function ConfirmBeforeSubmit() {
 
       event.preventDefault();
       event.stopPropagation();
-      setPending({ form, submitter: submitter ?? undefined, message });
+      pendingFormRef.current = form;
+      pendingSubmitterRef.current = submitter ?? null;
+      setPendingMessage(message);
     };
 
     document.addEventListener("submit", handler as EventListener, true);
     return () => {
       document.removeEventListener("submit", handler as EventListener, true);
     };
-  }, [confirmedSubmissions]);
+  }, []);
 
   const onConfirm = () => {
-    if (!pending) return;
-    confirmedSubmissions.add(pending.form);
-    pending.form.requestSubmit(pending.submitter as HTMLButtonElement | undefined);
-    setPending(null);
+    const form = pendingFormRef.current;
+    if (!form) return;
+    const submitter = pendingSubmitterRef.current;
+    confirmedSubmissionsRef.current.add(form);
+    form.dataset.confirmedSubmit = "true";
+    form.requestSubmit(submitter as HTMLButtonElement | undefined);
+    delete form.dataset.confirmedSubmit;
+    pendingFormRef.current = null;
+    pendingSubmitterRef.current = null;
+    setPendingMessage(null);
   };
 
-  const onCancel = () => setPending(null);
+  const onCancel = () => {
+    pendingFormRef.current = null;
+    pendingSubmitterRef.current = null;
+    setPendingMessage(null);
+  };
 
-  if (!pending) return null;
+  if (!pendingMessage) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-3 text-center text-lg font-semibold text-rose-700">Conferma azione</div>
-        <p className="text-sm text-zinc-700">{pending.message}</p>
+        <p className="text-sm text-zinc-700">{pendingMessage}</p>
         <div className="mt-5 flex items-center justify-center gap-3">
           <button
             type="button"

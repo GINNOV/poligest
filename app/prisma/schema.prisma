@@ -60,6 +60,11 @@ enum NotificationChannel {
   BOTH
 }
 
+enum PracticeClosureType {
+  HOLIDAY
+  TIME_OFF
+}
+
 model RoleFeatureAccess {
   id      String @id @default(cuid())
   role    Role
@@ -146,6 +151,40 @@ model Doctor {
   clinicalNotes  ClinicalNote[]
   financeEntries FinanceEntry[]
   cashAdvances   CashAdvance[]
+  availabilityWindows DoctorAvailabilityWindow[]
+}
+
+model DoctorAvailabilityWindow {
+  id          String   @id @default(cuid())
+  doctorId    String
+  /// ISO day of week (1=Monday ... 7=Sunday)
+  dayOfWeek   Int
+  /// Minutes from 00:00
+  startMinute Int
+  /// Minutes from 00:00
+  endMinute   Int
+  /// Optional color override for this availability block (hex string)
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@unique([doctorId, dayOfWeek, startMinute, endMinute], name: "doctor_availability_unique")
+}
+
+model PracticeClosure {
+  id        String              @id @default(cuid())
+  type      PracticeClosureType @default(HOLIDAY)
+  title     String?
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  @@index([startsAt])
+  @@index([endsAt])
 }
 
 model Patient {

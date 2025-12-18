@@ -156,15 +156,34 @@ export default async function AdminUsersPage({
         : "";
   const query = queryValue || undefined;
 
-  const users = await prisma.user.findMany({
-    where: query
+  const roleParam = params.role;
+  const roleValue =
+    typeof roleParam === "string"
+      ? roleParam.trim()
+      : Array.isArray(roleParam)
+        ? roleParam[0]?.trim()
+        : "";
+  const roleFilter = roles.includes(roleValue as Role) ? (roleValue as Role) : undefined;
+
+  const where =
+    query || roleFilter
       ? {
-          OR: [
-            { email: { contains: query, mode: "insensitive" } },
-            { name: { contains: query, mode: "insensitive" } },
+          AND: [
+            roleFilter ? { role: roleFilter } : {},
+            query
+              ? {
+                  OR: [
+                    { email: { contains: query, mode: "insensitive" } },
+                    { name: { contains: query, mode: "insensitive" } },
+                  ],
+                }
+              : {},
           ],
         }
-      : undefined,
+      : undefined;
+
+  const users = await prisma.user.findMany({
+    where,
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -208,13 +227,26 @@ export default async function AdminUsersPage({
               placeholder="Cerca per nome o email"
               className="h-10 w-full rounded-full border border-zinc-200 px-4 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:w-64"
             />
+            <select
+              name="role"
+              defaultValue={roleFilter ?? ""}
+              className="h-10 rounded-full border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              aria-label="Filtra per ruolo"
+            >
+              <option value="">Tutti i ruoli</option>
+              {roles.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
               className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
             >
               Cerca
             </button>
-            {query ? (
+            {query || roleFilter ? (
               <Link
                 href="/admin/utenti"
                 className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
