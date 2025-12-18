@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { ConflictDialog } from "@/components/conflict-dialog";
-import { computeSchedulingWarning, type AvailabilityWindow, type PracticeClosure } from "@/lib/scheduling-warnings";
+import {
+  computeSchedulingWarning,
+  type AvailabilityWindow,
+  type PracticeClosure,
+  type PracticeWeeklyClosure,
+} from "@/lib/scheduling-warnings";
 
 type Person = { id: string; firstName: string; lastName: string };
 type Doctor = { id: string; fullName: string; specialty: string | null };
@@ -24,6 +29,7 @@ type AppointmentUpdateFormProps = {
   services: ServiceOption[];
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
+  practiceWeeklyClosures: PracticeWeeklyClosure[];
   action: (formData: FormData) => Promise<void>;
   returnTo?: string;
 };
@@ -35,6 +41,7 @@ export function AppointmentUpdateForm({
   services,
   availabilityWindows,
   practiceClosures,
+  practiceWeeklyClosures,
   action,
   returnTo,
 }: AppointmentUpdateFormProps) {
@@ -154,6 +161,7 @@ export function AppointmentUpdateForm({
           endsAt: endsAt ?? "",
           availabilityWindows,
           practiceClosures,
+          practiceWeeklyClosures,
         });
 
         if (warning) {

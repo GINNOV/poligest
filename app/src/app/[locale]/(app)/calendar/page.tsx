@@ -51,11 +51,23 @@ type PracticeClosure = {
   endsAt: Date;
 };
 
+type PracticeWeeklyClosure = {
+  id: string;
+  dayOfWeek: number;
+  title: string | null;
+  isActive: boolean;
+};
+
 type ClientPracticeClosure = {
   startsAt: string;
   endsAt: string;
   title?: string | null;
   type?: string;
+};
+
+type ClientWeeklyClosure = {
+  dayOfWeek: number;
+  title?: string | null;
 };
 
 function weekdayIso(date: Date) {
@@ -394,10 +406,20 @@ export default async function CalendarPage({
   const closureClient = prismaModels["practiceClosure"] as
     | { findMany?: (args: unknown) => Promise<unknown[]> }
     | undefined;
+  const weeklyClosureClient = prismaModels["practiceWeeklyClosure"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
 
   type ServiceRow = { name: string };
 
-  const [appointmentsRaw, patients, servicesRaw, availabilityWindowsRaw, practiceClosuresRaw] =
+  const [
+    appointmentsRaw,
+    patients,
+    servicesRaw,
+    availabilityWindowsRaw,
+    practiceClosuresRaw,
+    practiceWeeklyClosuresRaw,
+  ] =
     await Promise.all([
     selectedDoctorId
       ? prisma.appointment.findMany({
@@ -431,16 +453,27 @@ export default async function CalendarPage({
           },
         })
       : Promise.resolve([]),
+    weeklyClosureClient?.findMany
+      ? weeklyClosureClient.findMany({
+          where: { isActive: true },
+          orderBy: [{ dayOfWeek: "asc" }],
+        })
+      : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
   const services = servicesRaw as ServiceRow[];
   const windows = availabilityWindowsRaw as AvailabilityWindow[];
   const closures = practiceClosuresRaw as PracticeClosure[];
+  const weeklyClosures = practiceWeeklyClosuresRaw as PracticeWeeklyClosure[];
   const clientClosures: ClientPracticeClosure[] = closures.map((closure) => ({
     startsAt: closure.startsAt.toISOString(),
     endsAt: closure.endsAt.toISOString(),
     title: closure.title,
     type: closure.type,
+  }));
+  const clientWeeklyClosures: ClientWeeklyClosure[] = weeklyClosures.map((row) => ({
+    dayOfWeek: row.dayOfWeek,
+    title: row.title,
   }));
 
   const doctorColorById = new Map<string, string | null>();
@@ -500,9 +533,13 @@ export default async function CalendarPage({
       : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
-    const isPracticeClosed = closures.some(
+    const isClosedByRange = closures.some(
       (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
     );
+    const isClosedWeekly = weeklyClosures.some(
+      (row) => row.isActive && row.dayOfWeek === weekdayIso(day)
+    );
+    const isPracticeClosed = isClosedByRange || isClosedWeekly;
     const fallbackColor = selectedDoctorId ? doctorColorById.get(selectedDoctorId) : null;
     const availabilityColors = dayWindows
       .map((win) => win.color ?? fallbackColor ?? "#10b981")
@@ -597,6 +634,7 @@ export default async function CalendarPage({
               endMinute: win.endMinute,
             }))}
             practiceClosures={clientClosures}
+            practiceWeeklyClosures={clientWeeklyClosures}
             action={createAppointment}
             updateAction={updateAppointment}
             deleteAction={deleteAppointment}

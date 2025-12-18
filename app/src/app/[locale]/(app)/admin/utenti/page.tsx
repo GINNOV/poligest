@@ -196,13 +196,6 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">{t("users")}</span>
-      </nav>
-
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">

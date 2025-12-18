@@ -136,6 +136,7 @@ type Props = {
   services: { id: string; name: string }[];
   availabilityWindows: { doctorId: string; dayOfWeek: number; startMinute: number; endMinute: number }[];
   practiceClosures: { startsAt: string; endsAt: string; title?: string | null; type?: string }[];
+  practiceWeeklyClosures: { dayOfWeek: number; title?: string | null }[];
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -154,6 +155,7 @@ export function CalendarMonthView({
   services,
   availabilityWindows,
   practiceClosures,
+  practiceWeeklyClosures,
   action,
   updateAction,
   deleteAction,
@@ -361,6 +363,7 @@ export function CalendarMonthView({
                 services={services}
                 availabilityWindows={availabilityWindows}
                 practiceClosures={practiceClosures}
+                practiceWeeklyClosures={practiceWeeklyClosures}
                 action={updateAction}
                 returnTo={returnTo}
               />
@@ -386,6 +389,7 @@ export function CalendarMonthView({
                 serviceOptions={serviceOptions}
                 availabilityWindows={availabilityWindows}
                 practiceClosures={practiceClosures}
+                practiceWeeklyClosures={practiceWeeklyClosures}
                 action={action}
                 initialStartsAt={selectedStartsAt}
                 initialEndsAt={selectedEndsAt}

@@ -26,6 +26,13 @@ type PracticeClosureRow = {
   endsAt: Date;
 };
 
+type PracticeWeeklyClosureRow = {
+  id: string;
+  dayOfWeek: number;
+  title: string | null;
+  isActive: boolean;
+};
+
 type CrudClient = {
   create?: (args: unknown) => Promise<unknown>;
   update?: (args: unknown) => Promise<unknown>;
@@ -36,6 +43,17 @@ type CrudClient = {
 const prismaModels = prisma as unknown as Record<string, unknown>;
 const availabilityClient = prismaModels["doctorAvailabilityWindow"] as CrudClient | undefined;
 const closureClient = prismaModels["practiceClosure"] as CrudClient | undefined;
+const weeklyClosureClient = prismaModels["practiceWeeklyClosure"] as CrudClient | undefined;
+
+const WEEKDAYS: Array<{ value: number; label: string }> = [
+  { value: 1, label: "Lunedì" },
+  { value: 2, label: "Martedì" },
+  { value: 3, label: "Mercoledì" },
+  { value: 4, label: "Giovedì" },
+  { value: 5, label: "Venerdì" },
+  { value: 6, label: "Sabato" },
+  { value: 7, label: "Domenica" },
+];
 
 function parseDayOfWeek(value: unknown) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
@@ -266,6 +284,48 @@ async function deletePracticeClosure(formData: FormData) {
   revalidatePath("/admin/calendario");
 }
 
+async function saveWeeklyClosures(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN]);
+  if (!weeklyClosureClient?.create || !weeklyClosureClient?.update || !weeklyClosureClient?.delete) {
+    throw new Error("Chiusure ricorrenti non configurate. Esegui migrazioni Prisma e rigenera il client.");
+  }
+
+  const existingRaw = weeklyClosureClient?.findMany
+    ? ((await weeklyClosureClient.findMany({})) as PracticeWeeklyClosureRow[])
+    : [];
+  const existingByDay = new Map<number, PracticeWeeklyClosureRow>();
+  existingRaw.forEach((row) => existingByDay.set(row.dayOfWeek, row));
+
+  for (const day of WEEKDAYS) {
+    const enabled = formData.get(`weeklyOff-${day.value}`) === "on";
+    const title = (formData.get(`weeklyTitle-${day.value}`) as string | null)?.trim() || null;
+    const existing = existingByDay.get(day.value);
+    if (enabled) {
+      if (existing) {
+        await weeklyClosureClient.update({
+          where: { id: existing.id },
+          data: { isActive: true, title },
+        });
+      } else {
+        await weeklyClosureClient.create({
+          data: { dayOfWeek: day.value, title, isActive: true },
+        });
+      }
+    } else if (existing) {
+      await weeklyClosureClient.delete({ where: { id: existing.id } });
+    }
+  }
+
+  await logAudit(admin, {
+    action: "practiceWeeklyClosure.saved",
+    entity: "PracticeWeeklyClosure",
+  });
+
+  revalidatePath("/admin/calendario");
+}
+
 export default async function AdminCalendarSettingsPage({
   searchParams,
 }: {
@@ -301,19 +361,19 @@ export default async function AdminCalendarSettingsPage({
       })) as PracticeClosureRow[])
     : [];
 
+  const weeklyClosures: PracticeWeeklyClosureRow[] = weeklyClosureClient?.findMany
+    ? ((await weeklyClosureClient.findMany({
+        where: { isActive: true },
+        orderBy: [{ dayOfWeek: "asc" }],
+      })) as PracticeWeeklyClosureRow[])
+    : [];
+
   const selectedDoctor = doctors.find((doctor) => doctor.id === selectedDoctorId) ?? null;
   const now = new Date();
   const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">Calendario</span>
-      </nav>
-
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Calendario
@@ -405,6 +465,60 @@ export default async function AdminCalendarSettingsPage({
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
                 {closures.length} periodi
               </span>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+              <h3 className="text-sm font-semibold text-zinc-900">Chiusure ricorrenti (tutto il giorno)</h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                Imposta i giorni in cui lo studio è sempre chiuso (es. ogni Giovedì).
+              </p>
+              <form action={saveWeeklyClosures} className="mt-4 space-y-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {WEEKDAYS.map((day) => {
+                    const active = weeklyClosures.some((c) => c.dayOfWeek === day.value);
+                    const existing = weeklyClosures.find((c) => c.dayOfWeek === day.value) ?? null;
+                    return (
+                      <div
+                        key={day.value}
+                        className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                            <input
+                              type="checkbox"
+                              name={`weeklyOff-${day.value}`}
+                              defaultChecked={active}
+                              className="h-4 w-4 rounded border-zinc-300"
+                            />
+                            {day.label}
+                          </label>
+                          {active ? (
+                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
+                              OFF
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
+                              Attivo
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          name={`weeklyTitle-${day.value}`}
+                          defaultValue={existing?.title ?? ""}
+                          placeholder="Titolo (opzionale) es. Chiuso"
+                          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  type="submit"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                >
+                  Salva giorni OFF
+                </button>
+              </form>
             </div>
 
             <form

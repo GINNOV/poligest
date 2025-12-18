@@ -3,7 +3,6 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import Link from "next/link";
 
 async function createDoctor(formData: FormData) {
   "use server";
@@ -89,12 +88,6 @@ export default async function MediciPage() {
 
   return (
     <div className="space-y-4">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">{t("title")}</span>
-      </nav>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>

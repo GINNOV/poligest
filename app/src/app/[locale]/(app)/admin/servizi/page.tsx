@@ -1,5 +1,4 @@
 import { revalidatePath } from "next/cache";
-import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
@@ -113,13 +112,6 @@ export default async function ServicesPage() {
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">{t("services")}</span>
-      </nav>
-
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">

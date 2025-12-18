@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -112,13 +111,6 @@ export default async function AuditPage({
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">{t("audit")}</span>
-      </nav>
-
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">

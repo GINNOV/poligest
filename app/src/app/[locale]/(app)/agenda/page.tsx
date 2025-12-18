@@ -356,11 +356,17 @@ export default async function AgendaPage({
   const closureClient = prismaModels["practiceClosure"] as
     | { findMany?: (args: unknown) => Promise<unknown[]> }
     | undefined;
+  const weeklyClosureClient = prismaModels["practiceWeeklyClosure"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
 
-  const [availabilityWindowsRaw, practiceClosuresRaw] = await Promise.all([
+  const [availabilityWindowsRaw, practiceClosuresRaw, practiceWeeklyClosuresRaw] = await Promise.all([
     availabilityClient?.findMany ? availabilityClient.findMany({}) : Promise.resolve([]),
     closureClient?.findMany
       ? closureClient.findMany({ orderBy: [{ startsAt: "desc" }] })
+      : Promise.resolve([]),
+    weeklyClosureClient?.findMany
+      ? weeklyClosureClient.findMany({ where: { isActive: true }, orderBy: [{ dayOfWeek: "asc" }] })
       : Promise.resolve([]),
   ]);
 
@@ -381,6 +387,14 @@ export default async function AgendaPage({
       endsAt: new Date(String(closure.endsAt ?? "")).toISOString(),
       title: (closure.title as string | null) ?? null,
       type: (closure.type as string | undefined) ?? undefined,
+    };
+  });
+
+  const practiceWeeklyClosures = (practiceWeeklyClosuresRaw as unknown[]).map((row) => {
+    const closure = row as Record<string, unknown>;
+    return {
+      dayOfWeek: Number(closure.dayOfWeek ?? 0),
+      title: (closure.title as string | null) ?? null,
     };
   });
 
@@ -511,6 +525,7 @@ export default async function AgendaPage({
 	                    services={serviceOptionObjects}
 	                    availabilityWindows={availabilityWindows}
 	                    practiceClosures={practiceClosures}
+	                    practiceWeeklyClosures={practiceWeeklyClosures}
 	                    action={updateAppointment}
 	                  />
                   <form

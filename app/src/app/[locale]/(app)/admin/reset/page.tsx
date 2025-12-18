@@ -437,13 +437,6 @@ export default async function ResetPage() {
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">{t("reset")}</span>
-      </nav>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
           <div className="flex items-center justify-between">

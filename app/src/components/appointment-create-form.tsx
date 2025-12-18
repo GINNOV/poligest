@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
-import { computeSchedulingWarning, type AvailabilityWindow, type PracticeClosure } from "@/lib/scheduling-warnings";
+import {
+  computeSchedulingWarning,
+  type AvailabilityWindow,
+  type PracticeClosure,
+  type PracticeWeeklyClosure,
+} from "@/lib/scheduling-warnings";
 
 type Props = {
   patients: { id: string; firstName: string; lastName: string }[];
@@ -11,6 +16,7 @@ type Props = {
   serviceOptions: string[];
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
+  practiceWeeklyClosures: PracticeWeeklyClosure[];
   action: (formData: FormData) => Promise<void>;
   initialStartsAt?: string;
   initialEndsAt?: string;
@@ -24,6 +30,7 @@ export function AppointmentCreateForm({
   serviceOptions,
   availabilityWindows,
   practiceClosures,
+  practiceWeeklyClosures,
   action,
   initialStartsAt,
   initialEndsAt,
@@ -156,6 +163,7 @@ export function AppointmentCreateForm({
           endsAt: endsAt ?? "",
           availabilityWindows,
           practiceClosures,
+          practiceWeeklyClosures,
         });
 
         if (warning) {

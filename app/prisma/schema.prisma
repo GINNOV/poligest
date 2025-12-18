@@ -243,6 +243,18 @@ model PracticeClosure {
   @@index([endsAt])
 }
 
+model PracticeWeeklyClosure {
+  id        String   @id @default(cuid())
+  /// ISO day of week (1=Monday ... 7=Sunday)
+  dayOfWeek Int      @unique
+  title     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
 model Patient {
   id        String    @id @default(cuid())
   firstName String

@@ -12,6 +12,11 @@ export type PracticeClosure = {
   type?: string;
 };
 
+export type PracticeWeeklyClosure = {
+  dayOfWeek: number; // 1=Mon ... 7=Sun
+  title?: string | null;
+};
+
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Lunedì",
   2: "Martedì",
@@ -41,8 +46,9 @@ export function computeSchedulingWarning(params: {
   endsAt: string;
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
+  practiceWeeklyClosures?: PracticeWeeklyClosure[];
 }): string | null {
-  const { doctorId, startsAt, endsAt, availabilityWindows, practiceClosures } = params;
+  const { doctorId, startsAt, endsAt, availabilityWindows, practiceClosures, practiceWeeklyClosures } = params;
   if (!doctorId || !startsAt || !endsAt) return null;
 
   const start = new Date(startsAt);
@@ -74,6 +80,13 @@ export function computeSchedulingWarning(params: {
     );
   }
 
+  const weeklyMatch = (practiceWeeklyClosures ?? []).find((row) => row.dayOfWeek === day);
+  if (weeklyMatch) {
+    parts.push(
+      `Lo studio risulta chiuso ogni ${dayLabel.toLowerCase()}${weeklyMatch.title ? ` (${weeklyMatch.title})` : ""}. Vuoi procedere comunque?`
+    );
+  }
+
   const overlappingClosures = practiceClosures.filter((closure) => {
     const cStart = new Date(closure.startsAt);
     const cEnd = new Date(closure.endsAt);
@@ -91,4 +104,3 @@ export function computeSchedulingWarning(params: {
 
   return parts.length ? parts.join(" ") : null;
 }
-

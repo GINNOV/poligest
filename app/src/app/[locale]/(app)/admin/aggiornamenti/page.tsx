@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -66,13 +65,6 @@ export default async function AdminUpdatesPage() {
 
   return (
     <div className="space-y-6">
-      <nav className="text-sm text-zinc-600">
-        <Link href="/admin" className="hover:text-emerald-700">
-          Amministrazione
-        </Link>{" "}
-        / <span className="text-zinc-900">Aggiornamenti</span>
-      </nav>
-
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Aggiornamenti
@@ -183,4 +175,3 @@ export default async function AdminUpdatesPage() {
     </div>
   );
 }
-
