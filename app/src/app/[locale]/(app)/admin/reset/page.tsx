@@ -150,10 +150,14 @@ async function resetSystem(formData: FormData) {
 
       if (selected.includes("cashAdvances")) {
         const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
-          (c) => ({
-            ...c,
-            amount: toDecimal(c.amount),
-          })
+          (c) => {
+            const candidatePatientId = (c as unknown as { patientId?: string; doctorId?: string }).patientId ?? (c as unknown as { doctorId?: string }).doctorId;
+            return {
+              ...c,
+              patientId: candidatePatientId ?? "",
+              amount: toDecimal(c.amount),
+            };
+          }
         );
         if (entries.length) {
           await tx.cashAdvance.createMany({ data: entries });
@@ -375,10 +379,14 @@ async function importData(formData: FormData) {
 
     if (selected.includes("cashAdvances")) {
       const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
-        (c) => ({
-          ...c,
-          amount: toDecimal(c.amount),
-        })
+        (c) => {
+          const candidatePatientId = (c as unknown as { patientId?: string; doctorId?: string }).patientId ?? (c as unknown as { doctorId?: string }).doctorId;
+          return {
+            ...c,
+            patientId: candidatePatientId ?? "",
+            amount: toDecimal(c.amount),
+          };
+        }
       );
       if (entries.length) {
         await tx.cashAdvance.createMany({ data: entries });

@@ -16,7 +16,6 @@ export async function addConsentAction(formData: FormData) {
   const type = formData.get("consentType") as ConsentType;
   const channel = ((formData.get("consentChannel") as string) ?? "manual").trim() || "manual";
   const expiresAtStr = (formData.get("consentExpiresAt") as string) ?? "";
-  const consentAgreement = formData.get("consentAgreement") === "on";
   const consentPlace = (formData.get("consentPlace") as string)?.trim();
   const consentDate = (formData.get("consentDate") as string)?.trim();
   const patientSignature = (formData.get("patientSignature") as string)?.trim();
@@ -24,7 +23,7 @@ export async function addConsentAction(formData: FormData) {
   const consentSignatureData = (formData.get("consentSignatureData") as string)?.trim();
 
   try {
-    if (!patientId || !type || !Object.values(ConsentType).includes(type) || !consentAgreement) {
+    if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
       throw new Error("Dati consenso non validi");
     }
 

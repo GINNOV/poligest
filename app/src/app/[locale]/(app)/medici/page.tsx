@@ -69,9 +69,6 @@ async function deleteDoctor(formData: FormData) {
     where: { doctorId: id },
     data: { doctorId: null },
   });
-  await prisma.cashAdvance.deleteMany({
-    where: { doctorId: id },
-  });
 
   await prisma.doctor.delete({ where: { id } });
   revalidatePath("/medici");

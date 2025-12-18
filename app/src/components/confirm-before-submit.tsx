@@ -58,6 +58,19 @@ export function ConfirmBeforeSubmit() {
     setPendingMessage(null);
   };
 
+  useEffect(() => {
+    if (!pendingMessage) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        onCancel();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [pendingMessage]);
+
   if (!pendingMessage) return null;
 
   return (

@@ -189,7 +189,6 @@ model Doctor {
   appointments   Appointment[]
   clinicalNotes  ClinicalNote[]
   financeEntries FinanceEntry[]
-  cashAdvances   CashAdvance[]
   availabilityWindows DoctorAvailabilityWindow[]
   assignedAwards UserAward[] @relation("UserAwardDoctor")
 }
@@ -274,6 +273,7 @@ model Patient {
   stockMovements StockMovement[]
   dentalRecords  DentalRecord[]
   smsLogs        SmsLog[]
+  cashAdvances   CashAdvance[]
 }
 
 model Consent {
@@ -435,17 +435,17 @@ model FinanceEntry {
 }
 
 model CashAdvance {
-  id       String   @id @default(cuid())
-  doctorId String
-  amount   Decimal  @db.Decimal(12, 2)
-  issuedAt DateTime @default(now())
-  note     String?
-  userId   String?
+  id        String   @id @default(cuid())
+  patientId String
+  amount    Decimal  @db.Decimal(12, 2)
+  issuedAt  DateTime @default(now())
+  note      String?
+  userId    String?
 
-  doctor Doctor @relation(fields: [doctorId], references: [id])
-  user   User?  @relation("CashAdvanceUser", fields: [userId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id])
+  user    User?   @relation("CashAdvanceUser", fields: [userId], references: [id])
 
-  @@index([doctorId])
+  @@index([patientId])
 }
 
 model RecallRule {

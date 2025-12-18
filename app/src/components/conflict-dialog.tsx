@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 type ConflictDialogProps = {
   message: string;
   onClose: () => void;
@@ -7,6 +9,18 @@ type ConflictDialogProps = {
 };
 
 export function ConflictDialog({ message, onClose, actionLabel = "Chiudi" }: ConflictDialogProps) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">

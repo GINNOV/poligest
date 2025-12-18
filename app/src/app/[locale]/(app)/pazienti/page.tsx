@@ -32,7 +32,6 @@ async function createPatient(formData: FormData) {
   const conditions = formData.getAll("conditions").map((c) => (c as string).trim()).filter(Boolean);
   const medications = (formData.get("medications") as string)?.trim();
   const extraNotes = (formData.get("extraNotes") as string)?.trim();
-  const consentAgreement = formData.get("consentAgreement") === "on";
   const consentPlace = (formData.get("consentPlace") as string)?.trim();
   const consentDate = (formData.get("consentDate") as string)?.trim();
   const patientSignature = (formData.get("patientSignature") as string)?.trim();
@@ -66,10 +65,8 @@ async function createPatient(formData: FormData) {
     conditions.length > 0 ? `Anamnesi: ${conditions.join(", ")}` : null,
     medications ? `Farmaci: ${medications}` : null,
     extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
-    consentAgreement
-      ? `Consenso firmato${consentPlace ? ` a ${consentPlace}` : ""}${consentDate ? ` il ${consentDate}` : ""}. ` +
-        `Firma paziente: ${patientSignature || "—"} · Firma medico: ${doctorSignature || "—"}`
-      : "Consenso non fornito",
+    `Consenso firmato${consentPlace ? ` a ${consentPlace}` : ""}${consentDate ? ` il ${consentDate}` : ""}. ` +
+      `Firma paziente: ${patientSignature || "—"} · Firma medico: ${doctorSignature || "—"}`,
     signatureBuffer ? "Firma digitale acquisita." : "Firma digitale non acquisita.",
   ]
     .filter(Boolean)
@@ -84,21 +81,17 @@ async function createPatient(formData: FormData) {
       notes: structuredNotesText || null,
       consents: {
         create: [
-          consentAgreement
-            ? {
-                type: ConsentType.PRIVACY,
-                status: ConsentStatus.GRANTED,
-                channel: "form",
-              }
-            : null,
-          consentAgreement
-            ? {
-                type: ConsentType.TREATMENT,
-                status: ConsentStatus.GRANTED,
-                channel: "form",
-              }
-            : null,
-        ].filter(Boolean) as {
+          {
+            type: ConsentType.PRIVACY,
+            status: ConsentStatus.GRANTED,
+            channel: "form",
+          },
+          {
+            type: ConsentType.TREATMENT,
+            status: ConsentStatus.GRANTED,
+            channel: "form",
+          },
+        ] as {
           type: ConsentType;
           status: ConsentStatus;
           channel: string;
@@ -147,7 +140,7 @@ async function createPatient(formData: FormData) {
     entityId: patient.id,
     metadata: {
       patientName: `${patient.firstName} ${patient.lastName}`,
-      consentAgreement,
+      consentAgreement: true,
       taxIdProvided: Boolean(taxId),
       conditionsCount: conditions.length,
       hasDigitalSignature: Boolean(signatureBuffer),

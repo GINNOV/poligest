@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 
@@ -176,6 +176,20 @@ export function CalendarMonthView({
   }, [selectedDate]);
 
   const selectedLabelDate = selectedDate ?? selectedAppointment?.startsAt ?? null;
+
+  useEffect(() => {
+    if (!selectedDate && !selectedAppointment) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSelectedDate(null);
+        setSelectedAppointment(null);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectedDate, selectedAppointment]);
 
   return (
     <>

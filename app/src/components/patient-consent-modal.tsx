@@ -283,6 +283,19 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
     }
   }, [pageIndex, totalPages, signatureData]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
   return (
     <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
       <div className="space-y-1">
@@ -362,6 +375,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
           Firma del paziente o esercente la potestà (nome leggibile)
           <input
             name="patientSignature"
+            required
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             placeholder="Inserire nome"
           />
@@ -376,35 +390,19 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
         </label>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-        <div className="space-y-2">
-          <label className="inline-flex items-start gap-2 text-sm font-medium text-zinc-800">
-            <input
-              type="checkbox"
-              name="consentAgreement"
-              required
-              className="mt-1 h-4 w-4 rounded border-zinc-300"
-            />
-            <span>Acconsento al trattamento dei dati personali e al piano di cura</span>
-          </label>
-          <p className="text-xs text-zinc-500">
-            Conferma dopo aver letto l&apos;informativa e raccolto la firma digitale.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-          <Link
-            href="/pazienti"
-            className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-          >
-            Annulla
-          </Link>
-          <FormSubmitButton
-            disabled={!signatureData}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            Salva Modulo
-          </FormSubmitButton>
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+        <Link
+          href="/pazienti"
+          className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+        >
+          Annulla
+        </Link>
+        <FormSubmitButton
+          disabled={!signatureData}
+          className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          Salva Modulo
+        </FormSubmitButton>
       </div>
 
       {isOpen ? (

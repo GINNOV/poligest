@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { emitToast } from "./global-toasts";
 
 export function PatientDeleteButton({ patientId }: { patientId: string }) {
@@ -37,6 +37,19 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!showConfirm) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showConfirm]);
 
   return (
     <>

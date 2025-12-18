@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Props = {
   update: { id: string; title: string; bodyMarkdown: string };
@@ -134,6 +134,19 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
     }
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        event.preventDefault();
+        event.stopPropagation();
+        dismiss();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, dismiss]);
+
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 px-4 py-8">
       <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
@@ -172,4 +185,3 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
     </div>
   );
 }
-

@@ -47,6 +47,7 @@ export function AppointmentCreateForm({
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [localStartsAt, setLocalStartsAt] = useState(initialStartsAt ?? "");
   const [localEndsAt, setLocalEndsAt] = useState<string>(() => {
     if (initialEndsAt) return initialEndsAt;
     if (initialStartsAt) {
@@ -59,8 +60,16 @@ export function AppointmentCreateForm({
   });
   const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
-  const [forcedTitle, setForcedTitle] = useState<string | null>(null);
-  const [forcedService, setForcedService] = useState<string | null>(null);
+  const [title, setTitle] = useState<string>("Richiamo");
+  const [serviceType, setServiceType] = useState<string>(serviceOptions[0] ?? "");
+
+  const setEndFromStart = (minutes: number) => {
+    if (!localStartsAt) return;
+    const start = new Date(localStartsAt);
+    if (Number.isNaN(start.getTime())) return;
+    const end = new Date(start.getTime() + minutes * 60 * 1000);
+    setLocalEndsAt(formatLocalInput(end));
+  };
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -204,11 +213,15 @@ export function AppointmentCreateForm({
             const isNew = e.target.value === "new";
             setIsNewPatient(isNew);
             if (isNew) {
-              setForcedTitle("Prima visita");
-              setForcedService("Visita di controllo");
+              setTitle("Prima visita");
+              setServiceType(
+                serviceOptions.includes("Visita di controllo")
+                  ? "Visita di controllo"
+                  : serviceOptions[0] ?? ""
+              );
             } else {
-              setForcedTitle(null);
-              setForcedService(null);
+              setTitle("Richiamo");
+              setServiceType(serviceOptions[0] ?? "");
             }
           }}
         >
@@ -260,16 +273,9 @@ export function AppointmentCreateForm({
           <select
             name="title"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            value={forcedTitle ?? undefined}
-            defaultValue="Richiamo"
+            value={title}
             required
-            onChange={(e) => {
-              if (!forcedTitle) {
-                // only allow changes when not forced
-                setForcedTitle(e.target.value);
-              }
-            }}
-            disabled={Boolean(forcedTitle)}
+            onChange={(e) => setTitle(e.target.value)}
           >
             <option value="Richiamo">Richiamo</option>
             <option value="Prima visita">Prima visita</option>
@@ -291,15 +297,9 @@ export function AppointmentCreateForm({
           <select
             name="serviceType"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            value={forcedService ?? undefined}
-            defaultValue={serviceOptions[0] ?? ""}
+            value={serviceType}
             required
-            onChange={(e) => {
-              if (!forcedService) {
-                setForcedService(e.target.value);
-              }
-            }}
-            disabled={Boolean(forcedService)}
+            onChange={(e) => setServiceType(e.target.value)}
           >
             {serviceOptions.map((name) => (
               <option key={name} value={name}>
@@ -324,9 +324,10 @@ export function AppointmentCreateForm({
           className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           type="datetime-local"
           name="startsAt"
-          defaultValue={initialStartsAt ?? ""}
+          value={localStartsAt}
           onChange={(e) => {
             const value = e.target.value;
+            setLocalStartsAt(value);
             if (value) {
               const start = new Date(value);
               if (!Number.isNaN(start.getTime())) {
@@ -340,15 +341,39 @@ export function AppointmentCreateForm({
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Stima di fine visita
-        <input
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          type="datetime-local"
-          name="endsAt"
-          value={localEndsAt}
-          onChange={(e) => setLocalEndsAt(e.target.value)}
-          required
-        />
-        <span className="text-xs text-zinc-500">Proposta automatica +1h, puoi modificarla.</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+          <input
+            className="h-11 flex-1 min-w-0 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            type="datetime-local"
+            name="endsAt"
+            value={localEndsAt}
+            onChange={(e) => setLocalEndsAt(e.target.value)}
+            required
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              onClick={() => setEndFromStart(60)}
+            >
+              1H
+            </button>
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              onClick={() => setEndFromStart(30)}
+            >
+              30m
+            </button>
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              onClick={() => setEndFromStart(15)}
+            >
+              15m
+            </button>
+          </div>
+        </div>
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
         Medico assegnato
