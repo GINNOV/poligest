@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, Role } from "@prisma/client";
+import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
@@ -10,6 +10,7 @@ import { AgendaFilters } from "@/components/agenda-filters";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+const PAGE_SIZE = 20;
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -271,12 +272,9 @@ export default async function AgendaPage({
       : undefined;
 
   const dateFilter = dateValue;
-  const searchQuery =
-    typeof params.q === "string"
-      ? params.q.toLowerCase()
-      : Array.isArray(params.q)
-        ? params.q[0]?.toLowerCase()
-        : undefined;
+  const searchValue =
+    typeof params.q === "string" ? params.q : Array.isArray(params.q) ? params.q[0] : "";
+  const searchQuery = searchValue ? searchValue.toLowerCase() : undefined;
   let dateRange:
     | {
         gte: Date;
@@ -292,51 +290,64 @@ export default async function AgendaPage({
     dateRange = { gte: start, lt: end };
   }
 
+  const pageParam =
+    typeof params.page === "string"
+      ? params.page
+      : Array.isArray(params.page)
+        ? params.page[0]
+        : "1";
+  const page = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
+  const skip = (page - 1) * PAGE_SIZE;
+
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const serviceClient = prismaModels["service"] as
     | { findMany?: (args: unknown) => Promise<unknown[]> }
     | undefined;
 
-  const [appointments, patients, doctors, servicesRaw] = await Promise.all([
+  const where: Prisma.AppointmentWhereInput = {
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(dateRange ? { startsAt: dateRange } : {}),
+    ...(searchQuery
+      ? {
+          OR: [
+            { title: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+            { serviceType: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+            {
+              patient: {
+                OR: [
+                  { firstName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                  { lastName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                ],
+              },
+            },
+            {
+              doctor: {
+                OR: [
+                  { fullName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                  { specialty: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                ],
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
+  const [appointments, patients, doctors, servicesRaw, totalCount] = await Promise.all([
     prisma.appointment.findMany({
       orderBy: { startsAt: "asc" },
-      take: 100,
+      take: PAGE_SIZE,
+      skip,
       include: {
         patient: { select: { firstName: true, lastName: true } },
         doctor: { select: { fullName: true, specialty: true } },
       },
-      where: {
-        ...(statusFilter ? { status: statusFilter } : {}),
-        ...(dateRange ? { startsAt: dateRange } : {}),
-        ...(searchQuery
-          ? {
-              OR: [
-                { title: { contains: searchQuery, mode: "insensitive" } },
-                { serviceType: { contains: searchQuery, mode: "insensitive" } },
-                {
-                  patient: {
-                    OR: [
-                      { firstName: { contains: searchQuery, mode: "insensitive" } },
-                      { lastName: { contains: searchQuery, mode: "insensitive" } },
-                    ],
-                  },
-                },
-                {
-                  doctor: {
-                    OR: [
-                      { fullName: { contains: searchQuery, mode: "insensitive" } },
-                      { specialty: { contains: searchQuery, mode: "insensitive" } },
-                    ],
-                  },
-                },
-              ],
-            }
-          : {}),
-      },
+      where,
     }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
     prisma.doctor.findMany({ orderBy: { fullName: "asc" } }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
+    prisma.appointment.count({ where }),
   ]);
 
   type ServiceRow = { name: string };
@@ -398,6 +409,18 @@ export default async function AgendaPage({
     };
   });
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const showingFrom = totalCount === 0 ? 0 : skip + 1;
+  const showingTo = skip + appointments.length;
+  const buildPageHref = (targetPage: number) => {
+    const query = new URLSearchParams();
+    if (statusValue) query.set("status", statusValue);
+    if (dateValue) query.set("date", dateValue);
+    if (searchValue) query.set("q", searchValue);
+    query.set("page", String(targetPage));
+    return `/agenda?${query.toString()}`;
+  };
+
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -416,9 +439,7 @@ export default async function AgendaPage({
           statusLabels={statusLabels}
           statusValue={statusValue}
           dateValue={dateValue}
-          searchValue={
-            typeof params.q === "string" ? params.q : Array.isArray(params.q) ? params.q[0] : ""
-          }
+          searchValue={searchValue}
         />
         <div className="mt-4 divide-y divide-zinc-100">
           {appointments.length === 0 ? (
@@ -545,6 +566,42 @@ export default async function AgendaPage({
               </div>
             ))
           )}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          <p>
+            Mostrati{" "}
+            {totalCount === 0 ? "0" : `${showingFrom}-${Math.min(showingTo, totalCount)}`} di{" "}
+            {totalCount}
+          </p>
+          <div className="flex items-center gap-2">
+            {page > 1 ? (
+              <Link
+                href={buildPageHref(page - 1)}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                ← Precedente
+              </Link>
+            ) : (
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+                ← Precedente
+              </span>
+            )}
+            <span className="text-xs font-semibold text-zinc-600">
+              Pagina {page} di {totalPages}
+            </span>
+            {page < totalPages ? (
+              <Link
+                href={buildPageHref(page + 1)}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                Successiva →
+              </Link>
+            ) : (
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+                Successiva →
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

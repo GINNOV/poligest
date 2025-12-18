@@ -467,12 +467,20 @@ export default async function AdminCalendarSettingsPage({
               </span>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-              <h3 className="text-sm font-semibold text-zinc-900">Chiusure ricorrenti (tutto il giorno)</h3>
-              <p className="mt-1 text-sm text-zinc-600">
-                Imposta i giorni in cui lo studio è sempre chiuso (es. ogni Giovedì).
-              </p>
-              <form action={saveWeeklyClosures} className="mt-4 space-y-3">
+            <details className="group mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-4 py-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-900">Regole automatiche</h3>
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Chiusure ricorrenti tutto il giorno (es. ogni Giovedì).
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition group-open:bg-emerald-50 group-open:text-emerald-800">
+                  Gestisci
+                </span>
+              </summary>
+
+              <form action={saveWeeklyClosures} className="space-y-3 px-4 pb-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   {WEEKDAYS.map((day) => {
                     const active = weeklyClosures.some((c) => c.dayOfWeek === day.value);
@@ -492,15 +500,13 @@ export default async function AdminCalendarSettingsPage({
                             />
                             {day.label}
                           </label>
-                          {active ? (
-                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
-                              OFF
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
-                              Attivo
-                            </span>
-                          )}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              active ? "bg-zinc-200 text-zinc-700" : "bg-zinc-100 text-zinc-600"
+                            }`}
+                          >
+                            {active ? "OFF" : "ON"}
+                          </span>
                         </div>
                         <input
                           name={`weeklyTitle-${day.value}`}
@@ -516,10 +522,10 @@ export default async function AdminCalendarSettingsPage({
                   type="submit"
                   className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                 >
-                  Salva giorni OFF
+                  Salva regole
                 </button>
               </form>
-            </div>
+            </details>
 
             <form
               action={createPracticeClosure}

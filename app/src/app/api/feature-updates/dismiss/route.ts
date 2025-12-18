@@ -24,11 +24,10 @@ export async function POST(req: Request) {
   }
 
   await dismissalClient.upsert({
-    where: { userId_featureUpdateId: { userId: user.id, featureUpdateId: updateId } },
+    where: { user_feature_update_unique: { userId: user.id, featureUpdateId: updateId } },
     update: { dismissedAt: new Date() },
     create: { userId: user.id, featureUpdateId: updateId, dismissedAt: new Date() },
   });
 
   return NextResponse.json({ ok: true });
 }
-

@@ -10,6 +10,8 @@ import { logAudit } from "@/lib/audit";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientConsentSection } from "@/components/patient-consent-modal";
 
+const PAGE_SIZE = 20;
+
 const consentLabels: Partial<Record<ConsentType, string>> = {
   [ConsentType.PRIVACY]: "Privacy",
   [ConsentType.TREATMENT]: "Trattamento",
@@ -105,9 +107,10 @@ async function createPatient(formData: FormData) {
     },
   });
 
-  const updates: Record<string, any> = {
-    notes: structuredNotesText || null,
-  };
+  const updates: {
+    notes: string | null;
+    photoUrl?: string;
+  } = { notes: structuredNotesText || null };
 
   if (photo && photo.size > 0) {
     const buffer = Buffer.from(await photo.arrayBuffer());
@@ -188,34 +191,46 @@ export default async function PazientiPage({
         ? [{ createdAt: "asc" }]
         : [{ lastName: "asc" }, { firstName: "asc" }];
 
-  const patients = await prisma.patient.findMany({
-    orderBy,
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      photoUrl: true,
-      consents: {
-        select: {
-          type: true,
-          status: true,
-        },
-      },
-      createdAt: true,
-    },
-    where: searchQuery
+  const pageParam = params.get("page") ?? "1";
+  const page = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
+  const skip = (page - 1) * PAGE_SIZE;
+
+  const where: Prisma.PatientWhereInput =
+    searchQuery && searchQuery.length > 0
       ? {
           OR: [
-            { firstName: { contains: searchQuery, mode: "insensitive" } },
-            { lastName: { contains: searchQuery, mode: "insensitive" } },
-            { email: { contains: searchQuery, mode: "insensitive" } },
-            { phone: { contains: searchQuery, mode: "insensitive" } },
+            { firstName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+            { lastName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+            { email: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+            { phone: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
           ],
         }
-      : undefined,
-  });
+      : {};
+
+  const [patients, totalCount] = await Promise.all([
+    prisma.patient.findMany({
+      orderBy,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        photoUrl: true,
+        consents: {
+          select: {
+            type: true,
+            status: true,
+          },
+        },
+        createdAt: true,
+      },
+      where,
+      take: PAGE_SIZE,
+      skip,
+    }),
+    prisma.patient.count({ where }),
+  ]);
   const compareNames = (a: typeof patients[number], b: typeof patients[number]) => {
     const lastA = (a.lastName ?? "").trim().toLowerCase();
     const lastB = (b.lastName ?? "").trim().toLowerCase();
@@ -241,6 +256,16 @@ export default async function PazientiPage({
       .map((p) => `${p.lastName ?? ""} ${p.firstName ?? ""}`.trim() || "—");
     console.info("[pazienti] sort applied", { sortRaw, sortOption, preview, count: sortedPatients.length });
   }
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const showingFrom = totalCount === 0 ? 0 : skip + 1;
+  const showingTo = skip + sortedPatients.length;
+  const buildPageHref = (targetPage: number) => {
+    const query = new URLSearchParams();
+    if (qParam) query.set("q", qParam);
+    if (sortRaw) query.set("sort", sortRaw);
+    query.set("page", String(targetPage));
+    return `/pazienti?${query.toString()}`;
+  };
   const privacyContent = await fs.readFile(
     path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
     "utf8",
@@ -538,6 +563,41 @@ export default async function PazientiPage({
               );
             })
           )}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+          <p>
+            Mostrati {totalCount === 0 ? "0" : `${showingFrom}-${Math.min(showingTo, totalCount)}`} di{" "}
+            {totalCount}
+          </p>
+          <div className="flex items-center gap-2">
+            {page > 1 ? (
+              <Link
+                href={buildPageHref(page - 1)}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                ← Precedente
+              </Link>
+            ) : (
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+                ← Precedente
+              </span>
+            )}
+            <span className="text-xs font-semibold text-zinc-600">
+              Pagina {page} di {totalPages}
+            </span>
+            {page < totalPages ? (
+              <Link
+                href={buildPageHref(page + 1)}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                Successiva →
+              </Link>
+            ) : (
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+                Successiva →
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

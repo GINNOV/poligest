@@ -69,7 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const dismissed =
     isStaff && user?.id && activeUpdate?.id && dismissalClient?.findUnique
       ? await dismissalClient.findUnique({
-          where: { userId_featureUpdateId: { userId: user.id, featureUpdateId: activeUpdate.id } },
+          where: { user_feature_update_unique: { userId: user.id, featureUpdateId: activeUpdate.id } },
           select: { id: true },
         })
       : null;
