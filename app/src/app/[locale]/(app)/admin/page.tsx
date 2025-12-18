@@ -23,13 +23,15 @@ export default async function AdminPage() {
   const closureClient = prismaModels["practiceClosure"] as
     | { count?: () => Promise<number> }
     | undefined;
+  const featureUpdateClient = prismaModels["featureUpdate"] as { count?: () => Promise<number> } | undefined;
 
-  const [usersCount, doctorsCount, auditCount, servicesCount, closuresCount] = await Promise.all([
+  const [usersCount, doctorsCount, auditCount, servicesCount, closuresCount, updatesCount] = await Promise.all([
     prisma.user.count(),
     prisma.doctor.count(),
     prisma.auditLog.count(),
     serviceClient?.count ? serviceClient.count() : Promise.resolve(0),
     closureClient?.count ? closureClient.count() : Promise.resolve(0),
+    featureUpdateClient?.count ? featureUpdateClient.count() : Promise.resolve(0),
   ]);
 
   const shortcuts: AdminShortcut[] = [
@@ -48,6 +50,14 @@ export default async function AdminPage() {
       href: "/admin/calendario",
       badge: closuresCount ? `${closuresCount} chiusure` : "Disponibilità",
       tone: "primary",
+    },
+    {
+      key: "updates",
+      title: "Aggiornamenti",
+      description: "Popup nuove funzionalità visibile allo staff una sola volta.",
+      href: "/admin/aggiornamenti",
+      badge: updatesCount ? `${updatesCount} versioni` : "Annunci",
+      tone: "neutral",
     },
     {
       key: "users",

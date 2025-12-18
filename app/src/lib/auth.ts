@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { stackServerApp } from "@/lib/stack-app";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { ensureUserPersonalPin } from "@/lib/personal-pin";
 
 type AppUser = {
   id: string;
@@ -9,6 +10,7 @@ type AppUser = {
   name?: string | null;
   role: Role;
   locale: string;
+  avatarUrl?: string | null;
   stackUserId: string;
 };
 
@@ -60,6 +62,12 @@ async function getUserFromStack(): Promise<AppUser | null> {
       console.error("Failed to create user in local DB:", error);
       return null;
     }
+
+    try {
+      await ensureUserPersonalPin(dbUser.id);
+    } catch (error) {
+      console.error("Failed to set personal PIN at creation:", error);
+    }
   }
 
   if (dbUser.role === Role.PATIENT) {
@@ -70,12 +78,21 @@ async function getUserFromStack(): Promise<AppUser | null> {
     }
   }
 
+  if (!dbUser.personalPin) {
+    try {
+      await ensureUserPersonalPin(dbUser.id);
+    } catch (error) {
+      console.error("Failed to backfill missing personal PIN:", error);
+    }
+  }
+
   return {
     id: dbUser.id,
     email: dbUser.email,
     name: dbUser.name ?? stackUser.displayName ?? dbUser.email,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
+    avatarUrl: dbUser.avatarUrl ?? null,
     stackUserId: stackUser.id,
   };
 }

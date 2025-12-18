@@ -134,6 +134,8 @@ type Props = {
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   services: { id: string; name: string }[];
+  availabilityWindows: { doctorId: string; dayOfWeek: number; startMinute: number; endMinute: number }[];
+  practiceClosures: { startsAt: string; endsAt: string; title?: string | null; type?: string }[];
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -150,6 +152,8 @@ export function CalendarMonthView({
   doctors,
   serviceOptions,
   services,
+  availabilityWindows,
+  practiceClosures,
   action,
   updateAction,
   deleteAction,
@@ -341,23 +345,25 @@ export function CalendarMonthView({
 
             {selectedAppointment ? (
               <div className="space-y-3">
-                <AppointmentUpdateForm
-                  appointment={{
-                    id: selectedAppointment.id,
-                    title: selectedAppointment.title,
-                    serviceType: selectedAppointment.serviceType,
-                    startsAt: selectedAppointment.startsAt,
-                    endsAt: selectedAppointment.endsAt,
-                    patientId: selectedAppointment.patientId,
-                    doctorId: selectedAppointment.doctorId,
-                    status: selectedAppointment.status,
-                  }}
-                  patients={patients}
-                  doctors={doctors}
-                  services={services}
-                  action={updateAction}
-                  returnTo={returnTo}
-                />
+              <AppointmentUpdateForm
+                appointment={{
+                  id: selectedAppointment.id,
+                  title: selectedAppointment.title,
+                  serviceType: selectedAppointment.serviceType,
+                  startsAt: selectedAppointment.startsAt,
+                  endsAt: selectedAppointment.endsAt,
+                  patientId: selectedAppointment.patientId,
+                  doctorId: selectedAppointment.doctorId,
+                  status: selectedAppointment.status,
+                }}
+                patients={patients}
+                doctors={doctors}
+                services={services}
+                availabilityWindows={availabilityWindows}
+                practiceClosures={practiceClosures}
+                action={updateAction}
+                returnTo={returnTo}
+              />
                 <form
                   action={deleteAction}
                   className="flex justify-end"
@@ -378,6 +384,8 @@ export function CalendarMonthView({
                 patients={patients}
                 doctors={doctors}
                 serviceOptions={serviceOptions}
+                availabilityWindows={availabilityWindows}
+                practiceClosures={practiceClosures}
                 action={action}
                 initialStartsAt={selectedStartsAt}
                 initialEndsAt={selectedEndsAt}

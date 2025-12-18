@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { execSync } from "node:child_process";
 import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
+import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -21,7 +22,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     user?.role === Role.ADMIN ||
     user?.role === Role.MANAGER ||
     user?.role === Role.SECRETARY;
-  const isManager = user?.role === Role.MANAGER;
   const featureAccess = isStaff && user?.role
     ? await prisma.roleFeatureAccess.findMany({ where: { role: user.role } })
     : [];
@@ -49,6 +49,30 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         return "unknown";
       }
     })();
+
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const featureUpdateClient = prismaModels["featureUpdate"] as
+    | { findFirst?: (args: unknown) => Promise<unknown> }
+    | undefined;
+  const dismissalClient = prismaModels["featureUpdateDismissal"] as
+    | { findUnique?: (args: unknown) => Promise<unknown> }
+    | undefined;
+
+  const activeUpdate =
+    isStaff && user?.id && featureUpdateClient?.findFirst
+      ? ((await featureUpdateClient.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+        })) as { id: string; title: string; bodyMarkdown: string } | null)
+      : null;
+
+  const dismissed =
+    isStaff && user?.id && activeUpdate?.id && dismissalClient?.findUnique
+      ? await dismissalClient.findUnique({
+          where: { userId_featureUpdateId: { userId: user.id, featureUpdateId: activeUpdate.id } },
+          select: { id: true },
+        })
+      : null;
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -80,14 +104,27 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3 text-sm text-zinc-700">
-            <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-zinc-900">
-                {user?.name ?? user?.email}
-              </span>
-              <span className="text-xs uppercase text-emerald-700">
-                {user?.role ? roleLabels[user.role] : ""}
-              </span>
-            </div>
+            <Link href="/profilo" className="flex items-center gap-3 hover:text-emerald-800">
+              {user?.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatarUrl}
+                  alt="Avatar"
+                  className="h-9 w-9 rounded-full border border-zinc-200 object-cover"
+                />
+              ) : (
+                <div className="grid h-9 w-9 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-[11px] font-semibold text-zinc-700">
+                  {(user?.name ?? user?.email ?? "U")
+                    .split(" ")
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0]?.toUpperCase())
+                    .join("")}
+                </div>
+              )}
+              <span className="font-semibold text-zinc-900">{user?.name ?? user?.email}</span>
+              <span className="text-xs uppercase text-emerald-700">{user?.role ? roleLabels[user.role] : ""}</span>
+            </Link>
             <SignOutButton label={t("logout")} signOutUrl={signOutUrl} />
           </div>
         </div>
@@ -95,6 +132,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
       <SiteFooter version={version} />
+      {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
     </div>
   );
 }

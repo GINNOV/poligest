@@ -1,7 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
@@ -18,6 +17,16 @@ const formatLocalInput = (date: Date) => {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 16);
 };
+
+function isNextRedirectError(err: unknown): err is { digest: string } {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    typeof (err as { digest?: unknown }).digest === "string" &&
+    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
 async function hasDoctorConflict(params: {
   doctorId: string | null;
@@ -120,9 +129,6 @@ async function updateAppointment(formData: FormData) {
       throw new Error("Solo l'admin può modificare appuntamenti completati");
     }
 
-    const currentStartsInput = formatLocalInput(current.startsAt);
-    const currentEndsInput = formatLocalInput(current.endsAt);
-
     const isSameSlot =
       current.doctorId === doctorId &&
       Math.abs(current.startsAt.getTime() - startsAtDate.getTime()) < 1000 &&
@@ -164,11 +170,12 @@ async function updateAppointment(formData: FormData) {
 
     revalidatePath("/agenda");
     redirect("/agenda?success=Appuntamento aggiornato con successo.");
-  } catch (err: any) {
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Errore durante l'aggiornamento dell'appuntamento.";
+  } catch (err: unknown) {
+    if (isNextRedirectError(err)) throw err;
+    const message =
+      typeof (err as { message?: unknown })?.message === "string"
+        ? ((err as { message: string }).message ?? "")
+        : "Errore durante l'aggiornamento dell'appuntamento.";
     console.error("Update appointment failed:", err);
     redirect(`/agenda?error=${encodeURIComponent(message)}`);
   }
@@ -256,7 +263,6 @@ export default async function AgendaPage({
         : undefined;
 
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
-  const t = await getTranslations("agenda");
 
   const statusFilter =
     statusValue &&
@@ -286,7 +292,12 @@ export default async function AgendaPage({
     dateRange = { gte: start, lt: end };
   }
 
-  const [appointments, patients, doctors, services] = await Promise.all([
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const serviceClient = prismaModels["service"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+
+  const [appointments, patients, doctors, servicesRaw] = await Promise.all([
     prisma.appointment.findMany({
       orderBy: { startsAt: "asc" },
       take: 100,
@@ -325,18 +336,53 @@ export default async function AgendaPage({
     }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
     prisma.doctor.findMany({ orderBy: { fullName: "asc" } }),
-    (prisma as any).service?.findMany
-      ? (prisma as any).service.findMany({ orderBy: { name: "asc" } })
-      : Promise.resolve([]),
+    serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
   ]);
+
+  type ServiceRow = { name: string };
+  const services = servicesRaw as ServiceRow[];
 
   const serviceOptions = Array.from(
     new Set([
-      ...services.map((s: any) => s.name as string),
+      ...services.map((s) => s.name),
       ...FALLBACK_SERVICES,
     ]).values()
   );
   const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
+
+  const availabilityClient = prismaModels["doctorAvailabilityWindow"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+  const closureClient = prismaModels["practiceClosure"] as
+    | { findMany?: (args: unknown) => Promise<unknown[]> }
+    | undefined;
+
+  const [availabilityWindowsRaw, practiceClosuresRaw] = await Promise.all([
+    availabilityClient?.findMany ? availabilityClient.findMany({}) : Promise.resolve([]),
+    closureClient?.findMany
+      ? closureClient.findMany({ orderBy: [{ startsAt: "desc" }] })
+      : Promise.resolve([]),
+  ]);
+
+  const availabilityWindows = (availabilityWindowsRaw as unknown[]).map((row) => {
+    const win = row as Record<string, unknown>;
+    return {
+      doctorId: String(win.doctorId ?? ""),
+      dayOfWeek: Number(win.dayOfWeek ?? 0),
+      startMinute: Number(win.startMinute ?? 0),
+      endMinute: Number(win.endMinute ?? 0),
+    };
+  });
+
+  const practiceClosures = (practiceClosuresRaw as unknown[]).map((row) => {
+    const closure = row as Record<string, unknown>;
+    return {
+      startsAt: new Date(String(closure.startsAt ?? "")).toISOString(),
+      endsAt: new Date(String(closure.endsAt ?? "")).toISOString(),
+      title: (closure.title as string | null) ?? null,
+      type: (closure.type as string | undefined) ?? undefined,
+    };
+  });
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -449,22 +495,24 @@ export default async function AgendaPage({
                   <summary className="cursor-pointer font-semibold text-emerald-800">
                     Modifica appuntamento
                   </summary>
-                  <AppointmentUpdateForm
-                    appointment={{
-                      id: appt.id,
-                      title: appt.title,
-                      serviceType: appt.serviceType,
-                      startsAt: formatLocalInput(appt.startsAt),
-                      endsAt: formatLocalInput(appt.endsAt),
-                      patientId: appt.patientId,
-                      doctorId: appt.doctorId,
-                      status: appt.status,
-                    }}
-                    patients={patients}
-                    doctors={doctors}
-                    services={serviceOptionObjects}
-                    action={updateAppointment}
-                  />
+	                  <AppointmentUpdateForm
+	                    appointment={{
+	                      id: appt.id,
+	                      title: appt.title,
+	                      serviceType: appt.serviceType,
+	                      startsAt: formatLocalInput(appt.startsAt),
+	                      endsAt: formatLocalInput(appt.endsAt),
+	                      patientId: appt.patientId,
+	                      doctorId: appt.doctorId,
+	                      status: appt.status,
+	                    }}
+	                    patients={patients}
+	                    doctors={doctors}
+	                    services={serviceOptionObjects}
+	                    availabilityWindows={availabilityWindows}
+	                    practiceClosures={practiceClosures}
+	                    action={updateAppointment}
+	                  />
                   <form
                     action={deleteAppointment}
                     className="mt-3 flex justify-end"

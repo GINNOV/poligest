@@ -51,6 +51,13 @@ type PracticeClosure = {
   endsAt: Date;
 };
 
+type ClientPracticeClosure = {
+  startsAt: string;
+  endsAt: string;
+  title?: string | null;
+  type?: string;
+};
+
 function weekdayIso(date: Date) {
   const jsDay = date.getDay(); // 0=Sun ... 6=Sat
   return jsDay === 0 ? 7 : jsDay;
@@ -390,7 +397,7 @@ export default async function CalendarPage({
 
   type ServiceRow = { name: string };
 
-  const [appointmentsRaw, patients, servicesRaw, availabilityWindows, practiceClosures] =
+  const [appointmentsRaw, patients, servicesRaw, availabilityWindowsRaw, practiceClosuresRaw] =
     await Promise.all([
     selectedDoctorId
       ? prisma.appointment.findMany({
@@ -409,8 +416,12 @@ export default async function CalendarPage({
       select: { id: true, firstName: true, lastName: true },
     }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
-    selectedDoctorId && availabilityClient?.findMany
-      ? availabilityClient.findMany({ where: { doctorId: selectedDoctorId } })
+    availabilityClient?.findMany && doctors.length
+      ? availabilityClient.findMany({
+          where: {
+            doctorId: { in: doctors.map((doctor) => doctor.id) },
+          },
+        })
       : Promise.resolve([]),
     closureClient?.findMany
       ? closureClient.findMany({
@@ -423,8 +434,14 @@ export default async function CalendarPage({
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
   const services = servicesRaw as ServiceRow[];
-  const windows = availabilityWindows as AvailabilityWindow[];
-  const closures = practiceClosures as PracticeClosure[];
+  const windows = availabilityWindowsRaw as AvailabilityWindow[];
+  const closures = practiceClosuresRaw as PracticeClosure[];
+  const clientClosures: ClientPracticeClosure[] = closures.map((closure) => ({
+    startsAt: closure.startsAt.toISOString(),
+    endsAt: closure.endsAt.toISOString(),
+    title: closure.title,
+    type: closure.type,
+  }));
 
   const doctorColorById = new Map<string, string | null>();
   doctors.forEach((doctor) => doctorColorById.set(doctor.id, doctor.color ?? null));
@@ -478,7 +495,9 @@ export default async function CalendarPage({
   const calendarDays = days.map((day) => {
     const key = format(day, "yyyy-MM-dd");
     const dayAppointments = appointmentsByDay.get(key) ?? [];
-    const dayWindows = selectedDoctorId ? windowsByWeekday.get(weekdayIso(day)) ?? [] : [];
+    const dayWindows = selectedDoctorId
+      ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
+      : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
     const isPracticeClosed = closures.some(
@@ -510,7 +529,7 @@ export default async function CalendarPage({
   });
 
   return (
-    <div className="space-y-6">
+      <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">
@@ -571,6 +590,13 @@ export default async function CalendarPage({
             doctors={doctors}
             serviceOptions={serviceOptions}
             services={serviceOptionObjects}
+            availabilityWindows={windows.map((win) => ({
+              doctorId: win.doctorId,
+              dayOfWeek: win.dayOfWeek,
+              startMinute: win.startMinute,
+              endMinute: win.endMinute,
+            }))}
+            practiceClosures={clientClosures}
             action={createAppointment}
             updateAction={updateAppointment}
             deleteAction={deleteAppointment}

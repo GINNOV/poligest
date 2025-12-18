@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
 
@@ -165,22 +165,19 @@ export default async function AdminUsersPage({
         : "";
   const roleFilter = roles.includes(roleValue as Role) ? (roleValue as Role) : undefined;
 
-  const where =
-    query || roleFilter
-      ? {
-          AND: [
-            roleFilter ? { role: roleFilter } : {},
-            query
-              ? {
-                  OR: [
-                    { email: { contains: query, mode: "insensitive" } },
-                    { name: { contains: query, mode: "insensitive" } },
-                  ],
-                }
-              : {},
-          ],
-        }
-      : undefined;
+  const whereConditions: Prisma.UserWhereInput[] = [];
+  if (roleFilter) whereConditions.push({ role: roleFilter });
+  if (query) {
+    whereConditions.push({
+      OR: [
+        { email: { contains: query, mode: Prisma.QueryMode.insensitive } },
+        { name: { contains: query, mode: Prisma.QueryMode.insensitive } },
+      ],
+    });
+  }
+  const where: Prisma.UserWhereInput | undefined = whereConditions.length
+    ? { AND: whereConditions }
+    : undefined;
 
   const users = await prisma.user.findMany({
     where,

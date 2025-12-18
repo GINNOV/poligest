@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
-
-type Option = { value: string; label: string };
+import { computeSchedulingWarning, type AvailabilityWindow, type PracticeClosure } from "@/lib/scheduling-warnings";
 
 type Props = {
   patients: { id: string; firstName: string; lastName: string }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
+  availabilityWindows: AvailabilityWindow[];
+  practiceClosures: PracticeClosure[];
   action: (formData: FormData) => Promise<void>;
   initialStartsAt?: string;
   initialEndsAt?: string;
@@ -21,6 +22,8 @@ export function AppointmentCreateForm({
   patients,
   doctors,
   serviceOptions,
+  availabilityWindows,
+  practiceClosures,
   action,
   initialStartsAt,
   initialEndsAt,
@@ -85,8 +88,16 @@ export function AppointmentCreateForm({
           | HTMLInputElement
           | null;
 
+        if (form.dataset.confirmedSubmit === "true") {
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
+          return;
+        }
+
         if (allowSubmit) {
           setAllowSubmit(false);
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
           return;
         }
 
@@ -137,6 +148,32 @@ export function AppointmentCreateForm({
           submitter.removeAttribute("aria-busy");
           submitter.classList.remove("pointer-events-none", "opacity-70");
           submitter.disabled = false;
+        }
+
+        const warning = computeSchedulingWarning({
+          doctorId,
+          startsAt: startsAt ?? "",
+          endsAt: endsAt ?? "",
+          availabilityWindows,
+          practiceClosures,
+        });
+
+        if (warning) {
+          if (submitter) {
+            submitter.setAttribute("data-confirm", warning);
+          } else {
+            form.setAttribute("data-confirm", warning);
+          }
+          setChecking(false);
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit(submitter ?? undefined);
+          } else {
+            form.submit();
+          }
+          return;
+        } else {
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
         }
 
         setAllowSubmit(true);

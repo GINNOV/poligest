@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
+import { AdminDoctorAvailabilityEditor } from "@/components/admin-doctor-availability-editor";
 
 type PracticeClosureType = "HOLIDAY" | "TIME_OFF";
 const PRACTICE_CLOSURE_TYPES: PracticeClosureType[] = ["HOLIDAY", "TIME_OFF"];
@@ -36,16 +37,6 @@ const prismaModels = prisma as unknown as Record<string, unknown>;
 const availabilityClient = prismaModels["doctorAvailabilityWindow"] as CrudClient | undefined;
 const closureClient = prismaModels["practiceClosure"] as CrudClient | undefined;
 
-const WEEKDAYS: Array<{ value: number; label: string }> = [
-  { value: 1, label: "Lun" },
-  { value: 2, label: "Mar" },
-  { value: 3, label: "Mer" },
-  { value: 4, label: "Gio" },
-  { value: 5, label: "Ven" },
-  { value: 6, label: "Sab" },
-  { value: 7, label: "Dom" },
-];
-
 function parseDayOfWeek(value: unknown) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
   if (!Number.isFinite(parsed) || parsed < 1 || parsed > 7) {
@@ -59,15 +50,6 @@ function parseTimeToMinutes(value: unknown) {
   const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(raw);
   if (!match) throw new Error("Orario non valido (usa HH:MM).");
   return Number.parseInt(match[1], 10) * 60 + Number.parseInt(match[2], 10);
-}
-
-function minutesToTime(minutes: number) {
-  const safe = Math.max(0, Math.min(24 * 60 - 1, minutes));
-  const hours = Math.floor(safe / 60)
-    .toString()
-    .padStart(2, "0");
-  const mins = (safe % 60).toString().padStart(2, "0");
-  return `${hours}:${mins}`;
 }
 
 function normalizeHexColor(value: unknown) {
@@ -396,156 +378,21 @@ export default async function AdminCalendarSettingsPage({
               </span>
             </div>
 
-            {selectedDoctor ? (
-              <>
-                <form
-                  action={createAvailabilityWindow}
-                  className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr,1fr,1fr,auto]"
-                >
-                  <input type="hidden" name="doctorId" value={selectedDoctorId} />
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                    Giorno
-                    <select
-                      name="dayOfWeek"
-                      className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      defaultValue={1}
-                    >
-                      {WEEKDAYS.map((day) => (
-                        <option key={day.value} value={day.value}>
-                          {day.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                    Inizio
-                    <input
-                      name="startTime"
-                      type="time"
-                      required
-                      className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      defaultValue="09:00"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                    Fine
-                    <input
-                      name="endTime"
-                      type="time"
-                      required
-                      className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      defaultValue="13:00"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                    Colore
-                    <input
-                      name="color"
-                      type="color"
-                      defaultValue={selectedDoctor?.color ?? "#10b981"}
-                      className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-2"
-                    />
-                  </label>
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-                    >
-                      Aggiungi fascia
-                    </button>
-                  </div>
-                </form>
-
-                <div className="mt-6 space-y-3">
-                  {windows.length === 0 ? (
-                    <p className="text-sm text-zinc-600">
-                      Nessuna fascia configurata. Aggiungi una disponibilità per iniziare.
-                    </p>
-                  ) : (
-                    windows.map((win) => (
-                      <div
-                        key={win.id}
-                        className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                          <form
-                            action={updateAvailabilityWindow}
-                            className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr,1fr,1fr,1fr,auto]"
-                          >
-                            <input type="hidden" name="windowId" value={win.id} />
-                            <input type="hidden" name="doctorId" value={selectedDoctorId} />
-                            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                              Giorno
-                              <select
-                                name="dayOfWeek"
-                                defaultValue={win.dayOfWeek}
-                                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              >
-                                {WEEKDAYS.map((day) => (
-                                  <option key={day.value} value={day.value}>
-                                    {day.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                              Inizio
-                              <input
-                                name="startTime"
-                                type="time"
-                                required
-                                defaultValue={minutesToTime(win.startMinute)}
-                                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                              Fine
-                              <input
-                                name="endTime"
-                                type="time"
-                                required
-                                defaultValue={minutesToTime(win.endMinute)}
-                                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                              />
-                            </label>
-                            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                              Colore
-                              <input
-                                name="color"
-                                type="color"
-                                defaultValue={win.color ?? selectedDoctor?.color ?? "#10b981"}
-                                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-2"
-                              />
-                            </label>
-                            <div className="flex items-end">
-                              <button
-                                type="submit"
-                                className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                              >
-                                Salva
-                              </button>
-                            </div>
-                          </form>
-                          <form action={deleteAvailabilityWindow} className="flex justify-start sm:justify-end">
-                            <input type="hidden" name="windowId" value={win.id} />
-                            <input type="hidden" name="doctorId" value={selectedDoctorId} />
-                            <button
-                              type="submit"
-                              className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
-                            >
-                              Elimina
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            ) : (
-              <p className="mt-4 text-sm text-zinc-600">Crea prima un medico per impostarne la disponibilità.</p>
-            )}
-          </section>
+	            {selectedDoctor ? (
+	              <div className="mt-4">
+	                <AdminDoctorAvailabilityEditor
+	                  doctorId={selectedDoctorId}
+	                  doctorColor={selectedDoctor.color ?? null}
+	                  windows={windows}
+	                  createAction={createAvailabilityWindow}
+	                  updateAction={updateAvailabilityWindow}
+	                  deleteAction={deleteAvailabilityWindow}
+	                />
+	              </div>
+	            ) : (
+	              <p className="mt-4 text-sm text-zinc-600">Crea prima un medico per impostarne la disponibilità.</p>
+	            )}
+	          </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ConflictDialog } from "@/components/conflict-dialog";
+import { computeSchedulingWarning, type AvailabilityWindow, type PracticeClosure } from "@/lib/scheduling-warnings";
 
 type Person = { id: string; firstName: string; lastName: string };
 type Doctor = { id: string; fullName: string; specialty: string | null };
@@ -21,6 +22,8 @@ type AppointmentUpdateFormProps = {
   patients: Person[];
   doctors: Doctor[];
   services: ServiceOption[];
+  availabilityWindows: AvailabilityWindow[];
+  practiceClosures: PracticeClosure[];
   action: (formData: FormData) => Promise<void>;
   returnTo?: string;
 };
@@ -30,6 +33,8 @@ export function AppointmentUpdateForm({
   patients,
   doctors,
   services,
+  availabilityWindows,
+  practiceClosures,
   action,
   returnTo,
 }: AppointmentUpdateFormProps) {
@@ -67,10 +72,21 @@ export function AppointmentUpdateForm({
       action={action}
       onSubmit={async (e) => {
         const form = e.currentTarget;
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as
+          | HTMLButtonElement
+          | HTMLInputElement
+          | null;
 
         // If we already green-lit submission, let it flow through.
+        if (form.dataset.confirmedSubmit === "true") {
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
+          return;
+        }
         if (allowSubmit) {
           setAllowSubmit(false);
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
           return;
         }
 
@@ -125,9 +141,41 @@ export function AppointmentUpdateForm({
           setChecking(false);
         }
 
+        if (submitter) {
+          submitter.dataset.submitting = "false";
+          submitter.removeAttribute("aria-busy");
+          submitter.classList.remove("pointer-events-none", "opacity-70");
+          submitter.disabled = false;
+        }
+
+        const warning = computeSchedulingWarning({
+          doctorId,
+          startsAt: startsAt ?? "",
+          endsAt: endsAt ?? "",
+          availabilityWindows,
+          practiceClosures,
+        });
+
+        if (warning) {
+          if (submitter) {
+            submitter.setAttribute("data-confirm", warning);
+          } else {
+            form.setAttribute("data-confirm", warning);
+          }
+          if (typeof form.requestSubmit === "function") {
+            form.requestSubmit(submitter ?? undefined);
+          } else {
+            form.submit();
+          }
+          return;
+        } else {
+          form.removeAttribute("data-confirm");
+          submitter?.removeAttribute("data-confirm");
+        }
+
         // No conflicts: allow the native submit so the server action can redirect without errors.
         setAllowSubmit(true);
-        form.requestSubmit();
+        form.requestSubmit(submitter ?? undefined);
       }}
     >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}

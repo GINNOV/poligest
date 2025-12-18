@@ -65,6 +65,40 @@ enum PracticeClosureType {
   TIME_OFF
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  NOT_SPECIFIED
+}
+
+model FeatureUpdate {
+  id           String   @id @default(cuid())
+  title        String
+  bodyMarkdown String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dismissals FeatureUpdateDismissal[]
+
+  @@index([isActive, createdAt])
+}
+
+model FeatureUpdateDismissal {
+  id             String   @id @default(cuid())
+  userId         String
+  featureUpdateId String
+  dismissedAt    DateTime @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureUpdate FeatureUpdate @relation(fields: [featureUpdateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureUpdateId], name: "user_feature_update_unique")
+  @@index([featureUpdateId])
+  @@index([userId])
+}
+
 model RoleFeatureAccess {
   id      String @id @default(cuid())
   role    Role
@@ -124,6 +158,9 @@ model User {
   locale         String    @default("it")
   isActive       Boolean   @default(true)
   lastLoginAt    DateTime?
+  avatarUrl      String?
+  personalPin    String?   @unique
+  gender         Gender    @default(NOT_SPECIFIED)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -133,6 +170,8 @@ model User {
   financeEntries FinanceEntry[]  @relation("FinanceEntryUser")
   cashAdvances   CashAdvance[]   @relation("CashAdvanceUser")
   smsLogs        SmsLog[]
+  featureUpdateDismissals FeatureUpdateDismissal[]
+  awards         UserAward[]
 }
 
 model Doctor {
@@ -152,6 +191,23 @@ model Doctor {
   financeEntries FinanceEntry[]
   cashAdvances   CashAdvance[]
   availabilityWindows DoctorAvailabilityWindow[]
+  assignedAwards UserAward[] @relation("UserAwardDoctor")
+}
+
+model UserAward {
+  id          String   @id @default(cuid())
+  userId      String
+  emoji       String
+  title       String
+  description String?
+  doctorId    String?
+  createdAt   DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctor Doctor? @relation("UserAwardDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([doctorId])
 }
 
 model DoctorAvailabilityWindow {
