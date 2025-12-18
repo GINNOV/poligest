@@ -58,6 +58,9 @@ async function createPatient(formData: FormData) {
   if (!signatureBuffer) {
     throw new Error("Firma digitale obbligatoria");
   }
+  if (!patientSignature) {
+    throw new Error("Firma del paziente obbligatoria (nome leggibile).");
+  }
 
   const structuredNotesText = [
     address || city ? `Indirizzo: ${address ?? "—"}${city ? `, ${city}` : ""}` : null,

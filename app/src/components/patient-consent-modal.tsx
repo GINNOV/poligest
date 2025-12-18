@@ -133,6 +133,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
   const [signatureError, setSignatureError] = useState<string | null>(null);
   const [hasStroke, setHasStroke] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const inlineCanvasRef = useRef<HTMLCanvasElement>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -141,8 +142,8 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
     }
   }, [isOpen]);
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
+  const clearCanvas = (ref: React.RefObject<HTMLCanvasElement | null> = canvasRef) => {
+    const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -155,22 +156,24 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
   };
 
   const resizeCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ratio = window.devicePixelRatio || 1;
-    const width = canvas.offsetWidth * ratio;
-    const height = canvas.offsetHeight * ratio;
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.scale(ratio, ratio);
-        ctx.lineWidth = 2.4;
-        ctx.lineCap = "round";
-        ctx.strokeStyle = "#0f172a";
+    [canvasRef, inlineCanvasRef].forEach((ref) => {
+      const canvas = ref.current;
+      if (!canvas) return;
+      const ratio = window.devicePixelRatio || 1;
+      const width = canvas.offsetWidth * ratio;
+      const height = canvas.offsetHeight * ratio;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.scale(ratio, ratio);
+          ctx.lineWidth = 2.4;
+          ctx.lineCap = "round";
+          ctx.strokeStyle = "#0f172a";
+        }
       }
-    }
+    });
   };
 
   useEffect(() => {
@@ -221,31 +224,42 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
     };
   }, [fiscalCodeProp]);
 
-  const getPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
+  const getPoint = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+    ref: React.RefObject<HTMLCanvasElement | null> = canvasRef
+  ) => {
+    const canvas = ref.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
     };
   };
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerDown = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+    ref: React.RefObject<HTMLCanvasElement | null> = canvasRef
+  ) => {
     event.preventDefault();
-    const point = getPoint(event);
+    const point = getPoint(event, ref);
     if (!point) return;
     lastPoint.current = point;
     setHasStroke(true);
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+    ref: React.RefObject<HTMLCanvasElement | null> = canvasRef
+  ) => {
     if (!lastPoint.current) return;
-    const canvas = canvasRef.current;
+    const canvas = ref.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const point = getPoint(event);
+    const point = getPoint(event, ref);
     if (!point) return;
     ctx.beginPath();
     ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
@@ -258,8 +272,8 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
     lastPoint.current = null;
   };
 
-  const saveSignature = () => {
-    const canvas = canvasRef.current;
+  const saveSignature = (ref: React.RefObject<HTMLCanvasElement | null> = canvasRef) => {
+    const canvas = ref.current;
     if (!canvas || !hasStroke) {
       setSignatureError("Firma obbligatoria. Disegna la firma e riprova.");
       return;
@@ -390,6 +404,49 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
         </label>
       </div>
 
+      <div className="space-y-2 rounded-lg border border-emerald-100 bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+            <p className="text-xs text-emerald-700">
+              Firma qui sotto; usa Cancella per ricominciare. Puoi anche aprire l&apos;informativa sopra.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                clearCanvas(inlineCanvasRef);
+                setHasStroke(false);
+                setSignatureData("");
+              }}
+              className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
+            >
+              Cancella
+            </button>
+            <button
+              type="button"
+              onClick={() => saveSignature(inlineCanvasRef)}
+              disabled={!hasStroke}
+              className="rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Salva firma
+            </button>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
+          <canvas
+            ref={inlineCanvasRef}
+            className="h-40 w-full bg-white"
+            onPointerDown={(e) => handlePointerDown(e, inlineCanvasRef)}
+            onPointerMove={(e) => handlePointerMove(e, inlineCanvasRef)}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+          />
+        </div>
+        {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+      </div>
+
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
         <Link
           href="/pazienti"
@@ -452,47 +509,54 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
               </div>
             </div>
 
-            {hasReachedEnd ? (
-              <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
-                    <p className="text-xs text-emerald-700">Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={clearCanvas}
-                      className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
-                    >
-                      Cancella
-                    </button>
-                    <button
-                      type="button"
-                      onClick={saveSignature}
-                      className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                    >
-                      Salva firma
-                    </button>
-                  </div>
+            <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+                  <p className="text-xs text-emerald-700">
+                    Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.
+                    {!hasReachedEnd ? " Completa la lettura dell'informativa prima di salvare." : ""}
+                  </p>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearCanvas(canvasRef);
+                      setHasStroke(false);
+                      setSignatureData("");
+                    }}
+                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                  >
+                    Cancella
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => saveSignature(canvasRef)}
+                    disabled={!hasStroke}
+                    className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Salva firma
+                  </button>
+                </div>
+              </div>
                 <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
                   <canvas
                     ref={canvasRef}
                     className="h-44 w-full touch-none"
-                    onPointerDown={handlePointerDown}
-                    onPointerMove={handlePointerMove}
+                    onPointerDown={(e) => handlePointerDown(e, canvasRef)}
+                    onPointerMove={(e) => handlePointerMove(e, canvasRef)}
                     onPointerUp={handlePointerUp}
                     onPointerLeave={handlePointerUp}
                   />
                 </div>
                 {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+                {!hasReachedEnd ? (
+                  <p className="text-xs font-semibold text-amber-700">
+                    Scorri l&apos;informativa fino in fondo prima di salvare la firma.
+                  </p>
+                ) : null}
               </div>
-            ) : (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                Completa la lettura di tutte le pagine per poter inserire la firma digitale.
-              </div>
-            )}
           </div>
         </div>
       ) : null}

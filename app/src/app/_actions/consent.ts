@@ -27,6 +27,10 @@ export async function addConsentAction(formData: FormData) {
       throw new Error("Dati consenso non validi");
     }
 
+    if (!patientSignature) {
+      throw new Error("Inserisci il nome leggibile del paziente.");
+    }
+
     if (!consentSignatureData) {
       throw new Error("Acquisisci la firma digitale del paziente.");
     }

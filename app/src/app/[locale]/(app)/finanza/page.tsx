@@ -134,7 +134,7 @@ export default async function FinanzaPage() {
     prisma.product.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
-  let advances = [];
+  let advances: { id: string; patientId: string; amount: any; issuedAt: Date; note: string | null }[] = [];
   try {
     advances = await prisma.cashAdvance.findMany({
       orderBy: { issuedAt: "desc" },
