@@ -125,12 +125,20 @@ export default async function Home() {
 
         <footer className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-white/80 px-5 py-4 text-sm text-zinc-600 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <span>© Garage Innovation LLC — Version: {commitHash}</span>
-          <Link
-            href="/privacy"
-            className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
-          >
-            Privacy
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/docs"
+              className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
+            >
+              Documentazione
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
+            >
+              Privacy
+            </Link>
+          </div>
         </footer>
       </div>
     </main>

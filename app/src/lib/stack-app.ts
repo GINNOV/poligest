@@ -15,8 +15,12 @@ const STACK_API_BASE = (
     : "https://api.stack-auth.com"
 ).replace(/\/$/, "");
 
-// Stack's client-side OAuth helpers require an absolute base URL. Use the site origin if provided.
-const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || "";
+// Stack's client-side OAuth helpers require an absolute base URL.
+// In development prefer NEXTAUTH_URL (usually localhost) so the browser talks to the local proxy.
+const siteOrigin =
+  process.env.NODE_ENV === "production"
+    ? process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || ""
+    : process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
 const browserBaseUrl = siteOrigin
   ? `${siteOrigin.replace(/\/$/, "")}/api/stack`
   : "/api/stack";

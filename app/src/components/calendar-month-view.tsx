@@ -259,7 +259,7 @@ export function CalendarMonthView({
                   </span>
                 ) : !day.isPracticeClosed && day.inMonth && !day.availabilityColors?.length ? (
                   <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700">
-                    OFF
+                    Non Disp.
                   </span>
                 ) : null}
                 {day.appointments.length ? (

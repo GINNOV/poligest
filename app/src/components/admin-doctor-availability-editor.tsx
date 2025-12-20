@@ -27,6 +27,20 @@ const WEEKDAYS: Weekday[] = [
   { value: 7, label: "Domenica", short: "D" },
 ];
 
+// Fixed palette to avoid a confusing free-form color picker.
+const BASE_COLOR_OPTIONS = [
+  "#10b981", // emerald
+  "#22c55e", // green
+  "#0ea5e9", // sky
+  "#6366f1", // indigo
+  "#f97316", // orange
+  "#f59e0b", // amber
+  "#e11d48", // rose
+  "#a855f7", // violet
+  "#06b6d4", // cyan
+  "#94a3b8", // slate
+];
+
 function minutesToTime(minutes: number) {
   const safe = Math.max(0, Math.min(24 * 60 - 1, minutes));
   const hours = Math.floor(safe / 60)
@@ -34,6 +48,45 @@ function minutesToTime(minutes: number) {
     .padStart(2, "0");
   const mins = (safe % 60).toString().padStart(2, "0");
   return `${hours}:${mins}`;
+}
+
+function ColorSwatches({
+  name,
+  defaultValue,
+  palette,
+}: {
+  name: string;
+  defaultValue: string;
+  palette: string[];
+}) {
+  const effectiveDefault = palette.includes(defaultValue) ? defaultValue : palette[0];
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {palette.map((color) => (
+        <label
+          key={color}
+          className="group relative inline-flex h-10 w-12 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:border-emerald-200 hover:shadow-sm"
+        >
+          <input
+            type="radio"
+            name={name}
+            value={color}
+            defaultChecked={color === effectiveDefault}
+            className="peer sr-only"
+          />
+          <span
+            className="flex h-7 w-7 items-center justify-center rounded-full border border-white shadow-inner"
+            style={{ backgroundColor: color }}
+            aria-hidden
+          />
+          <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-lg font-bold text-emerald-900 peer-checked:flex">
+            ✓
+          </span>
+        </label>
+      ))}
+    </div>
+  );
 }
 
 type Props = {
@@ -54,6 +107,15 @@ export function AdminDoctorAvailabilityEditor({
   deleteAction,
 }: Props) {
   const [selectedDay, setSelectedDay] = useState<number>(1);
+
+  const palette = useMemo(() => {
+    const set = new Set(BASE_COLOR_OPTIONS);
+    if (doctorColor) set.add(doctorColor);
+    windows.forEach((w) => {
+      if (w.color) set.add(w.color);
+    });
+    return Array.from(set).slice(0, 10);
+  }, [doctorColor, windows]);
 
   const windowsByDay = useMemo(() => {
     const map = new Map<number, AvailabilityWindowRow[]>();
@@ -129,7 +191,7 @@ export function AdminDoctorAvailabilityEditor({
 
         <form
           action={createAction}
-          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr,1fr,1fr,auto]"
+          className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr,1fr]"
         >
           <input type="hidden" name="doctorId" value={doctorId} />
           <input type="hidden" name="dayOfWeek" value={selectedDay} />
@@ -153,16 +215,15 @@ export function AdminDoctorAvailabilityEditor({
               className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
             Colore
-            <input
+            <ColorSwatches
               name="color"
-              type="color"
-              defaultValue={doctorColor ?? "#10b981"}
-              className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-2"
+              palette={palette}
+              defaultValue={doctorColor ?? palette[0]}
             />
-          </label>
-          <div className="flex items-end">
+          </div>
+          <div className="flex items-end justify-end">
             <button
               type="submit"
               className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
@@ -178,7 +239,7 @@ export function AdminDoctorAvailabilityEditor({
               Nessuna fascia impostata per {selectedDayMeta.label}. Aggiungine una sopra.
             </div>
           ) : (
-            selectedWindows.map((win) => (
+            selectedWindows.map((win, index) => (
               <div
                 key={win.id}
                 className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
@@ -186,8 +247,13 @@ export function AdminDoctorAvailabilityEditor({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <form
                     action={updateAction}
-                    className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[1fr,1fr,1fr,auto]"
+                    className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[auto,1fr,1fr,1fr]"
                   >
+                    <div className="flex items-center">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-800">
+                        {index + 1}
+                      </span>
+                    </div>
                     <input type="hidden" name="windowId" value={win.id} />
                     <input type="hidden" name="doctorId" value={doctorId} />
                     <input type="hidden" name="dayOfWeek" value={selectedDay} />
@@ -211,16 +277,15 @@ export function AdminDoctorAvailabilityEditor({
                         className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                       />
                     </label>
-                    <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                    <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                       Colore
-                      <input
+                      <ColorSwatches
                         name="color"
-                        type="color"
-                        defaultValue={win.color ?? doctorColor ?? "#10b981"}
-                        className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-2"
+                        palette={palette}
+                        defaultValue={win.color ?? doctorColor ?? palette[0]}
                       />
-                    </label>
-                    <div className="flex items-end">
+                    </div>
+                    <div className="flex items-end justify-end">
                       <button
                         type="submit"
                         className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
@@ -248,4 +313,3 @@ export function AdminDoctorAvailabilityEditor({
     </div>
   );
 }
-

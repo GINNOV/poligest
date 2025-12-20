@@ -7,6 +7,7 @@ import { Role } from "@prisma/client";
 import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
+import { UserMenu } from "@/components/user-menu";
 import { execSync } from "node:child_process";
 import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
@@ -103,30 +104,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               ) : null}
             </nav>
           </div>
-          <div className="flex items-center gap-3 text-sm text-zinc-700">
-            <Link href="/profilo" className="flex items-center gap-3 hover:text-emerald-800">
-              {user?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.avatarUrl}
-                  alt="Avatar"
-                  className="h-9 w-9 rounded-full border border-zinc-200 object-cover"
-                />
-              ) : (
-                <div className="grid h-9 w-9 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-[11px] font-semibold text-zinc-700">
-                  {(user?.name ?? user?.email ?? "U")
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((part) => part[0]?.toUpperCase())
-                    .join("")}
-                </div>
-              )}
-              <span className="font-semibold text-zinc-900">{user?.name ?? user?.email}</span>
-              <span className="text-xs uppercase text-emerald-700">{user?.role ? roleLabels[user.role] : ""}</span>
-            </Link>
-            <SignOutButton label={t("logout")} signOutUrl={signOutUrl} />
-          </div>
+          {user ? (
+            <UserMenu
+              name={user.name ?? user.email}
+              email={user.email}
+              avatarUrl={user.avatarUrl ?? null}
+              roleLabel={user.role ? roleLabels[user.role] : ""}
+              signOutUrl={signOutUrl}
+            />
+          ) : null}
         </div>
       </header>
 

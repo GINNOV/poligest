@@ -236,7 +236,7 @@ export default async function ProfilePage() {
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-zinc-900">PIN personale</h2>
             <p className="mt-1 text-sm text-zinc-600">
-              Il PIN è generato dal sistema, unico e non può essere cambiato.
+              Ogni paziente ha un codice un&apos;univoco (PIN) che e&apos; utilizzato per verificare l&apos;identita&apos;. Il PIN è generato dal sistema, unico e non può essere cambiato.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {pinDigits.map((digit, idx) => (

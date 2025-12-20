@@ -37,3 +37,68 @@ body {
 .stack-scope input::placeholder {
   color: #6b7280;
 }
+
+.markdown-body {
+  color: #0f172a;
+  line-height: 1.7;
+  font-size: 0.975rem;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  color: #0f172a;
+  font-weight: 700;
+  margin: 1.2em 0 0.6em;
+}
+
+.markdown-body h1 {
+  font-size: 1.8rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.4rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.2rem;
+}
+
+.markdown-body p {
+  margin: 0.8em 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.6em 0 0.8em 1.2em;
+  padding: 0;
+}
+
+.markdown-body li {
+  margin: 0.3em 0;
+}
+
+.markdown-body a {
+  color: #047857;
+  text-decoration: underline;
+  text-decoration-color: #a7f3d0;
+  text-decoration-thickness: 2px;
+}
+
+.markdown-body code {
+  background: #f1f5f9;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+  font-size: 0.9em;
+}
+
+.markdown-body pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.9em;
+  margin: 1rem 0;
+}

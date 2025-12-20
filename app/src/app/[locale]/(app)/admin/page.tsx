@@ -92,14 +92,6 @@ export default async function AdminPage() {
       tone: "neutral",
     },
     {
-      key: "inventory",
-      title: t("inventory"),
-      description: "Giacenze e movimenti del magazzino.",
-      href: "/magazzino",
-      badge: "Operativo",
-      tone: "neutral",
-    },
-    {
       key: "settings",
       title: t("settings"),
       description: "Preferenze generali e integrazioni (presto disponibile).",
