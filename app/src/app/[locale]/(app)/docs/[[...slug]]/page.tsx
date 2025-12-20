@@ -63,12 +63,12 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
   }
 
   const docs = await loadDocsIndex();
-  const html = marked.parse(markdown, { mangle: false, headerIds: false }) as string;
+  const html = marked.parse(markdown) as string;
   const currentTitle = docs.find((doc) => doc.slug === requestedSlug)?.title ?? toTitle(requestedSlug);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[260px,1fr]">
-      <aside className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="grid gap-6 lg:grid-cols-[280px,1fr] lg:items-start">
+      <aside className="sticky top-24 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-zinc-700">Documentazione</h2>
         <div className="space-y-1 text-sm font-semibold text-zinc-800">
           {docs.map((doc) => {
