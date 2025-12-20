@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RecallStatus } from "@prisma/client";
 import { sendSms } from "@/lib/sms";
-
-// Stubbed email/SMS senders; replace with real provider integrations.
-async function sendEmail(to: string, subject: string, body: string) {
-  console.log("[recalls] email", { to, subject, body });
-}
+import { sendEmail } from "@/lib/email";
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;

@@ -117,7 +117,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
-      <SiteFooter version={version} />
+      <SiteFooter version={version} showDocs />
       {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
     </div>
   );
