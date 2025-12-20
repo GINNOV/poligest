@@ -5,13 +5,29 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
+import { cookies } from "next/headers";
+import { stackServerApp } from "@/lib/stack-app";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
+
+async function resolveStackUserIdByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const response: any = await (stackServerApp as any)._interface.listServerUsers({
+    query: normalized,
+    limit: 20,
+  });
+  const items: any[] = response?.items ?? response ?? [];
+  const match = items.find((u) => (u.primary_email ?? u.email ?? "").toLowerCase() === normalized) ?? items[0];
+  if (!match?.id) {
+    throw new Error("Impossibile trovare l'utente Stack per impersonificazione.");
+  }
+  return match.id as string;
+}
 
 async function upsertUser(formData: FormData) {
   "use server";
 
-  const admin = await requireUser([Role.ADMIN]);
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const email = (formData.get("email") as string)?.trim().toLowerCase();
   const name = (formData.get("name") as string)?.trim() || null;
   const role = formData.get("role") as Role;
@@ -48,7 +64,7 @@ async function upsertUser(formData: FormData) {
 async function setUserStatus(formData: FormData) {
   "use server";
 
-  const admin = await requireUser([Role.ADMIN]);
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const userId = formData.get("userId") as string;
   const active = formData.get("active") === "true";
   if (!userId) throw new Error("Utente non valido");
@@ -70,7 +86,7 @@ async function setUserStatus(formData: FormData) {
 async function setUserRole(formData: FormData) {
   "use server";
 
-  const admin = await requireUser([Role.ADMIN]);
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const userId = formData.get("userId") as string;
   const role = formData.get("role") as Role;
   if (!userId || !role || !roles.includes(role)) {
@@ -95,7 +111,7 @@ async function setUserRole(formData: FormData) {
 async function deleteUser(formData: FormData) {
   "use server";
 
-  await requireUser([Role.ADMIN]);
+  await requireUser([Role.ADMIN], { allowImpersonation: false });
   const userId = formData.get("userId") as string;
   if (!userId) throw new Error("Utente non valido");
 
@@ -106,7 +122,7 @@ async function deleteUser(formData: FormData) {
 async function updateUserDetails(formData: FormData) {
   "use server";
 
-  const admin = await requireUser([Role.ADMIN]);
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const userId = formData.get("userId") as string;
   const name = (formData.get("name") as string)?.trim() || null;
   const email = (formData.get("email") as string)?.trim().toLowerCase();
@@ -139,14 +155,102 @@ async function updateUserDetails(formData: FormData) {
   revalidatePath("/admin/utenti");
 }
 
+async function startImpersonation(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const targetUserId = (formData.get("userId") as string)?.trim();
+  if (!targetUserId) throw new Error("Utente non valido");
+  const target = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, isActive: true, email: true },
+  });
+  if (!target) throw new Error("Utente non trovato");
+  if (!target.isActive) throw new Error("Non è possibile impersonare un utente disattivato.");
+
+  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
+  if (!projectId) throw new Error("Project ID Stack mancante");
+
+  // Resolve the Stack user id by email to generate an impersonation session.
+  const stackUserId = await resolveStackUserIdByEmail(target.email);
+
+  // Create a short-lived session flagged as impersonation.
+  const { accessToken, refreshToken } = await (stackServerApp as any)._interface.createServerUserSession(
+    stackUserId,
+    1000 * 60 * 60 * 6, // 6 hours
+    true,
+  );
+
+  const store = await cookies();
+  store.set("impersonateUserId", target.id, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60, // 1 hour
+  });
+  store.set(`stack-access-${projectId}`, accessToken, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 6,
+  });
+  store.set(`stack-refresh-${projectId}`, refreshToken, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 6,
+  });
+
+  await logAudit(admin, {
+    action: "admin.user.impersonate",
+    entity: "User",
+    entityId: target.id,
+    metadata: { impersonated: true },
+  });
+
+  revalidatePath("/");
+}
+
+async function stopImpersonation() {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const store = await cookies();
+  const current = store.get("impersonateUserId")?.value;
+  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
+  if (projectId) {
+    store.delete(`stack-access-${projectId}`);
+    store.delete(`stack-refresh-${projectId}`);
+  }
+  store.delete("impersonateUserId");
+
+  if (current) {
+    await logAudit(admin, {
+      action: "admin.user.stop_impersonation",
+      entity: "User",
+      entityId: current,
+    });
+  }
+
+  revalidatePath("/");
+}
+
 export default async function AdminUsersPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireUser([Role.ADMIN]);
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const t = await getTranslations("admin");
   const params = await searchParams;
+  const cookieStore = await cookies();
+  const impersonatedUserId = cookieStore.get("impersonateUserId")?.value ?? null;
+  const impersonatedUser = impersonatedUserId
+    ? await prisma.user.findUnique({ where: { id: impersonatedUserId }, select: { id: true, name: true, email: true, role: true } })
+    : null;
   const queryParam = params.q;
   const queryValue =
     typeof queryParam === "string"
@@ -250,6 +354,25 @@ export default async function AdminUsersPage({
           </span>
         </div>
       </div>
+      {impersonatedUser ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold">
+                Impersonificazione attiva: {impersonatedUser.name ?? impersonatedUser.email} ({impersonatedUser.role})
+              </p>
+              <p className="text-xs text-amber-800">
+                Stai navigando come questo utente. Le aree admin continuano a mostrarti il tuo account reale.
+              </p>
+            </div>
+            <form action={stopImpersonation}>
+              <button className="rounded-full border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100">
+                Torna al mio account
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr,0.85fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -271,6 +394,11 @@ export default async function AdminUsersPage({
                     <div className="font-semibold text-zinc-900">
                       {user.name ?? user.email}
                     </div>
+                    {impersonatedUserId === user.id ? (
+                      <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                        Stai impersonando questo utente
+                      </div>
+                    ) : null}
                     <div className="text-xs text-zinc-600">
                       {user.email} · {user.locale} ·{" "}
                       {user.lastLoginAt
@@ -374,6 +502,17 @@ export default async function AdminUsersPage({
                           Elimina
                         </button>
                       </form>
+                      {user.id !== admin.id ? (
+                        <form action={startImpersonation} className="flex justify-start sm:justify-end">
+                          <input type="hidden" name="userId" value={user.id} />
+                          <button
+                            type="submit"
+                            className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-900"
+                          >
+                            Impersona
+                          </button>
+                        </form>
+                      ) : null}
                     </div>
                   </div>
                 </div>

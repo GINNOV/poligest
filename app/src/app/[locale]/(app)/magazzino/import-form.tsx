@@ -4,6 +4,7 @@ import { useState } from "react";
 import { importStockFromCSV } from "./actions";
 import { useFormStatus } from "react-dom";
 import { cn } from "@/lib/utils";
+import { LocalizedFileInput } from "@/components/localized-file-input";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -43,7 +44,7 @@ export function ImportForm() {
       <h2 className="text-sm font-semibold text-zinc-900">Importa / Esporta</h2>
       <form action={handleSubmit} className="mt-3 space-y-3 text-sm">
         <p className="text-xs text-zinc-500">Carica un file CSV con colonne: Paziente; Tipo; Marca; Data Acq; UDI-DI; UDI-PI; Data Int; Sede.</p>
-        <input type="file" name="file" accept=".csv" required className="w-full text-zinc-500 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100" />
+        <LocalizedFileInput name="file" accept=".csv" required placeholder="Nessun file selezionato" />
         <SubmitButton />
       </form>
       {message && <p className="mt-2 text-xs font-medium text-emerald-600">{message}</p>}

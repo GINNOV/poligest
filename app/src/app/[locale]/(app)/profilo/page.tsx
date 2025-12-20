@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { Gender, Role } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { put } from "@vercel/blob";
+import { LocalizedFileInput } from "@/components/localized-file-input";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -180,13 +181,7 @@ export default async function ProfilePage() {
             </div>
           </div>
           <form action={uploadAvatar} className="mt-4 space-y-3">
-            <input
-              type="file"
-              name="avatar"
-              accept="image/png,image/jpeg,image/webp"
-              className="block w-full text-sm text-zinc-700 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-emerald-800 hover:file:bg-emerald-100"
-              required
-            />
+            <LocalizedFileInput name="avatar" accept="image/png,image/jpeg,image/webp" required />
             <button
               type="submit"
               className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"

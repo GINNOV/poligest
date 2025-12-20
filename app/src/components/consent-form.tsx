@@ -11,12 +11,13 @@ type Props = {
   typeLabels: Record<string, string>;
   typeContents: Record<string, string>;
   existingTypes: ConsentType[];
+  doctors: { id: string; fullName: string }[];
 };
 
 const CHANNELS = ["Di persona", "Telefono", "Manuale", "Digitale"];
 const DEFAULT_CONSENT_TYPE: ConsentType = "PRIVACY";
 
-export function ConsentForm({ patientId, typeLabels, typeContents, existingTypes }: Props) {
+export function ConsentForm({ patientId, typeLabels, typeContents, existingTypes, doctors }: Props) {
   const [selectedType, setSelectedType] = useState<ConsentType>(DEFAULT_CONSENT_TYPE);
   const content = useMemo(
     () => typeContents[selectedType] ?? typeContents[DEFAULT_CONSENT_TYPE] ?? "",
@@ -71,7 +72,7 @@ export function ConsentForm({ patientId, typeLabels, typeContents, existingTypes
       </div>
 
       <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-        <PatientConsentSection content={content} />
+        <PatientConsentSection content={content} doctors={doctors} />
       </div>
     </form>
   );

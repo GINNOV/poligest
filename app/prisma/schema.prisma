@@ -86,12 +86,12 @@ model FeatureUpdate {
 }
 
 model FeatureUpdateDismissal {
-  id             String   @id @default(cuid())
-  userId         String
+  id              String   @id @default(cuid())
+  userId          String
   featureUpdateId String
-  dismissedAt    DateTime @default(now())
+  dismissedAt     DateTime @default(now())
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   featureUpdate FeatureUpdate @relation(fields: [featureUpdateId], references: [id], onDelete: Cascade)
 
   @@unique([userId, featureUpdateId], name: "user_feature_update_unique")
@@ -100,7 +100,7 @@ model FeatureUpdateDismissal {
 }
 
 model RoleFeatureAccess {
-  id      String @id @default(cuid())
+  id      String  @id @default(cuid())
   role    Role
   feature String
   allowed Boolean @default(true)
@@ -119,16 +119,16 @@ model SmsTemplate {
 }
 
 model SmsLog {
-  id          String    @id @default(cuid())
-  to          String
-  body        String
-  status      String
-  error       String?
-  templateId  String?
-  patientId   String?
-  userId      String?
-  provider    String?
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  to         String
+  body       String
+  status     String
+  error      String?
+  templateId String?
+  patientId  String?
+  userId     String?
+  provider   String?
+  createdAt  DateTime @default(now())
 
   template SmsTemplate? @relation(fields: [templateId], references: [id])
   patient  Patient?     @relation(fields: [patientId], references: [id])
@@ -164,14 +164,14 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  doctor         Doctor?
-  auditLogs      AuditLog[]
-  stockMovements StockMovement[] @relation("StockMovementUser")
-  financeEntries FinanceEntry[]  @relation("FinanceEntryUser")
-  cashAdvances   CashAdvance[]   @relation("CashAdvanceUser")
-  smsLogs        SmsLog[]
+  doctor                  Doctor?
+  auditLogs               AuditLog[]
+  stockMovements          StockMovement[]          @relation("StockMovementUser")
+  financeEntries          FinanceEntry[]           @relation("FinanceEntryUser")
+  cashAdvances            CashAdvance[]            @relation("CashAdvanceUser")
+  smsLogs                 SmsLog[]
   featureUpdateDismissals FeatureUpdateDismissal[]
-  awards         UserAward[]
+  awards                  UserAward[]
 }
 
 model Doctor {
@@ -185,12 +185,12 @@ model Doctor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user           User?          @relation(fields: [userId], references: [id])
-  appointments   Appointment[]
-  clinicalNotes  ClinicalNote[]
-  financeEntries FinanceEntry[]
+  user                User?                      @relation(fields: [userId], references: [id])
+  appointments        Appointment[]
+  clinicalNotes       ClinicalNote[]
+  financeEntries      FinanceEntry[]
   availabilityWindows DoctorAvailabilityWindow[]
-  assignedAwards UserAward[] @relation("UserAwardDoctor")
+  assignedAwards      UserAward[]                @relation("UserAwardDoctor")
 }
 
 model UserAward {
@@ -202,7 +202,7 @@ model UserAward {
   doctorId    String?
   createdAt   DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   doctor Doctor? @relation("UserAwardDoctor", fields: [doctorId], references: [id], onDelete: SetNull)
 
   @@index([userId])
@@ -225,8 +225,8 @@ model DoctorAvailabilityWindow {
 
   doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
-  @@index([doctorId])
   @@unique([doctorId, dayOfWeek, startMinute, endMinute], name: "doctor_availability_unique")
+  @@index([doctorId])
 }
 
 model PracticeClosure {
@@ -449,7 +449,7 @@ model CashAdvance {
 }
 
 model RecallRule {
-  id           String               @id @default(cuid())
+  id           String              @id @default(cuid())
   name         String
   serviceType  String
   intervalDays Int

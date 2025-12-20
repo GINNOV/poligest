@@ -3,6 +3,7 @@ import { stackServerApp } from "@/lib/stack-app";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ensureUserPersonalPin } from "@/lib/personal-pin";
+import { cookies } from "next/headers";
 
 type AppUser = {
   id: string;
@@ -12,6 +13,7 @@ type AppUser = {
   locale: string;
   avatarUrl?: string | null;
   stackUserId: string;
+  impersonatedFrom?: string | null;
 };
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -35,7 +37,7 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
   });
 }
 
-async function getUserFromStack(): Promise<AppUser | null> {
+async function getUserFromStack(allowImpersonation = true): Promise<AppUser | null> {
   const stackUser = await stackServerApp.getUser();
   if (!stackUser) return null;
 
@@ -86,7 +88,7 @@ async function getUserFromStack(): Promise<AppUser | null> {
     }
   }
 
-  return {
+  const baseUser: AppUser = {
     id: dbUser.id,
     email: dbUser.email,
     name: dbUser.name ?? stackUser.displayName ?? dbUser.email,
@@ -94,15 +96,46 @@ async function getUserFromStack(): Promise<AppUser | null> {
     locale: dbUser.locale ?? "it",
     avatarUrl: dbUser.avatarUrl ?? null,
     stackUserId: stackUser.id,
+    impersonatedFrom: null,
   };
+
+  const cookieStore = await cookies();
+  const impersonateUserId = allowImpersonation ? cookieStore.get("impersonateUserId")?.value : undefined;
+  if (allowImpersonation && impersonateUserId && dbUser.role === Role.ADMIN && impersonateUserId !== dbUser.id) {
+    const target = await prisma.user.findUnique({
+      where: { id: impersonateUserId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        locale: true,
+        avatarUrl: true,
+      },
+    });
+    if (target) {
+      return {
+        ...baseUser,
+        id: target.id,
+        email: target.email,
+        name: target.name ?? target.email,
+        role: target.role,
+        locale: target.locale ?? baseUser.locale,
+        avatarUrl: target.avatarUrl ?? null,
+        impersonatedFrom: baseUser.id,
+      };
+    }
+  }
+
+  return baseUser;
 }
 
 export async function getCurrentUser(): Promise<AppUser | null> {
   return getUserFromStack();
 }
 
-export async function requireUser(allowedRoles?: Role[]): Promise<AppUser> {
-  const user = await getUserFromStack();
+export async function requireUser(allowedRoles?: Role[], options?: { allowImpersonation?: boolean }): Promise<AppUser> {
+  const user = await getUserFromStack(options?.allowImpersonation ?? true);
   if (!user) {
     redirect(stackServerApp.urls.signIn);
   }

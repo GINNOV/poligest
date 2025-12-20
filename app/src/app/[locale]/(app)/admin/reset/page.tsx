@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { ImportForm } from "../../magazzino/import-form";
+import { LocalizedFileInput } from "@/components/localized-file-input";
 import fs from "fs/promises";
 import path from "path";
 
@@ -556,16 +557,10 @@ export default async function ResetPage() {
             </div>
             <p className="mt-2 text-sm text-zinc-600">{t("importDescription")}</p>
             <form action={importData} className="mt-3 space-y-3 text-sm text-zinc-800">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                 {t("importLabel")}
-                <input
-                  type="file"
-                  name="file"
-                  accept="application/json"
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  required
-                />
-              </label>
+                <LocalizedFileInput name="file" accept="application/json" required />
+              </div>
               <p className="text-xs text-zinc-500">{t("importHint")}</p>
               <button
                 type="submit"

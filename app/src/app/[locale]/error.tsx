@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import Image from "next/image";
 
 export default function GlobalError({
   error,
@@ -24,6 +25,16 @@ export default function GlobalError({
           Errore di sistema
         </div>
         <h1 className="text-3xl font-semibold text-zinc-900">Qualcosa è andato storto</h1>
+        <div className="flex justify-center">
+          <Image
+            src="/errors/crash.png"
+            alt="Errore applicazione"
+            width={360}
+            height={240}
+            className="h-auto w-72 sm:w-80"
+            priority
+          />
+        </div>
         <p className="text-sm leading-6 text-zinc-600">
           Si è verificato un problema inatteso. Se il problema persiste, contatta il supporto e
           comunica il codice sottostante così possiamo cercarlo nei log.

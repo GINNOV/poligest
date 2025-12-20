@@ -23,6 +23,7 @@ const conditionsList: string[] = [
   "Diabete",
   "Asma/Allergie",
   "Farmacoterapia",
+  "Fumatore",
   "Malattie infettive (es. Epatite, HIV)",
   "Malattie epatiche",
   "Malattie reumatiche",
@@ -455,6 +456,11 @@ export default async function PatientDetailPage({
   const openContactPanel =
     typeof resolvedSearchParams.openContact === "string" &&
     resolvedSearchParams.openContact === "1";
+
+  const doctors = await prisma.doctor.findMany({
+    orderBy: { fullName: "asc" },
+    select: { id: true, fullName: true },
+  });
 
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
@@ -967,6 +973,7 @@ export default async function PatientDetailPage({
                         typeLabels={consentTypeLabels}
                         typeContents={consentContents as any}
                         existingTypes={patient.consents.map((c) => c.type)}
+                        doctors={doctors}
                       />
                     </div>
           </details>

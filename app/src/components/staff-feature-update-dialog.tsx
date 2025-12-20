@@ -128,6 +128,8 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
         credentials: "same-origin",
         body: JSON.stringify({ updateId: update.id }),
       });
+    } catch (error) {
+      console.error("Failed to dismiss feature update", error);
     } finally {
       setSubmitting(false);
       setOpen(false);

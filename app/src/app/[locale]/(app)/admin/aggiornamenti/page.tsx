@@ -51,7 +51,7 @@ async function saveFeatureUpdate(formData: FormData) {
     metadata: { isActive },
   });
 
-  revalidatePath("/admin/aggiornamenti");
+  revalidatePath("/[locale]/admin/aggiornamenti", "page");
 }
 
 export default async function AdminUpdatesPage() {

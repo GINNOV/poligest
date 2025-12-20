@@ -7,6 +7,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 type Props = {
   content: string;
   fiscalCode?: string;
+  doctors?: { id: string; fullName: string }[];
 };
 
 type Page = string[];
@@ -115,7 +116,7 @@ const chunkContent = (text: string): Page[] => {
   return pages.length > 0 ? pages : [text.split("\n")];
 };
 
-export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: Props) {
+export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doctors = [] }: Props) {
   const [patientName, setPatientName] = useState("Paziente");
   const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
   const normalizedContent = useMemo(
@@ -386,7 +387,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-          Firma del paziente o esercente la potestà (nome leggibile)
+          In stampatello, paziente o esercente podestà
           <input
             name="patientSignature"
             required
@@ -395,12 +396,22 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp }: P
           />
         </label>
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-          Firma del Medico Odontoiatra (nome leggibile)
-          <input
+          Medico assegnato
+          <select
             name="doctorSignature"
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            placeholder="Inserire nome"
-          />
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            defaultValue=""
+            required
+          >
+            <option value="" disabled>
+              Seleziona medico
+            </option>
+            {doctors.map((doctor) => (
+              <option key={doctor.id} value={doctor.fullName}>
+                {doctor.fullName}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

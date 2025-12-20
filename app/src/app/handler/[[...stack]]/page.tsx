@@ -179,9 +179,16 @@ export default async function StackAuthHandlerPage(props: {
                 color: #0f172a !important;
                 background-color: #e5e7eb !important;
                 border-color: #cbd5e1 !important;
+                box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25) !important;
               }
               .stack-scope ::placeholder {
                 color: #475569 !important;
+              }
+              .stack-scope button[type="submit"],
+              .stack-scope button[data-stack-button="primary"] {
+                color: #0f172a !important;
+                background-color: #67e8f9 !important;
+                border-color: #22d3ee !important;
               }
             `,
           }}

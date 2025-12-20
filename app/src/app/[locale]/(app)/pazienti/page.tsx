@@ -9,6 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientConsentSection } from "@/components/patient-consent-modal";
+import { LocalizedFileInput } from "@/components/localized-file-input";
 
 const PAGE_SIZE = 20;
 
@@ -178,18 +179,8 @@ export default async function PazientiPage({
   const sortOption =
     sortRaw === "name_desc" || sortRaw === "date_asc" || sortRaw === "date_desc" ? sortRaw : "name_asc";
 
-  const orderBy: Prisma.PatientOrderByWithRelationInput[] =
-    sortOption === "name_desc"
-      ? [{ lastName: "desc" }, { firstName: "desc" }]
-      : sortOption === "date_desc"
-        ? [{ createdAt: "desc" }]
-      : sortOption === "date_asc"
-        ? [{ createdAt: "asc" }]
-        : [{ lastName: "asc" }, { firstName: "asc" }];
-
   const pageParam = params.get("page") ?? "1";
-  const page = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
-  const skip = (page - 1) * PAGE_SIZE;
+  const requestedPage = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
 
   const where: Prisma.PatientWhereInput =
     searchQuery && searchQuery.length > 0
@@ -205,7 +196,6 @@ export default async function PazientiPage({
 
   const [patients, totalCount] = await Promise.all([
     prisma.patient.findMany({
-      orderBy,
       select: {
         id: true,
         firstName: true,
@@ -222,21 +212,20 @@ export default async function PazientiPage({
         createdAt: true,
       },
       where,
-      take: PAGE_SIZE,
-      skip,
     }),
     prisma.patient.count({ where }),
   ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
+  const skip = (page - 1) * PAGE_SIZE;
+  const getDisplayName = (p: typeof patients[number]) =>
+    `${(p.firstName ?? "").trim()} ${(p.lastName ?? "").trim()}`.trim();
   const compareNames = (a: typeof patients[number], b: typeof patients[number]) => {
-    const lastA = (a.lastName ?? "").trim().toLowerCase();
-    const lastB = (b.lastName ?? "").trim().toLowerCase();
-    if (lastA !== lastB) {
-      return lastA.localeCompare(lastB, "it", { sensitivity: "base" });
-    }
-    const firstA = (a.firstName ?? "").trim().toLowerCase();
-    const firstB = (b.firstName ?? "").trim().toLowerCase();
-    if (firstA !== firstB) {
-      return firstA.localeCompare(firstB, "it", { sensitivity: "base" });
+    const nameA = getDisplayName(a).toLowerCase();
+    const nameB = getDisplayName(b).toLowerCase();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
     }
     return (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0);
   };
@@ -244,17 +233,29 @@ export default async function PazientiPage({
   const sortedPatients =
     sortOption === "name_desc" || sortOption === "name_asc"
       ? [...patients].sort((a, b) => (sortOption === "name_desc" ? -compareNames(a, b) : compareNames(a, b)))
-      : patients;
+      : [...patients].sort((a, b) =>
+          sortOption === "date_desc"
+            ? (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
+            : (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0),
+        );
+
+  const paginatedPatients = sortedPatients.slice(skip, skip + PAGE_SIZE);
 
   if (process.env.NODE_ENV !== "production") {
-    const preview = sortedPatients
+    const preview = paginatedPatients
       .slice(0, 5)
-      .map((p) => `${p.lastName ?? ""} ${p.firstName ?? ""}`.trim() || "—");
-    console.info("[pazienti] sort applied", { sortRaw, sortOption, preview, count: sortedPatients.length });
+      .map((p) => getDisplayName(p) || "—");
+    console.info("[pazienti] sort applied", {
+      sortRaw,
+      sortOption,
+      preview,
+      count: paginatedPatients.length,
+      total: sortedPatients.length,
+      page,
+    });
   }
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const showingFrom = totalCount === 0 ? 0 : skip + 1;
-  const showingTo = skip + sortedPatients.length;
+  const showingTo = Math.min(skip + paginatedPatients.length, totalCount);
   const buildPageHref = (targetPage: number) => {
     const query = new URLSearchParams();
     if (qParam) query.set("q", qParam);
@@ -262,6 +263,10 @@ export default async function PazientiPage({
     query.set("page", String(targetPage));
     return `/pazienti?${query.toString()}`;
   };
+  const doctors = await prisma.doctor.findMany({
+    orderBy: { fullName: "asc" },
+    select: { id: true, fullName: true },
+  });
   const privacyContent = await fs.readFile(
     path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
     "utf8",
@@ -358,18 +363,14 @@ export default async function PazientiPage({
                   placeholder="dd/mm/yyyy"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-                Foto (opzionale)
-                <input
-                  type="file"
+              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+                <span>Foto (opzionale)</span>
+                <LocalizedFileInput
                   name="photo"
                   accept="image/*"
-                  className="h-11 rounded-lg border border-dashed border-emerald-200 px-3 text-sm text-zinc-900 outline-none transition file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-emerald-800 hover:border-emerald-300"
+                  helperText="L'immagine verrà ridimensionata automaticamente a 512x512."
                 />
-                <span className="text-xs font-normal text-zinc-500">
-                  L&apos;immagine verrà ridimensionata automaticamente a 512x512.
-                </span>
-              </label>
+              </div>
             </div>
           </section>
 
@@ -390,6 +391,7 @@ export default async function PazientiPage({
                 "Diabete",
                 "Asma/Allergie",
                 "Farmacoterapia",
+                "Fumatore",
                 "Malattie infettive (es. Epatite, HIV)",
                 "Malattie epatiche",
                 "Malattie reumatiche",
@@ -435,7 +437,7 @@ export default async function PazientiPage({
               </p>
             </div>
             <div className="mt-3 rounded-lg border border-emerald-200 bg-white">
-              <PatientConsentSection content={privacyContent} />
+              <PatientConsentSection content={privacyContent} doctors={doctors} />
             </div>
           </section>
         </form>
@@ -483,10 +485,10 @@ export default async function PazientiPage({
           </div>
         </form>
         <div className="mt-4 divide-y divide-zinc-100">
-          {sortedPatients.length === 0 ? (
+          {paginatedPatients.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
           ) : (
-            sortedPatients.map((patient) => {
+            paginatedPatients.map((patient) => {
               const missingEmail = !patient.email;
               const missingPhone = !patient.phone;
               const missingCount = Number(missingEmail) + Number(missingPhone);
