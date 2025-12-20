@@ -176,12 +176,12 @@ export default async function StackAuthHandlerPage(props: {
               }
               .stack-scope input,
               .stack-scope button {
-                color: #e2e8f0 !important;
-                background-color: rgba(255, 255, 255, 0.06) !important;
-                border-color: #334155 !important;
+                color: #0f172a !important;
+                background-color: #e5e7eb !important;
+                border-color: #cbd5e1 !important;
               }
               .stack-scope ::placeholder {
-                color: #cbd5e1 !important;
+                color: #475569 !important;
               }
             `,
           }}
