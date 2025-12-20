@@ -21,7 +21,7 @@ export default async function Home() {
   const t = await getTranslations("home");
   const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
   const patientSignInUrl = withParam(signInUrl, "audience", "patient");
-  const staffSignInUrl = "/staff";
+  const staffSignInUrl = withParam(signInUrl, "audience", "staff");
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-100 px-6 py-14">
@@ -123,7 +123,7 @@ export default async function Home() {
           <span>© Garage Innovation LLC — Version: {commitHash}</span>
           <div className="flex items-center gap-3">
             <Link
-              href="http://localhost:3000/handler/sign-in?audience=staff"
+              href={staffSignInUrl}
               className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
             >
               Accesso staff
