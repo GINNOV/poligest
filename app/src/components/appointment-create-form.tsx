@@ -11,7 +11,7 @@ import {
 } from "@/lib/scheduling-warnings";
 
 type Props = {
-  patients: { id: string; firstName: string; lastName: string }[];
+  patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   availabilityWindows: AvailabilityWindow[];
@@ -232,6 +232,7 @@ export function AppointmentCreateForm({
           {patients.map((p) => (
             <option key={p.id} value={p.id}>
               {p.lastName} {p.firstName}
+              {p.email ? ` · ${p.email}` : ""}
             </option>
           ))}
         </select>
@@ -263,6 +264,15 @@ export function AppointmentCreateForm({
               className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               placeholder="Telefono"
               required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 sm:col-span-3">
+            Email (facoltativa, consigliata per l'accesso)
+            <input
+              name="newEmail"
+              type="email"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              placeholder="email@esempio.it"
             />
           </label>
         </div>

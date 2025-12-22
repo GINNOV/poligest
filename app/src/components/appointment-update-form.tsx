@@ -9,7 +9,7 @@ import {
   type PracticeWeeklyClosure,
 } from "@/lib/scheduling-warnings";
 
-type Person = { id: string; firstName: string; lastName: string };
+type Person = { id: string; firstName: string; lastName: string; email?: string | null };
 type Doctor = { id: string; fullName: string; specialty: string | null };
 type ServiceOption = { id: string; name: string };
 
@@ -254,6 +254,7 @@ export function AppointmentUpdateForm({
           {patients.map((p) => (
             <option key={p.id} value={p.id}>
               {p.lastName} {p.firstName}
+              {p.email ? ` · ${p.email}` : ""}
             </option>
           ))}
         </select>

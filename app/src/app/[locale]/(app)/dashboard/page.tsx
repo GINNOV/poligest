@@ -100,12 +100,11 @@ export default async function DashboardPage({
           patient: {
             email: { equals: user.email ?? "", mode: "insensitive" },
           },
-          startsAt: { gte: startOfDay(today) },
         }
       : {
           startsAt: { gte: weekStart, lte: weekEnd },
         },
-    orderBy: { startsAt: "asc" },
+    orderBy: { startsAt: isPatient ? "desc" : "asc" },
     include: {
       patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true } },
       doctor: { select: { fullName: true, specialty: true } },
@@ -150,6 +149,18 @@ export default async function DashboardPage({
         : appointments;
   const listAppointments = filteredByDoctor;
 
+  const todayStart = startOfDay(today);
+  const upcomingAppointments = isPatient
+    ? appointments
+        .filter((appt) => appt.startsAt >= todayStart)
+        .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+    : [];
+  const pastAppointments = isPatient
+    ? appointments
+        .filter((appt) => appt.startsAt < todayStart)
+        .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
+    : [];
+
   if (isPatient) {
     return (
       <div className="flex flex-col gap-6">
@@ -163,63 +174,142 @@ export default async function DashboardPage({
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900">I tuoi appuntamenti</h2>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {listAppointments.length}
+              {appointments.length}
             </span>
           </div>
-          <div className="mt-4 divide-y divide-zinc-100">
-            {listAppointments.length === 0 ? (
-              <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
-            ) : (
-              listAppointments.map((appt) => (
-                <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                          <span aria-hidden="true">
-                            {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
-                            (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
-                              ? "🦷"
-                              : "❤️"}
-                          </span>
-                          {appt.title}
-                        </span>
-                        <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
-                          {appt.serviceType}
+
+          <div className="mt-4 space-y-6">
+            <section>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+                  Prossimi appuntamenti
+                </p>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                  {upcomingAppointments.length}
+                </span>
+              </div>
+              <div className="mt-3 divide-y divide-zinc-100">
+                {upcomingAppointments.length === 0 ? (
+                  <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
+                ) : (
+                  upcomingAppointments.map((appt) => (
+                    <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                              <span aria-hidden="true">
+                                {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                                (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                                  ? "🦷"
+                                  : "❤️"}
+                              </span>
+                              {appt.title}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                              {appt.serviceType}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-800">
+                            🧑‍⚕️ Dottore{" "}
+                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                            {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                            {new Intl.DateTimeFormat("it-IT", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            }).format(appt.startsAt)}{" "}
+                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                          </p>
+                          <p className="text-sm text-zinc-800">
+                            🕒 Terminato previsto entro{" "}
+                            {new Intl.DateTimeFormat("it-IT", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            }).format(appt.endsAt)}{" "}
+                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                          </p>
+                          {appt.notes ? (
+                            <p className="text-sm text-zinc-700">
+                              📝 Note: {appt.notes}
+                            </p>
+                          ) : null}
+                        </div>
+                        <span
+                          className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                        >
+                          {statusLabels[appt.status].toUpperCase()}
                         </span>
                       </div>
-                      <p className="text-sm text-zinc-800">
-                        🧑‍⚕️ Paziente {appt.patient.lastName} {appt.patient.firstName} è stato visto da{" "}
-                        <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                        {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
-                        {new Intl.DateTimeFormat("it-IT", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        }).format(appt.startsAt)}{" "}
-                        alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
-                      </p>
-                      <p className="text-sm text-zinc-800">
-                        🕒 Terminato previsto entro{" "}
-                        {new Intl.DateTimeFormat("it-IT", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        }).format(appt.endsAt)}{" "}
-                        alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
-                      </p>
                     </div>
-                    <span
-                      className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                    >
-                      {statusLabels[appt.status].toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600">
+                  Appuntamenti passati
+                </p>
+                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+                  {pastAppointments.length}
+                </span>
+              </div>
+              <div className="mt-3 divide-y divide-zinc-100">
+                {pastAppointments.length === 0 ? (
+                  <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
+                ) : (
+                  pastAppointments.map((appt) => (
+                    <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+                              <span aria-hidden="true">
+                                {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
+                                (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
+                                  ? "🦷"
+                                  : "❤️"}
+                              </span>
+                              {appt.title}
+                            </span>
+                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                              {appt.serviceType}
+                            </span>
+                          </div>
+                          <p className="text-sm text-zinc-800">
+                            🧑‍⚕️ Dottore{" "}
+                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
+                            {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                            {new Intl.DateTimeFormat("it-IT", {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            }).format(appt.startsAt)}{" "}
+                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                          </p>
+                          {appt.notes ? (
+                            <p className="text-sm text-zinc-700">
+                              📝 Note: {appt.notes}
+                            </p>
+                          ) : null}
+                        </div>
+                        <span
+                          className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                        >
+                          {statusLabels[appt.status].toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </div>

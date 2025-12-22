@@ -130,7 +130,7 @@ function getServiceStyle(serviceType: string) {
 
 type Props = {
   days: CalendarDay[];
-  patients: { id: string; firstName: string; lastName: string }[];
+  patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   services: { id: string; name: string }[];

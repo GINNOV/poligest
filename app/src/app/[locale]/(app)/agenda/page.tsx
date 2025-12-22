@@ -344,7 +344,10 @@ export default async function AgendaPage({
       },
       where,
     }),
-    prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
+    prisma.patient.findMany({
+      orderBy: { lastName: "asc" },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    }),
     prisma.doctor.findMany({ orderBy: { fullName: "asc" } }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
     prisma.appointment.count({ where }),

@@ -130,6 +130,62 @@ function appendQueryParam(url: string, key: string, value: string) {
   return `${url}${separator}${key}=${encodeURIComponent(value)}`;
 }
 
+async function resolvePatientIdForAppointment(params: {
+  selectedPatientId: string;
+  newEmail?: string | null;
+  newFirstName?: string | null;
+  newLastName?: string | null;
+  newPhone?: string | null;
+}) {
+  const { selectedPatientId, newEmail, newFirstName, newLastName, newPhone } = params;
+  const normalizedEmail = newEmail?.trim().toLowerCase() || null;
+
+  if (selectedPatientId === "new") {
+    if (normalizedEmail) {
+      const existing = await prisma.patient.findFirst({
+        where: { email: { equals: normalizedEmail, mode: "insensitive" } },
+        select: { id: true },
+      });
+      if (existing) return existing.id;
+    }
+
+    const patient = await prisma.patient.create({
+      data: {
+        firstName: newFirstName ?? "",
+        lastName: newLastName ?? "",
+        phone: newPhone ?? null,
+        email: normalizedEmail,
+      },
+    });
+    return patient.id;
+  }
+
+  const selected = await prisma.patient.findUnique({
+    where: { id: selectedPatientId },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+  if (!selected) {
+    throw new Error("Paziente non trovato.");
+  }
+  if (selected.email) return selected.id;
+
+  const match = await prisma.patient.findMany({
+    where: {
+      AND: [
+        { firstName: { equals: selected.firstName, mode: "insensitive" } },
+        { lastName: { equals: selected.lastName, mode: "insensitive" } },
+        { NOT: { email: null } },
+        { NOT: { email: "" } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    take: 2,
+    select: { id: true },
+  });
+
+  return match.length === 1 ? match[0].id : selected.id;
+}
+
 async function createAppointment(formData: FormData) {
   "use server";
 
@@ -153,6 +209,10 @@ async function createAppointment(formData: FormData) {
     const patientIdRaw = formData.get("patientId") as string;
     const doctorId = (formData.get("doctorId") as string) || null;
     const notes = (formData.get("notes") as string)?.trim() || null;
+    const newEmail = (formData.get("newEmail") as string | null)?.trim() || null;
+    const newFirstName = (formData.get("newFirstName") as string | null)?.trim() || null;
+    const newLastName = (formData.get("newLastName") as string | null)?.trim() || null;
+    const newPhone = (formData.get("newPhone") as string | null)?.trim() || null;
 
     if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
@@ -178,23 +238,17 @@ async function createAppointment(formData: FormData) {
       );
     }
 
-    let patientId = patientIdRaw;
-    if (patientIdRaw === "new") {
-      const newFirstName = (formData.get("newFirstName") as string)?.trim();
-      const newLastName = (formData.get("newLastName") as string)?.trim();
-      const newPhone = (formData.get("newPhone") as string)?.trim();
-      if (!newFirstName || !newLastName || !newPhone) {
-        throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
-      }
-      const patient = await prisma.patient.create({
-        data: {
-          firstName: newFirstName,
-          lastName: newLastName,
-          phone: newPhone,
-        },
-      });
-      patientId = patient.id;
+    if (patientIdRaw === "new" && (!newFirstName || !newLastName || !newPhone)) {
+      throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
     }
+
+    const patientId = await resolvePatientIdForAppointment({
+      selectedPatientId: patientIdRaw,
+      newEmail,
+      newFirstName,
+      newLastName,
+      newPhone,
+    });
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -435,7 +489,7 @@ export default async function CalendarPage({
       : Promise.resolve([] as CalendarAppointmentRecord[]),
     prisma.patient.findMany({
       orderBy: { lastName: "asc" },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, email: true },
     }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
     availabilityClient?.findMany && doctors.length

@@ -24,8 +24,50 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
   });
   if (existing) return existing;
 
-  const [firstName, ...rest] = (fullName ?? email.split("@")[0]).split(" ");
+  const nameSource = (fullName ?? email.split("@")[0]).trim();
+  const nameTokens = nameSource.split(" ").filter(Boolean);
+  const [firstName, ...rest] = nameTokens.length ? nameTokens : [email];
   const lastName = rest.join(" ").trim() || firstName;
+  const tryAttachEmail = async (candidateFirst: string, candidateLast: string) => {
+    const matches = await prisma.patient.findMany({
+      where: {
+        AND: [
+          { firstName: { equals: candidateFirst, mode: "insensitive" } },
+          { lastName: { equals: candidateLast, mode: "insensitive" } },
+          {
+            OR: [{ email: null }, { email: "" }],
+          },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+      take: 2,
+    });
+    if (matches.length === 1) {
+      return prisma.patient.update({
+        where: { id: matches[0].id },
+        data: { email },
+      });
+    }
+    return null;
+  };
+  if (fullName) {
+    const primaryMatch = await tryAttachEmail(firstName, lastName);
+    if (primaryMatch) return primaryMatch;
+
+    if (nameTokens.length > 1) {
+      const altFirstName = nameTokens[0];
+      const altLastName = nameTokens[nameTokens.length - 1];
+      if (altFirstName !== firstName || altLastName !== lastName) {
+        const altMatch = await tryAttachEmail(altFirstName, altLastName);
+        if (altMatch) return altMatch;
+      }
+    }
+
+    if (nameTokens.length >= 2) {
+      const firstTwoMatch = await tryAttachEmail(nameTokens[0], nameTokens[1]);
+      if (firstTwoMatch) return firstTwoMatch;
+    }
+  }
 
   return prisma.patient.create({
     data: {
