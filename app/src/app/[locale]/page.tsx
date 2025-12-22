@@ -4,7 +4,7 @@ import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 
-const commitHash = "39e2a90";
+import { getAppVersion } from "@/lib/version";
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");
@@ -120,7 +120,7 @@ export default async function Home() {
         </section>
 
         <footer className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-white/80 px-5 py-4 text-sm text-zinc-600 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <span>© Garage Innovation LLC — Version: {commitHash}</span>
+          <span>© Garage Innovation LLC — Version: {getAppVersion()}</span>
           <div className="flex items-center gap-3">
             <Link
               href={staffSignInUrl}

@@ -8,7 +8,7 @@ import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { UserMenu } from "@/components/user-menu";
-import { execSync } from "node:child_process";
+import { getAppVersion } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
@@ -41,15 +41,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     [Role.PATIENT]: t("roleLabels.patient"),
   };
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
-  const version =
-    process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
-    (() => {
-      try {
-        return execSync("git rev-parse --short HEAD").toString().trim();
-      } catch {
-        return "unknown";
-      }
-    })();
+  const version = getAppVersion();
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const featureUpdateClient = prismaModels["featureUpdate"] as
