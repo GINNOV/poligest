@@ -1,18 +1,22 @@
 # Benvenuto in SORRIDI
 
-**SORRIDI** è la piattaforma completa per la gestione digitale dello Studio Agovino & Angrisano. Questo sistema centralizza tutte le operazioni quotidiane, dalla gestione degli appuntamenti alla contabilità, passando per il magazzino e le cartelle cliniche.
+**SORRIDI** è la piattaforma gestionale integrata progettata su misura per lo Studio Agovino & Angrisano. Il sistema centralizza ogni aspetto della vita professionale dello studio, permettendo una gestione fluida che parte dall'accoglienza del paziente in segreteria e arriva fino alla compilazione della cartella clinica da parte dei medici, includendo il monitoraggio delle scorte di magazzino e l'analisi dei flussi finanziari. L'interfaccia è stata ottimizzata per essere intuitiva e veloce, riducendo i tempi di inserimento dati e minimizzando gli errori operativi.
 
-Questa guida utente ti aiuterà a familiarizzare con le funzionalità principali del sistema.
+Questa documentazione è stata scritta per accompagnarti nell'apprendimento delle diverse funzionalità, descrivendo non solo *cosa* fa il sistema, ma guidandoti passo dopo passo attraverso l'utilizzo dei pulsanti, dei moduli e dei calendari che vedrai a schermo. Ogni sezione è pensata per un compito specifico, dalla prenotazione di un'urgenza alla registrazione di un impianto con tracciabilità UDI.
 
-## Indice della Guida
+## Come utilizzare questa guida
 
-1.  [**Accesso e Ruoli**](./accesso.md): Scopri come accedere e cosa puoi fare in base al tuo ruolo.
-2.  [**Agenda e Appuntamenti**](./agenda.md): Gestisci il calendario, le visite e le disponibilità dei medici.
-3.  [**Gestione Pazienti**](./pazienti.md): Anagrafica, consensi privacy, cartelle cliniche e storico.
-4.  [**Magazzino**](./magazzino.md): Monitora le scorte, i fornitori e traccia i movimenti dei materiali.
-5.  [**Finanza**](./finanza.md): Tieni sotto controllo spese, ricavi e anticipi ai medici.
-6.  [**Amministrazione**](./amministrazione.md): Configurazione utenti, servizi, audit e backup dati.
+La guida è organizzata in moduli tematici che rispecchiano le voci principali del menu di navigazione. Se sei un nuovo utente, ti suggeriamo di leggere prima la sezione dedicata all'**Accesso e Sicurezza** per capire come navigare nel sistema in base ai permessi assegnati al tuo profilo. Ogni pagina della guida include paragrafi descrittivi che spiegano la logica delle operazioni e forniscono dettagli pratici sui campi da compilare.
 
-## Supporto
+### I Moduli della Piattaforma
 
-Per problemi tecnici o dubbi non coperti da questa guida, contatta l'Amministratore di sistema o il supporto tecnico dedicato.
+1.  [**Accesso e Sicurezza**](./accesso)
+2.  [**Agenda e Appuntamenti**](./agenda)
+3.  [**Gestione Pazienti e Diario Clinico**](./pazienti)
+4.  [**Magazzino e Tracciabilità UDI**](./magazzino)
+5.  [**Finanza e Contabilità**](./finanza)
+6.  [**Amministrazione del Sistema**](./amministrazione)
+
+## Richiesta di Supporto
+
+Il sistema è progettato per essere robusto e affidabile. Tuttavia, se dovessi riscontrare anomalie grafiche o errori durante il salvataggio dei dati, ti invitiamo a verificare prima di tutto la tua connessione internet. Per problemi persistenti o per richiedere nuove funzionalità, puoi fare riferimento all'Amministratore di sistema dello studio, che ha accesso agli strumenti di diagnostica avanzata e ai log di sistema.

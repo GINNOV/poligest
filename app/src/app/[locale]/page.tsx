@@ -129,6 +129,12 @@ export default async function Home() {
               Accesso staff
             </Link>
             <Link
+              href="/docs"
+              className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
+            >
+              Manuale
+            </Link>
+            <Link
               href="/privacy"
               className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
             >

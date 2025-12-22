@@ -15,6 +15,9 @@ export function SiteFooter({
               Documentazione
             </a>
           ) : null}
+          <a href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
+            Manuale
+          </a>
           <a href="/privacy" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
             Privacy
           </a>

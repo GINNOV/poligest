@@ -15,15 +15,25 @@ const STACK_API_BASE = (
     : "https://api.stack-auth.com"
 ).replace(/\/$/, "");
 
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) {
+    return "";
+  }
+  if (/^https?:\/\//.test(rawOrigin)) {
+    return rawOrigin.replace(/\/$/, "");
+  }
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
+}
+
 // Stack's client-side OAuth helpers require an absolute base URL.
 // In development prefer NEXTAUTH_URL (usually localhost) so the browser talks to the local proxy.
 const siteOrigin =
   process.env.NODE_ENV === "production"
-    ? process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || ""
-    : process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL || "";
-const browserBaseUrl = siteOrigin
-  ? `${siteOrigin.replace(/\/$/, "")}/api/stack`
-  : "/api/stack";
+    ? normalizeSiteOrigin(
+        process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+      )
+    : normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
+const browserBaseUrl = siteOrigin ? `${siteOrigin}/api/stack` : "/api/stack";
 
 export const stackServerApp = new StackServerApp({
   projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),

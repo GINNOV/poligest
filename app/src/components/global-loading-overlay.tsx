@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { emitToast } from "@/components/global-toasts";
+import { subscribeNavigationLock } from "@/lib/navigation-lock";
 
 /**
  * Displays a sitewide loading spinner whenever the user interacts or there are pending requests.
@@ -101,6 +102,16 @@ export function GlobalLoadingOverlay() {
   useEffect(() => {
     requestHide();
   }, [pathname, requestHide]);
+
+  useEffect(() => {
+    return subscribeNavigationLock((locked) => {
+      if (locked) {
+        requestShow();
+        return;
+      }
+      requestHide();
+    });
+  }, [requestHide, requestShow]);
 
   if (!isMounted) return null;
 
