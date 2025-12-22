@@ -11,7 +11,7 @@ export default async function StackAuthHandlerPage(props: {
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
-  const headerList = headers();
+  const headerList = await headers();
   const forwardedHost = headerList.get("x-forwarded-host") ?? headerList.get("host");
   const forwardedProto = headerList.get("x-forwarded-proto") ?? "https";
   const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost.split(",")[0].trim()}` : undefined;
