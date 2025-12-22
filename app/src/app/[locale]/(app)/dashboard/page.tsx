@@ -65,6 +65,70 @@ function StatCard({ label, value }: StatCardProps) {
   );
 }
 
+type PatientAward = {
+  key: string;
+  title: string;
+  icon: string;
+  quote: string;
+};
+
+function buildPatientAwards(appointments: Array<{ serviceType: string }>): PatientAward[] {
+  const awards: PatientAward[] = [
+    {
+      key: "account",
+      title: "Benvenuto a bordo",
+      icon: "⭐",
+      quote: "Hai creato l'account: il primo passo e' gia' una vittoria concreta.",
+    },
+  ];
+
+  const serviceTypes = new Set(
+    appointments
+      .map((appt) => appt.serviceType?.toLowerCase().trim())
+      .filter(Boolean)
+  );
+
+  const addAward = (award: PatientAward) => {
+    if (!awards.some((item) => item.key === award.key)) {
+      awards.push(award);
+    }
+  };
+
+  for (const serviceType of serviceTypes) {
+    if (serviceType.includes("igiene") || serviceType.includes("ablazione")) {
+      addAward({
+        key: "igiene",
+        title: "Igiene da campione",
+        icon: "💎💎💎",
+        quote:
+          "Tre diamanti alla tua costanza: \"Chi vo' campa' sano, tiene a mente 'a prevencione\".",
+      });
+      continue;
+    }
+    if (serviceType.includes("frenulectomia") || serviceType.includes("chirurgia") || serviceType.includes("estrazione")) {
+      addAward({
+        key: "coraggio",
+        title: "Coraggio chirurgico",
+        icon: "🛡️",
+        quote:
+          "Hai affrontato il trattamento con grinta: anche Napoleone sapeva che la calma vince la battaglia.",
+      });
+      continue;
+    }
+    if (serviceType.includes("otturazione") || serviceType.includes("protesi")) {
+      addAward({
+        key: "precisione",
+        title: "Precisione premiata",
+        icon: "🎯",
+        quote:
+          "Ogni dettaglio conta: hai puntato dritto al risultato, come un generale che sceglie il campo migliore.",
+      });
+    }
+  }
+
+  return awards;
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -160,6 +224,7 @@ export default async function DashboardPage({
         .filter((appt) => appt.startsAt < todayStart)
         .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
     : [];
+  const patientAwards = isPatient ? buildPatientAwards(appointments) : [];
 
   if (isPatient) {
     return (
@@ -312,6 +377,32 @@ export default async function DashboardPage({
             </section>
           </div>
         </div>
+        <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-emerald-900">Premi e motivazione</h2>
+            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700">
+              {patientAwards.length}
+            </span>
+          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {patientAwards.map((award) => (
+              <div
+                key={award.key}
+                className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-2xl">
+                    {award.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-900">{award.title}</p>
+                    <p className="mt-1 text-sm text-emerald-800">{award.quote}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }
