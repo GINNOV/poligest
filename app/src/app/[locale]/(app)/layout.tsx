@@ -91,7 +91,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                       <NavLink href="/finanza" label={t("finance")} />
                     </>
                   ) : null}
-                  {isAdmin ? <NavLink href="/admin" label={t("admin")} /> : null}
                 </>
               ) : null}
             </nav>
@@ -102,6 +101,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               email={user.email}
               avatarUrl={user.avatarUrl ?? null}
               roleLabel={user.role ? roleLabels[user.role] : ""}
+              adminHref={isAdmin ? "/admin" : undefined}
+              adminLabel={isAdmin ? t("admin") : undefined}
               signOutUrl={signOutUrl}
             />
           ) : null}

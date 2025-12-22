@@ -10,6 +10,7 @@ import { logAudit } from "@/lib/audit";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientConsentSection } from "@/components/patient-consent-modal";
 import { LocalizedFileInput } from "@/components/localized-file-input";
+import { normalizeItalianPhone } from "@/lib/phone";
 
 const PAGE_SIZE = 20;
 
@@ -25,7 +26,7 @@ async function createPatient(formData: FormData) {
 
   const firstName = (formData.get("firstName") as string)?.trim();
   const lastName = (formData.get("lastName") as string)?.trim();
-  const phone = (formData.get("phone") as string)?.trim() || null;
+  const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
   const taxId = (formData.get("taxId") as string)?.trim() || null;

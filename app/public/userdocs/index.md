@@ -10,12 +10,12 @@ La guida è organizzata in moduli tematici che rispecchiano le voci principali d
 
 ### I Moduli della Piattaforma
 
-1.  [**Accesso e Sicurezza**](./accesso)
-2.  [**Agenda e Appuntamenti**](./agenda)
-3.  [**Gestione Pazienti e Diario Clinico**](./pazienti)
-4.  [**Magazzino e Tracciabilità UDI**](./magazzino)
-5.  [**Finanza e Contabilità**](./finanza)
-6.  [**Amministrazione del Sistema**](./amministrazione)
+1.  [**Accesso e Sicurezza**](/docs/accesso)
+2.  [**Agenda e Appuntamenti**](/docs/agenda)
+3.  [**Gestione Pazienti e Diario Clinico**](/docs/pazienti)
+4.  [**Magazzino e Tracciabilità UDI**](/docs/magazzino)
+5.  [**Finanza e Contabilità**](/docs/finanza)
+6.  [**Amministrazione del Sistema**](/docs/amministrazione)
 
 ## Richiesta di Supporto
 

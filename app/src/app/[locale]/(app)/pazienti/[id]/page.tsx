@@ -13,6 +13,7 @@ import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
 import { sendSms } from "@/lib/sms";
 import { ConsentForm } from "@/components/consent-form";
+import { normalizeItalianPhone } from "@/lib/phone";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -253,7 +254,7 @@ async function updatePatient(formData: FormData) {
   const firstName = (formData.get("firstName") as string)?.trim();
   const lastName = (formData.get("lastName") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
-  const phone = (formData.get("phone") as string)?.trim() || null;
+  const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const conditions = formData
     .getAll("conditions")
     .map((c) => (c as string).trim())

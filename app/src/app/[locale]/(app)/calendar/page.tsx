@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatus, Role } from "@prisma/client";
 import {
   addMonths,
@@ -212,7 +213,7 @@ async function createAppointment(formData: FormData) {
     const newEmail = (formData.get("newEmail") as string | null)?.trim() || null;
     const newFirstName = (formData.get("newFirstName") as string | null)?.trim() || null;
     const newLastName = (formData.get("newLastName") as string | null)?.trim() || null;
-    const newPhone = (formData.get("newPhone") as string | null)?.trim() || null;
+    const newPhone = normalizeItalianPhone((formData.get("newPhone") as string | null) ?? null);
 
     if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
       throw new Error("Compila titolo, servizio, orari e paziente.");

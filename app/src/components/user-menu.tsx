@@ -10,6 +10,8 @@ type Props = {
   avatarUrl?: string | null;
   roleLabel?: string;
   profileHref?: string;
+  adminHref?: string;
+  adminLabel?: string;
   signOutUrl?: string;
 };
 
@@ -19,6 +21,8 @@ export function UserMenu({
   avatarUrl,
   roleLabel,
   profileHref = "/profilo",
+  adminHref,
+  adminLabel,
   signOutUrl = "/handler/sign-out",
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -90,6 +94,15 @@ export function UserMenu({
             >
               Profilo
             </Link>
+            {adminHref && adminLabel ? (
+              <Link
+                href={adminHref}
+                className="px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
+                onClick={() => setOpen(false)}
+              >
+                {adminLabel}
+              </Link>
+            ) : null}
             <div className="px-3 py-2">
               <SignOutButton label="Esci" signOutUrl={signOutUrl} />
             </div>

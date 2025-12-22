@@ -6,6 +6,7 @@ import { Gender, Role } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { put } from "@vercel/blob";
 import { LocalizedFileInput } from "@/components/localized-file-input";
+import { normalizeItalianPhone } from "@/lib/phone";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -30,17 +31,25 @@ async function updateProfileBasics(formData: FormData) {
   const gender = Object.values(Gender).includes(genderRaw as Gender)
     ? (genderRaw as Gender)
     : Gender.NOT_SPECIFIED;
+  const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
 
   await prisma.user.update({
     where: { id: user.id },
     data: { name, gender },
   });
 
+  if (user.role === Role.PATIENT && user.email) {
+    await prisma.patient.updateMany({
+      where: { email: { equals: user.email, mode: "insensitive" } },
+      data: { phone },
+    });
+  }
+
   await logAudit(user, {
     action: "profile.updated",
     entity: "User",
     entityId: user.id,
-    metadata: { gender },
+    metadata: { gender, phoneUpdated: Boolean(phone) },
   });
 
   revalidatePath("/profilo");
@@ -117,7 +126,7 @@ async function assignAward(formData: FormData) {
 export default async function ProfilePage() {
   const currentUser = await requireUser();
 
-  const [user, awards, isDoctorAccount, patients] = await Promise.all([
+  const [user, awards, isDoctorAccount, patients, patientRecord] = await Promise.all([
     prisma.user.findUnique({
       where: { id: currentUser.id },
       select: { id: true, email: true, name: true, avatarUrl: true, personalPin: true, gender: true, role: true },
@@ -136,6 +145,12 @@ export default async function ProfilePage() {
           take: 200,
         })
       : Promise.resolve([]),
+    currentUser.role === Role.PATIENT && currentUser.email
+      ? prisma.patient.findFirst({
+          where: { email: { equals: currentUser.email, mode: "insensitive" } },
+          select: { phone: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   if (!user) redirect("/");
@@ -204,6 +219,17 @@ export default async function ProfilePage() {
                   placeholder="Nome e cognome"
                 />
               </label>
+              {currentUser.role === Role.PATIENT ? (
+                <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                  Telefono
+                  <input
+                    name="phone"
+                    defaultValue={patientRecord?.phone ?? ""}
+                    className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    placeholder="+39 333 123 4567"
+                  />
+                </label>
+              ) : null}
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                 Genere
                 <select
