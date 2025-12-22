@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { SmsTemplateForm } from "@/components/sms-template-form";
 
 async function createTemplate(formData: FormData) {
   "use server";
@@ -86,29 +87,7 @@ export default async function SmsTemplatesPage() {
 
           <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-4">
             <h3 className="text-sm font-semibold text-zinc-900">Nuovo template</h3>
-            <form action={createTemplate} className="mt-3 space-y-3 text-sm">
-              <label className="flex flex-col gap-1">
-                Nome
-                <input
-                  name="name"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Es. Promemoria appuntamento"
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                Testo SMS
-                <textarea
-                  name="body"
-                  className="h-28 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  placeholder="Gentile {{nome}}, ti ricordiamo l'appuntamento di ..."
-                  required
-                />
-              </label>
-              <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
-                Crea template
-              </FormSubmitButton>
-            </form>
+            <SmsTemplateForm action={createTemplate} />
           </div>
         </div>
 

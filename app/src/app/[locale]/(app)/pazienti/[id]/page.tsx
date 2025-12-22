@@ -378,9 +378,20 @@ async function sendPatientSms(formData: FormData) {
       throw new Error("Seleziona un template e un paziente");
     }
 
-    const [template, patient] = await Promise.all([
+    const [template, patient, upcomingAppointment] = await Promise.all([
       prisma.smsTemplate.findUnique({ where: { id: templateId } }),
-      prisma.patient.findUnique({ where: { id: patientId }, select: { phone: true, firstName: true, lastName: true } }),
+      prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { phone: true, firstName: true, lastName: true },
+      }),
+      prisma.appointment.findFirst({
+        where: {
+          patientId,
+          startsAt: { gte: new Date() },
+        },
+        orderBy: { startsAt: "asc" },
+        include: { doctor: { select: { fullName: true } } },
+      }),
     ]);
 
     if (!template) {
@@ -395,9 +406,23 @@ async function sendPatientSms(formData: FormData) {
       );
     }
 
+    const appointmentDate = upcomingAppointment?.startsAt
+      ? new Intl.DateTimeFormat("it-IT", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(upcomingAppointment.startsAt)
+      : "";
     const body = template.body
-      .replace("{{nome}}", patient.firstName ?? "")
-      .replace("{{cognome}}", patient.lastName ?? "");
+      .replaceAll("{{nome}}", patient.firstName ?? "")
+      .replaceAll("{{cognome}}", patient.lastName ?? "")
+      .replaceAll("{{dottore}}", upcomingAppointment?.doctor?.fullName ?? "")
+      .replaceAll("{{data_appuntamento}}", appointmentDate)
+      .replaceAll("{{motivo_visita}}", upcomingAppointment?.serviceType ?? "")
+      .replaceAll("{{note}}", upcomingAppointment?.notes ?? "");
 
     await sendSms({
       to: patient.phone,
@@ -1033,7 +1058,7 @@ export default async function PatientDetailPage({
                   </select>
                 </label>
                 <p className="text-xs text-zinc-600">
-                  Usa i template definiti nell'area Admin. Placeholder supportati: {"{{nome}}, {{cognome}}"}.
+                  Placeholder supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
                 </p>
                 <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
                   Invia SMS

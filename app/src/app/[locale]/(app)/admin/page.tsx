@@ -12,6 +12,7 @@ type AdminShortcut = {
   badge?: string;
   tone?: "neutral" | "primary" | "warning";
   disabled?: boolean;
+  icon?: string;
 };
 
 export default async function AdminPage() {
@@ -42,6 +43,7 @@ export default async function AdminPage() {
       href: "/medici",
       badge: `${doctorsCount} medici`,
       tone: "primary",
+      icon: "MD",
     },
     {
       key: "calendar",
@@ -50,6 +52,7 @@ export default async function AdminPage() {
       href: "/admin/calendario",
       badge: closuresCount ? `${closuresCount} chiusure` : "Disponibilità",
       tone: "primary",
+      icon: "CL",
     },
     {
       key: "updates",
@@ -58,6 +61,7 @@ export default async function AdminPage() {
       href: "/admin/aggiornamenti",
       badge: updatesCount ? `${updatesCount} versioni` : "Annunci",
       tone: "neutral",
+      icon: "UP",
     },
     {
       key: "users",
@@ -66,6 +70,7 @@ export default async function AdminPage() {
       href: "/admin/utenti",
       badge: `${usersCount} utenti`,
       tone: "neutral",
+      icon: "US",
     },
     {
       key: "feature-access",
@@ -74,6 +79,7 @@ export default async function AdminPage() {
       href: "/admin/feature-access",
       badge: "Permessi",
       tone: "primary",
+      icon: "FA",
     },
     {
       key: "audit",
@@ -82,6 +88,7 @@ export default async function AdminPage() {
       href: "/admin/audit",
       badge: t("auditBadge", { count: auditCount }),
       tone: "neutral",
+      icon: "AU",
     },
     {
       key: "services",
@@ -90,14 +97,7 @@ export default async function AdminPage() {
       href: "/admin/servizi",
       badge: `${servicesCount} servizi`,
       tone: "neutral",
-    },
-    {
-      key: "settings",
-      title: t("settings"),
-      description: "Preferenze generali e integrazioni (presto disponibile).",
-      disabled: true,
-      badge: t("comingSoon"),
-      tone: "neutral",
+      icon: "SV",
     },
     {
       key: "sms-templates",
@@ -106,6 +106,7 @@ export default async function AdminPage() {
       href: "/admin/sms-templates",
       badge: "Notifiche",
       tone: "primary",
+      icon: "SM",
     },
     {
       key: "clicksend",
@@ -114,6 +115,7 @@ export default async function AdminPage() {
       href: "/admin/clicksend",
       badge: "Integrazione",
       tone: "primary",
+      icon: "CS",
     },
     {
       key: "reset",
@@ -122,6 +124,7 @@ export default async function AdminPage() {
       href: "/admin/reset",
       badge: t("dangerZone"),
       tone: "warning",
+      icon: "RS",
     },
   ];
 
@@ -147,7 +150,12 @@ export default async function AdminPage() {
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-700">
+                    {item.icon ?? "AD"}
+                  </div>
+                  <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                </div>
                 {item.badge ? (
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
