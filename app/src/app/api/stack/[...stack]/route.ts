@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 const rawStackApiUrl = process.env.NEXT_PUBLIC_STACK_API_URL || process.env.STACK_API_URL;
 const STACK_API_BASE = (rawStackApiUrl && /^https?:\/\//.test(rawStackApiUrl)
   ? rawStackApiUrl
@@ -47,11 +49,24 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
   // Avoid double-decoding issues when the upstream is already compressed.
   responseHeaders.delete("content-encoding");
   responseHeaders.delete("content-length");
-  return new NextResponse(response.body, {
+  const nextResponse = new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: responseHeaders,
   });
+  const getSetCookie = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
+  if (typeof getSetCookie === "function") {
+    const setCookies = getSetCookie.call(response.headers);
+    for (const value of setCookies) {
+      nextResponse.headers.append("set-cookie", value);
+    }
+  } else {
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) {
+      nextResponse.headers.append("set-cookie", setCookie);
+    }
+  }
+  return nextResponse;
 }
 
 export async function GET(

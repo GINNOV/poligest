@@ -25,28 +25,36 @@ function normalizeSiteOrigin(rawOrigin: string | undefined) {
   return `https://${rawOrigin.replace(/\/$/, "")}`;
 }
 
-// Stack's client-side OAuth helpers require an absolute base URL.
-// In development prefer NEXTAUTH_URL (usually localhost) so the browser talks to the local proxy.
-const siteOrigin =
-  process.env.NODE_ENV === "production"
-    ? normalizeSiteOrigin(
-        process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL
-      )
-    : normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
-const browserBaseUrl = siteOrigin ? `${siteOrigin}/api/stack` : "/api/stack";
+function resolveDefaultSiteOrigin() {
+  if (process.env.NODE_ENV === "production") {
+    return normalizeSiteOrigin(
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+    );
+  }
+  return normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
+}
 
-export const stackServerApp = new StackServerApp({
-  projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
-  publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
-  secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
-  tokenStore: "nextjs-cookie",
-  baseUrl: {
-    // Force browser requests through our Next.js proxy to keep keys server-side.
-    // Must be absolute for OAuth helpers; fallback to relative in dev.
-    browser: browserBaseUrl,
-    server: STACK_API_BASE,
-  },
-  urls: {
-    handler: "/handler",
-  },
-});
+function buildBrowserBaseUrl(siteOrigin: string) {
+  return siteOrigin ? `${siteOrigin}/api/stack` : "/api/stack";
+}
+
+export function getStackServerApp(explicitOrigin?: string) {
+  const siteOrigin = normalizeSiteOrigin(explicitOrigin) || resolveDefaultSiteOrigin();
+  return new StackServerApp({
+    projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
+    publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
+    secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
+    tokenStore: "nextjs-cookie",
+    baseUrl: {
+      // Force browser requests through our Next.js proxy to keep keys server-side.
+      // Must be absolute for OAuth helpers; fallback to relative in dev.
+      browser: buildBrowserBaseUrl(siteOrigin),
+      server: STACK_API_BASE,
+    },
+    urls: {
+      handler: "/handler",
+    },
+  });
+}
+
+export const stackServerApp = getStackServerApp();

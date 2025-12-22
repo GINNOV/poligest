@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { StackHandler } from "@stackframe/stack";
-import { stackServerApp } from "@/lib/stack-app";
+import { headers } from "next/headers";
+import { getStackServerApp } from "@/lib/stack-app";
 
 // Optional catch-all so /handler and /handler/* both work for Stack OAuth callbacks.
 export default async function StackAuthHandlerPage(props: {
@@ -10,6 +11,11 @@ export default async function StackAuthHandlerPage(props: {
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
+  const headerList = headers();
+  const forwardedHost = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const forwardedProto = headerList.get("x-forwarded-proto") ?? "https";
+  const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost.split(",")[0].trim()}` : undefined;
+  const stackServerApp = getStackServerApp(requestOrigin);
 
   const audienceRaw = (searchParams?.audience ?? searchParams?.role ?? "").toLowerCase();
   const isStaff = audienceRaw === "staff";
