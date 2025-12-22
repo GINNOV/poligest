@@ -187,6 +187,13 @@ export default async function StackAuthHandlerPage(props: {
                 border-color: #cbd5e1 !important;
                 box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25) !important;
               }
+              .stack-scope button span,
+              .stack-scope button svg,
+              .stack-scope a span,
+              .stack-scope a svg {
+                color: #0f172a !important;
+                fill: #0f172a !important;
+              }
               .stack-scope ::placeholder {
                 color: #475569 !important;
               }

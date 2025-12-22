@@ -6,6 +6,7 @@ import {
   eachDayOfInterval,
   endOfWeek,
   format,
+  startOfDay,
   startOfWeek,
 } from "date-fns";
 import { it } from "date-fns/locale";
@@ -94,16 +95,16 @@ export default async function DashboardPage({
       : format(today, "yyyy-MM-dd");
 
   const appointments = await prisma.appointment.findMany({
-    where: {
-      ...(isPatient
-        ? {
-            patient: {
-              email: { equals: user.email ?? "", mode: "insensitive" },
-            },
-          }
-        : {}),
-      startsAt: { gte: weekStart, lte: weekEnd },
-    },
+    where: isPatient
+      ? {
+          patient: {
+            email: { equals: user.email ?? "", mode: "insensitive" },
+          },
+          startsAt: { gte: startOfDay(today) },
+        }
+      : {
+          startsAt: { gte: weekStart, lte: weekEnd },
+        },
     orderBy: { startsAt: "asc" },
     include: {
       patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true } },
