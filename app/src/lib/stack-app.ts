@@ -40,6 +40,11 @@ function buildBrowserBaseUrl(siteOrigin: string) {
 
 export function getStackServerApp(explicitOrigin?: string) {
   const siteOrigin = normalizeSiteOrigin(explicitOrigin) || resolveDefaultSiteOrigin();
+  const browserBaseUrl = process.env.NEXT_PUBLIC_STACK_BROWSER_URL
+    ? normalizeSiteOrigin(process.env.NEXT_PUBLIC_STACK_BROWSER_URL)
+    : process.env.NODE_ENV === "production"
+      ? STACK_API_BASE
+      : buildBrowserBaseUrl(siteOrigin);
   return new StackServerApp({
     projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
     publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
@@ -48,7 +53,7 @@ export function getStackServerApp(explicitOrigin?: string) {
     baseUrl: {
       // Force browser requests through our Next.js proxy to keep keys server-side.
       // Must be absolute for OAuth helpers; fallback to relative in dev.
-      browser: buildBrowserBaseUrl(siteOrigin),
+      browser: browserBaseUrl,
       server: STACK_API_BASE,
     },
     urls: {
