@@ -43,7 +43,7 @@ export default async function AdminPage() {
       href: "/medici",
       badge: `${doctorsCount} medici`,
       tone: "primary",
-      icon: "MD",
+      icon: "🩺",
     },
     {
       key: "calendar",
@@ -52,7 +52,7 @@ export default async function AdminPage() {
       href: "/admin/calendario",
       badge: closuresCount ? `${closuresCount} chiusure` : "Disponibilità",
       tone: "primary",
-      icon: "CL",
+      icon: "📅",
     },
     {
       key: "updates",
@@ -61,7 +61,7 @@ export default async function AdminPage() {
       href: "/admin/aggiornamenti",
       badge: updatesCount ? `${updatesCount} versioni` : "Annunci",
       tone: "neutral",
-      icon: "UP",
+      icon: "✨",
     },
     {
       key: "users",
@@ -70,7 +70,7 @@ export default async function AdminPage() {
       href: "/admin/utenti",
       badge: `${usersCount} utenti`,
       tone: "neutral",
-      icon: "US",
+      icon: "👤",
     },
     {
       key: "feature-access",
@@ -79,7 +79,7 @@ export default async function AdminPage() {
       href: "/admin/feature-access",
       badge: "Permessi",
       tone: "primary",
-      icon: "FA",
+      icon: "🛡️",
     },
     {
       key: "audit",
@@ -88,7 +88,7 @@ export default async function AdminPage() {
       href: "/admin/audit",
       badge: t("auditBadge", { count: auditCount }),
       tone: "neutral",
-      icon: "AU",
+      icon: "🧾",
     },
     {
       key: "services",
@@ -97,7 +97,7 @@ export default async function AdminPage() {
       href: "/admin/servizi",
       badge: `${servicesCount} servizi`,
       tone: "neutral",
-      icon: "SV",
+      icon: "🧰",
     },
     {
       key: "sms-templates",
@@ -106,7 +106,7 @@ export default async function AdminPage() {
       href: "/admin/sms-templates",
       badge: "Notifiche",
       tone: "primary",
-      icon: "SM",
+      icon: "✉️",
     },
     {
       key: "clicksend",
@@ -115,7 +115,7 @@ export default async function AdminPage() {
       href: "/admin/clicksend",
       badge: "Integrazione",
       tone: "primary",
-      icon: "CS",
+      icon: "📨",
     },
     {
       key: "reset",
@@ -124,7 +124,7 @@ export default async function AdminPage() {
       href: "/admin/reset",
       badge: t("dangerZone"),
       tone: "warning",
-      icon: "RS",
+      icon: "⚠️",
     },
   ];
 
@@ -151,8 +151,8 @@ export default async function AdminPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-700">
-                    {item.icon ?? "AD"}
+                  <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-lg">
+                    {item.icon ?? "🧭"}
                   </div>
                   <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
                 </div>
