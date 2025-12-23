@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Props = {
   update: { id: string; title: string; bodyMarkdown: string };
@@ -115,10 +115,7 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
   const [open, setOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const content = useMemo(() => renderMarkdown(update.bodyMarkdown), [update.bodyMarkdown]);
-
-  if (!open) return null;
-
-  const dismiss = async () => {
+  const dismiss = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -134,7 +131,7 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
       setSubmitting(false);
       setOpen(false);
     }
-  };
+  }, [submitting, update.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -148,6 +145,8 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, dismiss]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 px-4 py-8">

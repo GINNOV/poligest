@@ -12,10 +12,11 @@ La guida è organizzata in moduli tematici che rispecchiano le voci principali d
 
 1.  [**Accesso e Sicurezza**](/docs/accesso)
 2.  [**Agenda e Appuntamenti**](/docs/agenda)
-3.  [**Gestione Pazienti e Diario Clinico**](/docs/pazienti)
-4.  [**Magazzino e Tracciabilità UDI**](/docs/magazzino)
-5.  [**Finanza e Contabilità**](/docs/finanza)
-6.  [**Amministrazione del Sistema**](/docs/amministrazione)
+3.  [**Richiami e Comunicazioni**](/docs/richiami)
+4.  [**Gestione Pazienti e Diario Clinico**](/docs/pazienti)
+5.  [**Magazzino e Tracciabilità UDI**](/docs/magazzino)
+6.  [**Finanza e Contabilità**](/docs/finanza)
+7.  [**Amministrazione del Sistema**](/docs/amministrazione)
 
 ## Richiesta di Supporto
 

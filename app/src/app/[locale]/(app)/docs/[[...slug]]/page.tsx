@@ -67,7 +67,7 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
   const currentTitle = docs.find((doc) => doc.slug === requestedSlug)?.title ?? toTitle(requestedSlug);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px,1fr] lg:items-start">
+    <div className="grid gap-6 md:grid-cols-[280px_1fr] md:items-start">
       <aside className="sticky top-24 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-zinc-700">Documentazione</h2>
         <div className="space-y-1 text-sm font-semibold text-zinc-800">

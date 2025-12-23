@@ -1,8 +1,100 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { RecallStatus } from "@prisma/client";
+import { AppointmentStatus, RecallStatus } from "@prisma/client";
 import { sendSms } from "@/lib/sms";
 import { sendEmail } from "@/lib/email";
+
+const HORIZON_DAYS = 30;
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+async function enqueueRecurringRecalls(now: Date) {
+  const horizon = addDays(now, HORIZON_DAYS);
+  const rules = await prisma.recallRule.findMany();
+
+  for (const rule of rules) {
+    const [lastAppointments, lastRecalls, pendingRecalls] = await prisma.$transaction([
+      prisma.appointment.groupBy({
+        by: ["patientId"],
+        where: {
+          serviceType: rule.serviceType,
+          startsAt: { lte: now },
+          status: AppointmentStatus.COMPLETED,
+        },
+        orderBy: {
+          patientId: "asc",
+        },
+        _max: { startsAt: true },
+      }),
+      prisma.recall.groupBy({
+        by: ["patientId"],
+        where: { ruleId: rule.id },
+        orderBy: {
+          patientId: "asc",
+        },
+        _max: { dueAt: true },
+      }),
+      prisma.recall.groupBy({
+        by: ["patientId"],
+        where: { ruleId: rule.id, status: RecallStatus.PENDING },
+        orderBy: {
+          patientId: "asc",
+        },
+        _max: { dueAt: true },
+      }),
+    ]);
+
+    const lastRecallByPatient = new Map(
+      lastRecalls
+        .map((entry) => [entry.patientId, entry._max?.dueAt ?? null] as const)
+        .filter((entry): entry is [string, Date] => Boolean(entry[1])),
+    );
+    const pendingRecallByPatient = new Map(
+      pendingRecalls
+        .map((entry) => [entry.patientId, entry._max?.dueAt ?? null] as const)
+        .filter((entry): entry is [string, Date] => Boolean(entry[1])),
+    );
+
+    const pendingCreates = lastAppointments
+      .map((entry) => {
+        const lastVisit = entry._max?.startsAt ?? null;
+        if (!lastVisit) return null;
+        const pendingRecallDueAt = pendingRecallByPatient.get(entry.patientId);
+        if (pendingRecallDueAt) {
+          return null;
+        }
+
+        const lastRecallDueAt = lastRecallByPatient.get(entry.patientId);
+        let nextDueAt = addDays(lastVisit, rule.intervalDays);
+
+        if (lastRecallDueAt && lastRecallDueAt >= lastVisit) {
+          nextDueAt = addDays(lastRecallDueAt, rule.intervalDays);
+        }
+
+        if (nextDueAt < now) {
+          nextDueAt = now;
+        }
+
+        if (nextDueAt > horizon) return null;
+
+        return {
+          patientId: entry.patientId,
+          ruleId: rule.id,
+          dueAt: nextDueAt,
+          status: RecallStatus.PENDING,
+        };
+      })
+      .filter((value): value is NonNullable<typeof value> => value !== null);
+
+    if (pendingCreates.length > 0) {
+      await prisma.recall.createMany({ data: pendingCreates });
+    }
+  }
+}
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
@@ -11,6 +103,7 @@ export async function GET(req: Request) {
   }
 
   const now = new Date();
+  await enqueueRecurringRecalls(now);
   const dueRecalls = await prisma.recall.findMany({
     where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
     include: {

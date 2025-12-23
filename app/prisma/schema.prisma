@@ -72,6 +72,18 @@ enum Gender {
   NOT_SPECIFIED
 }
 
+enum RecurringMessageKind {
+  HOLIDAY
+  CLOSURE
+  BIRTHDAY
+}
+
+enum RecurringMessageStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
 model FeatureUpdate {
   id           String   @id @default(cuid())
   title        String
@@ -254,6 +266,35 @@ model PracticeWeeklyClosure {
   @@index([isActive])
 }
 
+model RecurringMessageConfig {
+  id            String               @id @default(cuid())
+  kind          RecurringMessageKind @unique
+  enabled       Boolean              @default(true)
+  subject       String
+  body          String
+  daysBefore    Int? // Only used for closure reminders
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+}
+
+model RecurringMessageLog {
+  id           String               @id @default(cuid())
+  kind         RecurringMessageKind
+  patientId    String
+  scheduledFor DateTime
+  eventDate    DateTime?
+  dedupeKey    String               @unique
+  status       RecurringMessageStatus
+  error        String?
+  sentAt       DateTime?
+  createdAt    DateTime             @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([kind, scheduledFor])
+  @@index([patientId])
+}
+
 model Patient {
   id        String    @id @default(cuid())
   firstName String
@@ -270,6 +311,7 @@ model Patient {
   appointments   Appointment[]
   clinicalNotes  ClinicalNote[]
   recalls        Recall[]
+  recurringMessageLogs RecurringMessageLog[]
   stockMovements StockMovement[]
   dentalRecords  DentalRecord[]
   smsLogs        SmsLog[]

@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { sendSms } from "@/lib/sms";
 import { NotificationChannel, Prisma, RecallStatus, Role } from "@prisma/client";
+import { RECURRING_MESSAGE_DEFAULTS } from "@/lib/recurring-messages";
 
 // Stubbed email sender; replace with real provider integrations.
 async function sendEmail(to: string, subject: string, body: string) {
@@ -92,6 +93,75 @@ async function deleteRecallRule(formData: FormData) {
     prisma.recall.deleteMany({ where: { ruleId } }),
     prisma.recallRule.delete({ where: { id: ruleId } }),
   ]);
+  revalidatePath("/richiami");
+}
+
+async function updateRecurringConfig(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const kind = (formData.get("kind") as string)?.trim();
+  const subject = (formData.get("subject") as string)?.trim();
+  const body = (formData.get("body") as string)?.trim();
+  const enabled = formData.get("enabled") === "on";
+  const daysBeforeRaw = formData.get("daysBefore");
+  const daysBefore = daysBeforeRaw ? Number(daysBeforeRaw) : null;
+
+  if (!kind || !subject || !body) {
+    throw new Error("Configurazione non valida");
+  }
+
+  await prisma.recurringMessageConfig.upsert({
+    where: { kind: kind as "HOLIDAY" | "CLOSURE" | "BIRTHDAY" },
+    create: {
+      kind: kind as "HOLIDAY" | "CLOSURE" | "BIRTHDAY",
+      enabled,
+      subject,
+      body,
+      daysBefore: daysBefore ?? undefined,
+    },
+    update: {
+      enabled,
+      subject,
+      body,
+      daysBefore: daysBefore ?? undefined,
+    },
+  });
+
+  revalidatePath("/richiami");
+}
+
+async function updateRecallRule(formData: FormData) {
+  "use server";
+
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const ruleId = (formData.get("ruleId") as string)?.trim();
+  const name = (formData.get("name") as string)?.trim();
+  const serviceType = (formData.get("serviceType") as string)?.trim();
+  const intervalDays = Number(formData.get("intervalDays"));
+  const message = (formData.get("message") as string)?.trim() || null;
+  const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
+  const channelRaw = (formData.get("channel") as string) || NotificationChannel.EMAIL;
+  const channel = Object.values(NotificationChannel).includes(channelRaw as NotificationChannel)
+    ? (channelRaw as NotificationChannel)
+    : NotificationChannel.EMAIL;
+
+  if (!ruleId || !name || !serviceType || Number.isNaN(intervalDays) || intervalDays <= 0) {
+    throw new Error("Dati regola non validi");
+  }
+
+  await prisma.recallRule.update({
+    where: { id: ruleId },
+    data: {
+      name,
+      serviceType,
+      intervalDays,
+      message,
+      emailSubject,
+      channel,
+    },
+  });
+
   revalidatePath("/richiami");
 }
 
@@ -303,6 +373,17 @@ export default async function RichiamiPage({
     }),
   ]);
   const services = servicesRaw as Array<{ id: string; name: string }>;
+  const recurringConfigsRaw = await prisma.recurringMessageConfig.findMany();
+  const recurringConfigs = RECURRING_MESSAGE_DEFAULTS.map((defaults) => {
+    const stored = recurringConfigsRaw.find((config) => config.kind === defaults.kind);
+    return {
+      kind: defaults.kind,
+      enabled: stored?.enabled ?? true,
+      subject: stored?.subject ?? defaults.subject,
+      body: stored?.body ?? defaults.body,
+      daysBefore: stored?.daysBefore ?? defaults.daysBefore ?? null,
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -428,6 +509,7 @@ export default async function RichiamiPage({
                 <h2 className="text-lg font-semibold text-zinc-900">Regole automatiche</h2>
                 <p className="text-sm text-zinc-600">
                   Definisci il canale, il servizio e l&apos;intervallo per i richiami automatici.
+                  I richiami compaiono in lista dopo l&apos;ultima visita completata con quel servizio, quando scatta l&apos;intervallo.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -540,30 +622,115 @@ export default async function RichiamiPage({
                         const extras = rule as unknown as { channel?: string | null; emailSubject?: string | null };
                         const channel = extras.channel ?? "EMAIL";
                         const emailSubject = extras.emailSubject ?? null;
+                        const serviceOptionMissing = !services.some((s) => s.name === rule.serviceType);
                         return (
-                          <form
+                          <details
                             key={rule.id}
-                            action={deleteRecallRule}
-                            className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-3 py-2"
-                            data-confirm="Eliminare definitivamente questa regola di richiamo?"
+                            className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
                           >
-                            <div>
-                              <p className="font-semibold text-zinc-900">{rule.name}</p>
-                              <p className="text-xs text-zinc-600">
-                                {rule.serviceType} · ogni {rule.intervalDays} giorni · {channel}
-                              </p>
-                              {emailSubject ? (
-                                <p className="text-[11px] text-zinc-500">Oggetto email: {emailSubject}</p>
-                              ) : null}
-                            </div>
-                            <input type="hidden" name="ruleId" value={rule.id} />
-                            <button
-                              type="submit"
-                              className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                            <summary className="flex cursor-pointer items-center justify-between gap-4">
+                              <div>
+                                <p className="font-semibold text-zinc-900">{rule.name}</p>
+                                <p className="text-xs text-zinc-600">
+                                  {rule.serviceType} · ogni {rule.intervalDays} giorni · {channel}
+                                </p>
+                                {emailSubject ? (
+                                  <p className="text-[11px] text-zinc-500">Oggetto email: {emailSubject}</p>
+                                ) : null}
+                              </div>
+                              <span className="text-xs font-semibold text-emerald-700">Modifica</span>
+                            </summary>
+                            <form action={updateRecallRule} className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                              <input type="hidden" name="ruleId" value={rule.id} />
+                              <label className="flex flex-col gap-2 sm:col-span-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Nome regola</span>
+                                <input
+                                  name="name"
+                                  defaultValue={rule.name}
+                                  required
+                                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Servizio</span>
+                                <select
+                                  name="serviceType"
+                                  required
+                                  defaultValue={rule.serviceType}
+                                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                >
+                                  {serviceOptionMissing ? (
+                                    <option value={rule.serviceType}>{rule.serviceType}</option>
+                                  ) : null}
+                                  {services.map((s) => (
+                                    <option key={s.id} value={s.name}>
+                                      {s.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="flex flex-col gap-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Intervallo (giorni)</span>
+                                <input
+                                  name="intervalDays"
+                                  type="number"
+                                  min="1"
+                                  defaultValue={rule.intervalDays}
+                                  required
+                                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Canale</span>
+                                <select
+                                  name="channel"
+                                  required
+                                  defaultValue={channel}
+                                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                >
+                                  <option value="EMAIL">Email</option>
+                                  <option value="SMS">SMS</option>
+                                  <option value="BOTH">Email + SMS</option>
+                                </select>
+                              </label>
+                              <label className="flex flex-col gap-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
+                                <input
+                                  name="emailSubject"
+                                  defaultValue={emailSubject ?? ""}
+                                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                />
+                              </label>
+                              <label className="flex flex-col gap-2 sm:col-span-2">
+                                <span className="text-xs font-semibold uppercase text-zinc-500">Messaggio</span>
+                                <textarea
+                                  name="message"
+                                  defaultValue={rule.message ?? ""}
+                                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  rows={3}
+                                />
+                              </label>
+                              <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-2"
+                              >
+                                Salva modifiche
+                              </button>
+                            </form>
+                            <form
+                              action={deleteRecallRule}
+                              className="mt-3"
+                              data-confirm="Eliminare definitivamente questa regola di richiamo?"
                             >
-                              Elimina
-                            </button>
-                          </form>
+                              <input type="hidden" name="ruleId" value={rule.id} />
+                              <button
+                                type="submit"
+                                className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                              >
+                                Elimina
+                              </button>
+                            </form>
+                          </details>
                         );
                       })
                     )}
@@ -578,7 +745,7 @@ export default async function RichiamiPage({
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900">Programma richiamo manuale</h2>
                 <p className="text-sm text-zinc-600">
-                  Aggiungi manualmente un richiamo collegato a una regola esistente.
+                  Crea un singolo richiamo con data di invio. Non avvia una sequenza ricorrente.
                 </p>
               </div>
               <svg
@@ -627,12 +794,15 @@ export default async function RichiamiPage({
                     </option>
                   ))}
                 </select>
-                <input
-                  name="dueAt"
-                  type="date"
-                  required
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                />
+                <label className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold uppercase text-zinc-500">Data di invio</span>
+                  <input
+                    name="dueAt"
+                    type="date"
+                    required
+                    className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
                 <input
                   name="notes"
                   placeholder="Note (opzionali)"
@@ -801,6 +971,108 @@ export default async function RichiamiPage({
                     </button>
                   </form>
                 </div>
+              </div>
+            </div>
+          </details>
+
+          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-6 py-4">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-900">Comunicazioni ricorrenti</h2>
+                <p className="text-sm text-zinc-600">
+                  Email automatiche per festività, chiusure studio e compleanni.
+                </p>
+              </div>
+              <Link
+                href="/docs/richiami"
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+              >
+                Guida
+              </Link>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-5 w-5 text-zinc-400 transition group-open:rotate-180"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6">
+              <p className="text-xs text-zinc-500">
+                Le email vengono inviate a tutti i pazienti con email valida.
+              </p>
+              <div className="mt-4 space-y-4">
+                {recurringConfigs.map((config) => {
+                  const label =
+                    config.kind === "HOLIDAY"
+                      ? "Festività italiane"
+                      : config.kind === "CLOSURE"
+                        ? "Chiusure studio"
+                        : "Compleanni";
+                  return (
+                    <form
+                      key={config.kind}
+                      action={updateRecurringConfig}
+                      className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-sm"
+                    >
+                      <input type="hidden" name="kind" value={config.kind} />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-zinc-900">{label}</h3>
+                        <label className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600">
+                          <input
+                            type="checkbox"
+                            name="enabled"
+                            defaultChecked={config.enabled}
+                            className="h-4 w-4 rounded border-zinc-300 text-emerald-600"
+                          />
+                          Attivo
+                        </label>
+                      </div>
+                      {config.kind === "CLOSURE" ? (
+                        <label className="mt-3 flex flex-col gap-2">
+                          <span className="text-xs font-semibold uppercase text-zinc-500">Invia (giorni prima)</span>
+                          <input
+                            name="daysBefore"
+                            type="number"
+                            min="1"
+                            defaultValue={config.daysBefore ?? 7}
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                      ) : null}
+                      <label className="mt-3 flex flex-col gap-2">
+                        <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
+                        <input
+                          name="subject"
+                          defaultValue={config.subject}
+                          required
+                          className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </label>
+                      <label className="mt-3 flex flex-col gap-2">
+                        <span className="text-xs font-semibold uppercase text-zinc-500">Messaggio</span>
+                        <textarea
+                          name="body"
+                          defaultValue={config.body}
+                          required
+                          rows={3}
+                          className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                      >
+                        Salva impostazioni
+                      </button>
+                    </form>
+                  );
+                })}
               </div>
             </div>
           </details>

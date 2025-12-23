@@ -189,10 +189,20 @@ export default async function StackAuthHandlerPage(props: {
                     border-color: #cbd5e1 !important;
                     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25) !important;
                   }
+                  .stack-scope a[role="button"],
+                  .stack-scope a[data-stack-button],
+                  .stack-scope [data-stack-button] {
+                    color: #0f172a !important;
+                    background-color: #e5e7eb !important;
+                    border-color: #cbd5e1 !important;
+                    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.25) !important;
+                  }
                   .stack-scope button span,
                   .stack-scope button svg,
                   .stack-scope a span,
-                  .stack-scope a svg {
+                  .stack-scope a svg,
+                  .stack-scope [data-stack-button] span,
+                  .stack-scope [data-stack-button] svg {
                     color: #0f172a !important;
                     fill: #0f172a !important;
                   }
@@ -200,7 +210,9 @@ export default async function StackAuthHandlerPage(props: {
                     color: #475569 !important;
                   }
                   .stack-scope button[type="submit"],
-                  .stack-scope button[data-stack-button="primary"] {
+                  .stack-scope button[data-stack-button="primary"],
+                  .stack-scope a[data-stack-button="primary"],
+                  .stack-scope [data-stack-button="primary"] {
                     color: #0f172a !important;
                     background-color: #67e8f9 !important;
                     border-color: #22d3ee !important;
