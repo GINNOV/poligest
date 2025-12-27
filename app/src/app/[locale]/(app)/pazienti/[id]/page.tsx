@@ -16,6 +16,7 @@ import { ConsentForm } from "@/components/consent-form";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
+import { put } from "@vercel/blob";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -221,20 +222,16 @@ async function uploadPhoto(formData: FormData) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "patients");
-  await fs.mkdir(uploadDir, { recursive: true });
-
-  const outputPath = path.join(uploadDir, `${patientId}.jpg`);
-  const publicPath = `/uploads/patients/${patientId}.jpg?ts=${Date.now()}`;
-
-  await sharp(buffer)
+  const resized = await sharp(buffer)
     .resize(512, 512, { fit: "cover" })
     .jpeg({ quality: 85 })
-    .toFile(outputPath);
+    .toBuffer();
+  const blobName = `patients/${patientId}/photo-${Date.now()}.jpg`;
+  const blob = await put(blobName, resized, { access: "public", addRandomSuffix: false });
 
   await prisma.patient.update({
     where: { id: patientId },
-    data: { photoUrl: publicPath },
+    data: { photoUrl: blob.url },
   });
 
   await logAudit(user, {

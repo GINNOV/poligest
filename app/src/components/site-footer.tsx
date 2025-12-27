@@ -18,7 +18,7 @@ export function SiteFooter({
       <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <span className="font-semibold text-zinc-800">
           (C) 2026 Garage Innovation LLC · v{version}
-          {deployLabel ? ` · Deploy ${deployLabel}` : ""}
+          {deployLabel ? ` · Aggiornato a ${deployLabel}` : ""}
         </span>
         <div className="flex items-center gap-4 text-emerald-700">
           {showDocs ? (

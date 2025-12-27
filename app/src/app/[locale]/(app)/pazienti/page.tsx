@@ -13,6 +13,7 @@ import { LocalizedFileInput } from "@/components/localized-file-input";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
+import { put } from "@vercel/blob";
 
 const PAGE_SIZE = 20;
 
@@ -108,26 +109,19 @@ async function createPatient(formData: FormData) {
 
   if (photo && photo.size > 0) {
     const buffer = Buffer.from(await photo.arrayBuffer());
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "patients");
-    await fs.mkdir(uploadDir, { recursive: true });
-    const outputPath = path.join(uploadDir, `${patient.id}.jpg`);
-    const publicPath = `/uploads/patients/${patient.id}.jpg?ts=${Date.now()}`;
-
-    await sharp(buffer)
+    const resized = await sharp(buffer)
       .resize(512, 512, { fit: "cover" })
       .jpeg({ quality: 85 })
-      .toFile(outputPath);
-
-    updates.photoUrl = publicPath;
+      .toBuffer();
+    const blobName = `patients/${patient.id}/photo-${Date.now()}.jpg`;
+    const blob = await put(blobName, resized, { access: "public", addRandomSuffix: false });
+    updates.photoUrl = blob.url;
   }
 
   if (signatureBuffer) {
-    const signatureDir = path.join(process.cwd(), "public", "uploads", "signatures");
-    await fs.mkdir(signatureDir, { recursive: true });
-    const signaturePath = path.join(signatureDir, `${patient.id}.png`);
-    await fs.writeFile(signaturePath, signatureBuffer);
-    const signaturePublicPath = `/uploads/signatures/${patient.id}.png?ts=${Date.now()}`;
-    updates.notes = `${structuredNotesText}\nFirma digitale: ${signaturePublicPath}`;
+    const signatureName = `signatures/${patient.id}/signature-${Date.now()}.png`;
+    const signatureBlob = await put(signatureName, signatureBuffer, { access: "public", addRandomSuffix: false });
+    updates.notes = `${structuredNotesText}\nFirma digitale: ${signatureBlob.url}`;
   }
 
   await prisma.patient.update({
