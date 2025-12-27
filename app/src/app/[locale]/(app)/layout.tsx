@@ -8,7 +8,7 @@ import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { UserMenu } from "@/components/user-menu";
-import { getAppVersion } from "@/lib/version";
+import { getAppVersion, getDeployDate } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
@@ -42,6 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   };
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
   const version = getAppVersion();
+  const deployedAt = getDeployDate();
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const featureUpdateClient = prismaModels["featureUpdate"] as
@@ -110,7 +111,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
-      <SiteFooter version={version} showDocs />
+      <SiteFooter version={version} deployedAt={deployedAt} showDocs />
       {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
     </div>
   );

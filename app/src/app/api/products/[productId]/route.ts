@@ -3,13 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { errorResponse } from "@/lib/error-response";
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ productId: string }> }) {
   const { productId } = await params;
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
 
   if (!productId) {
-    return NextResponse.json({ error: "Prodotto mancante" }, { status: 400 });
+    return errorResponse({
+      message: "Prodotto mancante",
+      status: 400,
+      source: "product_delete",
+      actor: user,
+    });
   }
 
   try {
@@ -19,7 +25,14 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ product
     ]);
     revalidatePath("/magazzino");
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "Eliminazione prodotto non riuscita" }, { status: 500 });
+  } catch (error) {
+    return errorResponse({
+      message: "Eliminazione prodotto non riuscita",
+      status: 500,
+      source: "product_delete",
+      context: { productId },
+      error,
+      actor: user,
+    });
   }
 }

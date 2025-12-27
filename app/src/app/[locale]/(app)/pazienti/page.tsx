@@ -11,6 +11,8 @@ import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientConsentSection } from "@/components/patient-consent-modal";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { parseOptionalDate } from "@/lib/date";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 
 const PAGE_SIZE = 20;
 
@@ -30,7 +32,7 @@ async function createPatient(formData: FormData) {
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
   const taxId = (formData.get("taxId") as string)?.trim() || null;
-  const birthDateStr = (formData.get("birthDate") as string)?.trim();
+  const birthDateValue = formData.get("birthDate");
   const conditions = formData.getAll("conditions").map((c) => (c as string).trim()).filter(Boolean);
   const medications = (formData.get("medications") as string)?.trim();
   const extraNotes = (formData.get("extraNotes") as string)?.trim();
@@ -46,13 +48,7 @@ async function createPatient(formData: FormData) {
     : null;
   const signatureBuffer = signatureBase64 ? Buffer.from(signatureBase64, "base64") : null;
 
-  let birthDate: Date | null = null;
-  if (birthDateStr) {
-    const parsed = new Date(birthDateStr);
-    if (!isNaN(parsed.getTime())) {
-      birthDate = parsed;
-    }
-  }
+  const birthDate = parseOptionalDate(birthDateValue);
 
   if (!firstName || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
@@ -291,7 +287,8 @@ export default async function PazientiPage({
           <span className="text-sm font-semibold text-emerald-700">Crea nuovo</span>
         </summary>
 
-        <form action={createPatient} className="space-y-6 px-6 pb-6">
+        <UnsavedChangesGuard formId="patient-create-form" />
+        <form action={createPatient} className="space-y-6 px-6 pb-6" id="patient-create-form">
           <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
             <div className="space-y-1">
               <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>

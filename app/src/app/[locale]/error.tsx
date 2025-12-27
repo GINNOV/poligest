@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 
 export default function GlobalError({
@@ -13,9 +13,37 @@ export default function GlobalError({
   // Generate a stable fallback ID if digest is missing.
   const fallbackId = useMemo(() => crypto.randomUUID(), []);
   const errorId = error.digest || fallbackId;
+  const reportedRef = useRef(false);
 
   useEffect(() => {
     console.error("Unhandled app error", { digest: error.digest, error });
+    if (reportedRef.current) return;
+    reportedRef.current = true;
+
+    const payload = {
+      code: errorId,
+      message: error.message,
+      source: "global_error_boundary",
+      path: window.location.pathname,
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+    };
+    const body = JSON.stringify(payload);
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/errors/report", body);
+      return;
+    }
+
+    fetch("/api/errors/report", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => undefined);
   }, [error]);
 
   return (

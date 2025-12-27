@@ -26,14 +26,36 @@ export default async function AdminPage() {
     | undefined;
   const featureUpdateClient = prismaModels["featureUpdate"] as { count?: () => Promise<number> } | undefined;
 
-  const [usersCount, doctorsCount, auditCount, servicesCount, closuresCount, updatesCount] = await Promise.all([
+  const [usersCount, doctorsCount, auditCount, servicesCount, closuresCount, updatesCount, errorCount, recentErrors] = await Promise.all([
     prisma.user.count(),
     prisma.doctor.count(),
     prisma.auditLog.count(),
     serviceClient?.count ? serviceClient.count() : Promise.resolve(0),
     closureClient?.count ? closureClient.count() : Promise.resolve(0),
     featureUpdateClient?.count ? featureUpdateClient.count() : Promise.resolve(0),
+    prisma.auditLog.count({ where: { action: "error.reported" } }),
+    prisma.auditLog.findMany({
+      where: { action: "error.reported" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
+
+  const recentErrorRows = recentErrors.map((entry) => {
+    const meta = entry.metadata as {
+      message?: string;
+      source?: string;
+      path?: string;
+    } | null;
+    return {
+      id: entry.id,
+      code: entry.entityId ?? entry.id,
+      message: meta?.message ?? "Errore non specificato",
+      source: meta?.source,
+      path: meta?.path,
+      createdAt: entry.createdAt,
+    };
+  });
 
   const shortcuts: AdminShortcut[] = [
     {
@@ -80,6 +102,15 @@ export default async function AdminPage() {
       badge: "Permessi",
       tone: "primary",
       icon: "🛡️",
+    },
+    {
+      key: "errors",
+      title: "Errori",
+      description: "Registro errori applicativi con codici per il supporto.",
+      href: "/admin/errori",
+      badge: errorCount ? `${errorCount} errori` : "Nessun errore",
+      tone: errorCount ? "warning" : "neutral",
+      icon: "🚨",
     },
     {
       key: "audit",
@@ -191,6 +222,46 @@ export default async function AdminPage() {
           </div>
         ))}
       </div>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-zinc-900">Errori recenti</p>
+            <p className="text-xs text-zinc-500">
+              {errorCount ? `${errorCount} errori registrati` : "Nessun errore registrato"}
+            </p>
+          </div>
+          <Link href="/admin/audit" className="text-xs font-semibold text-emerald-700 hover:text-emerald-600">
+            Vai al registro
+          </Link>
+        </div>
+        <div className="mt-4 space-y-3">
+          {recentErrorRows.length === 0 ? (
+            <p className="text-sm text-zinc-500">Non ci sono errori da mostrare.</p>
+          ) : (
+            recentErrorRows.map((entry) => (
+              <div key={entry.id} className="rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-zinc-900">Codice: {entry.code}</p>
+                  <p className="text-xs text-zinc-500">
+                    {new Intl.DateTimeFormat("it-IT", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    }).format(entry.createdAt)}
+                  </p>
+                </div>
+                <p className="mt-1 text-sm text-zinc-700">{entry.message}</p>
+                {entry.source || entry.path ? (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {entry.source ? `Sorgente: ${entry.source}` : null}
+                    {entry.source && entry.path ? " · " : null}
+                    {entry.path ? `Percorso: ${entry.path}` : null}
+                  </p>
+                ) : null}
+              </div>
+            ))
+          )}
+        </div>
+      </section>
     </div>
   );
 }

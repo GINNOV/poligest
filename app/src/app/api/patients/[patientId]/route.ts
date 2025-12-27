@@ -4,13 +4,19 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { errorResponse } from "@/lib/error-response";
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = await params;
   const user = await requireUser([Role.ADMIN]);
 
   if (!patientId) {
-    return NextResponse.json({ error: "Paziente non valido" }, { status: 400 });
+    return errorResponse({
+      message: "Paziente non valido",
+      status: 400,
+      source: "patient_delete",
+      actor: user,
+    });
   }
 
   try {
@@ -37,7 +43,14 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ patient
     revalidatePath("/pazienti");
 
     return NextResponse.json({ ok: true });
-  } catch (err) {
-    return NextResponse.json({ error: "Eliminazione non riuscita" }, { status: 500 });
+  } catch (error) {
+    return errorResponse({
+      message: "Eliminazione non riuscita",
+      status: 500,
+      source: "patient_delete",
+      context: { patientId },
+      error,
+      actor: user,
+    });
   }
 }

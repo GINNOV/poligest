@@ -14,6 +14,8 @@ import { DentalChart } from "@/components/dental-chart";
 import { sendSms } from "@/lib/sms";
 import { ConsentForm } from "@/components/consent-form";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { parseOptionalDate } from "@/lib/date";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 
 const conditionsList: string[] = [
   "Artrosi cardiache",
@@ -261,7 +263,7 @@ async function updatePatient(formData: FormData) {
     .filter(Boolean);
   const medications = (formData.get("medications") as string)?.trim() || null;
   const extraNotes = (formData.get("extraNotes") as string)?.trim() || null;
-  const birthDateStr = (formData.get("birthDate") as string)?.trim();
+  const birthDateValue = formData.get("birthDate");
 
   if (!id || !firstName || !lastName) {
     throw new Error("Dati paziente non validi");
@@ -283,11 +285,7 @@ async function updatePatient(formData: FormData) {
       !line.startsWith("Note:")
   );
 
-  let birthDate: Date | null = null;
-  if (birthDateStr) {
-    const parsed = new Date(birthDateStr);
-    birthDate = Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
+  const birthDate = parseOptionalDate(birthDateValue);
 
   await prisma.patient.update({
     where: { id },
@@ -745,7 +743,12 @@ export default async function PatientDetailPage({
                 </form>
 
                 <div className="space-y-6" id="contact-info">
-                  <form action={updatePatient} className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                  <UnsavedChangesGuard formId="patient-update-form" />
+                  <form
+                    action={updatePatient}
+                    className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4"
+                    id="patient-update-form"
+                  >
                     <input type="hidden" name="patientId" value={patient.id} />
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-zinc-900">Modifica dati</p>

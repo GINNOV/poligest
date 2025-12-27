@@ -80,7 +80,48 @@ export function GlobalLoadingOverlay() {
           emitToast("Salvato con successo", "success");
         }
         if (!response.ok && shouldNotify) {
-          emitToast("Si è verificato un errore. Riprova.", "error");
+          let errorCode = response.headers.get("x-error-code");
+          if (!errorCode) {
+            try {
+              const payload = await response.clone().json();
+              if (payload && typeof payload.code === "string") {
+                errorCode = payload.code;
+              }
+            } catch {
+              // Ignore parsing errors for non-JSON payloads.
+            }
+          }
+          if (!errorCode) {
+            try {
+              const reportRes = await originalFetch("/api/errors/report", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  message: "Errore richiesta",
+                  source: "fetch",
+                  path:
+                    typeof input === "string"
+                      ? input
+                      : typeof input === "object" && "url" in input
+                        ? input.url
+                        : undefined,
+                  context: {
+                    status: response.status,
+                    statusText: response.statusText,
+                    method,
+                  },
+                }),
+              });
+              const reportPayload = await reportRes.json();
+              if (reportPayload && typeof reportPayload.code === "string") {
+                errorCode = reportPayload.code;
+              }
+            } catch {
+              // Ignore reporting failures.
+            }
+          }
+          const suffix = errorCode ? ` (codice: ${errorCode})` : "";
+          emitToast(`Si è verificato un errore${suffix}. Riprova.`, "error");
         }
         return response;
       } catch (error) {

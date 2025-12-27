@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RecurringMessageKind, RecurringMessageStatus } from "@prisma/client";
 import { sendEmail } from "@/lib/email";
+import { errorResponse } from "@/lib/error-response";
 import {
   RECURRING_MESSAGE_DEFAULTS,
   applyTemplate,
@@ -158,71 +159,86 @@ async function buildCandidates(now: Date): Promise<Candidate[]> {
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("x-cron-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return errorResponse({
+      message: "Unauthorized",
+      status: 401,
+      source: "recurring_notifications",
+      path: new URL(req.url).pathname,
+    });
   }
 
-  const now = new Date();
-  const candidates = await buildCandidates(now);
-  if (candidates.length === 0) {
-    return NextResponse.json({ processed: 0 });
+  try {
+    const now = new Date();
+    const candidates = await buildCandidates(now);
+    if (candidates.length === 0) {
+      return NextResponse.json({ processed: 0 });
+    }
+
+    const dedupeKeys = candidates.map((candidate) => candidate.dedupeKey);
+    const existing = await prisma.recurringMessageLog.findMany({
+      where: { dedupeKey: { in: dedupeKeys } },
+      select: { dedupeKey: true, status: true },
+    });
+    const existingByKey = new Map(existing.map((row) => [row.dedupeKey, row.status]));
+
+    let processed = 0;
+    for (const candidate of candidates) {
+      if (processed >= MAX_SEND) break;
+      const existingStatus = existingByKey.get(candidate.dedupeKey);
+      if (existingStatus === RecurringMessageStatus.SENT || existingStatus === RecurringMessageStatus.SKIPPED) {
+        continue;
+      }
+
+      const subject = applyTemplate(candidate.subject, candidate.templateVars);
+      const body = applyTemplate(candidate.body, candidate.templateVars);
+
+      let status: RecurringMessageStatus = RecurringMessageStatus.SENT;
+      let error: string | null = null;
+      let sentAt: Date | null = new Date();
+
+      try {
+        await sendEmail(candidate.email, subject, body);
+      } catch (err) {
+        status = RecurringMessageStatus.FAILED;
+        error = err instanceof Error ? err.message : String(err);
+        sentAt = null;
+      }
+
+      if (existingStatus === RecurringMessageStatus.FAILED) {
+        await prisma.recurringMessageLog.update({
+          where: { dedupeKey: candidate.dedupeKey },
+          data: {
+            status,
+            error: error ?? undefined,
+            sentAt: sentAt ?? undefined,
+          },
+        });
+      } else {
+        await prisma.recurringMessageLog.create({
+          data: {
+            kind: candidate.kind,
+            patientId: candidate.patientId,
+            scheduledFor: candidate.scheduledFor,
+            eventDate: candidate.eventDate,
+            dedupeKey: candidate.dedupeKey,
+            status,
+            error: error ?? undefined,
+            sentAt: sentAt ?? undefined,
+          },
+        });
+      }
+
+      processed += 1;
+    }
+
+    return NextResponse.json({ processed });
+  } catch (error) {
+    return errorResponse({
+      message: "Errore invio notifiche ricorrenti",
+      status: 500,
+      source: "recurring_notifications",
+      path: new URL(req.url).pathname,
+      error,
+    });
   }
-
-  const dedupeKeys = candidates.map((candidate) => candidate.dedupeKey);
-  const existing = await prisma.recurringMessageLog.findMany({
-    where: { dedupeKey: { in: dedupeKeys } },
-    select: { dedupeKey: true, status: true },
-  });
-  const existingByKey = new Map(existing.map((row) => [row.dedupeKey, row.status]));
-
-  let processed = 0;
-  for (const candidate of candidates) {
-    if (processed >= MAX_SEND) break;
-    const existingStatus = existingByKey.get(candidate.dedupeKey);
-    if (existingStatus === RecurringMessageStatus.SENT || existingStatus === RecurringMessageStatus.SKIPPED) {
-      continue;
-    }
-
-    const subject = applyTemplate(candidate.subject, candidate.templateVars);
-    const body = applyTemplate(candidate.body, candidate.templateVars);
-
-    let status: RecurringMessageStatus = RecurringMessageStatus.SENT;
-    let error: string | null = null;
-    let sentAt: Date | null = new Date();
-
-    try {
-      await sendEmail(candidate.email, subject, body);
-    } catch (err) {
-      status = RecurringMessageStatus.FAILED;
-      error = err instanceof Error ? err.message : String(err);
-      sentAt = null;
-    }
-
-    if (existingStatus === RecurringMessageStatus.FAILED) {
-      await prisma.recurringMessageLog.update({
-        where: { dedupeKey: candidate.dedupeKey },
-        data: {
-          status,
-          error: error ?? undefined,
-          sentAt: sentAt ?? undefined,
-        },
-      });
-    } else {
-      await prisma.recurringMessageLog.create({
-        data: {
-          kind: candidate.kind,
-          patientId: candidate.patientId,
-          scheduledFor: candidate.scheduledFor,
-          eventDate: candidate.eventDate,
-          dedupeKey: candidate.dedupeKey,
-          status,
-          error: error ?? undefined,
-          sentAt: sentAt ?? undefined,
-        },
-      });
-    }
-
-    processed += 1;
-  }
-
-  return NextResponse.json({ processed });
 }

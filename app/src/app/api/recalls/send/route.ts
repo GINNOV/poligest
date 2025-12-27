@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, RecallStatus } from "@prisma/client";
 import { sendSms } from "@/lib/sms";
 import { sendEmail } from "@/lib/email";
+import { errorResponse } from "@/lib/error-response";
 
 const HORIZON_DAYS = 30;
 
@@ -99,73 +100,88 @@ async function enqueueRecurringRecalls(now: Date) {
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("x-cron-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return errorResponse({
+      message: "Unauthorized",
+      status: 401,
+      source: "recalls_send",
+      path: new URL(req.url).pathname,
+    });
   }
 
-  const now = new Date();
-  await enqueueRecurringRecalls(now);
-  const dueRecalls = await prisma.recall.findMany({
-    where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
-    include: {
-      patient: { select: { email: true, phone: true, firstName: true, lastName: true } },
-      rule: true,
-    },
-    take: 50,
-  });
+  try {
+    const now = new Date();
+    await enqueueRecurringRecalls(now);
+    const dueRecalls = await prisma.recall.findMany({
+      where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
+      include: {
+        patient: { select: { email: true, phone: true, firstName: true, lastName: true } },
+        rule: true,
+      },
+      take: 50,
+    });
 
-  for (const recall of dueRecalls) {
-    const patient = recall.patient;
-    const rule = recall.rule as any;
-    const subject = rule?.emailSubject ?? `Promemoria ${rule?.serviceType ?? ""}`;
-    const body =
-      rule?.message ??
-      `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per ${rule.serviceType}.`;
+    for (const recall of dueRecalls) {
+      const patient = recall.patient;
+      const rule = recall.rule as any;
+      const subject = rule?.emailSubject ?? `Promemoria ${rule?.serviceType ?? ""}`;
+      const body =
+        rule?.message ??
+        `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per ${rule.serviceType}.`;
 
-    const channel = rule?.channel ?? "EMAIL";
-    const wantsEmail = channel === "EMAIL" || channel === "BOTH";
-    const wantsSms = channel === "SMS" || channel === "BOTH";
+      const channel = rule?.channel ?? "EMAIL";
+      const wantsEmail = channel === "EMAIL" || channel === "BOTH";
+      const wantsSms = channel === "SMS" || channel === "BOTH";
 
-    let delivered = false;
-    let attempted = false;
+      let delivered = false;
+      let attempted = false;
 
-    if (wantsEmail) {
-      attempted = true;
-      if (patient.email) {
-        try {
-          await sendEmail(patient.email, subject, body);
-          delivered = true;
-        } catch (err) {
-          console.error("[recalls] email failed", { recallId: recall.id, err });
+      if (wantsEmail) {
+        attempted = true;
+        if (patient.email) {
+          try {
+            await sendEmail(patient.email, subject, body);
+            delivered = true;
+          } catch (err) {
+            console.error("[recalls] email failed", { recallId: recall.id, err });
+          }
         }
+      }
+
+      if (wantsSms) {
+        attempted = true;
+        if (patient.phone) {
+          try {
+            await sendSms({
+              to: patient.phone,
+              body,
+              patientId: recall.patientId,
+            });
+            delivered = true;
+          } catch (err) {
+            console.error("[recalls] sms failed", { recallId: recall.id, err });
+          }
+        }
+      }
+
+      if (attempted) {
+        await prisma.recall.update({
+          where: { id: recall.id },
+          data: {
+            status: delivered ? RecallStatus.CONTACTED : RecallStatus.SKIPPED,
+            lastContactAt: new Date(),
+          },
+        });
       }
     }
 
-    if (wantsSms) {
-      attempted = true;
-      if (patient.phone) {
-        try {
-          await sendSms({
-            to: patient.phone,
-            body,
-            patientId: recall.patientId,
-          });
-          delivered = true;
-        } catch (err) {
-          console.error("[recalls] sms failed", { recallId: recall.id, err });
-        }
-      }
-    }
-
-    if (attempted) {
-      await prisma.recall.update({
-        where: { id: recall.id },
-        data: {
-          status: delivered ? RecallStatus.CONTACTED : RecallStatus.SKIPPED,
-          lastContactAt: new Date(),
-        },
-      });
-    }
+    return NextResponse.json({ processed: dueRecalls.length });
+  } catch (error) {
+    return errorResponse({
+      message: "Errore invio richiami",
+      status: 500,
+      source: "recalls_send",
+      path: new URL(req.url).pathname,
+      error,
+    });
   }
-
-  return NextResponse.json({ processed: dueRecalls.length });
 }
