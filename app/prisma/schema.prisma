@@ -323,6 +323,7 @@ model Consent {
   type      ConsentType
   status    ConsentStatus @default(GRANTED)
   channel   String? // e.g. email/sms/firmato
+  signatureUrl String?
   givenAt   DateTime      @default(now())
   expiresAt DateTime?
   revokedAt DateTime?

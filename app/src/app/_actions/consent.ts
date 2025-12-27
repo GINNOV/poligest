@@ -1,13 +1,12 @@
 "use server";
 
-import fs from "fs/promises";
-import path from "path";
 import { ConsentStatus, ConsentType, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { del, put } from "@vercel/blob";
 
 export async function addConsentAction(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
@@ -22,6 +21,7 @@ export async function addConsentAction(formData: FormData) {
   const doctorSignature = (formData.get("doctorSignature") as string)?.trim();
   const consentSignatureData = (formData.get("consentSignatureData") as string)?.trim();
 
+  let signatureUrl: string | null = null;
   try {
     if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
       throw new Error("Dati consenso non validi");
@@ -42,6 +42,13 @@ export async function addConsentAction(formData: FormData) {
       "base64"
     );
 
+    const signatureName = `signatures/consent-${patientId}-${Date.now()}.png`;
+    const signatureBlob = await put(signatureName, signatureBuffer, {
+      access: "public",
+      addRandomSuffix: false,
+    });
+    signatureUrl = signatureBlob.url;
+
     const consent = await prisma.consent.create({
       data: {
         patientId,
@@ -50,14 +57,9 @@ export async function addConsentAction(formData: FormData) {
         channel,
         givenAt,
         expiresAt,
-      },
+        signatureUrl,
+      } as any,
     });
-
-    const sigDir = path.join(process.cwd(), "public", "uploads", "signatures");
-    await fs.mkdir(sigDir, { recursive: true });
-    const sigPath = path.join(sigDir, `consent-${consent.id}.png`);
-    await fs.writeFile(sigPath, signatureBuffer);
-    const sigPublicPath = `/uploads/signatures/consent-${consent.id}.png?ts=${Date.now()}`;
 
     await logAudit(user, {
       action: "consent.added",
@@ -71,13 +73,16 @@ export async function addConsentAction(formData: FormData) {
         consentDate,
         patientSignature,
         doctorSignature,
-        signature: sigPublicPath,
+        signature: signatureUrl,
       },
     });
 
     revalidatePath(`/pazienti/${patientId}`);
     redirect(`/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`);
   } catch (err: any) {
+    if (signatureUrl) {
+      await del(signatureUrl).catch(() => null);
+    }
     if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
       throw err;
     }

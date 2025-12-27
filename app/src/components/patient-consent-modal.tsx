@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
 type Props = {
   content: string;
@@ -132,6 +133,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
   const [signatureData, setSignatureData] = useState<string>("");
   const [signatureError, setSignatureError] = useState<string | null>(null);
+  const [wacomLoading, setWacomLoading] = useState(false);
   const [hasStroke, setHasStroke] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inlineCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -285,6 +287,85 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     setIsOpen(false);
   };
 
+  const renderWacomSignature = async (sigSDK: Awaited<ReturnType<typeof loadWacomSignatureSdk>>, sigObj: any) => {
+    if (!sigSDK) throw new Error("SDK Wacom non disponibile.");
+    const width = Math.trunc((96 * sigObj.getWidth(false) * 0.01) / 25.4);
+    const height = Math.trunc((96 * sigObj.getHeight(false) * 0.01) / 25.4);
+    const scale = Math.min(360 / width, 220 / height);
+    let renderWidth = Math.trunc(width * scale);
+    const renderHeight = Math.trunc(height * scale);
+    if (renderWidth % 4 !== 0) {
+      renderWidth += renderWidth % 4;
+    }
+    return sigObj.renderBitmap(
+      renderWidth,
+      renderHeight,
+      "image/png",
+      4,
+      "#0f172a",
+      "white",
+      0,
+      0,
+      sigSDK.RenderFlags.RenderEncodeData.value,
+    );
+  };
+
+  const captureWithWacom = async () => {
+    if (wacomLoading) return;
+    setSignatureError(null);
+    setWacomLoading(true);
+    try {
+      const sigSDK = await loadWacomSignatureSdk();
+      if (!sigSDK) {
+        throw new Error("SDK Wacom non disponibile. Aggiungi signature_sdk.js e signature_sdk.wasm in /public/wacom.");
+      }
+      if (!sigSDK.STUDevice.isHIDSupported()) {
+        throw new Error("Il browser non supporta WebHID per il tablet STU.");
+      }
+
+      const key = process.env.NEXT_PUBLIC_WACOM_SIGNATURE_KEY ?? "";
+      const secret = process.env.NEXT_PUBLIC_WACOM_SIGNATURE_SECRET ?? "";
+      if (!key || !secret) {
+        throw new Error("Licenza Wacom mancante. Configura le chiavi NEXT_PUBLIC_WACOM_SIGNATURE_*.");
+      }
+
+      const sigObj = new sigSDK.SigObj();
+      await sigObj.setLicence(key, secret);
+
+      const devices = await sigSDK.STUDevice.requestDevices();
+      if (devices.length === 0) {
+        throw new Error("Nessun dispositivo STU selezionato.");
+      }
+
+      const stuDevice = new (sigSDK as any).STUDevice(devices[0]);
+      const config = new sigSDK.Config();
+      config.source.mouse = false;
+      config.source.touch = false;
+      config.source.pen = false;
+      config.source.stu = true;
+
+      const dialog = new sigSDK.StuCaptDialog(stuDevice, config);
+      dialog.addEventListener(sigSDK.EventType.OK, async () => {
+        const image = await renderWacomSignature(sigSDK, sigObj);
+        setSignatureData(image);
+        setHasStroke(true);
+        setIsOpen(false);
+        dialog.delete?.();
+        stuDevice.delete?.();
+      });
+      dialog.addEventListener(sigSDK.EventType.CANCEL, () => {
+        dialog.delete?.();
+        stuDevice.delete?.();
+      });
+
+      await dialog.open(sigObj, patientName, "Consenso informato", null, sigSDK.KeyType.SHA512, null);
+    } catch (error) {
+      setSignatureError(error instanceof Error ? error.message : "Errore acquisizione firma Wacom.");
+    } finally {
+      setWacomLoading(false);
+    }
+  };
+
   const currentPage = pages[pageIndex] ?? [];
   const totalPages = pages.length;
   const renderedMarkdown = useMemo(
@@ -426,6 +507,14 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           <div className="flex gap-2">
             <button
               type="button"
+              onClick={captureWithWacom}
+              disabled={wacomLoading}
+              className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {wacomLoading ? "Collego Wacom..." : "Firma con Wacom"}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 clearCanvas(inlineCanvasRef);
                 setHasStroke(false);
@@ -530,6 +619,14 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={captureWithWacom}
+                    disabled={wacomLoading}
+                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {wacomLoading ? "Collego Wacom..." : "Firma con Wacom"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {

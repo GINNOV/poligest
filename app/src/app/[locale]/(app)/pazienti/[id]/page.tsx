@@ -900,7 +900,8 @@ export default async function PatientDetailPage({
                         ) : (
                           <div className="space-y-2">
                             {patient.consents.map((consent) => {
-                              const signaturePath = `/uploads/signatures/consent-${consent.id}.png`;
+                              const signatureUrl = (consent as { signatureUrl?: string | null }).signatureUrl;
+                              const signaturePath = signatureUrl ?? `/uploads/signatures/consent-${consent.id}.png`;
                               return (
                                 <div
                                   key={consent.id}

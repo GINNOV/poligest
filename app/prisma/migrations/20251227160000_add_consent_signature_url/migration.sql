@@ -1,0 +1,1 @@
+ALTER TABLE "Consent" ADD COLUMN IF NOT EXISTS "signatureUrl" TEXT;
