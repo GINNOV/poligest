@@ -29,6 +29,7 @@ async function createPatient(formData: FormData) {
 
   const firstName = (formData.get("firstName") as string)?.trim();
   const lastName = (formData.get("lastName") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
   const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
@@ -78,6 +79,7 @@ async function createPatient(formData: FormData) {
     data: {
       firstName,
       lastName,
+      email,
       phone,
       birthDate,
       notes: structuredNotesText || null,
@@ -338,6 +340,16 @@ export default async function PazientiPage({
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                Email
+                <input
+                  type="email"
+                  className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  name="email"
+                  autoComplete="email"
+                  placeholder="email@esempio.it"
+                />
+              </label>
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                 Codice Fiscale
                 <input
                   className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 uppercase outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
@@ -383,6 +395,7 @@ export default async function PazientiPage({
                 "Diabete",
                 "Asma/Allergie",
                 "Farmacoterapia",
+                "Operazioni chirurgiche",
                 "Fumatore",
                 "Malattie infettive (es. Epatite, HIV)",
                 "Malattie epatiche",
