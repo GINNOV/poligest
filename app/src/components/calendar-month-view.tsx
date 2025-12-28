@@ -221,7 +221,7 @@ export function CalendarMonthView({
                 setSelectedDate(day.date);
               }
             }}
-            className={`flex min-h-[140px] flex-col rounded-xl border p-2 text-left transition ${
+            className={`group relative flex min-h-[140px] flex-col rounded-xl border p-2 text-left transition ${
               day.inMonth
                 ? day.isPracticeClosed
                   ? "cursor-pointer border-zinc-200 bg-zinc-100 hover:border-zinc-300"
@@ -231,6 +231,21 @@ export function CalendarMonthView({
                 : "cursor-default border-zinc-100 bg-zinc-50 text-zinc-400"
             }`}
           >
+            {day.inMonth ? (
+              <button
+                type="button"
+                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs font-semibold text-zinc-600 opacity-0 pointer-events-none shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 group-hover:pointer-events-auto group-hover:opacity-100"
+                aria-label="Crea nuovo appuntamento"
+                title="Nuovo appuntamento"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setSelectedAppointment(null);
+                  setSelectedDate(day.date);
+                }}
+              >
+                +
+              </button>
+            ) : null}
             {day.inMonth ? (
               <div className="mb-2 flex h-1 overflow-hidden rounded-full bg-zinc-200">
                 {day.isPracticeClosed ? (

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
+import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -37,6 +38,8 @@ export function AppointmentCreateForm({
   initialDoctorId,
   returnTo,
 }: Props) {
+  const formId = useId();
+  const appointmentFormId = `appointment-create-form-${formId}`;
   const formatLocalInput = (date: Date) => {
     const pad = (n: number) => n.toString().padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
@@ -93,10 +96,13 @@ export function AppointmentCreateForm({
   };
 
   return (
-    <form
+    <>
+      <UnsavedChangesGuard formId={appointmentFormId} />
+      <form
       action={action}
       className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
       data-appointment-form="create"
+      id={appointmentFormId}
       onSubmit={async (e) => {
         const form = e.currentTarget;
         const submitter = (e.nativeEvent as SubmitEvent).submitter as
@@ -200,7 +206,7 @@ export function AppointmentCreateForm({
           form.submit();
         }
       }}
-    >
+      >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
         Paziente
@@ -420,6 +426,7 @@ export function AppointmentCreateForm({
       {conflictMessage ? (
         <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
       ) : null}
-    </form>
+      </form>
+    </>
   );
 }
