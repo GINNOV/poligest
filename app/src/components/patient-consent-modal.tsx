@@ -170,7 +170,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (ctx) {
-          ctx.scale(ratio, ratio);
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
           ctx.lineWidth = 2.4;
           ctx.lineCap = "round";
           ctx.strokeStyle = "#0f172a";
@@ -234,11 +234,9 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     const canvas = ref.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
     return {
-      x: (event.clientX - rect.left) * scaleX,
-      y: (event.clientY - rect.top) * scaleY,
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
     };
   };
 
@@ -247,6 +245,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     ref: React.RefObject<HTMLCanvasElement | null> = canvasRef
   ) => {
     event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
     const point = getPoint(event, ref);
     if (!point) return;
     lastPoint.current = point;
@@ -271,7 +270,12 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     lastPoint.current = point;
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event?: React.PointerEvent<HTMLCanvasElement>) => {
+    if (event) {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
     lastPoint.current = null;
   };
 
@@ -537,7 +541,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
         <div className="overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
           <canvas
             ref={inlineCanvasRef}
-            className="h-40 w-full bg-white"
+            className="h-40 w-full touch-none bg-white"
             onPointerDown={(e) => handlePointerDown(e, inlineCanvasRef)}
             onPointerMove={(e) => handlePointerMove(e, inlineCanvasRef)}
             onPointerUp={handlePointerUp}
