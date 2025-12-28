@@ -14,6 +14,8 @@ import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { put } from "@vercel/blob";
+import { sendEmail } from "@/lib/email";
+import { stackServerApp } from "@/lib/stack-app";
 
 const PAGE_SIZE = 20;
 
@@ -21,6 +23,31 @@ const consentLabels: Partial<Record<ConsentType, string>> = {
   [ConsentType.PRIVACY]: "Privacy",
   [ConsentType.TREATMENT]: "Trattamento",
 };
+
+function withParam(url: string, key: string, value: string) {
+  const hasQuery = url.includes("?");
+  const separator = hasQuery ? "&" : "?";
+  return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}
+
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) {
+    return "";
+  }
+  if (/^https?:\/\//.test(rawOrigin)) {
+    return rawOrigin.replace(/\/$/, "");
+  }
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
+}
+
+function resolveSiteOrigin() {
+  if (process.env.NODE_ENV === "production") {
+    return normalizeSiteOrigin(
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+    );
+  }
+  return normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
+}
 
 async function createPatient(formData: FormData) {
   "use server";
@@ -143,6 +170,25 @@ async function createPatient(formData: FormData) {
       hasDigitalSignature: Boolean(signatureBuffer),
     },
   });
+
+  if (email) {
+    const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
+    const patientSignInUrl = withParam(signInUrl, "audience", "patient");
+    const siteOrigin = resolveSiteOrigin();
+    const loginUrl = /^https?:\/\//.test(patientSignInUrl)
+      ? patientSignInUrl
+      : siteOrigin
+        ? `${siteOrigin}${patientSignInUrl}`
+        : patientSignInUrl;
+    const subject = "Accesso area pazienti";
+    const body = `Ciao ${firstName},
+
+Abbiamo creato il tuo profilo paziente. Accedi qui per visualizzare e gestire gli appuntamenti:
+${loginUrl}
+
+Se hai bisogno di assistenza, contatta la segreteria.`;
+    await sendEmail(email, subject, body);
+  }
 
   revalidatePath("/pazienti");
 }

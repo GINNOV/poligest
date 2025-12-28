@@ -7,6 +7,8 @@ import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import { cookies } from "next/headers";
 import { stackServerApp } from "@/lib/stack-app";
+import { redirect } from "next/navigation";
+import { ResetLinkBanner } from "@/components/reset-link-banner";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
 
@@ -214,6 +216,44 @@ async function startImpersonation(formData: FormData) {
   revalidatePath("/");
 }
 
+async function sendPasswordResetLink(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const userId = formData.get("userId") as string;
+  const returnToRaw = (formData.get("returnTo") as string) || "/admin/utenti";
+  if (!userId) throw new Error("Utente non valido");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  });
+
+  if (!user?.email) {
+    throw new Error("Email utente non valida");
+  }
+
+  const result = await stackServerApp.sendForgotPasswordEmail(user.email);
+  if (result && typeof result === "object" && "status" in result && result.status === "error") {
+    const message =
+      typeof (result as { error?: { message?: string } }).error?.message === "string"
+        ? (result as { error?: { message?: string } }).error?.message
+        : "Errore invio link reset password.";
+    throw new Error(message);
+  }
+
+  await logAudit(admin, {
+    action: "admin.user.reset_password",
+    entity: "User",
+    entityId: user.id,
+  });
+
+  const url = new URL(returnToRaw, "http://localhost");
+  url.searchParams.set("resetSent", "1");
+  url.searchParams.set("resetEmail", user.email);
+  redirect(`${url.pathname}?${url.searchParams.toString()}`);
+}
+
 async function stopImpersonation() {
   "use server";
 
@@ -268,6 +308,25 @@ export default async function AdminUsersPage({
         ? roleParam[0]?.trim()
         : "";
   const roleFilter = roles.includes(roleValue as Role) ? (roleValue as Role) : undefined;
+  const resetSentParam = params.resetSent;
+  const resetEmailParam = params.resetEmail;
+  const resetSent =
+    typeof resetSentParam === "string"
+      ? resetSentParam === "1"
+      : Array.isArray(resetSentParam)
+        ? resetSentParam[0] === "1"
+        : false;
+  const resetEmail =
+    typeof resetEmailParam === "string"
+      ? resetEmailParam
+      : Array.isArray(resetEmailParam)
+        ? resetEmailParam[0]
+        : "";
+
+  const queryParams = new URLSearchParams();
+  if (query) queryParams.set("q", query);
+  if (roleFilter) queryParams.set("role", roleFilter);
+  const returnTo = `/admin/utenti${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
 
   const whereConditions: Prisma.UserWhereInput[] = [];
   if (roleFilter) whereConditions.push({ role: roleFilter });
@@ -372,6 +431,12 @@ export default async function AdminUsersPage({
             </form>
           </div>
         </div>
+      ) : null}
+      {resetSent ? (
+        <ResetLinkBanner
+          title={t("resetLinkSentTitle")}
+          body={t("resetLinkSentBody", { email: resetEmail || "—" })}
+        />
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr,0.85fr]">
@@ -500,6 +565,22 @@ export default async function AdminUsersPage({
                           className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
                         >
                           Elimina
+                        </button>
+                      </form>
+                      <form
+                        action={sendPasswordResetLink}
+                        className="flex justify-start sm:justify-end"
+                        data-confirm={t("sendResetConfirm", {
+                          defaultValue: "Inviare il link di reset password a questo utente?",
+                        })}
+                      >
+                        <input type="hidden" name="userId" value={user.id} />
+                        <input type="hidden" name="returnTo" value={returnTo} />
+                        <button
+                          type="submit"
+                          className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                        >
+                          {t("sendResetLink")}
                         </button>
                       </form>
                       {user.id !== admin.id ? (
