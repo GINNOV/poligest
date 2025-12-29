@@ -1,3 +1,14 @@
+-- Ensure enum exists for shadow DBs
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'NotificationChannel') THEN
+        CREATE TYPE "NotificationChannel" AS ENUM ('EMAIL', 'SMS', 'BOTH');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'RecallStatus') THEN
+        CREATE TYPE "RecallStatus" AS ENUM ('PENDING', 'CONTACTED', 'COMPLETED', 'SKIPPED');
+    END IF;
+END $$;
+
 -- Create appointment reminder rules
 CREATE TABLE "AppointmentReminderRule" (
     "id" TEXT NOT NULL,
