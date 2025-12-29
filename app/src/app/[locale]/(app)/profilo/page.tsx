@@ -335,9 +335,7 @@ export default async function ProfilePage() {
                         ) : null}
                         <div className="mt-1 text-xs text-zinc-500">
                           Assegnato da:{" "}
-                          {award.doctor?.fullName
-                            ? `${award.doctor.fullName}${award.doctor.specialty ? ` (${award.doctor.specialty})` : ""}`
-                            : "Sistema"}
+                          {award.doctor?.fullName ? award.doctor.fullName : "Sistema"}
                         </div>
                       </div>
                     </div>

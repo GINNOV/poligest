@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   ].join(";");
 
   const rows = movements.map(m => {
-    const patientName = m.patient ? `${m.patient.firstName} ${m.patient.lastName}` : "";
+    const patientName = m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "";
     const deviceType = m.product.serviceType || "Impianto";
     const brand = m.product.supplier?.name || "";
     const pDate = m.purchaseDate ? format(m.purchaseDate, "dd/MM/yyyy") : "";

@@ -54,7 +54,7 @@ export function UserMenu({
     .join("");
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative z-50" ref={menuRef}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -85,7 +85,7 @@ export function UserMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-12 z-10 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg">
+        <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg">
           <div className="flex flex-col divide-y divide-zinc-100 text-sm font-semibold text-zinc-800">
             <Link
               href={profileHref}

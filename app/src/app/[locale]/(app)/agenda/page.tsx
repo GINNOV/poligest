@@ -477,8 +477,7 @@ export default async function AgendaPage({
                       >
                         {appt.patient.lastName} {appt.patient.firstName}
                       </Link>{" "}
-                      sarà visitato da <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                      {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                      sarà visitato da <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
                       {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
                         day: "numeric",

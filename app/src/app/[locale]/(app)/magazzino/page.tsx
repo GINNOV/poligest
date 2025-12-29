@@ -219,7 +219,7 @@ export default async function MagazzinoPage() {
                         : format(m.createdAt, "dd/MM/yyyy HH:mm")}
                     </td>
                     <td className="px-4 py-3 font-medium text-zinc-900">
-                      {m.patient ? `${m.patient.firstName} ${m.patient.lastName}` : "—"}
+                      {m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">

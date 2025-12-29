@@ -162,9 +162,11 @@ export async function GET(req: Request) {
       const patient = recall.patient;
       const rule = recall.rule as any;
       const subject = rule?.emailSubject ?? `Promemoria ${rule?.serviceType ?? ""}`;
+      const patientName =
+        `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
       const body =
         rule?.message ??
-        `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per ${rule.serviceType}.`;
+        `Gentile ${patientName}, promemoria per ${rule.serviceType}.`;
 
       const channel = rule?.channel ?? "EMAIL";
       const wantsEmail = channel === "EMAIL" || channel === "BOTH";
@@ -239,9 +241,11 @@ export async function GET(req: Request) {
       }).format(appointment.startsAt);
       const doctorLabel = appointment.doctor?.fullName ?? "lo staff";
       const subject = rule.emailSubject ?? "Promemoria appuntamento";
+      const patientName =
+        `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
       const body =
         rule.message ??
-        `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per l'appuntamento del ${appointmentLabel} con ${doctorLabel}.`;
+        `Gentile ${patientName}, promemoria per l'appuntamento del ${appointmentLabel} con ${doctorLabel}.`;
 
       const channel = rule.channel ?? "EMAIL";
       const wantsEmail = channel === "EMAIL" || channel === "BOTH";

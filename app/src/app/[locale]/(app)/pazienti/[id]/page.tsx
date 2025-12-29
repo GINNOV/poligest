@@ -310,7 +310,7 @@ async function updatePatient(formData: FormData) {
     entityId: id,
     metadata: {
       emailChanged: Boolean(email),
-      patientName: `${firstName} ${lastName}`,
+      patientName: `${lastName} ${firstName}`,
       conditions,
       medications,
       extraNotes,
@@ -678,7 +678,7 @@ export default async function PatientDetailPage({
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
                   <PatientAvatar
                     src={patient.photoUrl}
-                    alt={`${patient.firstName} ${patient.lastName}`}
+                    alt={`${patient.lastName} ${patient.firstName}`}
                     size={56}
                     className="h-full w-full rounded-full"
                   />
@@ -687,7 +687,7 @@ export default async function PatientDetailPage({
                   <p className="text-sm text-zinc-600">Scheda paziente</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-semibold text-zinc-900">
-                      {patient.firstName} {patient.lastName}
+                      {patient.lastName} {patient.firstName}
                     </h1>
                     <p className="text-sm text-zinc-700">
                       {patient.email ?? "—"} · {patient.phone ?? "—"}
@@ -717,7 +717,7 @@ export default async function PatientDetailPage({
                   <input type="hidden" name="patientId" value={patient.id} />
                   <PatientAvatar
                     src={patient.photoUrl}
-                    alt={`${patient.firstName} ${patient.lastName}`}
+                    alt={`${patient.lastName} ${patient.firstName}`}
                     size={112}
                     className="h-28 w-28 rounded-full"
                   />
@@ -1436,9 +1436,9 @@ export default async function PatientDetailPage({
                     </span>
                   </div>
                   <p className="text-sm text-zinc-800">
-                    🧑‍⚕️ Paziente {patient.firstName} {patient.lastName} è stato visto da{" "}
+                    🧑‍⚕️ Paziente {patient.lastName} {patient.firstName} è stato visto da{" "}
                     <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                    {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                    il{" "}
                     {new Intl.DateTimeFormat("it-IT", {
                       weekday: "short",
                       day: "numeric",

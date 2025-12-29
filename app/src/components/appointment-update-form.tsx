@@ -269,7 +269,7 @@ export function AppointmentUpdateForm({
           <option value="">—</option>
           {doctors.map((d) => (
             <option key={d.id} value={d.id}>
-              {d.fullName} {d.specialty ? `· ${d.specialty}` : ""}
+              {d.fullName}
             </option>
           ))}
         </select>

@@ -571,7 +571,7 @@ export default async function CalendarPage({
   const currentMonthKey = format(new Date(), "yyyy-MM");
   const doctorOptionList = doctors.map((doc) => ({
     id: doc.id,
-    label: `${doc.fullName}${doc.specialty ? ` (${doc.specialty})` : ""}`,
+    label: doc.fullName,
   }));
   const serviceOptions = Array.from(
     new Set([

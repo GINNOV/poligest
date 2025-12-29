@@ -287,8 +287,7 @@ export default async function DashboardPage({
                         <div className="space-y-1 text-sm text-zinc-800">
                           <p>
                             🧑‍⚕️ Dottore{" "}
-                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                            {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
                             {new Intl.DateTimeFormat("it-IT", {
                               weekday: "short",
                               day: "numeric",
@@ -363,8 +362,7 @@ export default async function DashboardPage({
                         <div className="space-y-1 text-sm text-zinc-800">
                           <p>
                             🧑‍⚕️ Dottore{" "}
-                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                            {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                            <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
                             {new Intl.DateTimeFormat("it-IT", {
                               weekday: "short",
                               day: "numeric",
@@ -538,8 +536,7 @@ export default async function DashboardPage({
                         {appt.patient.lastName} {appt.patient.firstName}
                       </Link>{" "}
                       sarà visitato da{" "}
-                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
-                      {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
+                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
                       {new Intl.DateTimeFormat("it-IT", {
                         weekday: "short",
                         day: "numeric",

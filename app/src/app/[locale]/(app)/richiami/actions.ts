@@ -289,7 +289,7 @@ export async function sendManualNotification(formData: FormData) {
       const timeLabel = new Intl.DateTimeFormat("it-IT", {
         timeStyle: "short",
       }).format(eventDate);
-      const name = `${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim() || "paziente";
+      const name = `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
       message = `Gentile ${name}, promemoria: ${eventLabel} il ${dateLabel} alle ${timeLabel}.`;
     }
 
