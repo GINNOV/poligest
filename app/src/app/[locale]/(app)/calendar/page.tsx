@@ -442,8 +442,10 @@ export default async function CalendarPage({
         ? params.doctor[0]
         : undefined;
 
-  const selectedDoctorId =
-    doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
+  const showAllDoctors = doctorParam === "all";
+  const selectedDoctorId = showAllDoctors
+    ? undefined
+    : doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
 
   const monthStart = startOfMonth(baseMonth);
   const monthEnd = endOfMonth(baseMonth);
@@ -476,10 +478,9 @@ export default async function CalendarPage({
     practiceWeeklyClosuresRaw,
   ] =
     await Promise.all([
-    selectedDoctorId
+    showAllDoctors
       ? prisma.appointment.findMany({
           where: {
-            doctorId: selectedDoctorId,
             startsAt: { gte: monthStart, lte: monthEnd },
           },
           orderBy: { startsAt: "asc" },
@@ -487,7 +488,18 @@ export default async function CalendarPage({
             patient: { select: { firstName: true, lastName: true } },
           },
         })
-      : Promise.resolve([] as CalendarAppointmentRecord[]),
+      : selectedDoctorId
+        ? prisma.appointment.findMany({
+            where: {
+              doctorId: selectedDoctorId,
+              startsAt: { gte: monthStart, lte: monthEnd },
+            },
+            orderBy: { startsAt: "asc" },
+            include: {
+              patient: { select: { firstName: true, lastName: true } },
+            },
+          })
+        : Promise.resolve([] as CalendarAppointmentRecord[]),
     prisma.patient.findMany({
       orderBy: { lastName: "asc" },
       select: { id: true, firstName: true, lastName: true, email: true },
@@ -572,20 +584,30 @@ export default async function CalendarPage({
   const buildMonthLink = (monthValue: string) => {
     const nextParams = new URLSearchParams();
     nextParams.set("month", monthValue);
-    if (selectedDoctorId) nextParams.set("doctor", selectedDoctorId);
+    if (showAllDoctors) {
+      nextParams.set("doctor", "all");
+    } else if (selectedDoctorId) {
+      nextParams.set("doctor", selectedDoctorId);
+    }
     return `/calendar?${nextParams.toString()}`;
   };
   const selectedMonthKey = format(baseMonth, "yyyy-MM");
   const returnParams = new URLSearchParams();
-  if (selectedDoctorId) returnParams.set("doctor", selectedDoctorId);
+  if (showAllDoctors) {
+    returnParams.set("doctor", "all");
+  } else if (selectedDoctorId) {
+    returnParams.set("doctor", selectedDoctorId);
+  }
   returnParams.set("month", selectedMonthKey);
   const returnTo = `/calendar?${returnParams.toString()}`;
   const calendarDays = days.map((day) => {
     const key = format(day, "yyyy-MM-dd");
     const dayAppointments = appointmentsByDay.get(key) ?? [];
-    const dayWindows = selectedDoctorId
-      ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
-      : [];
+    const dayWindows = showAllDoctors
+      ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
+      : selectedDoctorId
+        ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
+        : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
     const isClosedByRange = closures.some(
@@ -595,9 +617,8 @@ export default async function CalendarPage({
       (row) => row.isActive && row.dayOfWeek === weekdayIso(day)
     );
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
-    const fallbackColor = selectedDoctorId ? doctorColorById.get(selectedDoctorId) : null;
     const availabilityColors = dayWindows
-      .map((win) => win.color ?? fallbackColor ?? "#10b981")
+      .map((win) => win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981")
       .filter((color): color is string => Boolean(color));
     return {
       date: key,
@@ -628,13 +649,14 @@ export default async function CalendarPage({
             Calendario mensile
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Seleziona un medico per vedere la pianificazione del mese.
+            Seleziona un medico o tutto lo staff per vedere la pianificazione del mese.
           </p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
           <CalendarDoctorFilter
             doctors={doctorOptionList}
             selectedDoctorId={selectedDoctorId}
+            showAll={showAllDoctors}
           />
         </div>
       </div>

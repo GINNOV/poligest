@@ -22,6 +22,14 @@ function ensureEmoji(value: unknown) {
   return emoji;
 }
 
+function splitFullName(value: string) {
+  const tokens = value.split(" ").filter(Boolean);
+  if (!tokens.length) return null;
+  const [firstName, ...rest] = tokens;
+  const lastName = rest.join(" ").trim() || firstName;
+  return { firstName, lastName };
+}
+
 async function updateProfileBasics(formData: FormData) {
   "use server";
 
@@ -39,9 +47,17 @@ async function updateProfileBasics(formData: FormData) {
   });
 
   if (user.role === Role.PATIENT && user.email) {
+    const patientData: { phone: string | null; firstName?: string; lastName?: string } = { phone };
+    if (name) {
+      const parts = splitFullName(name);
+      if (parts) {
+        patientData.firstName = parts.firstName;
+        patientData.lastName = parts.lastName;
+      }
+    }
     await prisma.patient.updateMany({
       where: { email: { equals: user.email, mode: "insensitive" } },
-      data: { phone },
+      data: patientData,
     });
   }
 
@@ -49,7 +65,7 @@ async function updateProfileBasics(formData: FormData) {
     action: "profile.updated",
     entity: "User",
     entityId: user.id,
-    metadata: { gender, phoneUpdated: Boolean(phone) },
+    metadata: { gender, phoneUpdated: Boolean(phone), nameUpdated: Boolean(name) },
   });
 
   revalidatePath("/profilo");
@@ -219,6 +235,17 @@ export default async function ProfilePage() {
                   placeholder="Nome e cognome"
                 />
               </label>
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                Email
+                <input
+                  type="email"
+                  name="email"
+                  value={user.email ?? ""}
+                  readOnly
+                  disabled
+                  className="h-11 rounded-xl border border-zinc-200 bg-zinc-100 px-3 text-base text-zinc-600 outline-none"
+                />
+              </label>
               {currentUser.role === Role.PATIENT ? (
                 <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                   Telefono
@@ -286,7 +313,7 @@ export default async function ProfilePage() {
                 awards.map((award) => (
                   <div key={award.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
                     <div className="flex items-start gap-3">
-                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-2xl">
+                      <div className="grid h-12 w-12 flex-shrink-0 place-items-center overflow-hidden rounded-2xl bg-emerald-50 text-2xl leading-none text-center whitespace-nowrap">
                         {award.emoji}
                       </div>
                       <div className="min-w-0 flex-1">

@@ -386,14 +386,14 @@ export default async function DashboardPage({
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {patientAwards.map((award) => (
-              <div
-                key={award.key}
-                className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-2xl">
-                    {award.icon}
-                  </div>
+                <div
+                  key={award.key}
+                  className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-12 w-12 flex-shrink-0 place-items-center overflow-hidden rounded-2xl bg-emerald-50 text-2xl leading-none text-center whitespace-nowrap">
+                      {award.icon}
+                    </div>
                   <div>
                     <p className="text-sm font-semibold text-emerald-900">{award.title}</p>
                     <p className="mt-1 text-sm text-emerald-800">{award.quote}</p>

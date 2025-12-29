@@ -10,9 +10,10 @@ type DoctorOption = {
 type Props = {
   doctors: DoctorOption[];
   selectedDoctorId?: string;
+  showAll?: boolean;
 };
 
-export function CalendarDoctorFilter({ doctors, selectedDoctorId }: Props) {
+export function CalendarDoctorFilter({ doctors, selectedDoctorId, showAll }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,17 +33,20 @@ export function CalendarDoctorFilter({ doctors, selectedDoctorId }: Props) {
       <label className="text-xs font-semibold uppercase text-zinc-500">Medico</label>
       <select
         onChange={(e) => handleChange(e.target.value)}
-        value={selectedDoctorId ?? ""}
+        value={showAll ? "all" : selectedDoctorId ?? ""}
         className="h-10 w-full rounded-full border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:w-64"
       >
         {doctors.length === 0 ? (
           <option value="">Nessun medico disponibile</option>
         ) : (
-          doctors.map((doc) => (
-            <option key={doc.id} value={doc.id}>
-              {doc.label}
-            </option>
-          ))
+          <>
+            <option value="all">Tutto lo staff</option>
+            {doctors.map((doc) => (
+              <option key={doc.id} value={doc.id}>
+                {doc.label}
+              </option>
+            ))}
+          </>
         )}
       </select>
     </div>
