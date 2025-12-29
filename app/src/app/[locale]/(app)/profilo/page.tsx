@@ -94,6 +94,13 @@ async function uploadAvatar(formData: FormData) {
   const url = blob.url;
   await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: url } });
 
+  if (user.role === Role.PATIENT && user.email) {
+    await prisma.patient.updateMany({
+      where: { email: { equals: user.email, mode: "insensitive" } },
+      data: { photoUrl: url },
+    });
+  }
+
   await logAudit(user, {
     action: "profile.avatar_uploaded",
     entity: "User",

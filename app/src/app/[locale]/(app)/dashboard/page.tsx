@@ -253,16 +253,19 @@ export default async function DashboardPage({
                   {upcomingAppointments.length}
                 </span>
               </div>
-              <div className="mt-3 divide-y divide-zinc-100">
+              <div className="mt-3 space-y-3">
                 {upcomingAppointments.length === 0 ? (
                   <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
                 ) : (
                   upcomingAppointments.map((appt) => (
-                    <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
+                    <div
+                      key={appt.id}
+                      className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
                               <span aria-hidden="true">
                                 {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
                                 (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
@@ -271,11 +274,18 @@ export default async function DashboardPage({
                               </span>
                               {appt.title}
                             </span>
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                            <span className="rounded-full bg-emerald-100/60 px-3 py-1 text-[11px] font-semibold text-emerald-800">
                               {appt.serviceType}
                             </span>
                           </div>
-                          <p className="text-sm text-zinc-800">
+                          <span
+                            className={`inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                          >
+                            {statusLabels[appt.status].toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm text-zinc-800">
+                          <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
                             {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
@@ -287,27 +297,22 @@ export default async function DashboardPage({
                             }).format(appt.startsAt)}{" "}
                             alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                           </p>
-                          <p className="text-sm text-zinc-800">
-                            🕒 Terminato previsto entro{" "}
-                            {new Intl.DateTimeFormat("it-IT", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }).format(appt.endsAt)}{" "}
-                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.endsAt)}.
+                          <p className="text-zinc-700">
+                            🕒 L&apos;appuntamento dovrebbe richiedere circa{" "}
+                            {Math.max(
+                              1,
+                              Math.round(
+                                (appt.endsAt.getTime() - appt.startsAt.getTime()) / 60000
+                              )
+                            )}{" "}
+                            minuti.
                           </p>
                           {appt.notes ? (
-                            <p className="text-sm text-zinc-700">
+                            <p className="text-zinc-700">
                               📝 Note: {appt.notes}
                             </p>
                           ) : null}
                         </div>
-                        <span
-                          className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                        >
-                          {statusLabels[appt.status].toUpperCase()}
-                        </span>
                       </div>
                     </div>
                   ))
@@ -324,14 +329,17 @@ export default async function DashboardPage({
                   {pastAppointments.length}
                 </span>
               </div>
-              <div className="mt-3 divide-y divide-zinc-100">
+              <div className="mt-3 space-y-3">
                 {pastAppointments.length === 0 ? (
                   <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
                 ) : (
                   pastAppointments.map((appt) => (
-                    <div key={appt.id} className="py-4 first:pt-2 last:pb-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
+                    <div
+                      key={appt.id}
+                      className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
                               <span aria-hidden="true">
@@ -346,7 +354,14 @@ export default async function DashboardPage({
                               {appt.serviceType}
                             </span>
                           </div>
-                          <p className="text-sm text-zinc-800">
+                          <span
+                            className={`inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                          >
+                            {statusLabels[appt.status].toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-sm text-zinc-800">
+                          <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
                             {appt.doctor?.specialty ? `(${appt.doctor.specialty})` : ""} il{" "}
@@ -359,16 +374,11 @@ export default async function DashboardPage({
                             alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                           </p>
                           {appt.notes ? (
-                            <p className="text-sm text-zinc-700">
+                            <p className="text-zinc-700">
                               📝 Note: {appt.notes}
                             </p>
                           ) : null}
                         </div>
-                        <span
-                          className={`mt-1 inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                        >
-                          {statusLabels[appt.status].toUpperCase()}
-                        </span>
                       </div>
                     </div>
                   ))

@@ -309,6 +309,7 @@ model Patient {
 
   consents       Consent[]
   appointments   Appointment[]
+  appointmentReminders AppointmentReminder[]
   clinicalNotes  ClinicalNote[]
   recalls        Recall[]
   recurringMessageLogs RecurringMessageLog[]
@@ -350,6 +351,7 @@ model Appointment {
 
   patient Patient @relation(fields: [patientId], references: [id])
   doctor  Doctor? @relation(fields: [doctorId], references: [id])
+  appointmentReminders AppointmentReminder[]
 
   @@index([startsAt])
   @@index([doctorId])
@@ -518,6 +520,38 @@ model Recall {
   patient Patient    @relation(fields: [patientId], references: [id])
   rule    RecallRule @relation(fields: [ruleId], references: [id])
 
+  @@index([dueAt])
+  @@index([status])
+}
+
+model AppointmentReminderRule {
+  id           String              @id @default(cuid())
+  daysBefore   Int
+  channel      NotificationChannel @default(EMAIL)
+  emailSubject String?
+  message      String?
+  enabled      Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  reminders AppointmentReminder[]
+}
+
+model AppointmentReminder {
+  id            String       @id @default(cuid())
+  appointmentId String
+  patientId     String
+  ruleId        String
+  dueAt         DateTime
+  status        RecallStatus @default(PENDING)
+  lastContactAt DateTime?
+  createdAt     DateTime     @default(now())
+
+  appointment Appointment           @relation(fields: [appointmentId], references: [id])
+  patient     Patient               @relation(fields: [patientId], references: [id])
+  rule        AppointmentReminderRule @relation(fields: [ruleId], references: [id])
+
+  @@unique([appointmentId, ruleId])
   @@index([dueAt])
   @@index([status])
 }

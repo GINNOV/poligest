@@ -97,6 +97,43 @@ async function enqueueRecurringRecalls(now: Date) {
   }
 }
 
+async function enqueueAppointmentReminders(now: Date) {
+  const horizon = addDays(now, HORIZON_DAYS);
+  const rule = await prisma.appointmentReminderRule.findFirst({ where: { enabled: true } });
+  if (!rule) return;
+
+  const upperBound = addDays(horizon, rule.daysBefore);
+  const upcomingAppointments = await prisma.appointment.findMany({
+    where: {
+      startsAt: { gt: now, lte: upperBound },
+      status: { in: [AppointmentStatus.TO_CONFIRM, AppointmentStatus.CONFIRMED, AppointmentStatus.IN_WAITING, AppointmentStatus.IN_PROGRESS] },
+    },
+    select: { id: true, patientId: true, startsAt: true },
+  });
+
+  const pendingCreates = upcomingAppointments
+    .map((appointment) => {
+      let dueAt = addDays(appointment.startsAt, -rule.daysBefore);
+      if (dueAt < now) {
+        dueAt = now;
+      }
+      if (dueAt > horizon) return null;
+
+      return {
+        appointmentId: appointment.id,
+        patientId: appointment.patientId,
+        ruleId: rule.id,
+        dueAt,
+        status: RecallStatus.PENDING,
+      };
+    })
+    .filter((value): value is NonNullable<typeof value> => value !== null);
+
+  if (pendingCreates.length > 0) {
+    await prisma.appointmentReminder.createMany({ data: pendingCreates, skipDuplicates: true });
+  }
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret && req.headers.get("x-cron-secret") !== secret) {
@@ -111,6 +148,7 @@ export async function GET(req: Request) {
   try {
     const now = new Date();
     await enqueueRecurringRecalls(now);
+    await enqueueAppointmentReminders(now);
     const dueRecalls = await prisma.recall.findMany({
       where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
       include: {
@@ -174,7 +212,87 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ processed: dueRecalls.length });
+    const dueAppointmentReminders = await prisma.appointmentReminder.findMany({
+      where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
+      include: {
+        patient: { select: { email: true, phone: true, firstName: true, lastName: true } },
+        appointment: { select: { startsAt: true, status: true, doctor: { select: { fullName: true } } } },
+        rule: true,
+      },
+      take: 50,
+    });
+
+    for (const reminder of dueAppointmentReminders) {
+      const patient = reminder.patient;
+      const rule = reminder.rule;
+      const appointment = reminder.appointment;
+      if (appointment.startsAt <= now || appointment.status === AppointmentStatus.CANCELLED || appointment.status === AppointmentStatus.NO_SHOW || appointment.status === AppointmentStatus.COMPLETED) {
+        await prisma.appointmentReminder.update({
+          where: { id: reminder.id },
+          data: { status: RecallStatus.SKIPPED, lastContactAt: new Date() },
+        });
+        continue;
+      }
+      const appointmentLabel = new Intl.DateTimeFormat("it-IT", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(appointment.startsAt);
+      const doctorLabel = appointment.doctor?.fullName ?? "lo staff";
+      const subject = rule.emailSubject ?? "Promemoria appuntamento";
+      const body =
+        rule.message ??
+        `Gentile ${patient.firstName ?? patient.lastName ?? "paziente"}, promemoria per l'appuntamento del ${appointmentLabel} con ${doctorLabel}.`;
+
+      const channel = rule.channel ?? "EMAIL";
+      const wantsEmail = channel === "EMAIL" || channel === "BOTH";
+      const wantsSms = channel === "SMS" || channel === "BOTH";
+
+      let delivered = false;
+      let attempted = false;
+
+      if (wantsEmail) {
+        attempted = true;
+        if (patient.email) {
+          try {
+            await sendEmail(patient.email, subject, body);
+            delivered = true;
+          } catch (err) {
+            console.error("[appointment_reminders] email failed", { reminderId: reminder.id, err });
+          }
+        }
+      }
+
+      if (wantsSms) {
+        attempted = true;
+        if (patient.phone) {
+          try {
+            await sendSms({
+              to: patient.phone,
+              body,
+              patientId: reminder.patientId,
+            });
+            delivered = true;
+          } catch (err) {
+            console.error("[appointment_reminders] sms failed", { reminderId: reminder.id, err });
+          }
+        }
+      }
+
+      if (attempted) {
+        await prisma.appointmentReminder.update({
+          where: { id: reminder.id },
+          data: {
+            status: delivered ? RecallStatus.CONTACTED : RecallStatus.SKIPPED,
+            lastContactAt: new Date(),
+          },
+        });
+      }
+    }
+
+    return NextResponse.json({
+      processed: dueRecalls.length,
+      appointmentReminders: dueAppointmentReminders.length,
+    });
   } catch (error) {
     return errorResponse({
       message: "Errore invio richiami",
