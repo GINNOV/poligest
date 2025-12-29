@@ -646,10 +646,10 @@ export default async function CalendarPage({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">
-            Calendario mensile
+            Calendario dei medici
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Seleziona un medico o tutto lo staff per vedere la pianificazione del mese.
+            Seleziona un medico o tutto lo staff per vedere la pianificazione del mese selezionato.
           </p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
@@ -682,7 +682,7 @@ export default async function CalendarPage({
               </Link>
               <Link
                 href={buildMonthLink(currentMonthKey)}
-                className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
               >
                 Mese corrente
               </Link>

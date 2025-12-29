@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { RecallStatus, Role } from "@prisma/client";
 
-const TILE_IMAGE_VERSION = "2";
+const TILE_IMAGE_VERSION = "3";
 
 const TILES = [
   {

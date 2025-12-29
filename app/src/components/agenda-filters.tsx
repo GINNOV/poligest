@@ -9,9 +9,10 @@ type Props = {
   statusValue?: string;
   dateValue?: string;
   searchValue?: string;
+  basePath?: string;
 };
 
-export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValue }: Props) {
+export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValue, basePath = "/agenda/appuntamenti" }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -38,7 +39,7 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
         else params.delete("q");
 
         startTransition(() => {
-          router.push(`/agenda?${params.toString()}`);
+          router.push(`${basePath}?${params.toString()}`);
         });
       }}
     >
@@ -89,7 +90,7 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
           disabled={pending}
           onClick={() =>
             startTransition(() => {
-              router.push("/agenda");
+              router.push(basePath);
             })
           }
           className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"

@@ -225,6 +225,14 @@ export default async function DashboardPage({
         .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
     : [];
   const patientAwards = isPatient ? buildPatientAwards(appointments) : [];
+  const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
+    const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
+    if (label.includes("richiamo")) return "🔗";
+    if (label.includes("prima visita")) return "📋";
+    if (label.includes("urgente") || label.includes("urgenza")) return "🚨";
+    if (label.includes("visita di controllo")) return "🔎";
+    return "🗓️";
+  };
 
   if (isPatient) {
     return (
@@ -263,28 +271,10 @@ export default async function DashboardPage({
                       className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm"
                     >
                       <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
-                              <span aria-hidden="true">
-                                {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
-                                (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
-                                  ? "🦷"
-                                  : "❤️"}
-                              </span>
-                              {appt.title}
-                            </span>
-                            <span className="rounded-full bg-emerald-100/60 px-3 py-1 text-[11px] font-semibold text-emerald-800">
-                              {appt.serviceType}
-                            </span>
-                          </div>
-                          <span
-                            className={`inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                          >
-                            {statusLabels[appt.status].toUpperCase()}
-                          </span>
-                        </div>
                         <div className="space-y-1 text-sm text-zinc-800">
+                          <p className="font-semibold text-zinc-900">
+                            {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
+                          </p>
                           <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
@@ -338,28 +328,10 @@ export default async function DashboardPage({
                       className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm"
                     >
                       <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
-                              <span aria-hidden="true">
-                                {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
-                                (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
-                                  ? "🦷"
-                                  : "❤️"}
-                              </span>
-                              {appt.title}
-                            </span>
-                            <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
-                              {appt.serviceType}
-                            </span>
-                          </div>
-                          <span
-                            className={`inline-flex h-8 items-center rounded-full px-3 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
-                          >
-                            {statusLabels[appt.status].toUpperCase()}
-                          </span>
-                        </div>
                         <div className="space-y-1 text-sm text-zinc-800">
+                          <p className="font-semibold text-zinc-900">
+                            {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
+                          </p>
                           <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
@@ -511,60 +483,37 @@ export default async function DashboardPage({
                   key={appt.id}
                   className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}
                 >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                        <span aria-hidden="true">
-                          {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
-                          (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
-                            ? "🦷"
-                            : "❤️"}
-                        </span>
-                        {appt.title}
-                      </span>
-                      <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
-                        {appt.serviceType}
-                      </span>
-                    </div>
-                    <p className="text-sm text-zinc-800">
-                      🧑‍⚕️ Paziente{" "}
-                      <Link
-                        href={`/pazienti/${appt.patient.id}`}
-                        className="font-semibold hover:text-emerald-700"
-                      >
-                        {appt.patient.lastName} {appt.patient.firstName}
-                      </Link>{" "}
-                      sarà visitato da{" "}
-                      <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
-                      {new Intl.DateTimeFormat("it-IT", {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                      }).format(appt.startsAt)}{" "}
-                      alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
-                    </p>
-                    <p className="text-sm text-zinc-800">
-                      🕒 Il servizio richiederà circa{" "}
-                      {Math.max(
-                        1,
-                        Math.round(
-                          (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
-                        )
-                      )}{" "}
-                      ora/e.
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase ${statusClasses[appt.status]}`}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-zinc-900">
+                    {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
+                  </p>
+                  <p className="text-sm text-zinc-800">
+                    🧑‍⚕️ Paziente{" "}
+                    <Link
+                      href={`/pazienti/${appt.patient.id}`}
+                      className="font-semibold hover:text-emerald-700"
                     >
-                      {statusLabels[appt.status].toUpperCase()}
-                    </span>
-                    <span className="text-xs font-semibold text-zinc-600">
-                      {format(appt.startsAt, "d MMM", { locale: it })}
-                    </span>
-                  </div>
+                      {appt.patient.lastName} {appt.patient.firstName}
+                    </Link>{" "}
+                    sarà visitato da{" "}
+                    <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
+                    {new Intl.DateTimeFormat("it-IT", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    }).format(appt.startsAt)}{" "}
+                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                  </p>
+                  <p className="text-sm text-zinc-800">
+                    🕒 Il servizio richiederà circa{" "}
+                    {Math.max(
+                      1,
+                      Math.round(
+                        (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
+                      )
+                    )}{" "}
+                    ora/e.
+                  </p>
                 </div>
               </div>
             ))
