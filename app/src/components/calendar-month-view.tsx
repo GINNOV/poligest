@@ -251,8 +251,12 @@ export function CalendarMonthView({
                 {day.isPracticeClosed ? (
                   <div className="h-full flex-1 bg-zinc-400" />
                 ) : day.availabilityColors && day.availabilityColors.length ? (
-                  day.availabilityColors.map((color) => (
-                    <div key={color} className="h-full flex-1" style={{ backgroundColor: color }} />
+                  day.availabilityColors.map((color, idx) => (
+                    <div
+                      key={`${color}-${idx}`}
+                      className="h-full flex-1"
+                      style={{ backgroundColor: color }}
+                    />
                   ))
                 ) : (
                   <div className="h-full flex-1 bg-zinc-300" />
@@ -269,7 +273,7 @@ export function CalendarMonthView({
               </span>
               <div className="flex items-center gap-1">
                 {day.isPracticeClosed && day.inMonth ? (
-                  <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700">
+                  <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] text-rose-700">
                     CHIUSO
                   </span>
                 ) : !day.isPracticeClosed && day.inMonth && !day.availabilityColors?.length ? (

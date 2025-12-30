@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatus, Role } from "@prisma/client";
 import {
+  addDays,
   addMonths,
   eachDayOfInterval,
   endOfMonth,
@@ -20,6 +21,9 @@ import {
 import { it } from "date-fns/locale";
 import { CalendarDoctorFilter } from "@/components/calendar-doctor-filter";
 import { CalendarMonthView } from "@/components/calendar-month-view";
+import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync";
+import { CalendarWeekView } from "@/components/calendar-week-view";
+import { CalendarWeekPicker } from "@/components/calendar-week-picker";
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -82,6 +86,13 @@ function dateStart(date: Date) {
 
 function dateEndExclusive(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1, 0, 0, 0, 0);
+}
+
+function parseDateParam(value: string | undefined) {
+  if (!value) return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
 const formatLocalInput = (date: Date) => {
@@ -425,10 +436,29 @@ export default async function CalendarPage({
       : Array.isArray(params.month)
         ? params.month[0]
         : undefined;
+  const weekParam =
+    typeof params.week === "string"
+      ? params.week
+      : Array.isArray(params.week)
+        ? params.week[0]
+        : undefined;
+  const viewParam =
+    typeof params.view === "string"
+      ? params.view
+      : Array.isArray(params.view)
+        ? params.view[0]
+        : undefined;
+  const view = viewParam === "week" ? "week" : "month";
   const monthMatch = monthParam?.match(/^(\d{4})-(\d{2})$/);
-  const baseMonth = monthMatch
+  let baseMonth = monthMatch
     ? new Date(Number(monthMatch[1]), Number(monthMatch[2]) - 1, 1)
     : new Date();
+  const weekBase = parseDateParam(weekParam) ?? new Date();
+  const weekStart = startOfWeek(weekBase, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  if (!monthMatch && view === "week") {
+    baseMonth = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+  }
 
   const doctors = await prisma.doctor.findMany({
     orderBy: { fullName: "asc" },
@@ -452,6 +482,10 @@ export default async function CalendarPage({
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  const appointmentRangeStart = view === "week" ? weekStart : monthStart;
+  const appointmentRangeEnd = view === "week" ? weekEnd : monthEnd;
+  const closureRangeStart = view === "week" ? weekStart : calendarStart;
+  const closureRangeEnd = view === "week" ? weekEnd : calendarEnd;
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const serviceClient = prismaModels["service"] as
@@ -481,7 +515,7 @@ export default async function CalendarPage({
     showAllDoctors
       ? prisma.appointment.findMany({
           where: {
-            startsAt: { gte: monthStart, lte: monthEnd },
+            startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
           },
           orderBy: { startsAt: "asc" },
           include: {
@@ -492,7 +526,7 @@ export default async function CalendarPage({
         ? prisma.appointment.findMany({
             where: {
               doctorId: selectedDoctorId,
-              startsAt: { gte: monthStart, lte: monthEnd },
+              startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
             },
             orderBy: { startsAt: "asc" },
             include: {
@@ -515,8 +549,8 @@ export default async function CalendarPage({
     closureClient?.findMany
       ? closureClient.findMany({
           where: {
-            startsAt: { lt: calendarEnd },
-            endsAt: { gt: calendarStart },
+            startsAt: { lt: closureRangeEnd },
+            endsAt: { gt: closureRangeStart },
           },
         })
       : Promise.resolve([]),
@@ -569,6 +603,9 @@ export default async function CalendarPage({
   const prevMonth = format(addMonths(baseMonth, -1), "yyyy-MM");
   const nextMonth = format(addMonths(baseMonth, 1), "yyyy-MM");
   const currentMonthKey = format(new Date(), "yyyy-MM");
+  const weekKey = format(weekStart, "yyyy-MM-dd");
+  const prevWeekKey = format(addDays(weekStart, -7), "yyyy-MM-dd");
+  const nextWeekKey = format(addDays(weekStart, 7), "yyyy-MM-dd");
   const doctorOptionList = doctors.map((doc) => ({
     id: doc.id,
     label: doc.fullName,
@@ -581,13 +618,20 @@ export default async function CalendarPage({
   );
   const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
 
-  const buildMonthLink = (monthValue: string) => {
+  const buildCalendarLink = (params: { view?: "month" | "week"; month?: string; week?: string }) => {
     const nextParams = new URLSearchParams();
-    nextParams.set("month", monthValue);
+    const nextView = params.view ?? view;
+    nextParams.set("view", nextView);
     if (showAllDoctors) {
       nextParams.set("doctor", "all");
     } else if (selectedDoctorId) {
       nextParams.set("doctor", selectedDoctorId);
+    }
+    if (params.month) {
+      nextParams.set("month", params.month);
+    }
+    if (params.week) {
+      nextParams.set("week", params.week);
     }
     return `/calendar?${nextParams.toString()}`;
   };
@@ -598,7 +642,12 @@ export default async function CalendarPage({
   } else if (selectedDoctorId) {
     returnParams.set("doctor", selectedDoctorId);
   }
-  returnParams.set("month", selectedMonthKey);
+  returnParams.set("view", view);
+  if (view === "week") {
+    returnParams.set("week", weekKey);
+  } else {
+    returnParams.set("month", selectedMonthKey);
+  }
   const returnTo = `/calendar?${returnParams.toString()}`;
   const calendarDays = days.map((day) => {
     const key = format(day, "yyyy-MM-dd");
@@ -640,6 +689,47 @@ export default async function CalendarPage({
       })),
     };
   });
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => {
+    const key = format(day, "yyyy-MM-dd");
+    const dayAppointments = appointmentsByDay.get(key) ?? [];
+    const dayWindows = showAllDoctors
+      ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
+      : selectedDoctorId
+        ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
+        : [];
+    const dayStart = dateStart(day);
+    const dayEnd = dateEndExclusive(day);
+    const isClosedByRange = closures.some(
+      (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
+    );
+    const isClosedWeekly = weeklyClosures.some(
+      (row) => row.isActive && row.dayOfWeek === weekdayIso(day)
+    );
+    const isPracticeClosed = isClosedByRange || isClosedWeekly;
+    const availabilityWindows = dayWindows.map((win) => ({
+      startMinute: win.startMinute,
+      endMinute: win.endMinute,
+      color: win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981",
+      doctorId: win.doctorId,
+    }));
+    return {
+      date: key,
+      isToday: isToday(day),
+      isPracticeClosed,
+      availabilityWindows,
+      appointments: dayAppointments.map((appt) => ({
+        id: appt.id,
+        title: appt.title,
+        startsAt: formatLocalInput(appt.startsAt),
+        endsAt: formatLocalInput(appt.endsAt),
+        serviceType: appt.serviceType,
+        patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
+        patientId: appt.patientId,
+        doctorId: appt.doctorId,
+        status: appt.status,
+      })),
+    };
+  });
 
   return (
       <div className="space-y-6">
@@ -649,15 +739,38 @@ export default async function CalendarPage({
             Calendario dei medici
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Seleziona un medico o tutto lo staff per vedere la pianificazione del mese selezionato.
+            Seleziona un medico o tutto lo staff per vedere la pianificazione del periodo selezionato.
           </p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          <CalendarPreferencesSync doctorIds={doctors.map((doctor) => doctor.id)} />
           <CalendarDoctorFilter
             doctors={doctorOptionList}
             selectedDoctorId={selectedDoctorId}
             showAll={showAllDoctors}
           />
+          <div className="flex items-center gap-2">
+            <Link
+              href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                view === "month"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700"
+              }`}
+            >
+              Vista mese
+            </Link>
+            <Link
+              href={buildCalendarLink({ view: "week", week: weekKey })}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                view === "week"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700"
+              }`}
+            >
+              Vista settimana
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -667,57 +780,125 @@ export default async function CalendarPage({
         </div>
       ) : (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 capitalize">
-                {monthLabel}
+                {view === "month" ? (
+                  monthLabel
+                ) : (
+                  <CalendarWeekPicker
+                    label={`${new Intl.DateTimeFormat("it-IT", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(weekStart)} - ${new Intl.DateTimeFormat("it-IT", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(weekEnd)}`}
+                    weekKey={weekKey}
+                  />
+                )}
               </h2>
+              {view === "week" && showAllDoctors ? (
+                <p className="mt-1 text-xs text-zinc-500">
+                  Per vedere gli slot liberi in modo chiaro, seleziona un medico specifico.
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600">
-              <Link
-                href={buildMonthLink(prevMonth)}
-                className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
-              >
-                ← Mese precedente
-              </Link>
-              <Link
-                href={buildMonthLink(currentMonthKey)}
-                className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
-              >
-                Mese corrente
-              </Link>
-              <Link
-                href={buildMonthLink(nextMonth)}
-                className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
-              >
-                Mese successivo →
-              </Link>
+              {view === "month" ? (
+                <>
+                  <Link
+                    href={buildCalendarLink({ view: "month", month: prevMonth })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    ← Mese precedente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "month", month: currentMonthKey })}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    Mese corrente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "month", month: nextMonth })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    Mese successivo →
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={buildCalendarLink({ view: "week", week: prevWeekKey })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    ← Settimana precedente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "week", week: format(new Date(), "yyyy-MM-dd") })}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    Settimana corrente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "week", week: nextWeekKey })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    Settimana successiva →
+                  </Link>
+                </>
+              )}
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
                 {appointments.length} appuntamenti
               </span>
             </div>
           </div>
 
-          <CalendarMonthView
-            days={calendarDays}
-            patients={patients}
-            doctors={doctors}
-            serviceOptions={serviceOptions}
-            services={serviceOptionObjects}
-            availabilityWindows={windows.map((win) => ({
-              doctorId: win.doctorId,
-              dayOfWeek: win.dayOfWeek,
-              startMinute: win.startMinute,
-              endMinute: win.endMinute,
-            }))}
-            practiceClosures={clientClosures}
-            practiceWeeklyClosures={clientWeeklyClosures}
-            action={createAppointment}
-            updateAction={updateAppointment}
-            deleteAction={deleteAppointment}
-            selectedDoctorId={selectedDoctorId}
-            returnTo={returnTo}
-          />
+          {view === "month" ? (
+            <CalendarMonthView
+              days={calendarDays}
+              patients={patients}
+              doctors={doctors}
+              serviceOptions={serviceOptions}
+              services={serviceOptionObjects}
+              availabilityWindows={windows.map((win) => ({
+                doctorId: win.doctorId,
+                dayOfWeek: win.dayOfWeek,
+                startMinute: win.startMinute,
+                endMinute: win.endMinute,
+              }))}
+              practiceClosures={clientClosures}
+              practiceWeeklyClosures={clientWeeklyClosures}
+              action={createAppointment}
+              updateAction={updateAppointment}
+              deleteAction={deleteAppointment}
+              selectedDoctorId={selectedDoctorId}
+              returnTo={returnTo}
+            />
+          ) : (
+            <CalendarWeekView
+              weekDays={weekDays}
+              patients={patients}
+              doctors={doctors}
+              serviceOptions={serviceOptions}
+              services={serviceOptionObjects}
+              availabilityWindows={windows.map((win) => ({
+                doctorId: win.doctorId,
+                dayOfWeek: win.dayOfWeek,
+                startMinute: win.startMinute,
+                endMinute: win.endMinute,
+              }))}
+              practiceClosures={clientClosures}
+              practiceWeeklyClosures={clientWeeklyClosures}
+              action={createAppointment}
+              updateAction={updateAppointment}
+              deleteAction={deleteAppointment}
+              selectedDoctorId={selectedDoctorId}
+              returnTo={returnTo}
+            />
+          )}
         </div>
       )}
     </div>
