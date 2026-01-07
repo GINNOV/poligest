@@ -50,7 +50,7 @@ export default async function PazientiListaPage({
         }
       : {};
 
-  const [patients, totalCount] = await Promise.all([
+  const [patients, staffUsers] = await Promise.all([
     prisma.patient.findMany({
       select: {
         id: true,
@@ -69,9 +69,28 @@ export default async function PazientiListaPage({
       },
       where,
     }),
-    prisma.patient.count({ where }),
+    prisma.user.findMany({
+      select: { email: true },
+      where: {
+        role: { not: Role.PATIENT },
+        email: { not: null },
+      },
+    }),
   ]);
 
+  const staffEmails = new Set(
+    staffUsers
+      .map((user) => user.email?.trim().toLowerCase())
+      .filter((email): email is string => Boolean(email)),
+  );
+  const filteredPatients = staffEmails.size
+    ? patients.filter((patient) => {
+        if (!patient.email) return true;
+        return !staffEmails.has(patient.email.trim().toLowerCase());
+      })
+    : patients;
+
+  const totalCount = filteredPatients.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const page = Math.min(requestedPage, totalPages);
   const skip = (page - 1) * PAGE_SIZE;
@@ -88,8 +107,10 @@ export default async function PazientiListaPage({
 
   const sortedPatients =
     sortOption === "name_desc" || sortOption === "name_asc"
-      ? [...patients].sort((a, b) => (sortOption === "name_desc" ? -compareNames(a, b) : compareNames(a, b)))
-      : [...patients].sort((a, b) =>
+      ? [...filteredPatients].sort((a, b) =>
+          sortOption === "name_desc" ? -compareNames(a, b) : compareNames(a, b),
+        )
+      : [...filteredPatients].sort((a, b) =>
           sortOption === "date_desc"
             ? (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
             : (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0),

@@ -516,6 +516,7 @@ export default async function AdminUsersPage({
                       <input type="hidden" name="userId" value={user.id} />
                       <select
                         name="role"
+                        key={`${user.id}-${user.role}`}
                         defaultValue={user.role}
                         className="block h-10 w-full min-w-[160px] rounded-full border border-zinc-200 bg-white px-3 pr-8 text-left text-xs font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:h-9 sm:w-[180px]"
                       >

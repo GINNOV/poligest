@@ -13,10 +13,14 @@ export function ResetLinkBanner({ title, body, delayMs = 5000 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
 
   useEffect(() => {
+    const params = new URLSearchParams(searchParamString);
+    const hasResetParams = params.has("resetSent") || params.has("resetEmail");
+    if (!hasResetParams) return;
+
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
       params.delete("resetSent");
       params.delete("resetEmail");
       const next = params.toString();
@@ -24,7 +28,7 @@ export function ResetLinkBanner({ title, body, delayMs = 5000 }: Props) {
     }, delayMs);
 
     return () => window.clearTimeout(timer);
-  }, [delayMs, pathname, router, searchParams]);
+  }, [delayMs, pathname, router, searchParamString]);
 
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-sm">

@@ -13,9 +13,10 @@ type Props = {
 export function CalendarPreferencesSync({ doctorIds }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
 
   useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParamString);
     let shouldReplace = false;
 
     const doctorParam = params.get("doctor");
@@ -35,14 +36,16 @@ export function CalendarPreferencesSync({ doctorIds }: Props) {
       shouldReplace = true;
     }
 
-    if (shouldReplace) {
-      router.replace(`/calendar?${params.toString()}`);
+    const nextQuery = params.toString();
+    if (shouldReplace && nextQuery !== searchParamString) {
+      router.replace(`/calendar?${nextQuery}`);
     }
-  }, [doctorIds, router, searchParams]);
+  }, [doctorIds, router, searchParamString]);
 
   useEffect(() => {
-    const doctorParam = searchParams.get("doctor");
-    const viewParam = searchParams.get("view");
+    const params = new URLSearchParams(searchParamString);
+    const doctorParam = params.get("doctor");
+    const viewParam = params.get("view");
 
     if (doctorParam) {
       window.localStorage.setItem(STORAGE_DOCTOR, doctorParam);
@@ -51,7 +54,7 @@ export function CalendarPreferencesSync({ doctorIds }: Props) {
     if (viewParam === "week" || viewParam === "month") {
       window.localStorage.setItem(STORAGE_VIEW, viewParam);
     }
-  }, [searchParams]);
+  }, [searchParamString]);
 
   return null;
 }
