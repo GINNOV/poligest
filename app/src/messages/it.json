@@ -116,6 +116,7 @@
 	  "audit": "Audit",
 	  "comingSoon": "In arrivo",
 	  "open": "Apri area",
+    "anamnesis": "Anamnesi",
     "deleteConfirm": "Eliminare definitivamente questo utente?",
     "auditBadge": "{count, plural, one {# log} other {# log}}",
     "usersHeading": "Utenti di sistema",
@@ -194,7 +195,18 @@
     "servicesList": "Servizi esistenti",
     "servicesEmpty": "Nessun servizio registrato.",
     "servicesDelete": "Elimina",
-    "servicesSave": "Salva modifiche"
+    "servicesSave": "Salva modifiche",
+  "anamnesisTitle": "Anamnesi generale",
+  "anamnesisSubtitle": "Gestisci l'elenco delle condizioni mediche mostrato nei profili paziente.",
+  "anamnesisCreate": "Nuova condizione",
+  "anamnesisCreateHint": "Aggiungi una voce all'elenco di anamnesi.",
+  "anamnesisName": "Nome condizione",
+  "anamnesisNamePlaceholder": "Ipertensione, Diabete, Asma...",
+  "anamnesisCreateButton": "Aggiungi condizione",
+  "anamnesisList": "Condizioni esistenti",
+  "anamnesisEmpty": "Nessuna condizione personalizzata. Verrà usata la lista predefinita.",
+  "anamnesisDelete": "Elimina",
+  "anamnesisSave": "Salva modifiche"
   },
   "login": {
     "title": "Accesso a SORRIDI",

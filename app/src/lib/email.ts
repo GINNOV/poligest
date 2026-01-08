@@ -6,7 +6,11 @@ const defaultFrom = process.env.RESEND_FROM_EMAIL || "noreply@sorrisosplendente.
 
 export async function sendEmail(to: string, subject: string, body: string) {
   if (!resend) {
-    throw new Error("Missing RESEND_API_KEY/RESEND_TOKEN; cannot send email.");
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("Missing RESEND_API_KEY/RESEND_TOKEN; cannot send email.");
+    }
+    console.warn("Missing RESEND_API_KEY/RESEND_TOKEN; skipping email send.");
+    return null;
   }
 
   const html = `<p>${body}</p>`;

@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { emitToast } from "./global-toasts";
 
 type DentalRecord = {
@@ -10,6 +10,8 @@ type DentalRecord = {
   procedure: string;
   notes: string | null;
   performedAt: string;
+  updatedAt?: string;
+  updatedByName?: string | null;
 };
 
 const TOOTH_PATHS: Record<string, string> = {
@@ -201,10 +203,12 @@ export function DentalChart({
   patientId,
   initialRecords,
   defaultCollapsed = true,
+  containerClassName,
 }: {
   patientId: string;
   initialRecords: DentalRecord[];
   defaultCollapsed?: boolean;
+  containerClassName?: string;
 }) {
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -212,6 +216,19 @@ export function DentalChart({
   const [notes, setNotes] = useState("");
   const [customProcedure, setCustomProcedure] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setNoteDrafts((prev) => {
+      const next = { ...prev };
+      records.forEach((record) => {
+        if (next[record.id] === undefined) {
+          next[record.id] = record.notes ?? "";
+        }
+      });
+      return next;
+    });
+  }, [records]);
 
   const recordsByTooth = useMemo(() => {
     const map = new Map<number, DentalRecord>();
@@ -268,6 +285,10 @@ export function DentalChart({
         const others = prev.filter((r) => r.id !== data.record.id && r.tooth !== data.record.tooth);
         return [...others, { ...data.record, performedAt: data.record.performedAt }];
       });
+      setNoteDrafts((prev) => ({
+        ...prev,
+        [data.record.id]: data.record.notes ?? "",
+      }));
       setCustomProcedure("");
     } catch (error) {
       console.error(error);
@@ -310,9 +331,43 @@ export function DentalChart({
     }
   };
 
+  const updateRecordNote = async (recordId: string) => {
+    const draft = noteDrafts[recordId] ?? "";
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/patients/${patientId}/dental-records`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId, notes: draft }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || "Salvataggio note non riuscito");
+      }
+      const data = (await res.json()) as {
+        record: DentalRecord & { updatedBy?: { name?: string | null; email?: string | null } | null };
+      };
+      const normalized: DentalRecord = {
+        ...data.record,
+        updatedByName: data.record.updatedBy?.name ?? data.record.updatedBy?.email ?? data.record.updatedByName ?? null,
+      };
+      setRecords((prev) => prev.map((r) => (r.id === normalized.id ? normalized : r)));
+      setNoteDrafts((prev) => ({ ...prev, [recordId]: normalized.notes ?? "" }));
+      emitToast("Note aggiornate", "success");
+    } catch (error) {
+      console.error(error);
+      emitToast("Impossibile salvare le note", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <details
-      className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden"
+      className={clsx(
+        "group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden",
+        containerClassName
+      )}
       open={!defaultCollapsed}
     >
       <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
@@ -333,7 +388,7 @@ export function DentalChart({
             <path d="M7 10h10" />
             <path d="M7 14h6" />
           </svg>
-          Diario clinico
+          <span className="uppercase tracking-wide">Diario clinico</span>
         </span>
         <svg
           className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
@@ -355,7 +410,6 @@ export function DentalChart({
     <div className="rounded-2xl bg-white">
       <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
         <div>
-          <p className="text-sm text-zinc-600">Diario clinico</p>
           <h2 className="text-lg font-semibold text-zinc-900">Arcata dentale (FDI 2 cifre)</h2>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-500">
@@ -377,99 +431,7 @@ export function DentalChart({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[240px,1fr,280px]">
-        <aside className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <div className="flex items-center justify-between pb-2">
-            <h3 className="text-sm font-semibold text-zinc-900">Pianificazioni</h3>
-            <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700">
-              {records.length}
-            </span>
-          </div>
-          <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-            {sortedRecords.length === 0 ? (
-              <p className="text-xs text-zinc-500">Nessun record. Seleziona un dente.</p>
-            ) : (
-              sortedRecords.map((rec) => {
-                const proc = resolveProcedure(rec.procedure);
-                const isActive = selectedTooth === rec.tooth;
-                const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
-                const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
-                const showThumbnail = rec.tooth !== 0;
-                return (
-                  <div
-                    key={rec.id}
-                    onClick={() => handleSelectTooth(rec.tooth)}
-                    className={clsx(
-                      "w-full rounded-lg border px-3 py-2 text-left transition group cursor-pointer",
-                      isActive
-                        ? "border-emerald-300 bg-emerald-50"
-                        : "border-zinc-200 bg-white hover:bg-zinc-50"
-                    )}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleSelectTooth(rec.tooth);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-4">
-                      {showThumbnail ? (
-                        <div className="relative h-12 w-12 overflow-hidden">
-                          <img
-                            src={toothImage ?? ""}
-                            alt={toothLabel}
-                            className="h-full w-full object-contain"
-                          />
-                          <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
-                            {rec.tooth}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-800">
-                          Tutta la bocca
-                        </div>
-                      )}
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between text-sm text-zinc-600">
-                          <span>{toothLabel}</span>
-                          <span>{new Date(rec.performedAt).toLocaleDateString("it-IT")}</span>
-                        </div>
-                        <div
-                          className={clsx(
-                            "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                            proc?.color ?? "bg-zinc-100 text-zinc-800"
-                          )}
-                        >
-                          {proc?.label ?? rec.procedure}
-                        </div>
-                      </div>
-                    </div>
-                    {rec.notes ? (
-                      <p className="mt-2 line-clamp-2 text-sm text-zinc-700">"{rec.notes}"</p>
-                    ) : null}
-                    <div className="mt-2 flex justify-end opacity-0 transition group-hover:opacity-100">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          deleteRecord(rec.id, rec.tooth);
-                        }}
-                        className="rounded-full border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
-                        disabled={isSubmitting}
-                      >
-                        Elimina
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </aside>
-
+      <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr,280px]">
         <section className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
             {[
@@ -538,6 +500,9 @@ export function DentalChart({
                     : `Dente ${selectedTooth}`}
               </p>
               <h3 className="text-lg font-semibold text-zinc-900">Procedura</h3>
+              <p className="mt-1 text-xs text-zinc-500">
+                Cosa e&apos; eseguito al dente selezionato?
+              </p>
             </div>
             {selectedTooth !== null && (
               <button
@@ -625,6 +590,134 @@ export function DentalChart({
           </div>
         </aside>
       </div>
+
+      <aside className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm">
+        <div className="flex items-center justify-between pb-2">
+          <h3 className="text-sm font-semibold text-zinc-900">Pianificazioni</h3>
+          <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700">
+            {records.length}
+          </span>
+        </div>
+        <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+          {sortedRecords.length === 0 ? (
+            <p className="text-xs text-zinc-500">Nessun record. Seleziona un dente.</p>
+          ) : (
+            sortedRecords.map((rec) => {
+              const proc = resolveProcedure(rec.procedure);
+              const isActive = selectedTooth === rec.tooth;
+              const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
+              const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
+              const showThumbnail = rec.tooth !== 0;
+              return (
+                <div
+                  key={rec.id}
+                  onClick={() => handleSelectTooth(rec.tooth)}
+                  className={clsx(
+                    "w-full rounded-lg border px-3 py-2 text-left transition group cursor-pointer",
+                    isActive
+                      ? "border-emerald-300 bg-emerald-50"
+                      : "border-zinc-200 bg-white hover:bg-zinc-50"
+                  )}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSelectTooth(rec.tooth);
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    {showThumbnail ? (
+                      <div className="relative h-12 w-12 overflow-hidden">
+                        <img
+                          src={toothImage ?? ""}
+                          alt={toothLabel}
+                          className="h-full w-full object-contain"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900">
+                          {rec.tooth}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-[11px] font-semibold text-emerald-800">
+                        Tutta la bocca
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between text-sm text-zinc-600">
+                        <span>{toothLabel}</span>
+                        <span>{new Date(rec.performedAt).toLocaleDateString("it-IT")}</span>
+                      </div>
+                      <div
+                        className={clsx(
+                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                          proc?.color ?? "bg-zinc-100 text-zinc-800"
+                        )}
+                      >
+                        {proc?.label ?? rec.procedure}
+                      </div>
+                    </div>
+                  </div>
+                    <div className="mt-2 space-y-2">
+                      <textarea
+                        value={noteDrafts[rec.id] ?? ""}
+                        onChange={(e) =>
+                          setNoteDrafts((prev) => ({ ...prev, [rec.id]: e.target.value }))
+                        }
+                        rows={2}
+                        placeholder="Aggiungi nota..."
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="w-full rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      />
+                      <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                        {rec.notes && rec.updatedAt ? (
+                          <span>
+                            Aggiornato il{" "}
+                            {new Date(rec.updatedAt).toLocaleString("it-IT", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })}
+                            {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            updateRecordNote(rec.id);
+                          }}
+                          disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
+                          className="rounded-full border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Salva nota
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex justify-end opacity-0 transition group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        deleteRecord(rec.id, rec.tooth);
+                      }}
+                      className="rounded-full border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                      disabled={isSubmitting}
+                    >
+                      Elimina
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </aside>
     </div>
       </div>
     </details>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType } from "@prisma/client";
+import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -17,23 +17,8 @@ import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { put } from "@vercel/blob";
-
-const conditionsList: string[] = [
-  "Artrosi cardiache",
-  "Ipertensione arteriosa",
-  "Malattie renali",
-  "Malattie oculari",
-  "Malattie ematiche",
-  "Diabete",
-  "Asma/Allergie",
-  "Farmacoterapia",
-  "Fumatore",
-  "Malattie infettive (es. Epatite, HIV)",
-  "Malattie epatiche",
-  "Malattie reumatiche",
-  "Anomalie della coagulazione",
-  "Gravidanza",
-];
+import { getAnamnesisConditions } from "@/lib/anamnesis";
+import { QuoteAccordion } from "@/components/quote-accordion";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -322,6 +307,113 @@ async function updatePatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
+async function savePreventivo(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const patientId = (formData.get("patientId") as string) || "";
+  const itemsRaw = (formData.get("itemsJson") as string) || "";
+  const signatureData = (formData.get("quoteSignatureData") as string)?.trim();
+  const existingSignatureUrl = (formData.get("existingQuoteSignatureUrl") as string)?.trim() || null;
+
+  if (!patientId || !itemsRaw) {
+    throw new Error("Preventivo non valido");
+  }
+
+  let itemsPayload: Array<{ serviceId: string; quantity: number; price: number }> = [];
+  try {
+    itemsPayload = JSON.parse(itemsRaw);
+  } catch {
+    throw new Error("Dati preventivo non validi");
+  }
+
+  if (!Array.isArray(itemsPayload) || itemsPayload.length === 0) {
+    throw new Error("Inserisci almeno una prestazione");
+  }
+
+  if (!signatureData?.startsWith("data:image/png") && !existingSignatureUrl) {
+    throw new Error("Firma digitale obbligatoria");
+  }
+
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const serviceClient = prismaModels["service"] as
+    | { findMany?: (args?: { where?: { id: { in: string[] } } }) => Promise<{ id: string; name: string }[]> }
+    | undefined;
+  const serviceIds = itemsPayload.map((item) => item.serviceId).filter(Boolean);
+  const services =
+    serviceClient?.findMany && serviceIds.length
+      ? await serviceClient.findMany({ where: { id: { in: serviceIds } } })
+      : [];
+  const serviceNameMap = new Map(services.map((service) => [service.id, service.name]));
+
+  const normalizedItems = itemsPayload.map((item) => {
+    const quantityParsed = Number.parseInt(String(item.quantity), 10);
+    const quantity = Number.isNaN(quantityParsed) || quantityParsed <= 0 ? 1 : quantityParsed;
+    const priceParsed = Number.parseFloat(String(item.price).replace(",", "."));
+    if (Number.isNaN(priceParsed)) {
+      throw new Error("Prezzo non valido");
+    }
+    const serviceName = serviceNameMap.get(item.serviceId) ?? "Prestazione";
+    const total = Number((priceParsed * quantity).toFixed(2));
+    return {
+      serviceId: item.serviceId,
+      serviceName,
+      quantity,
+      price: priceParsed,
+      total,
+    };
+  });
+
+  let signatureUrl = existingSignatureUrl;
+  if (signatureData?.startsWith("data:image/png")) {
+    const signatureBuffer = Buffer.from(signatureData.replace(/^data:image\/png;base64,/, ""), "base64");
+    const signatureName = `signatures/quotes/${patientId}/quote-${Date.now()}.png`;
+    const signatureBlob = await put(signatureName, signatureBuffer, { access: "public", addRandomSuffix: false });
+    signatureUrl = signatureBlob.url;
+  }
+
+  const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
+  const primaryItem = normalizedItems[0];
+
+  const quote = await prisma.quote.create({
+    data: {
+      patientId,
+      serviceId: primaryItem.serviceId,
+      serviceName: primaryItem.serviceName,
+      quantity: primaryItem.quantity,
+      price: new Prisma.Decimal(primaryItem.price),
+      total: new Prisma.Decimal(totalSum),
+      signatureUrl: signatureUrl ?? "",
+      signedAt: new Date(),
+      items: {
+        create: normalizedItems.map((item) => ({
+          serviceId: item.serviceId,
+          serviceName: item.serviceName,
+          quantity: item.quantity,
+          price: new Prisma.Decimal(item.price),
+          total: new Prisma.Decimal(item.total),
+        })),
+      },
+    },
+  });
+
+  await logAudit(user, {
+    action: "patient.quote_saved",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: {
+      quoteId: quote.id,
+      serviceId: primaryItem.serviceId,
+      serviceName: primaryItem.serviceName,
+      quantity: primaryItem.quantity,
+      price: primaryItem.price,
+      total: totalSum,
+    },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
 async function updateConsentStatus(formData: FormData) {
   "use server";
 
@@ -496,6 +588,7 @@ export default async function PatientDetailPage({
       },
     },
   });
+  const conditionsList = await getAnamnesisConditions();
 
   if (!patient) {
     return (
@@ -524,8 +617,39 @@ export default async function PatientDetailPage({
   const parsedMedications = medicationsLine?.replace("Farmaci:", "").trim() ?? "";
   const extraLine = notesLines.find((line) => line.startsWith("Note:"));
   const parsedExtra = extraLine?.replace("Note:", "").trim() ?? "";
+  let parsedQuote: {
+    id?: string;
+    serviceId?: string;
+    serviceName?: string;
+    quantity?: number;
+    price?: number;
+    total?: number;
+    signatureUrl?: string;
+    signedAt?: string;
+    items?: Array<{
+      id?: string;
+      serviceId?: string;
+      serviceName?: string;
+      quantity?: number;
+      price?: number;
+      total?: number;
+    }>;
+  } | null = null;
 
-  const [products, implants, dentalRecords] = await Promise.all([
+  const prismaModels = prisma as unknown as Record<string, unknown>;
+  const serviceClient = prismaModels["service"] as
+    | { findMany?: (args?: { orderBy?: { createdAt?: "asc" | "desc" } }) => Promise<any[]> }
+    | undefined;
+  const quoteClient = prismaModels["quote"] as
+    | {
+        findFirst?: (args: {
+          where: { patientId: string };
+          orderBy: { createdAt: "desc" };
+          include?: { items?: boolean };
+        }) => Promise<any | null>;
+      }
+    | undefined;
+  const [products, implants, dentalRecords, services, latestQuote] = await Promise.all([
     prisma.product.findMany({
       orderBy: { name: "asc" },
       include: { supplier: true },
@@ -539,8 +663,35 @@ export default async function PatientDetailPage({
     prisma.dentalRecord.findMany({
       where: { patientId },
       orderBy: { performedAt: "desc" },
+      include: { updatedBy: { select: { name: true, email: true } } },
     }),
+    serviceClient?.findMany ? serviceClient.findMany({ orderBy: { createdAt: "desc" } }) : Promise.resolve([]),
+    quoteClient?.findFirst
+      ? quoteClient.findFirst({ where: { patientId }, orderBy: { createdAt: "desc" }, include: { items: true } })
+      : Promise.resolve(null),
   ]);
+  if (latestQuote) {
+    parsedQuote = {
+      id: latestQuote.id,
+      serviceId: latestQuote.serviceId,
+      serviceName: latestQuote.serviceName,
+      quantity: latestQuote.quantity,
+      price: Number(latestQuote.price?.toString?.() ?? latestQuote.price ?? 0),
+      total: Number(latestQuote.total?.toString?.() ?? latestQuote.total ?? 0),
+      signatureUrl: latestQuote.signatureUrl,
+      signedAt: latestQuote.signedAt?.toISOString?.() ?? null,
+      items: Array.isArray(latestQuote.items)
+        ? latestQuote.items.map((item: any) => ({
+            id: item.id,
+            serviceId: item.serviceId,
+            serviceName: item.serviceName,
+            quantity: item.quantity,
+            price: Number(item.price?.toString?.() ?? item.price ?? 0),
+            total: Number(item.total?.toString?.() ?? item.total ?? 0),
+          }))
+        : undefined,
+    };
+  }
   const privacyContent = await fs.readFile(
     path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
     "utf8"
@@ -551,6 +702,8 @@ export default async function PatientDetailPage({
   const dentalRecordsSerialized = dentalRecords.map((record) => ({
     ...record,
     performedAt: record.performedAt.toISOString(),
+    updatedAt: record.updatedAt?.toISOString?.() ?? null,
+    updatedByName: record.updatedBy?.name ?? record.updatedBy?.email ?? null,
   }));
   const readContent = async (file: string, fallback: string) => {
     try {
@@ -684,7 +837,7 @@ export default async function PatientDetailPage({
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm text-zinc-600">Scheda paziente</p>
+                  <p className="text-sm uppercase tracking-wide text-zinc-600">Scheda paziente</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-semibold text-zinc-900">
                       {patient.lastName} {patient.firstName}
@@ -747,10 +900,6 @@ export default async function PatientDetailPage({
                     id="patient-update-form"
                   >
                     <input type="hidden" name="patientId" value={patient.id} />
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-zinc-900">Modifica dati</p>
-                      <p className="text-xs text-zinc-500">Aggiorna informazioni di contatto e note.</p>
-                    </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                         Nome
@@ -809,10 +958,13 @@ export default async function PatientDetailPage({
                             Seleziona eventuali condizioni mediche presenti o passate.
                           </p>
                         </div>
-                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          {conditionsList.map((condition) => (
+                        <div
+                          className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
+                          suppressHydrationWarning
+                        >
+                          {conditionsList.map((condition, index) => (
                             <label
-                              key={condition}
+                              key={`${condition}-${index}`}
                               className="inline-flex items-start gap-2 rounded-lg px-2 py-1 text-sm text-zinc-800"
                             >
                               <input
@@ -860,11 +1012,11 @@ export default async function PatientDetailPage({
             </div>
           </details>
 
-          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
               <span className="flex items-center gap-3">
                 <svg
-                  className="h-6 w-6 text-emerald-600"
+                  className="h-8 w-8 text-emerald-600"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -878,7 +1030,7 @@ export default async function PatientDetailPage({
                   <path d="M9 13h6" />
                   <path d="M9 17h4" />
                 </svg>
-                <span className="uppercase tracking-wide">Consenso informato & sommario</span>
+                <span className="uppercase tracking-wide">Consensi & Privacy</span>
               </span>
               <svg
                 className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
@@ -1004,13 +1156,31 @@ export default async function PatientDetailPage({
                       />
                     </div>
           </details>
-<DentalChart patientId={patient.id} initialRecords={dentalRecordsSerialized} />
+
+          <QuoteAccordion
+            patientId={patient.id}
+            services={services.map((service) => ({
+              id: service.id,
+              name: service.name,
+              costBasis: Number(service.costBasis?.toString?.() ?? service.costBasis ?? 0),
+            }))}
+            initialQuote={parsedQuote}
+            printHref={parsedQuote?.id ? `/pazienti/${patient.id}/preventivo/${parsedQuote.id}` : null}
+            className="bg-white"
+            onSave={savePreventivo}
+          />
+
+          <DentalChart
+            patientId={patient.id}
+            initialRecords={dentalRecordsSerialized}
+            containerClassName="bg-zinc-50"
+          />
 
           <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
               <span className="flex items-center gap-3">
                 <svg
-                  className="h-6 w-6 text-emerald-600"
+                  className="h-8 w-8 text-emerald-600"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1022,7 +1192,7 @@ export default async function PatientDetailPage({
                   <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
                   <path d="M22 7 12 13 2 7" />
                 </svg>
-                Invia SMS al paziente
+                <span className="uppercase tracking-wide">Invia SMS al paziente</span>
               </span>
               <svg
                 className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
@@ -1111,11 +1281,11 @@ export default async function PatientDetailPage({
           </details>
         </div>
 
-      <details className="group rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+      <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
         <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-base font-semibold text-zinc-900">
           <span className="flex items-center gap-3">
             <svg
-              className="h-6 w-6 text-emerald-600"
+              className="h-8 w-8 text-emerald-600"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -1127,7 +1297,7 @@ export default async function PatientDetailPage({
               <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
               <path d="M14 3v5h5" />
             </svg>
-            Associa impianti
+            <span className="uppercase tracking-wide">Associa impianti</span>
           </span>
           <svg
             className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"

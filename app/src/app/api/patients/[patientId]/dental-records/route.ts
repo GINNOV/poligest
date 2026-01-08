@@ -141,3 +141,72 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     });
   }
 }
+
+export async function PATCH(req: Request, { params }: RouteParams) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const { patientId } = await params;
+
+  if (!patientId) {
+    return errorResponse({
+      message: "Patient mancante",
+      status: 400,
+      source: "dental_record_note_update",
+      actor: user,
+    });
+  }
+
+  try {
+    const body = await req.json();
+    const recordId = (body?.recordId as string | undefined)?.trim() || "";
+    const notes = (body?.notes as string | undefined)?.trim() || null;
+
+    if (!recordId) {
+      return errorResponse({
+        message: "ID record mancante",
+        status: 400,
+        source: "dental_record_note_update",
+        context: { patientId },
+        actor: user,
+      });
+    }
+
+    const record = await prisma.dentalRecord.findUnique({ where: { id: recordId } });
+    if (!record || record.patientId !== patientId) {
+      return errorResponse({
+        message: "Record non trovato",
+        status: 404,
+        source: "dental_record_note_update",
+        context: { patientId, recordId },
+        actor: user,
+      });
+    }
+
+    const updated = await prisma.dentalRecord.update({
+      where: { id: recordId },
+      data: { notes, updatedById: user.id },
+      include: {
+        updatedBy: { select: { name: true, email: true } },
+      },
+    });
+
+    await logAudit(user, {
+      action: "patient.dental_record_note_updated",
+      entity: "Patient",
+      entityId: patientId,
+      metadata: { recordId },
+    });
+
+    revalidatePath(`/pazienti/${patientId}`);
+
+    return NextResponse.json({ record: updated });
+  } catch (error) {
+    return errorResponse({
+      message: "Errore aggiornamento note",
+      status: 500,
+      source: "dental_record_note_update",
+      context: { patientId },
+      error,
+      actor: user,
+    });
+  }
+}

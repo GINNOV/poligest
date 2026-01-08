@@ -184,6 +184,7 @@ model User {
   smsLogs                 SmsLog[]
   featureUpdateDismissals FeatureUpdateDismissal[]
   awards                  UserAward[]
+  dentalRecordUpdates     DentalRecord[] @relation("DentalRecordUpdatedBy")
 }
 
 model Doctor {
@@ -317,6 +318,7 @@ model Patient {
   dentalRecords  DentalRecord[]
   smsLogs        SmsLog[]
   cashAdvances   CashAdvance[]
+  quotes         Quote[]
 }
 
 model Consent {
@@ -375,6 +377,7 @@ model ClinicalNote {
 model DentalRecord {
   id          String   @id @default(cuid())
   patientId   String
+  updatedById String?
   tooth       Int
   procedure   String
   notes       String?
@@ -383,9 +386,11 @@ model DentalRecord {
   updatedAt   DateTime @updatedAt
 
   patient Patient @relation(fields: [patientId], references: [id])
+  updatedBy User?   @relation("DentalRecordUpdatedBy", fields: [updatedById], references: [id])
 
   @@index([patientId])
   @@index([patientId, tooth])
+  @@index([updatedById])
 }
 
 model AuditLog {
@@ -563,4 +568,50 @@ model Service {
   costBasis   Decimal  @db.Decimal(12, 2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  quotes      Quote[]
+  quoteItems  QuoteItem[]
+}
+
+model AnamnesisCondition {
+  id        String   @id @default(cuid())
+  label     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quote {
+  id           String   @id @default(cuid())
+  patientId    String
+  serviceId    String
+  serviceName  String
+  quantity     Int      @default(1)
+  price        Decimal  @db.Decimal(12, 2)
+  total        Decimal  @db.Decimal(12, 2)
+  signatureUrl String
+  signedAt     DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  patient Patient @relation(fields: [patientId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  items   QuoteItem[]
+
+  @@index([patientId, createdAt])
+}
+
+model QuoteItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  serviceId   String
+  serviceName String
+  quantity    Int      @default(1)
+  price       Decimal  @db.Decimal(12, 2)
+  total       Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quote   Quote   @relation(fields: [quoteId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@index([quoteId])
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 
 type Props = {
@@ -13,6 +13,10 @@ type Props = {
 export function PatientAvatar({ src, alt, size, className }: Props) {
   const fallback = "/avatars/missing_patient.jpg";
   const [currentSrc, setCurrentSrc] = useState(src || fallback);
+
+  useEffect(() => {
+    setCurrentSrc(src || fallback);
+  }, [src, fallback]);
 
   return (
     // Using <img> avoids Next image optimization errors on missing uploads.

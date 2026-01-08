@@ -8,16 +8,18 @@ import { PatientConsentSection } from "@/components/patient-consent-modal";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
+import { getAnamnesisConditions } from "@/lib/anamnesis";
 
 export default async function NuovoPazientePage() {
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const [doctors, privacyContent] = await Promise.all([
+  const [doctors, privacyContent, conditionsList] = await Promise.all([
     prisma.doctor.findMany({
       orderBy: { fullName: "asc" },
       select: { id: true, fullName: true },
     }),
     fs.readFile(path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"), "utf8"),
+    getAnamnesisConditions(),
   ]);
 
   return (
@@ -141,24 +143,11 @@ export default async function NuovoPazientePage() {
             </p>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              "Artrosi cardiache",
-              "Ipertensione arteriosa",
-              "Malattie renali",
-              "Malattie oculari",
-              "Malattie ematiche",
-              "Diabete",
-              "Asma/Allergie",
-              "Farmacoterapia",
-              "Operazioni chirurgiche",
-              "Fumatore",
-              "Malattie infettive (es. Epatite, HIV)",
-              "Malattie epatiche",
-              "Malattie reumatiche",
-              "Anomalie della coagulazione",
-              "Gravidanza",
-            ].map((condition) => (
-              <label key={condition} className="inline-flex items-start gap-2 text-sm text-zinc-800">
+            {conditionsList.map((condition, index) => (
+              <label
+                key={`${condition}-${index}`}
+                className="inline-flex items-start gap-2 text-sm text-zinc-800"
+              >
                 <input
                   type="checkbox"
                   name="conditions"

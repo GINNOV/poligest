@@ -73,7 +73,6 @@ export default async function PazientiListaPage({
       select: { email: true },
       where: {
         role: { not: Role.PATIENT },
-        email: { not: null },
       },
     }),
   ]);
@@ -243,7 +242,7 @@ export default async function PazientiListaPage({
               }
 
               return (
-                <div key={patient.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div key={patient.id} className="flex flex-col gap-2 py-3 pl-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-lg sm:hidden" aria-hidden={!badge}>
                     {badge}
                   </div>
