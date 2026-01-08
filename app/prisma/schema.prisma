@@ -381,6 +381,7 @@ model DentalRecord {
   tooth       Int
   procedure   String
   notes       String?
+  treated     Boolean  @default(false)
   performedAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

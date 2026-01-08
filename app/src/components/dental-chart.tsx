@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { emitToast } from "./global-toasts";
 
 type DentalRecord = {
@@ -9,6 +9,7 @@ type DentalRecord = {
   tooth: number; // 0 means "Tutta la bocca"
   procedure: string;
   notes: string | null;
+  treated?: boolean;
   performedAt: string;
   updatedAt?: string;
   updatedByName?: string | null;
@@ -33,10 +34,45 @@ type ToothData = {
 };
 
 const TOOTH_IMAGES: Record<ToothData["type"], string> = {
-  incisor: "/teeth/incisivi.jpg",
-  canine: "/teeth/canini.jpg",
-  premolar: "/teeth/premolari.jpg",
-  molar: "/teeth/molari.jpg",
+  incisor: "/teeth/incisivi.png",
+  canine: "/teeth/canini.png",
+  premolar: "/teeth/premolari.png",
+  molar: "/teeth/molari.png",
+};
+
+const TOOTH_POSITIONS: Record<number, { x: number; y: number }> = {
+  11: { x: 46.4, y: 10.7 },
+  12: { x: 41.8, y: 11.4 },
+  13: { x: 38.6, y: 13.5 },
+  14: { x: 35, y: 16 },
+  15: { x: 31.8, y: 20.3 },
+  16: { x: 30, y: 25.9 },
+  17: { x: 28.3, y: 32.1 },
+  18: { x: 27.8, y: 38.7 },
+  21: { x: 51.6, y: 11.1 },
+  22: { x: 56.4, y: 12 },
+  23: { x: 59.7, y: 13.5 },
+  24: { x: 61.7, y: 16.3 },
+  25: { x: 65.1, y: 20.1 },
+  26: { x: 66.5, y: 25.5 },
+  27: { x: 68.5, y: 32.2 },
+  28: { x: 68.9, y: 38.5 },
+  31: { x: 50.5, y: 88.7 },
+  32: { x: 54.1, y: 88.8 },
+  33: { x: 58.1, y: 87 },
+  34: { x: 62, y: 84.5 },
+  35: { x: 64.5, y: 80.1 },
+  36: { x: 67.1, y: 74.1 },
+  37: { x: 68.2, y: 67.5 },
+  38: { x: 69.1, y: 61.8 },
+  41: { x: 46.4, y: 88.8 },
+  42: { x: 42.1, y: 88.5 },
+  43: { x: 39, y: 86.2 },
+  44: { x: 35.2, y: 84.5 },
+  45: { x: 30.6, y: 75.5 },
+  46: { x: 30.1, y: 73.8 },
+  47: { x: 28, y: 68.4 },
+  48: { x: 27.5, y: 61.8 },
 };
 
 const getToothType = (toothId: number): ToothData["type"] => {
@@ -217,6 +253,8 @@ export function DentalChart({
   const [customProcedure, setCustomProcedure] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const chartRef = useRef<HTMLDivElement | null>(null);
+  const [useColorChart, setUseColorChart] = useState(false);
 
   useEffect(() => {
     setNoteDrafts((prev) => {
@@ -260,6 +298,31 @@ export function DentalChart({
     setNotes(record?.notes ?? "");
   };
 
+  const handleChartClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const wrapper = chartRef.current;
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const clickX = ((event.clientX - rect.left) / rect.width) * 100;
+    const clickY = ((event.clientY - rect.top) / rect.height) * 100;
+    let closestTooth: number | null = null;
+    let minDistance = Infinity;
+    const threshold = 6;
+
+    Object.entries(TOOTH_POSITIONS).forEach(([tooth, pos]) => {
+      const dx = clickX - pos.x;
+      const dy = clickY - pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestTooth = Number(tooth);
+      }
+    });
+
+    if (closestTooth !== null && minDistance <= threshold) {
+      handleSelectTooth(closestTooth);
+    }
+  };
+
   const handleSave = async () => {
     const chosenProcedure = procedure === "altro" ? customProcedure.trim() : procedure;
     if (selectedTooth === null || !chosenProcedure) {
@@ -280,14 +343,20 @@ export function DentalChart({
         throw new Error(body?.error || "Salvataggio non riuscito");
       }
 
-      const data = (await res.json()) as { record: DentalRecord };
+      const data = (await res.json()) as {
+        record: DentalRecord & { updatedBy?: { name?: string | null; email?: string | null } | null };
+      };
+      const normalized: DentalRecord = {
+        ...data.record,
+        updatedByName: data.record.updatedBy?.name ?? data.record.updatedBy?.email ?? data.record.updatedByName ?? null,
+      };
       setRecords((prev) => {
-        const others = prev.filter((r) => r.id !== data.record.id && r.tooth !== data.record.tooth);
-        return [...others, { ...data.record, performedAt: data.record.performedAt }];
+        const others = prev.filter((r) => r.id !== normalized.id && r.tooth !== normalized.tooth);
+        return [...others, { ...normalized, performedAt: normalized.performedAt }];
       });
       setNoteDrafts((prev) => ({
         ...prev,
-        [data.record.id]: data.record.notes ?? "",
+        [normalized.id]: normalized.notes ?? "",
       }));
       setCustomProcedure("");
     } catch (error) {
@@ -362,6 +431,35 @@ export function DentalChart({
     }
   };
 
+  const updateRecordTreated = async (recordId: string, treated: boolean) => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/patients/${patientId}/dental-records`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId, treated }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || "Salvataggio stato non riuscito");
+      }
+      const data = (await res.json()) as {
+        record: DentalRecord & { updatedBy?: { name?: string | null; email?: string | null } | null };
+      };
+      const normalized: DentalRecord = {
+        ...data.record,
+        updatedByName: data.record.updatedBy?.name ?? data.record.updatedBy?.email ?? data.record.updatedByName ?? null,
+      };
+      setRecords((prev) => prev.map((r) => (r.id === normalized.id ? normalized : r)));
+      emitToast("Stato aggiornato", "success");
+    } catch (error) {
+      console.error(error);
+      emitToast("Impossibile aggiornare lo stato", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <details
       className={clsx(
@@ -409,9 +507,7 @@ export function DentalChart({
         </div>
     <div className="rounded-2xl bg-white">
       <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Arcata dentale (FDI 2 cifre)</h2>
-        </div>
+        <div />
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
             Seleziona dente e salva procedura
@@ -435,14 +531,6 @@ export function DentalChart({
         <section className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
             {[
-              {
-                label: "Sano",
-                render: (
-                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
-                    <path d={TOOTH_PATHS.incisor} fill="#fff" stroke="#d4d4d8" strokeWidth="1.5" />
-                  </svg>
-                ),
-              },
               {
                 label: "Trattato",
                 render: (
@@ -470,21 +558,54 @@ export function DentalChart({
               </span>
             ))}
           </div>
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 bg-white p-4 shadow-inner">
-            <div className="relative h-full w-full">
-              <svg viewBox="-80 0 440 340" className="h-full w-full">
-                <line x1="140" y1="0" x2="140" y2="340" stroke="#e4e4e7" strokeWidth="2" />
-                <line x1="-80" y1="170" x2="360" y2="170" stroke="#e4e4e7" strokeWidth="2" />
-                {TEETH.map((tooth) => (
-                  <Tooth
-                    key={tooth.id}
-                    data={tooth}
-                    isSelected={selectedTooth === tooth.id}
-                    hasRecord={Boolean(recordsByTooth.get(tooth.id))}
-                    onClick={handleSelectTooth}
+          <div
+            ref={chartRef}
+            onClick={handleChartClick}
+            className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-inner cursor-pointer"
+          >
+            <img
+              key={useColorChart ? "mouth-color" : "mouth-white"}
+              src={useColorChart ? "/teeth/mouth_color.png" : "/teeth/mouth_white.png"}
+              alt="Arcata dentale"
+              className="block h-auto w-full select-none"
+              draggable={false}
+            />
+            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              {records
+                .filter((record) => record.treated && TOOTH_POSITIONS[record.tooth])
+                .map((record) => (
+                  <circle
+                    key={`treated-${record.id}`}
+                    cx={TOOTH_POSITIONS[record.tooth].x}
+                    cy={TOOTH_POSITIONS[record.tooth].y}
+                    r="3.5"
+                    fill="none"
+                    stroke="#22c55e"
+                    strokeWidth="0.6"
                   />
                 ))}
-              </svg>
+              {selectedTooth !== null && selectedTooth !== 0 && TOOTH_POSITIONS[selectedTooth] ? (
+                <circle
+                  cx={TOOTH_POSITIONS[selectedTooth].x}
+                  cy={TOOTH_POSITIONS[selectedTooth].y}
+                  r="3.5"
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="0.5"
+                />
+              ) : null}
+            </svg>
+            <div className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-2 text-[11px] font-semibold text-zinc-700 shadow-sm">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-zinc-300"
+                  checked={useColorChart}
+                  onChange={(e) => setUseColorChart(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                Colori
+              </label>
             </div>
           </div>
         </section>
@@ -591,7 +712,7 @@ export function DentalChart({
         </aside>
       </div>
 
-      <aside className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm">
+      <aside className="mx-6 mb-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between pb-2">
           <h3 className="text-sm font-semibold text-zinc-900">Pianificazioni</h3>
           <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700">
@@ -684,18 +805,35 @@ export function DentalChart({
                         ) : (
                           <span />
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            updateRecordNote(rec.id);
-                          }}
-                          disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
-                          className="rounded-full border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Salva nota
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <label
+                            className="inline-flex items-center gap-2 text-[11px] font-semibold text-zinc-700"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(rec.treated)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                updateRecordTreated(rec.id, e.target.checked);
+                              }}
+                              className="h-4 w-4 rounded border-zinc-300"
+                            />
+                            Trattato
+                          </label>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              updateRecordNote(rec.id);
+                            }}
+                            disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
+                            className="rounded-full border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Salva nota
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <div className="mt-2 flex justify-end opacity-0 transition group-hover:opacity-100">

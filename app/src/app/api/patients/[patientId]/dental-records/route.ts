@@ -45,10 +45,12 @@ export async function POST(req: Request, { params }: RouteParams) {
     const record = existing
       ? await prisma.dentalRecord.update({
           where: { id: existing.id },
-          data: { procedure, notes, performedAt: new Date() },
+          data: { procedure, notes, performedAt: new Date(), updatedById: user.id },
+          include: { updatedBy: { select: { name: true, email: true } } },
         })
       : await prisma.dentalRecord.create({
-          data: { patientId, tooth, procedure, notes },
+          data: { patientId, tooth, procedure, notes, updatedById: user.id },
+          include: { updatedBy: { select: { name: true, email: true } } },
         });
 
     await logAudit(user, {
@@ -158,7 +160,10 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   try {
     const body = await req.json();
     const recordId = (body?.recordId as string | undefined)?.trim() || "";
-    const notes = (body?.notes as string | undefined)?.trim() || null;
+    const notesRaw = body?.notes as string | undefined;
+    const notes = typeof notesRaw === "string" ? notesRaw.trim() : undefined;
+    const treatedRaw = body?.treated;
+    const treated = typeof treatedRaw === "boolean" ? treatedRaw : undefined;
 
     if (!recordId) {
       return errorResponse({
@@ -166,6 +171,15 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         status: 400,
         source: "dental_record_note_update",
         context: { patientId },
+        actor: user,
+      });
+    }
+    if (notes === undefined && treated === undefined) {
+      return errorResponse({
+        message: "Nessun aggiornamento richiesto",
+        status: 400,
+        source: "dental_record_note_update",
+        context: { patientId, recordId },
         actor: user,
       });
     }
@@ -183,7 +197,11 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     const updated = await prisma.dentalRecord.update({
       where: { id: recordId },
-      data: { notes, updatedById: user.id },
+      data: {
+        notes: notes === undefined ? undefined : notes || null,
+        treated: treated === undefined ? undefined : treated,
+        updatedById: user.id,
+      },
       include: {
         updatedBy: { select: { name: true, email: true } },
       },

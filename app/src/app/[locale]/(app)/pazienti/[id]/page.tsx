@@ -704,6 +704,7 @@ export default async function PatientDetailPage({
     performedAt: record.performedAt.toISOString(),
     updatedAt: record.updatedAt?.toISOString?.() ?? null,
     updatedByName: record.updatedBy?.name ?? record.updatedBy?.email ?? null,
+    treated: record.treated ?? false,
   }));
   const readContent = async (file: string, fallback: string) => {
     try {
