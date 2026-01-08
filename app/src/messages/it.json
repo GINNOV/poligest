@@ -206,7 +206,7 @@
   "anamnesisList": "Condizioni esistenti",
   "anamnesisEmpty": "Nessuna condizione personalizzata. Verrà usata la lista predefinita.",
   "anamnesisDelete": "Elimina",
-  "anamnesisSave": "Salva modifiche"
+  "anamnesisSave": "Aggiorna"
   },
   "login": {
     "title": "Accesso a SORRIDI",

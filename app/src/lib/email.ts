@@ -4,7 +4,7 @@ const resendApiKey = process.env.RESEND_API_KEY || process.env.RESEND_TOKEN;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 const defaultFrom = process.env.RESEND_FROM_EMAIL || "noreply@sorrisosplendente.com";
 
-export async function sendEmail(to: string, subject: string, body: string) {
+async function deliverEmail(to: string, subject: string, body: string, html: string) {
   if (!resend) {
     if (process.env.NODE_ENV === "production") {
       throw new Error("Missing RESEND_API_KEY/RESEND_TOKEN; cannot send email.");
@@ -12,8 +12,6 @@ export async function sendEmail(to: string, subject: string, body: string) {
     console.warn("Missing RESEND_API_KEY/RESEND_TOKEN; skipping email send.");
     return null;
   }
-
-  const html = `<p>${body}</p>`;
 
   const result = await resend.emails.send({
     from: defaultFrom,
@@ -28,4 +26,12 @@ export async function sendEmail(to: string, subject: string, body: string) {
   }
 
   return result;
+}
+
+export async function sendEmail(to: string, subject: string, body: string) {
+  return deliverEmail(to, subject, body, `<p>${body}</p>`);
+}
+
+export async function sendEmailWithHtml(to: string, subject: string, body: string, html: string) {
+  return deliverEmail(to, subject, body, html);
 }

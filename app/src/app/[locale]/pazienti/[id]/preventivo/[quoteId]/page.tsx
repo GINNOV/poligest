@@ -24,6 +24,10 @@ export default async function QuotePrintPage({
     where: { id: quoteId, patientId },
     include: { items: true },
   });
+  const quoteItems = await prisma.quoteItem.findMany({
+    where: { quoteId },
+    orderBy: { createdAt: "asc" },
+  });
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
     select: { firstName: true, lastName: true, email: true, phone: true },
@@ -36,13 +40,16 @@ export default async function QuotePrintPage({
   const price = Number(quote.price.toString());
   const total = Number(quote.total.toString());
   const signedAt = new Date(quote.signedAt);
-  const items = quote.items?.length
-    ? quote.items.map((item) => ({
+  const rawItems = quoteItems.length ? quoteItems : quote.items ?? [];
+  const items = rawItems.length
+    ? rawItems.map((item) => ({
         id: item.id,
         serviceName: item.serviceName,
         quantity: item.quantity,
         price: Number(item.price.toString()),
         total: Number(item.total.toString()),
+        saldato: Boolean(item.saldato),
+        createdAt: item.createdAt ? new Date(item.createdAt) : null,
       }))
     : [
         {
@@ -51,9 +58,19 @@ export default async function QuotePrintPage({
           quantity: quote.quantity,
           price,
           total,
+          saldato: false,
+          createdAt: null,
         },
       ];
-  const itemsTotal = items.reduce((sum, item) => sum + item.total, 0);
+  const itemsTotal = items.reduce((sum, item) => sum + (item.saldato ? 0 : item.total), 0);
+  const formatItemDate = (value: Date | null) => {
+    if (!value) return "—";
+    return value.toLocaleString("it-IT", {
+      dateStyle: "short",
+      timeStyle: "short",
+      timeZone: "Europe/Rome",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
@@ -109,6 +126,8 @@ export default async function QuotePrintPage({
                 <th className="px-4 py-3 text-right">Quantità</th>
                 <th className="px-4 py-3 text-right">Prezzo (€)</th>
                 <th className="px-4 py-3 text-right">Totale (€)</th>
+                <th className="px-4 py-3 text-right">Inserito</th>
+                <th className="px-4 py-3 text-center">Saldato</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -118,13 +137,19 @@ export default async function QuotePrintPage({
                   <td className="px-4 py-3 text-right text-zinc-700">{item.quantity}</td>
                   <td className="px-4 py-3 text-right text-zinc-700">{item.price.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-900">{item.total.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-zinc-600">
+                    {formatItemDate(item.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-zinc-700">
+                    {item.saldato ? "Sì" : "No"}
+                  </td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="bg-zinc-50">
               <tr>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-700" colSpan={3}>
-                  Totale preventivo
+                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-700" colSpan={5}>
+                  Totale da saldare
                 </td>
                 <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900">
                   {itemsTotal.toFixed(2)}

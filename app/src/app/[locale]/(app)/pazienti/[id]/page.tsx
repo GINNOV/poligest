@@ -19,6 +19,8 @@ import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { put } from "@vercel/blob";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { QuoteAccordion } from "@/components/quote-accordion";
+import { sendEmailWithHtml } from "@/lib/email";
+import { stackServerApp } from "@/lib/stack-app";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -52,6 +54,31 @@ const statusClasses: Record<AppointmentStatus, string> = {
   CANCELLED: "border-rose-200 bg-rose-50 text-rose-800 shadow-sm",
   NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700 shadow-sm",
 };
+
+function withParam(url: string, key: string, value: string) {
+  const hasQuery = url.includes("?");
+  const separator = hasQuery ? "&" : "?";
+  return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}
+
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) {
+    return "";
+  }
+  if (/^https?:\/\//.test(rawOrigin)) {
+    return rawOrigin.replace(/\/$/, "");
+  }
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
+}
+
+function resolveSiteOrigin() {
+  if (process.env.NODE_ENV === "production") {
+    return normalizeSiteOrigin(
+      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+    );
+  }
+  return normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
+}
 
 async function updateAppointmentStatus(formData: FormData) {
   "use server";
@@ -307,7 +334,7 @@ async function updatePatient(formData: FormData) {
   revalidatePath("/pazienti");
 }
 
-async function savePreventivo(formData: FormData) {
+async function savePreventivo(_: { savedAt: number }, formData: FormData) {
   "use server";
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
@@ -320,7 +347,7 @@ async function savePreventivo(formData: FormData) {
     throw new Error("Preventivo non valido");
   }
 
-  let itemsPayload: Array<{ serviceId: string; quantity: number; price: number }> = [];
+  let itemsPayload: Array<{ serviceId: string; quantity: number; price: number; saldato?: boolean }> = [];
   try {
     itemsPayload = JSON.parse(itemsRaw);
   } catch {
@@ -355,12 +382,14 @@ async function savePreventivo(formData: FormData) {
     }
     const serviceName = serviceNameMap.get(item.serviceId) ?? "Prestazione";
     const total = Number((priceParsed * quantity).toFixed(2));
+    const saldato = Boolean(item.saldato);
     return {
       serviceId: item.serviceId,
       serviceName,
       quantity,
       price: priceParsed,
       total,
+      saldato,
     };
   });
 
@@ -372,7 +401,7 @@ async function savePreventivo(formData: FormData) {
     signatureUrl = signatureBlob.url;
   }
 
-  const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
+  const totalSum = normalizedItems.reduce((sum, item) => sum + (item.saldato ? 0 : item.total), 0);
   const primaryItem = normalizedItems[0];
 
   const quote = await prisma.quote.create({
@@ -392,6 +421,7 @@ async function savePreventivo(formData: FormData) {
           quantity: item.quantity,
           price: new Prisma.Decimal(item.price),
           total: new Prisma.Decimal(item.total),
+          saldato: item.saldato,
         })),
       },
     },
@@ -412,6 +442,7 @@ async function savePreventivo(formData: FormData) {
   });
 
   revalidatePath(`/pazienti/${patientId}`);
+  return { savedAt: Date.now() };
 }
 
 async function updateConsentStatus(formData: FormData) {
@@ -538,6 +569,117 @@ async function sendPatientSms(formData: FormData) {
   }
 }
 
+async function sendPatientAccessEmail(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const patientId = (formData.get("patientId") as string) ?? "";
+
+  try {
+    if (!patientId) {
+      throw new Error("Paziente non valido");
+    }
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { email: true, firstName: true, lastName: true },
+    });
+
+    if (!patient?.email) {
+      redirect(
+        `/pazienti/${patientId}?accessError=${encodeURIComponent(
+          "Aggiungi un indirizzo email al profilo del paziente prima di inviare l'accesso."
+        )}`
+      );
+    }
+
+    const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
+    const patientSignInUrl = withParam(signInUrl, "audience", "patient");
+    const siteOrigin = resolveSiteOrigin();
+    const loginUrl = /^https?:\/\//.test(patientSignInUrl)
+      ? patientSignInUrl
+      : siteOrigin
+        ? `${siteOrigin}${patientSignInUrl}`
+        : patientSignInUrl;
+    const subject = "Accesso area pazienti";
+    const body = `Gentile Sig. ${patient.lastName ?? ""},
+
+La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.
+
+Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:
+${loginUrl}
+
+Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.
+
+Cordiali saluti,
+
+
+Telefono: 081 8654557
+Email: studio.agovino.agrisano@gmail.com`;
+
+    const baseOrigin = siteOrigin || "http://localhost:3000";
+    const logoUrl = `${baseOrigin}/logo/studio_agovinoangrisano_logo.png`;
+    const html = `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0fdf4; padding: 24px;">
+        <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #d1fae5; border-radius: 16px; padding: 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 1px solid #d1fae5; border-radius: 14px; background: #f8fffb;">
+            <tr>
+              <td style="padding: 12px 14px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                  <tr>
+                    <td style="padding-right: 12px;">
+                      <img src="${logoUrl}" alt="Studio Agovino & Angrisano" width="48" height="48" style="display:block; border-radius:12px; border:1px solid #d1fae5; padding:4px; background:#ffffff; object-fit: contain;" />
+                    </td>
+                    <td>
+                      <div style="font-size: 12px; letter-spacing: 0.2em; font-weight: 700; text-transform: uppercase; color: #064e3b;">
+                        Studio Agovino &amp; Angrisano
+                      </div>
+                      <div style="font-size: 11px; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; color: #047857;">
+                        by NoMore Caries
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <div style="margin-top: 18px; color: #0f172a; font-size: 14px; line-height: 1.6;">
+            <p style="margin: 0 0 12px;">Gentile Sig. ${patient.lastName ?? ""},</p>
+            <p style="margin: 0 0 12px;">La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.</p>
+            <p style="margin: 0 0 12px;">Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:</p>
+            <p style="margin: 0 0 16px;">
+              <a href="${loginUrl}" style="display: inline-block; background: #047857; color: #ffffff; padding: 12px 18px; border-radius: 999px; font-weight: 700; text-decoration: none;">
+                Accedi all&apos;area paziente
+              </a>
+            </p>
+            <p style="margin: 0 0 12px;">Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.</p>
+            <p style="margin: 0 0 16px;">Cordiali saluti,</p>
+            <p style="margin: 0;">Telefono: 081 8654557<br/>Email: studio.agovino.agrisano@gmail.com</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await sendEmailWithHtml(patient.email, subject, body, html);
+
+    await logAudit(user, {
+      action: "patient.access_email_sent",
+      entity: "Patient",
+      entityId: patientId,
+      metadata: { email: patient.email },
+    });
+
+    revalidatePath(`/pazienti/${patientId}`);
+    redirect(`/pazienti/${patientId}?accessSuccess=${encodeURIComponent("Email inviata con successo.")}`);
+  } catch (err: any) {
+    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+      throw err;
+    }
+    const message = err?.message ?? "Impossibile inviare l'email.";
+    redirect(`/pazienti/${patientId || ""}?accessError=${encodeURIComponent(message)}`);
+  }
+}
+
 export default async function PatientDetailPage({
   params,
   searchParams,
@@ -558,6 +700,10 @@ export default async function PatientDetailPage({
     typeof resolvedSearchParams.smsError === "string" ? resolvedSearchParams.smsError : null;
   const smsSuccessMessage =
     typeof resolvedSearchParams.smsSuccess === "string" ? resolvedSearchParams.smsSuccess : null;
+  const accessErrorMessage =
+    typeof resolvedSearchParams.accessError === "string" ? resolvedSearchParams.accessError : null;
+  const accessSuccessMessage =
+    typeof resolvedSearchParams.accessSuccess === "string" ? resolvedSearchParams.accessSuccess : null;
   const consentErrorMessage =
     typeof resolvedSearchParams.consentError === "string"
       ? resolvedSearchParams.consentError
@@ -604,6 +750,14 @@ export default async function PatientDetailPage({
     );
   }
 
+  const patientUser = patient.email
+    ? await prisma.user.findFirst({
+        where: { email: patient.email, role: Role.PATIENT },
+        select: { personalPin: true },
+      })
+    : null;
+  const patientPin = patientUser?.personalPin ?? "—";
+
   const notesLines = (patient.notes ?? "").split("\n").map((line) => line.trim());
   const anamnesisLine = notesLines.find((line) => line.startsWith("Anamnesi:"));
   const parsedConditions = anamnesisLine
@@ -633,6 +787,8 @@ export default async function PatientDetailPage({
       quantity?: number;
       price?: number;
       total?: number;
+      saldato?: boolean;
+      createdAt?: string | null;
     }>;
   } | null = null;
 
@@ -688,6 +844,8 @@ export default async function PatientDetailPage({
             quantity: item.quantity,
             price: Number(item.price?.toString?.() ?? item.price ?? 0),
             total: Number(item.total?.toString?.() ?? item.total ?? 0),
+            saldato: Boolean(item.saldato),
+            createdAt: item.createdAt?.toISOString?.() ?? null,
           }))
         : undefined,
     };
@@ -737,6 +895,11 @@ export default async function PatientDetailPage({
           {smsSuccessMessage}
         </div>
       ) : null}
+      {accessSuccessMessage ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
+          {accessSuccessMessage}
+        </div>
+      ) : null}
       {consentSuccessMessage ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
           {consentSuccessMessage}
@@ -763,6 +926,47 @@ export default async function PatientDetailPage({
                   <p className="text-xs text-zinc-500">
                     Aggiungi o aggiorna il numero di telefono del paziente dalla sezione dati di
                     contatto, poi riprova.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Link
+                href={`/pazienti/${patient.id}?openContact=1#contact-info`}
+                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900"
+              >
+                Vai ai dati di contatto
+              </Link>
+              <Link
+                href={`/pazienti/${patient.id}`}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-1 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              >
+                Chiudi
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {accessErrorMessage ? (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]">
+          <div
+            role="alertdialog"
+            aria-labelledby="access-error-title"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+          >
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                ⚠️
+              </div>
+              <div className="space-y-2">
+                <p id="access-error-title" className="text-base font-semibold text-amber-900">
+                  Impossibile inviare l&apos;email
+                </p>
+                <p className="text-sm text-zinc-700">{accessErrorMessage}</p>
+                {accessErrorMessage.toLowerCase().includes("email") ? (
+                  <p className="text-xs text-zinc-500">
+                    Aggiungi o aggiorna l&apos;email del paziente dalla sezione dati di contatto,
+                    poi riprova.
                   </p>
                 ) : null}
               </div>
@@ -829,6 +1033,9 @@ export default async function PatientDetailPage({
           >
             <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
               <div className="flex min-w-0 flex-1 items-center gap-3">
+                <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
+                  PIN {patientPin}
+                </span>
                 <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
                   <PatientAvatar
                     src={patient.photoUrl}
@@ -1003,7 +1210,7 @@ export default async function PatientDetailPage({
                     </div>
                   <div className="flex justify-end">
                     <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-                      Salva modifiche
+                      Aggiorna
                     </FormSubmitButton>
                   </div>
                 </form>
@@ -1193,7 +1400,7 @@ export default async function PatientDetailPage({
                   <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
                   <path d="M22 7 12 13 2 7" />
                 </svg>
-                <span className="uppercase tracking-wide">Invia SMS al paziente</span>
+                <span className="uppercase tracking-wide">Comunicazioni</span>
               </span>
               <svg
                 className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
@@ -1209,33 +1416,55 @@ export default async function PatientDetailPage({
               </svg>
             </summary>
             <div className="grid gap-4 p-6 lg:grid-cols-[340px,1fr]">
-              <form action={sendPatientSms} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
-                <input type="hidden" name="patientId" value={patient.id} />
-                <label className="flex flex-col gap-1">
-                  Template
-                  <select
-                    name="templateId"
-                    required
-                    className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                    defaultValue={smsTemplates[0]?.id ?? ""}
-                  >
-                    <option value="" disabled>
-                      Seleziona template
-                    </option>
-                    {smsTemplates.map((tpl) => (
-                      <option key={tpl.id} value={tpl.id}>
-                        {tpl.name}
+              <div className="space-y-3">
+                <form action={sendPatientSms} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                  <input type="hidden" name="patientId" value={patient.id} />
+                  <label className="flex flex-col gap-1">
+                    Template
+                    <select
+                      name="templateId"
+                      required
+                      className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      defaultValue={smsTemplates[0]?.id ?? ""}
+                    >
+                      <option value="" disabled>
+                        Seleziona template
                       </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="text-xs text-zinc-600">
-                  Placeholder supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
-                </p>
-                <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
-                  Invia SMS
-                </FormSubmitButton>
-              </form>
+                      {smsTemplates.map((tpl) => (
+                        <option key={tpl.id} value={tpl.id}>
+                          {tpl.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="text-xs text-zinc-600">
+                    Placeholder supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
+                  </p>
+                  <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
+                    Invia SMS
+                  </FormSubmitButton>
+                </form>
+
+                <form
+                  action={sendPatientAccessEmail}
+                  className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
+                >
+                  <input type="hidden" name="patientId" value={patient.id} />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-zinc-900">Invia accesso area pazienti</p>
+                    <p className="text-xs text-zinc-600">
+                      Invia il link di accesso all&apos;email del paziente:{" "}
+                      <span className="font-semibold">{patient.email ?? "—"}</span>
+                    </p>
+                  </div>
+                  <FormSubmitButton
+                    disabled={!patient.email}
+                    className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Invia email accesso
+                  </FormSubmitButton>
+                </form>
+              </div>
 
               <div className="rounded-xl border border-zinc-200 bg-white p-4">
                 <div className="flex items-center justify-between">
@@ -1575,7 +1804,6 @@ export default async function PatientDetailPage({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">Storico appuntamenti</h2>
-          <p className="text-sm text-zinc-600">Solo lettura, per tracciare gli ultimi appuntamenti.</p>
         </div>
         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
           {pastAppointments.length}

@@ -719,7 +719,7 @@ export function DentalChart({
             {records.length}
           </span>
         </div>
-        <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+        <div className="grid gap-4 max-h-[360px] overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
           {sortedRecords.length === 0 ? (
             <p className="text-xs text-zinc-500">Nessun record. Seleziona un dente.</p>
           ) : (
@@ -792,9 +792,9 @@ export function DentalChart({
                         onKeyDown={(e) => e.stopPropagation()}
                         className="w-full rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                       />
-                      <div className="flex items-center justify-between text-[11px] text-zinc-500">
+                      <div className="space-y-2 text-[11px] text-zinc-500">
                         {rec.notes && rec.updatedAt ? (
-                          <span>
+                          <span className="block">
                             Aggiornato il{" "}
                             {new Date(rec.updatedAt).toLocaleString("it-IT", {
                               dateStyle: "short",
@@ -802,10 +802,8 @@ export function DentalChart({
                             })}
                             {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
                           </span>
-                        ) : (
-                          <span />
-                        )}
-                        <div className="flex items-center gap-2">
+                        ) : null}
+                        <div className="flex items-center justify-between gap-2">
                           <label
                             className="inline-flex items-center gap-2 text-[11px] font-semibold text-zinc-700"
                             onClick={(e) => e.stopPropagation()}

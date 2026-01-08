@@ -144,6 +144,20 @@ export default async function DashboardPage({
   const t = await getTranslations("dashboard");
   const isPatient = user.role === Role.PATIENT;
 
+  const patientRecord = isPatient && user.email
+    ? await prisma.patient.findFirst({
+        where: { email: { equals: user.email, mode: "insensitive" } },
+        select: { id: true },
+      })
+    : null;
+  const latestQuote = patientRecord
+    ? await prisma.quote.findFirst({
+        where: { patientId: patientRecord.id },
+        orderBy: { createdAt: "desc" },
+        include: { items: { orderBy: { createdAt: "asc" } } },
+      })
+    : null;
+
   const today = new Date();
   const weekStart = startOfWeek(today, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
@@ -235,6 +249,28 @@ export default async function DashboardPage({
   };
 
   if (isPatient) {
+    const quoteItems = latestQuote
+      ? latestQuote.items.length
+        ? latestQuote.items
+        : [
+            {
+              id: latestQuote.id,
+              serviceName: latestQuote.serviceName,
+              quantity: latestQuote.quantity,
+              price: latestQuote.price,
+              total: latestQuote.total,
+              saldato: false,
+            },
+          ]
+      : [];
+    const quoteTotal = quoteItems.reduce((sum, item) => {
+      const totalValue = Number(item.total?.toString?.() ?? item.total ?? 0);
+      return sum + (item.saldato ? 0 : totalValue);
+    }, 0);
+    const quoteSignedAt = latestQuote?.signedAt
+      ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(latestQuote.signedAt)
+      : null;
+
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -357,6 +393,66 @@ export default async function DashboardPage({
             </section>
           </div>
         </div>
+        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900">Preventivo più recente</h2>
+              <p className="mt-1 text-sm text-zinc-600">
+                Qui trovi il preventivo firmato più aggiornato.
+              </p>
+            </div>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {quoteSignedAt ?? "—"}
+            </span>
+          </div>
+          {latestQuote ? (
+            <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200">
+              <table className="min-w-full divide-y divide-zinc-100 text-sm">
+                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Prestazione</th>
+                    <th className="px-4 py-3 text-right">Quantità</th>
+                    <th className="px-4 py-3 text-right">Prezzo (€)</th>
+                    <th className="px-4 py-3 text-right">Totale (€)</th>
+                    <th className="px-4 py-3 text-center">Saldato</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {quoteItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-3 text-zinc-900">{item.serviceName}</td>
+                      <td className="px-4 py-3 text-right text-zinc-700">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-zinc-700">
+                        {Number(item.price?.toString?.() ?? item.price ?? 0).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-900">
+                        {Number(item.total?.toString?.() ?? item.total ?? 0).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 text-center text-zinc-700">
+                        {item.saldato ? "Sì" : "No"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-zinc-50">
+                  <tr>
+                    <td
+                      className="px-4 py-3 text-right text-sm font-semibold text-zinc-700"
+                      colSpan={4}
+                    >
+                      Totale da saldare
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900">
+                      {quoteTotal.toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-zinc-600">Nessun preventivo disponibile al momento.</p>
+          )}
+        </section>
         <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-emerald-900">Premi e motivazione</h2>
