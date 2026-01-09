@@ -46,7 +46,7 @@ export async function updateSupplier(formData: FormData) {
 export async function deleteProduct(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const productId = formData.get("productId") as string;
-  if (!productId) throw new Error("Prodotto mancante");
+  if (!productId) return;
 
   try {
     // Ripulisci movimenti collegati per evitare vincoli FK
@@ -62,7 +62,7 @@ export async function deleteProduct(formData: FormData) {
 export async function deleteSupplier(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const supplierId = formData.get("supplierId") as string;
-  if (!supplierId) throw new Error("Fornitore mancante");
+  if (!supplierId) return;
 
   try {
     // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
@@ -142,7 +142,7 @@ export async function addStockMovement(formData: FormData) {
 export async function deleteStockMovement(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const movementId = formData.get("movementId") as string;
-  if (!movementId) throw new Error("Movimento mancante");
+  if (!movementId) return;
 
   await prisma.stockMovement.delete({ where: { id: movementId } });
 

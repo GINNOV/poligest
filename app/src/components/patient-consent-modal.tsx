@@ -14,6 +14,7 @@ type Props = {
   hideIntro?: boolean;
   disabled?: boolean;
   submitDisabled?: boolean;
+  requireFields?: boolean;
   onSignatureChange?: (value: string) => void;
   onFieldChange?: (fields: {
     place?: string;
@@ -139,6 +140,7 @@ export function PatientConsentSection({
   hideIntro,
   disabled,
   submitDisabled,
+  requireFields = true,
   onSignatureChange,
   onFieldChange,
 }: Props) {
@@ -552,7 +554,7 @@ export function PatientConsentSection({
           <input
             name="consentPlace"
             disabled={disabled}
-            required={!disabled}
+            required={!disabled && requireFields}
             onChange={(event) => onFieldChange?.({ place: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="Luogo"
@@ -564,7 +566,7 @@ export function PatientConsentSection({
             type="date"
             name="consentDate"
             disabled={disabled}
-            required={!disabled}
+            required={!disabled && requireFields}
             onChange={(event) => onFieldChange?.({ date: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="dd/mm/yyyy"
@@ -576,7 +578,7 @@ export function PatientConsentSection({
           In stampatello, paziente o esercente podestà
           <input
             name="patientSignature"
-            required={!disabled}
+            required={!disabled && requireFields}
             disabled={disabled}
             onChange={(event) => onFieldChange?.({ patientName: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
@@ -589,7 +591,7 @@ export function PatientConsentSection({
             name="doctorSignature"
             className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             defaultValue=""
-            required={!disabled}
+            required={!disabled && requireFields}
             disabled={disabled}
             onChange={(event) => onFieldChange?.({ doctorName: event.target.value })}
           >

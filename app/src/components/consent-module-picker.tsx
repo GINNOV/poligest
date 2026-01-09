@@ -81,7 +81,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
 
   return (
     <div className="space-y-4">
-      <input type="hidden" name="consentModuleId" value={selectedModuleId} />
+      <input type="hidden" name="consentModuleId" value={canSubmit ? selectedModuleId : ""} />
 
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -110,53 +110,58 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-        <PatientConsentSection
-          key={selectedModuleId || "consent-empty"}
-          content={selectedModule?.content ?? ""}
-          doctors={doctors}
-          buttonLabel="Apri informativa e firma"
-          moduleLabel={selectedModule?.name ?? ""}
-          disabled={!canEdit}
-          hideIntro
-          submitDisabled={!canSubmit}
-          onSignatureChange={(value) => {
-            setFormState((prev) => ({ ...prev, signatureData: value }));
-            markDirty();
-          }}
-          onFieldChange={(fields) => {
-            setFormState((prev) => ({ ...prev, ...fields }));
-            markDirty();
-          }}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 font-medium text-zinc-800">
-          Canale
-          <select
-            name="consentChannel"
-            defaultValue="Di persona"
+      {canEdit ? (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+          <PatientConsentSection
+            key={selectedModuleId || "consent-empty"}
+            content={selectedModule?.content ?? ""}
+            doctors={doctors}
+            buttonLabel="Apri informativa e firma"
+            moduleLabel={selectedModule?.name ?? ""}
             disabled={!canEdit}
-            onChange={markDirty}
-            className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
-          >
-            {CHANNELS.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 font-medium text-zinc-800">
-          Scadenza (opzionale)
-          <input
-            type="date"
-            name="consentExpiresAt"
-            disabled={!canEdit}
-            onChange={markDirty}
-            className="h-10 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            submitDisabled={!canSubmit}
+            requireFields={false}
+            hideIntro
+            onSignatureChange={(value) => {
+              setFormState((prev) => ({ ...prev, signatureData: value }));
+              markDirty();
+            }}
+            onFieldChange={(fields) => {
+              setFormState((prev) => ({ ...prev, ...fields }));
+              markDirty();
+            }}
           />
-        </label>
-      </div>
+        </div>
+      ) : null}
+
+      {canEdit ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 font-medium text-zinc-800">
+            Canale
+            <select
+              name="consentChannel"
+              defaultValue="Di persona"
+              disabled={!canEdit}
+              onChange={markDirty}
+              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            >
+              {CHANNELS.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 font-medium text-zinc-800">
+            Scadenza (opzionale)
+            <input
+              type="date"
+              name="consentExpiresAt"
+              disabled={!canEdit}
+              onChange={markDirty}
+              className="h-10 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            />
+          </label>
+        </div>
+      ) : null}
 
       {showSwitchConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

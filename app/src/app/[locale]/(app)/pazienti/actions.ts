@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Prisma, Role, ConsentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -211,4 +212,6 @@ Se hai bisogno di assistenza, contatta la segreteria.`;
 
   revalidatePath("/pazienti");
   revalidatePath("/pazienti/nuovo");
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }

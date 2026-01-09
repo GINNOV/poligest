@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { stackServerApp } from "@/lib/stack-app";
+import { getRandomAvatarUrl } from "@/lib/avatars";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ensureUserPersonalPin } from "@/lib/personal-pin";
@@ -99,6 +100,7 @@ async function getUserFromStack(allowImpersonation = true): Promise<AppUser | nu
           // Stack-managed users authenticate via Stack tokens; keep password placeholder for NOT NULL column
           hashedPassword: "",
           role: "PATIENT",
+          avatarUrl: getRandomAvatarUrl(),
           // hashedPassword is optional now
         },
       });

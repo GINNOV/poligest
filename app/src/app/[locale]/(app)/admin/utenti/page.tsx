@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
+import { getRandomAvatarUrl } from "@/lib/avatars";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
 
@@ -50,6 +51,7 @@ async function upsertUser(formData: FormData) {
       locale,
       isActive,
       hashedPassword: "",
+      avatarUrl: getRandomAvatarUrl(),
     },
   });
 

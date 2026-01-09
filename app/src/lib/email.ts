@@ -6,11 +6,7 @@ const defaultFrom = process.env.RESEND_FROM_EMAIL || "noreply@sorrisosplendente.
 
 async function deliverEmail(to: string, subject: string, body: string, html: string) {
   if (!resend) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("Missing RESEND_API_KEY/RESEND_TOKEN; cannot send email.");
-    }
-    console.warn("Missing RESEND_API_KEY/RESEND_TOKEN; skipping email send.");
-    return null;
+    throw new Error("Provider email non configurato (RESEND_API_KEY/RESEND_TOKEN).");
   }
 
   const result = await resend.emails.send({

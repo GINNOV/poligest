@@ -154,11 +154,7 @@ export default async function PazientiListaPage({
       </div>
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-zinc-900">Elenco pazienti</p>
-          <p className="text-xs text-zinc-500">Ricerca, filtro e accesso rapido alle schede.</p>
-        </div>
-        <form className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3" method="get">
+        <form className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3" method="get">
           <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
             Cerca
             <input
@@ -182,7 +178,7 @@ export default async function PazientiListaPage({
               <option value="date_asc">Data di inserimento (meno recenti)</option>
             </select>
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 sm:self-end">
             <button
               type="submit"
               className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
@@ -214,6 +210,10 @@ export default async function PazientiListaPage({
           <span className="inline-flex items-center gap-1">
             <span className="text-zinc-500">☎️</span>
             Telefono mancante
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-emerald-600">✓</span>
+            Dati completi
           </span>
         </div>
         <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
@@ -252,10 +252,16 @@ export default async function PazientiListaPage({
                     ☎️
                   </span>
                 );
+              } else {
+                badge = (
+                  <span title="Dati completi" className="text-emerald-600">
+                    ✓
+                  </span>
+                );
               }
 
               return (
-                <div key={patient.id} className="flex flex-col gap-2 py-3 pl-4 sm:flex-row sm:items-center sm:justify-between">
+                <div key={patient.id} className="flex flex-col gap-2 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2 text-lg sm:hidden" aria-hidden={!badge}>
                     {badge}
                   </div>

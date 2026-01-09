@@ -24,7 +24,7 @@ export default async function AgendaPage() {
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Appuntamenti in corso</h2>
+              <h2 className="text-lg font-semibold text-emerald-900">Elenco appuntamenti</h2>
               <p className="text-sm text-emerald-800">
                 Gestisci gli appuntamenti correnti e aggiorna le loro informazioni.
               </p>

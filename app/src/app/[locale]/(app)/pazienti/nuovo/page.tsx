@@ -178,14 +178,14 @@ export default async function NuovoPazientePage() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+        <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-emerald-900">Consenso e firma digitale</p>
-            <p className="text-xs text-emerald-700">
+            <p className="text-sm font-semibold text-zinc-900">Consenso e firma digitale</p>
+            <p className="text-xs text-zinc-600">
               Leggi l'informativa e acquisisci la firma digitale del paziente.
             </p>
           </div>
-          <div className="mt-3 rounded-lg border border-emerald-200 bg-white">
+          <div className="mt-4">
             <ConsentModulePicker modules={consentModules} doctors={doctors} />
           </div>
         </section>
