@@ -5,6 +5,45 @@ const { PrismaClient, Role, Prisma } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
+const defaultEmailTemplates = [
+  {
+    name: "welcome",
+    subject: "Benvenuto in {{clinicName}}",
+    body:
+      "Ciao {{patientName}},\n\nBenvenuto nello studio {{clinicName}}.\n\n{{customNote}}\n\n{{button}}\n\nPer maggiori informazioni visita {{websiteUrl}}.",
+    buttonColor: "#059669",
+    category: "Onboarding",
+    description: "Email di benvenuto per nuovi pazienti.",
+  },
+  {
+    name: "appointment-reminder",
+    subject: "Promemoria appuntamento {{appointmentDate}}",
+    body:
+      "Ciao {{patientName}},\n\nTi ricordiamo il tuo appuntamento il {{appointmentDate}} alle {{appointmentTime}} con {{doctorName}}.\n\n{{button}}\n\nA presto,\n{{clinicName}}.",
+    buttonColor: "#0f766e",
+    category: "Promemoria",
+    description: "Promemoria per appuntamenti programmati.",
+  },
+  {
+    name: "follow-up",
+    subject: "Come è andata la visita?",
+    body:
+      "Ciao {{patientName}},\n\nGrazie per la visita presso {{clinicName}}.\nSe hai bisogno di altro supporto, rispondi a questa email.\n\n{{customNote}}\n\n{{button}}",
+    buttonColor: "#1d4ed8",
+    category: "Post-visita",
+    description: "Messaggio di follow-up dopo la visita.",
+  },
+  {
+    name: "invoice-ready",
+    subject: "La tua fattura è disponibile",
+    body:
+      "Ciao {{patientName}},\n\nLa tua fattura è pronta.\n\n{{button}}\n\nGrazie,\n{{clinicName}}.",
+    buttonColor: "#16a34a",
+    category: "Billing",
+    description: "Avviso che la fattura è disponibile.",
+  },
+];
+
 async function main() {
   const password = process.env.SEED_PASSWORD || "SORRIDI!123"; // Cambia in produzione
   const hashedPassword = await hash(password, 12);
@@ -194,6 +233,20 @@ async function main() {
         status: "PENDING",
         notes: "Promemoria demo",
       },
+    });
+  }
+
+  for (const template of defaultEmailTemplates) {
+    await prisma.emailTemplate.upsert({
+      where: { name: template.name },
+      update: {
+        subject: template.subject,
+        body: template.body,
+        buttonColor: template.buttonColor,
+        category: template.category,
+        description: template.description,
+      },
+      create: template,
     });
   }
 

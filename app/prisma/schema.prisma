@@ -498,6 +498,18 @@ model FinanceEntry {
   @@index([doctorId])
 }
 
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  subject     String
+  body        String
+  buttonColor String?
+  category    String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model CashAdvance {
   id        String   @id @default(cuid())
   patientId String

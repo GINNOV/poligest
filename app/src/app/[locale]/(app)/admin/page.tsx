@@ -29,6 +29,7 @@ export default async function AdminPage() {
     | undefined;
   const featureUpdateClient = prismaModels["featureUpdate"] as { count?: () => Promise<number> } | undefined;
   const consentModuleClient = prismaModels["consentModule"] as { count?: () => Promise<number> } | undefined;
+  const emailTemplateClient = prismaModels["emailTemplate"] as { count?: () => Promise<number> } | undefined;
 
   const [
     usersCount,
@@ -39,6 +40,7 @@ export default async function AdminPage() {
     closuresCount,
     updatesCount,
     consentModulesCount,
+    emailTemplatesCount,
     errorCount,
   ] = await Promise.all([
     prisma.user.count(),
@@ -49,6 +51,7 @@ export default async function AdminPage() {
     closureClient?.count ? closureClient.count() : Promise.resolve(0),
     featureUpdateClient?.count ? featureUpdateClient.count() : Promise.resolve(0),
     consentModuleClient?.count ? consentModuleClient.count() : Promise.resolve(0),
+    emailTemplateClient?.count ? emailTemplateClient.count() : Promise.resolve(0),
     prisma.auditLog.count({ where: { action: "error.reported" } }),
   ]);
 
@@ -88,6 +91,15 @@ export default async function AdminPage() {
       badge: consentModulesCount ? `${consentModulesCount} moduli` : "Nessun modulo",
       tone: "primary",
       icon: "📄",
+    },
+    {
+      key: "email-templates",
+      title: "Template email",
+      description: "Editor, anteprima e invio di test per le email di sistema.",
+      href: "/admin/emails",
+      badge: emailTemplatesCount ? `${emailTemplatesCount} template` : "Nessun template",
+      tone: "primary",
+      icon: "📧",
     },
     {
       key: "users",
