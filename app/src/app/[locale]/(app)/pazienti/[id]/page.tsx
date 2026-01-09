@@ -2,13 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus, ConsentType } from "@prisma/client";
+import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { PatientAvatar } from "@/components/patient-avatar";
-import fs from "fs/promises";
-import path from "path";
 import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
 import { sendSms } from "@/lib/sms";
@@ -21,18 +19,12 @@ import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { QuoteAccordion } from "@/components/quote-accordion";
 import { sendEmailWithHtml } from "@/lib/email";
 import { stackServerApp } from "@/lib/stack-app";
+import { PageToastTrigger } from "@/components/page-toast-trigger";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
   REVOKED: "Revocato",
   EXPIRED: "Scaduto",
-};
-
-const consentTypeLabels: Record<ConsentType, string> = {
-  PRIVACY: "Privacy",
-  TREATMENT: "Trattamento",
-  MARKETING: "Marketing",
-  RECALL: "Richiami",
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -445,18 +437,17 @@ async function savePreventivo(_: { savedAt: number }, formData: FormData) {
   return { savedAt: Date.now() };
 }
 
-async function updateConsentStatus(formData: FormData) {
+async function revokeConsent(formData: FormData) {
   "use server";
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const consentId = (formData.get("consentId") as string) ?? "";
-  const status = formData.get("status") as ConsentStatus;
 
-  if (!consentId || !status || !Object.values(ConsentStatus).includes(status)) {
+  if (!consentId) {
     throw new Error("Dati consenso non validi");
   }
 
-  const existing = await prisma.consent.findUnique({
+  const existing = await prisma.patientConsent.findUnique({
     where: { id: consentId },
     select: { patientId: true },
   });
@@ -465,23 +456,23 @@ async function updateConsentStatus(formData: FormData) {
     throw new Error("Consenso non trovato");
   }
 
-  await prisma.consent.update({
+  await prisma.patientConsent.update({
     where: { id: consentId },
     data: {
-      status,
-      revokedAt: status === ConsentStatus.REVOKED ? new Date() : null,
+      status: ConsentStatus.REVOKED,
+      revokedAt: new Date(),
     },
   });
 
   await logAudit(user, {
-    action: "consent.updated",
+    action: "consent.revoked",
     entity: "Patient",
     entityId: existing.patientId,
-    metadata: { consentId, status },
+    metadata: { consentId },
   });
 
   revalidatePath(`/pazienti/${existing.patientId}`);
-  redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso aggiornato.")}`);
+  redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso revocato.")}`);
 }
 
 async function sendPatientSms(formData: FormData) {
@@ -716,24 +707,31 @@ export default async function PatientDetailPage({
     typeof resolvedSearchParams.openContact === "string" &&
     resolvedSearchParams.openContact === "1";
 
-  const doctors = await prisma.doctor.findMany({
-    orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true },
-  });
-
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
-    include: {
-      consents: true,
-      appointments: {
-        orderBy: { startsAt: "desc" },
-        take: 5,
-        include: {
-          doctor: { select: { fullName: true, specialty: true } },
+  const [doctors, patient, consentModules] = await Promise.all([
+    prisma.doctor.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true },
+    }),
+    prisma.patient.findUnique({
+      where: { id: patientId },
+      include: {
+        consents: {
+          include: { module: true },
+          orderBy: { givenAt: "desc" },
+        },
+        appointments: {
+          orderBy: { startsAt: "desc" },
+          take: 5,
+          include: {
+            doctor: { select: { fullName: true, specialty: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    prisma.consentModule.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+  ]);
   const conditionsList = await getAnamnesisConditions();
 
   if (!patient) {
@@ -850,10 +848,6 @@ export default async function PatientDetailPage({
         : undefined,
     };
   }
-  const privacyContent = await fs.readFile(
-    path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"),
-    "utf8"
-  );
   const pastAppointments = patient.appointments
     .filter((appt) => appt.startsAt < new Date())
     .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
@@ -864,20 +858,10 @@ export default async function PatientDetailPage({
     updatedByName: record.updatedBy?.name ?? record.updatedBy?.email ?? null,
     treated: record.treated ?? false,
   }));
-  const readContent = async (file: string, fallback: string) => {
-    try {
-      return await fs.readFile(path.join(process.cwd(), "AI", "CONTENT", file), "utf8");
-    } catch {
-      return fallback;
-    }
-  };
-  const basePrivacy = await readContent("Patient_Privacy.md", "Contenuto non disponibile.");
-  const consentContents: Record<ConsentType, string> = {
-    [ConsentType.PRIVACY]: basePrivacy,
-    [ConsentType.MARKETING]: await readContent("patient_marketing.md", basePrivacy),
-    [ConsentType.TREATMENT]: await readContent("treatment_privacy.md", basePrivacy),
-    [ConsentType.RECALL]: await readContent("patient_recall.md", basePrivacy),
-  };
+  const requiredModules = consentModules.filter((module) => module.active && module.required);
+  const missingRequired = requiredModules.filter(
+    (module) => !patient.consents.some((consent) => consent.moduleId === module.id),
+  );
   const [smsTemplates, smsLogs] = await Promise.all([
     prisma.smsTemplate.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.smsLog.findMany({
@@ -890,21 +874,13 @@ export default async function PatientDetailPage({
 
   return (
     <>
-      {smsSuccessMessage ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
-          {smsSuccessMessage}
-        </div>
-      ) : null}
-      {accessSuccessMessage ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
-          {accessSuccessMessage}
-        </div>
-      ) : null}
-      {consentSuccessMessage ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow-sm">
-          {consentSuccessMessage}
-        </div>
-      ) : null}
+      <PageToastTrigger
+        messages={[
+          { key: "smsSuccess", message: smsSuccessMessage ?? "", variant: "success" },
+          { key: "accessSuccess", message: accessSuccessMessage ?? "", variant: "success" },
+          { key: "consentSuccess", message: consentSuccessMessage ?? "", variant: "success" },
+        ]}
+      />
 
       {smsErrorMessage ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]">
@@ -1255,13 +1231,24 @@ export default async function PatientDetailPage({
             </summary>
             <div className="grid grid-cols-1 gap-4 px-6 pb-6 pt-4 lg:grid-cols-[1.1fr,0.9fr]">
                       <div className="space-y-3">
+                        {missingRequired.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                            {missingRequired.map((module) => (
+                              <span
+                                key={module.id}
+                                className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700"
+                              >
+                                {module.name} mancante
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                         {patient.consents.length === 0 ? (
                           <p className="text-sm text-zinc-600">Nessun consenso registrato.</p>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             {patient.consents.map((consent) => {
                               const signatureUrl = (consent as { signatureUrl?: string | null }).signatureUrl;
-                              const signaturePath = signatureUrl ?? `/uploads/signatures/consent-${consent.id}.png`;
                               return (
                                 <div
                                   key={consent.id}
@@ -1269,7 +1256,7 @@ export default async function PatientDetailPage({
                                 >
                                   <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase text-emerald-800">
                                     <span className="rounded-full bg-white px-2 py-1">
-                                      {consentTypeLabels[consent.type] ?? consent.type}
+                                      {consent.module?.name ?? "Modulo"}
                                     </span>
                                     <span className="rounded-full bg-emerald-700 px-3 py-1 text-white">
                                       {consentStatusLabels[consent.status] ?? consent.status}
@@ -1280,13 +1267,20 @@ export default async function PatientDetailPage({
                                         timeStyle: "short",
                                       })}
                                     </span>
-                                    <Link
-                                      href={signaturePath}
-                                      target="_blank"
-                                      className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
-                                    >
-                                      Vedi firma
-                                    </Link>
+                                    {signatureUrl ? (
+                                      <Link
+                                        href={`/pazienti/${patient.id}/consensi/${consent.id}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                                      >
+                                        Stampa
+                                      </Link>
+                                    ) : (
+                                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500">
+                                        Firma non disponibile
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-[11px] text-emerald-900">
                                     Canale: {consent.channel ?? "—"}
@@ -1302,65 +1296,21 @@ export default async function PatientDetailPage({
                             })}
                           </div>
                         )}
-                        <details className="rounded-lg border border-zinc-200 bg-white text-xs text-zinc-800 [&_summary::-webkit-details-marker]:hidden">
-                          <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2">
-                            <span className="text-[11px] font-semibold uppercase text-zinc-600">Aggiorna o revoca</span>
-                            <svg
-                              className="h-4 w-4 text-zinc-500 transition-transform duration-200 group-open:rotate-180"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="m6 9 6 6 6-6" />
-                            </svg>
-                          </summary>
-                          <div className="mt-2 grid gap-2 px-3 pb-3">
-                            {patient.consents.map((consent) => (
-                              <form
-                                key={consent.id}
-                                action={updateConsentStatus}
-                                className="grid grid-cols-1 gap-2 rounded-lg border border-zinc-100 bg-zinc-50 p-2 sm:grid-cols-[1fr,auto]"
-                              >
-                                <input type="hidden" name="consentId" value={consent.id} />
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold uppercase text-emerald-800">
-                                    {consentTypeLabels[consent.type] ?? consent.type}
-                                  </span>
-                                  <select
-                                    name="status"
-                                    defaultValue={consent.status}
-                                    className="h-8 rounded-full border border-zinc-200 bg-white px-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                                  >
-                                    {Object.values(ConsentStatus).map((status) => (
-                                      <option key={status} value={status}>
-                                        {consentStatusLabels[status] ?? status}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <span className="text-[11px] text-zinc-600">
-                                    Ultimo: {new Date(consent.revokedAt ?? consent.expiresAt ?? consent.givenAt).toLocaleString("it-IT")}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-end">
-                                  <FormSubmitButton className="inline-flex h-8 items-center justify-center rounded-full bg-emerald-700 px-3 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
-                                    Aggiorna stato
-                                  </FormSubmitButton>
-                                </div>
-                              </form>
-                            ))}
-                          </div>
-                        </details>
                       </div>
                       <ConsentForm
                         patientId={patient.id}
-                        typeLabels={consentTypeLabels}
-                        typeContents={consentContents as any}
-                        existingTypes={patient.consents.map((c) => c.type)}
+                        modules={consentModules}
                         doctors={doctors}
+                        consents={patient.consents.map((consent) => ({
+                          id: consent.id,
+                          moduleId: consent.moduleId,
+                          status: consent.status,
+                          channel: consent.channel,
+                          givenAt: consent.givenAt,
+                          signatureUrl: (consent as { signatureUrl?: string | null }).signatureUrl ?? null,
+                          module: consent.module ? { name: consent.module.name } : null,
+                        }))}
+                        revokeAction={revokeConsent}
                       />
                     </div>
           </details>

@@ -64,7 +64,7 @@
     "logout": "Esci"
   },
   "dashboard": {
-    "welcome": "Benvenuto in SORRIDI",
+    "welcome": "Benvenuto,",
     "upcoming": "Prossimi appuntamenti",
     "empty": "Nessun appuntamento imminente.",
     "stats": {

@@ -1,10 +1,8 @@
-import fs from "fs/promises";
-import path from "path";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { PatientConsentSection } from "@/components/patient-consent-modal";
+import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
@@ -13,12 +11,14 @@ import { getAnamnesisConditions } from "@/lib/anamnesis";
 export default async function NuovoPazientePage() {
   await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const [doctors, privacyContent, conditionsList] = await Promise.all([
+  const [doctors, consentModules, conditionsList] = await Promise.all([
     prisma.doctor.findMany({
       orderBy: { fullName: "asc" },
       select: { id: true, fullName: true },
     }),
-    fs.readFile(path.join(process.cwd(), "AI", "CONTENT", "Patient_Privacy.md"), "utf8"),
+    prisma.consentModule.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
     getAnamnesisConditions(),
   ]);
 
@@ -186,7 +186,7 @@ export default async function NuovoPazientePage() {
             </p>
           </div>
           <div className="mt-3 rounded-lg border border-emerald-200 bg-white">
-            <PatientConsentSection content={privacyContent} doctors={doctors} />
+            <ConsentModulePicker modules={consentModules} doctors={doctors} />
           </div>
         </section>
 

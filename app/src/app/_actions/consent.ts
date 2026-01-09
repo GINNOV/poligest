@@ -1,19 +1,18 @@
 "use server";
 
-import { ConsentStatus, ConsentType, Role } from "@prisma/client";
+import { ConsentStatus, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { del, put } from "@vercel/blob";
 
 export async function addConsentAction(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const patientId = (formData.get("patientId") as string) ?? "";
-  const type = formData.get("consentType") as ConsentType;
-  const channel = ((formData.get("consentChannel") as string) ?? "manual").trim() || "manual";
+  const moduleId = (formData.get("consentModuleId") as string) ?? "";
+  const channel = ((formData.get("consentChannel") as string) ?? "Di persona").trim() || "Di persona";
   const expiresAtStr = (formData.get("consentExpiresAt") as string) ?? "";
   const consentPlace = (formData.get("consentPlace") as string)?.trim();
   const consentDate = (formData.get("consentDate") as string)?.trim();
@@ -23,7 +22,7 @@ export async function addConsentAction(formData: FormData) {
 
   let signatureUrl: string | null = null;
   try {
-    if (!patientId || !type || !Object.values(ConsentType).includes(type)) {
+    if (!patientId || !moduleId) {
       throw new Error("Dati consenso non validi");
     }
 
@@ -35,38 +34,80 @@ export async function addConsentAction(formData: FormData) {
       throw new Error("Acquisisci la firma digitale del paziente.");
     }
 
+    const module = await prisma.consentModule.findFirst({
+      where: { id: moduleId, active: true },
+      select: { id: true, name: true },
+    });
+    if (!module) {
+      throw new Error("Modulo consenso non valido o disattivato.");
+    }
+
     const givenAt = new Date();
+    const signedOn = consentDate ? new Date(consentDate) : null;
+    if (signedOn && Number.isNaN(signedOn.getTime())) {
+      throw new Error("Data consenso non valida.");
+    }
     const expiresAt = expiresAtStr ? new Date(expiresAtStr) : null;
-    const signatureBuffer = Buffer.from(
-      consentSignatureData.replace(/^data:image\/png;base64,/, ""),
-      "base64"
-    );
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+      throw new Error("Data scadenza non valida.");
+    }
+    const signatureBase64 = consentSignatureData.startsWith("data:image/")
+      ? consentSignatureData.replace(/^data:image\/png;base64,/, "")
+      : consentSignatureData;
+    const signatureBuffer = Buffer.from(signatureBase64, "base64");
+    signatureUrl = consentSignatureData.startsWith("data:image/")
+      ? consentSignatureData
+      : `data:image/png;base64,${signatureBase64}`;
 
-    const signatureName = `signatures/consent-${patientId}-${Date.now()}.png`;
-    const signatureBlob = await put(signatureName, signatureBuffer, {
-      access: "public",
-      addRandomSuffix: false,
+    const existing = await prisma.patientConsent.findUnique({
+      where: { patientId_moduleId: { patientId, moduleId: module.id } },
     });
-    signatureUrl = signatureBlob.url;
 
-    const consent = await prisma.consent.create({
-      data: {
-        patientId,
-        type,
-        status: ConsentStatus.GRANTED,
-        channel,
-        givenAt,
-        expiresAt,
-        signatureUrl,
-      } as any,
-    });
+    if (existing && existing.status !== ConsentStatus.REVOKED) {
+      throw new Error("Esiste già un consenso attivo per questo modulo.");
+    }
+
+    if (existing) {
+      await prisma.patientConsent.update({
+        where: { id: existing.id },
+        data: {
+          status: ConsentStatus.GRANTED,
+          channel,
+          givenAt,
+          signedOn,
+          expiresAt,
+          signatureUrl,
+          place: consentPlace || null,
+          patientName: patientSignature || null,
+          doctorName: doctorSignature || null,
+          revokedAt: null,
+        },
+      });
+    } else {
+      await prisma.patientConsent.create({
+        data: {
+          patientId,
+          moduleId: module.id,
+          status: ConsentStatus.GRANTED,
+          channel,
+          givenAt,
+          signedOn,
+          expiresAt,
+          signatureUrl,
+          place: consentPlace || null,
+          patientName: patientSignature || null,
+          doctorName: doctorSignature || null,
+        } as any,
+      });
+    }
 
     await logAudit(user, {
       action: "consent.added",
       entity: "Patient",
       entityId: patientId,
       metadata: {
-        type,
+        moduleId: module.id,
+        moduleName: module.name,
         status: ConsentStatus.GRANTED,
         channel,
         consentPlace,
@@ -80,15 +121,12 @@ export async function addConsentAction(formData: FormData) {
     revalidatePath(`/pazienti/${patientId}`);
     redirect(`/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`);
   } catch (err: any) {
-    if (signatureUrl) {
-      await del(signatureUrl).catch(() => null);
-    }
     if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
       throw err;
     }
     const isUnique = err?.code === "P2002";
     const message = isUnique
-      ? "Esiste già un consenso di questo tipo per questo paziente."
+      ? "Esiste già un consenso per questo modulo per questo paziente."
       : err?.message ?? "Impossibile aggiungere il consenso.";
     redirect(`/pazienti/${patientId || ""}?consentError=${encodeURIComponent(message)}`);
   }

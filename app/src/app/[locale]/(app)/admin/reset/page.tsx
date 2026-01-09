@@ -33,10 +33,11 @@ async function resetSystem(formData: FormData) {
     prisma.dentalRecord.deleteMany(),
     prisma.appointment.deleteMany(),
     prisma.clinicalNote.deleteMany(),
-    prisma.consent.deleteMany(),
+    prisma.patientConsent.deleteMany(),
     prisma.recall.deleteMany(),
     prisma.recallRule.deleteMany(),
     prisma.patient.deleteMany(),
+    prisma.consentModule.deleteMany(),
     prisma.doctor.deleteMany(),
     prisma.product.deleteMany(),
     prisma.supplier.deleteMany(),
@@ -109,10 +110,17 @@ async function resetSystem(formData: FormData) {
         }
       }
 
-      if (selected.includes("consents")) {
-        const entries = tableData("consents") as Prisma.ConsentCreateManyInput[];
+      if (selected.includes("consentModules")) {
+        const entries = tableData("consentModules") as Prisma.ConsentModuleCreateManyInput[];
         if (entries.length) {
-          await tx.consent.createMany({ data: entries });
+          await tx.consentModule.createMany({ data: entries });
+        }
+      }
+
+      if (selected.includes("patientConsents")) {
+        const entries = tableData("patientConsents") as Prisma.PatientConsentCreateManyInput[];
+        if (entries.length) {
+          await tx.patientConsent.createMany({ data: entries });
         }
       }
 
@@ -215,7 +223,8 @@ const exportTables = [
   { key: "users", label: "Utenti" },
   { key: "doctors", label: "Medici" },
   { key: "patients", label: "Pazienti" },
-  { key: "consents", label: "Consensi" },
+  { key: "consentModules", label: "Moduli consenso" },
+  { key: "patientConsents", label: "Consensi pazienti" },
   { key: "appointments", label: "Appuntamenti" },
   { key: "clinicalNotes", label: "Note cliniche" },
   { key: "smsTemplates", label: "Template SMS" },
@@ -280,10 +289,11 @@ async function importData(formData: FormData) {
     await tx.dentalRecord.deleteMany();
     await tx.appointment.deleteMany();
     await tx.clinicalNote.deleteMany();
-    await tx.consent.deleteMany();
+    await tx.patientConsent.deleteMany();
     await tx.recall.deleteMany();
     await tx.recallRule.deleteMany();
     await tx.patient.deleteMany();
+    await tx.consentModule.deleteMany();
     await tx.doctor.deleteMany();
     await tx.product.deleteMany();
     await tx.supplier.deleteMany();
@@ -338,10 +348,17 @@ async function importData(formData: FormData) {
       }
     }
 
-    if (selected.includes("consents")) {
-      const entries = tableData("consents") as Prisma.ConsentCreateManyInput[];
+    if (selected.includes("consentModules")) {
+      const entries = tableData("consentModules") as Prisma.ConsentModuleCreateManyInput[];
       if (entries.length) {
-        await tx.consent.createMany({ data: entries });
+        await tx.consentModule.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("patientConsents")) {
+      const entries = tableData("patientConsents") as Prisma.PatientConsentCreateManyInput[];
+      if (entries.length) {
+        await tx.patientConsent.createMany({ data: entries });
       }
     }
 

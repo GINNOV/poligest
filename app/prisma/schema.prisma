@@ -29,13 +29,6 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
-enum ConsentType {
-  PRIVACY
-  MARKETING
-  TREATMENT
-  RECALL
-}
-
 enum ConsentStatus {
   GRANTED
   REVOKED
@@ -308,7 +301,7 @@ model Patient {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  consents       Consent[]
+  consents       PatientConsent[]
   appointments   Appointment[]
   appointmentReminders AppointmentReminder[]
   clinicalNotes  ClinicalNote[]
@@ -321,21 +314,41 @@ model Patient {
   quotes         Quote[]
 }
 
-model Consent {
+model ConsentModule {
+  id        String   @id @default(cuid())
+  name      String
+  content   String
+  active    Boolean  @default(true)
+  required  Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consents PatientConsent[]
+
+  @@unique([name])
+}
+
+model PatientConsent {
   id        String        @id @default(cuid())
-  type      ConsentType
+  moduleId  String
   status    ConsentStatus @default(GRANTED)
   channel   String? // e.g. email/sms/firmato
   signatureUrl String?
   givenAt   DateTime      @default(now())
+  signedOn  DateTime?
   expiresAt DateTime?
   revokedAt DateTime?
+  place     String?
+  patientName String?
+  doctorName  String?
   patientId String
 
   patient Patient @relation(fields: [patientId], references: [id])
+  module  ConsentModule @relation(fields: [moduleId], references: [id])
 
-  @@unique([patientId, type], name: "patientId_type")
-  @@index([patientId, type])
+  @@unique([patientId, moduleId], name: "patientId_moduleId")
+  @@index([patientId, moduleId])
 }
 
 model Appointment {

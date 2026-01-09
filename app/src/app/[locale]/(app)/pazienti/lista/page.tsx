@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { Prisma, Role, ConsentType, ConsentStatus } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 
 const PAGE_SIZE = 20;
-
-const consentLabels: Partial<Record<ConsentType, string>> = {
-  [ConsentType.PRIVACY]: "Privacy",
-  [ConsentType.TREATMENT]: "Trattamento",
-};
 
 export default async function PazientiListaPage({
   searchParams,
@@ -50,7 +45,7 @@ export default async function PazientiListaPage({
         }
       : {};
 
-  const [patients, staffUsers] = await Promise.all([
+  const [patients, staffUsers, consentModules] = await Promise.all([
     prisma.patient.findMany({
       select: {
         id: true,
@@ -61,8 +56,9 @@ export default async function PazientiListaPage({
         photoUrl: true,
         consents: {
           select: {
-            type: true,
+            moduleId: true,
             status: true,
+            module: { select: { name: true } },
           },
         },
         createdAt: true,
@@ -74,6 +70,10 @@ export default async function PazientiListaPage({
       where: {
         role: { not: Role.PATIENT },
       },
+    }),
+    prisma.consentModule.findMany({
+      where: { active: true, required: true },
+      select: { id: true, name: true },
     }),
   ]);
 
@@ -115,6 +115,7 @@ export default async function PazientiListaPage({
             : (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0),
         );
 
+  const requiredModules = consentModules;
   const paginatedPatients = sortedPatients.slice(skip, skip + PAGE_SIZE);
 
   if (process.env.NODE_ENV !== "production") {
@@ -150,12 +151,6 @@ export default async function PazientiListaPage({
             Cerca, filtra e apri le schede paziente esistenti.
           </p>
         </div>
-        <Link
-          href="/pazienti"
-          className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
-        >
-          Torna alle sezioni
-        </Link>
       </div>
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
@@ -202,6 +197,25 @@ export default async function PazientiListaPage({
             </a>
           </div>
         </form>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
+          <span className="font-semibold text-zinc-700">Legenda:</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-rose-600">▲</span>
+            Consensi obbligatori mancanti
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-amber-500">⚠️</span>
+            Dati di contatto mancanti
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-zinc-500">📧</span>
+            Email mancante
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-zinc-500">☎️</span>
+            Telefono mancante
+          </span>
+        </div>
         <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
           {paginatedPatients.length === 0 ? (
             <p className="px-4 py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
@@ -210,14 +224,13 @@ export default async function PazientiListaPage({
               const missingEmail = !patient.email;
               const missingPhone = !patient.phone;
               const missingCount = Number(missingEmail) + Number(missingPhone);
-              const hasPrivacy =
-                patient.consents?.some(
-                  (c) => c.type === ConsentType.PRIVACY && c.status === ConsentStatus.GRANTED,
-                ) ?? false;
+              const hasMissingRequired = requiredModules.some(
+                (module) => !patient.consents?.some((c) => c.moduleId === module.id),
+              );
               let badge: React.ReactNode = null;
-              if (!hasPrivacy) {
+              if (hasMissingRequired) {
                 badge = (
-                  <span title="Consenso privacy mancante" className="text-rose-600">
+                  <span title="Consensi obbligatori mancanti" className="text-rose-600">
                     ▲
                   </span>
                 );
@@ -261,10 +274,10 @@ export default async function PazientiListaPage({
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                     {patient.consents.map((consent) => (
                       <span
-                        key={consent.type}
+                        key={consent.moduleId}
                         className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
                       >
-                        {consentLabels[consent.type] ?? consent.type}
+                        {consent.module?.name ?? "Modulo"}
                       </span>
                     ))}
                     <Link

@@ -9,6 +9,18 @@ type Props = {
   content: string;
   fiscalCode?: string;
   doctors?: { id: string; fullName: string }[];
+  buttonLabel?: string;
+  moduleLabel?: string;
+  hideIntro?: boolean;
+  disabled?: boolean;
+  submitDisabled?: boolean;
+  onSignatureChange?: (value: string) => void;
+  onFieldChange?: (fields: {
+    place?: string;
+    date?: string;
+    patientName?: string;
+    doctorName?: string;
+  }) => void;
 };
 
 type Page = string[];
@@ -26,7 +38,8 @@ const renderInline = (text: string) =>
   });
 
 const renderMarkdown = (markdown: string) => {
-  const lines = markdown.split(/\r?\n/);
+  const cleaned = markdown.replace(/\\([#*`>\\-])/g, "$1");
+  const lines = cleaned.split(/\r?\n/);
   const nodes: React.ReactNode[] = [];
   let list: React.ReactNode[] = [];
 
@@ -117,7 +130,18 @@ const chunkContent = (text: string): Page[] => {
   return pages.length > 0 ? pages : [text.split("\n")];
 };
 
-export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doctors = [] }: Props) {
+export function PatientConsentSection({
+  content,
+  fiscalCode: fiscalCodeProp,
+  doctors = [],
+  buttonLabel = "Apri informativa e firma",
+  moduleLabel,
+  hideIntro,
+  disabled,
+  submitDisabled,
+  onSignatureChange,
+  onFieldChange,
+}: Props) {
   const [patientName, setPatientName] = useState("Paziente");
   const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
   const normalizedContent = useMemo(
@@ -158,6 +182,28 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     lastPoint.current = null;
   };
 
+  const drawSignatureToCanvas = (dataUrl: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    if (!width || !height) return;
+    const img = new Image();
+    img.onload = () => {
+      clearCanvas(canvasRef);
+      const scale = Math.min(width / img.width, height / img.height);
+      const drawWidth = img.width * scale;
+      const drawHeight = img.height * scale;
+      const x = (width - drawWidth) / 2;
+      const y = (height - drawHeight) / 2;
+      ctx.drawImage(img, x, y, drawWidth, drawHeight);
+      setHasStroke(true);
+    };
+    img.src = dataUrl;
+  };
+
   const resizeCanvas = () => {
     [canvasRef, inlineCanvasRef].forEach((ref) => {
       const canvas = ref.current;
@@ -190,6 +236,24 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
       setTimeout(resizeCanvas, 50);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !signatureData) return;
+    let cancelled = false;
+    const attemptDraw = () => {
+      if (cancelled) return;
+      const canvas = canvasRef.current;
+      if (!canvas || canvas.offsetWidth === 0 || canvas.offsetHeight === 0) {
+        requestAnimationFrame(attemptDraw);
+        return;
+      }
+      drawSignatureToCanvas(signatureData);
+    };
+    setTimeout(attemptDraw, 60);
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, signatureData]);
 
   useEffect(() => {
     if (fiscalCodeProp) {
@@ -279,6 +343,11 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
     lastPoint.current = null;
   };
 
+  const updateSignature = (value: string) => {
+    setSignatureData(value);
+    onSignatureChange?.(value);
+  };
+
   const saveSignature = (ref: React.RefObject<HTMLCanvasElement | null> = canvasRef) => {
     const canvas = ref.current;
     if (!canvas || !hasStroke) {
@@ -286,7 +355,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
       return;
     }
     const dataUrl = canvas.toDataURL("image/png");
-    setSignatureData(dataUrl);
+    updateSignature(dataUrl);
     setSignatureError(null);
     setIsOpen(false);
   };
@@ -351,7 +420,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
       const dialog = new sigSDK.StuCaptDialog(stuDevice, config);
       dialog.addEventListener(sigSDK.EventType.OK, async () => {
         const image = await renderWacomSignature(sigSDK, sigObj);
-        setSignatureData(image);
+        updateSignature(image);
         setHasStroke(true);
         setIsOpen(false);
         dialog.delete?.();
@@ -362,7 +431,8 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
         stuDevice.delete?.();
       });
 
-      await dialog.open(sigObj, patientName, "Consenso informato", null, sigSDK.KeyType.SHA512, null);
+      const wacomTitle = moduleLabel ? `Consenso ${moduleLabel}` : "Consenso informato";
+      await dialog.open(sigObj, patientName, wacomTitle, null, sigSDK.KeyType.SHA512, null);
     } catch (error) {
       setSignatureError(error instanceof Error ? error.message : "Errore acquisizione firma Wacom.");
     } finally {
@@ -397,27 +467,35 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
   }, [isOpen]);
 
   return (
-    <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-zinc-900">Consenso Informato</p>
-        <p className="text-xs text-zinc-500 leading-relaxed">
-          Leggi l&apos;informativa privacy completa e raccogli la firma digitale del paziente.
-          La firma è obbligatoria per completare la registrazione.
-        </p>
-      </div>
+    <section
+      className={`space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 ${
+        disabled ? "opacity-70" : ""
+      }`}
+    >
+      {!hideIntro ? (
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-zinc-900">Consenso Informato</p>
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            Leggi l&apos;informativa completa e raccogli la firma digitale del paziente.
+            La firma è obbligatoria per completare la registrazione.
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           type="button"
+          disabled={disabled}
           onClick={() => {
+            if (disabled) return;
             setIsOpen(true);
             setPageIndex(0);
             setHasReachedEnd(Boolean(signatureData) || totalPages <= 1);
             setSignatureError(null);
           }}
-          className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+          className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Apri informativa privacy e firma
+          {buttonLabel}
         </button>
         <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
           <span
@@ -442,10 +520,27 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
             />
             <button
               type="button"
-              onClick={() => setIsOpen(true)}
-              className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+              onClick={() => {
+                if (disabled) return;
+                setIsOpen(true);
+              }}
+              disabled={disabled}
+              className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
               Rivedi informativa / Rifirma
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (disabled) return;
+                updateSignature("");
+                setHasStroke(false);
+                clearCanvas(canvasRef);
+              }}
+              disabled={disabled}
+              className="inline-flex items-center justify-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Rimuovi firma
             </button>
           </div>
         </div>
@@ -456,7 +551,10 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           Luogo
           <input
             name="consentPlace"
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            disabled={disabled}
+            required={!disabled}
+            onChange={(event) => onFieldChange?.({ place: event.target.value })}
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="Luogo"
           />
         </label>
@@ -465,7 +563,10 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           <input
             type="date"
             name="consentDate"
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            disabled={disabled}
+            required={!disabled}
+            onChange={(event) => onFieldChange?.({ date: event.target.value })}
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="dd/mm/yyyy"
           />
         </label>
@@ -475,8 +576,10 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           In stampatello, paziente o esercente podestà
           <input
             name="patientSignature"
-            required
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            required={!disabled}
+            disabled={disabled}
+            onChange={(event) => onFieldChange?.({ patientName: event.target.value })}
+            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="Inserire nome"
           />
         </label>
@@ -484,9 +587,11 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           Medico assegnato
           <select
             name="doctorSignature"
-            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             defaultValue=""
-            required
+            required={!disabled}
+            disabled={disabled}
+            onChange={(event) => onFieldChange?.({ doctorName: event.target.value })}
           >
             <option value="" disabled>
               Seleziona medico
@@ -500,57 +605,6 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
         </label>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-emerald-100 bg-white p-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
-            <p className="text-xs text-emerald-700">
-              Firma qui sotto; usa Cancella per ricominciare. Puoi anche aprire l&apos;informativa sopra.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={captureWithWacom}
-              disabled={wacomLoading}
-              className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {wacomLoading ? "Collego Wacom..." : "Firma con Wacom"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearCanvas(inlineCanvasRef);
-                setHasStroke(false);
-                setSignatureData("");
-              }}
-              className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
-            >
-              Cancella
-            </button>
-            <button
-              type="button"
-              onClick={() => saveSignature(inlineCanvasRef)}
-              disabled={!hasStroke}
-              className="rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Salva firma
-            </button>
-          </div>
-        </div>
-        <div className="overflow-hidden rounded-lg border border-emerald-200 bg-emerald-50">
-          <canvas
-            ref={inlineCanvasRef}
-            className="h-40 w-full touch-none bg-white"
-            onPointerDown={(e) => handlePointerDown(e, inlineCanvasRef)}
-            onPointerMove={(e) => handlePointerMove(e, inlineCanvasRef)}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-          />
-        </div>
-        {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
-      </div>
-
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
         <Link
           href="/pazienti"
@@ -559,7 +613,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
           Annulla
         </Link>
         <FormSubmitButton
-          disabled={!signatureData}
+          disabled={!signatureData || disabled || submitDisabled}
           className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
           Salva Modulo
@@ -572,7 +626,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  Informativa privacy
+                  Informativa {moduleLabel || "consenso"}
                 </p>
                 <h2 className="text-xl font-semibold text-zinc-900">Lettura e firma digitale</h2>
                 <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
@@ -626,7 +680,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
                   <button
                     type="button"
                     onClick={captureWithWacom}
-                    disabled={wacomLoading}
+                    disabled={wacomLoading || disabled}
                     className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {wacomLoading ? "Collego Wacom..." : "Firma con Wacom"}
@@ -636,7 +690,7 @@ export function PatientConsentSection({ content, fiscalCode: fiscalCodeProp, doc
                     onClick={() => {
                       clearCanvas(canvasRef);
                       setHasStroke(false);
-                      setSignatureData("");
+                      updateSignature("");
                     }}
                     className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
                   >

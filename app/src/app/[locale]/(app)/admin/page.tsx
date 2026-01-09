@@ -28,6 +28,7 @@ export default async function AdminPage() {
     | { count?: () => Promise<number> }
     | undefined;
   const featureUpdateClient = prismaModels["featureUpdate"] as { count?: () => Promise<number> } | undefined;
+  const consentModuleClient = prismaModels["consentModule"] as { count?: () => Promise<number> } | undefined;
 
   const [
     usersCount,
@@ -37,6 +38,7 @@ export default async function AdminPage() {
     anamnesisCount,
     closuresCount,
     updatesCount,
+    consentModulesCount,
     errorCount,
   ] = await Promise.all([
     prisma.user.count(),
@@ -46,6 +48,7 @@ export default async function AdminPage() {
     anamnesisClient?.count ? anamnesisClient.count() : Promise.resolve(0),
     closureClient?.count ? closureClient.count() : Promise.resolve(0),
     featureUpdateClient?.count ? featureUpdateClient.count() : Promise.resolve(0),
+    consentModuleClient?.count ? consentModuleClient.count() : Promise.resolve(0),
     prisma.auditLog.count({ where: { action: "error.reported" } }),
   ]);
 
@@ -76,6 +79,15 @@ export default async function AdminPage() {
       badge: updatesCount ? `${updatesCount} versioni` : "Annunci",
       tone: "neutral",
       icon: "✨",
+    },
+    {
+      key: "consent-modules",
+      title: "Moduli consenso",
+      description: "Carica testi, attiva moduli e definisci quelli obbligatori.",
+      href: "/admin/consensi",
+      badge: consentModulesCount ? `${consentModulesCount} moduli` : "Nessun modulo",
+      tone: "primary",
+      icon: "📄",
     },
     {
       key: "users",

@@ -506,7 +506,6 @@ export default async function DashboardPage({
         </div>
         <p className="mt-2 text-sm text-zinc-600">
           Clicca su un giorno per mostrare, nella lista sottostante, solo gli appuntamenti di quella data.
-          Clicca il pulsante SETTIMANA per visualizzare tutti gli appuntamenti della settimana.
         </p>
         <div className="mt-4 grid grid-cols-7 items-end gap-2 sm:gap-3">
           {perDay.map((day) => (
@@ -570,6 +569,9 @@ export default async function DashboardPage({
             {listAppointments.length} appuntamenti
           </span>
         </div>
+        <p className="mt-2 text-sm text-zinc-600">
+          Clicca il pulsante SETTIMANA per visualizzare tutti gli appuntamenti della settimana.
+        </p>
         <div className="mt-4 divide-y divide-zinc-100">
             {listAppointments.length === 0 ? (
               <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
