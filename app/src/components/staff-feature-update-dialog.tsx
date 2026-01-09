@@ -59,7 +59,7 @@ const renderMarkdown = (markdown: string) => {
       nodes.push(
         <figure key={`img-${idx}`} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} className="h-auto w-full" />
+          <img src={src} alt={alt} className="mx-auto h-auto w-2/5 max-w-sm" />
           {alt ? (
             <figcaption className="border-t border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
               {alt}

@@ -755,6 +755,21 @@ export default async function PatientDetailPage({
       })
     : null;
   const patientPin = patientUser?.personalPin ?? "—";
+  const patientPhone = normalizeItalianPhone(patient.phone);
+  const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
+  const upcomingAppointment =
+    patient.appointments.find((appt) => appt.startsAt > new Date()) ?? patient.appointments[0];
+  const appointmentDate = upcomingAppointment
+    ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(upcomingAppointment.startsAt)
+    : "da definire";
+  const appointmentTime = upcomingAppointment
+    ? new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(upcomingAppointment.startsAt)
+    : "da definire";
+  const appointmentDoctor = upcomingAppointment?.doctor?.fullName ?? "da definire";
+  const whatsappMessage = `Ciao ${patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+  const whatsappHref = whatsappPhone
+    ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
+    : null;
 
   const notesLines = (patient.notes ?? "").split("\n").map((line) => line.trim());
   const anamnesisLine = notesLines.find((line) => line.startsWith("Anamnesi:"));
@@ -1414,6 +1429,28 @@ export default async function PatientDetailPage({
                     Invia email accesso
                   </FormSubmitButton>
                 </form>
+
+                <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-zinc-900">Promemoria WhatsApp</p>
+                    <p className="text-xs text-zinc-600">
+                      Invia un promemoria al numero:{" "}
+                      <span className="font-semibold">{patientPhone ?? "—"}</span>
+                    </p>
+                  </div>
+                  {whatsappHref ? (
+                    <a
+                      href={whatsappHref}
+                      className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                    >
+                      Invia promemoria
+                    </a>
+                  ) : (
+                    <span className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700/60 px-4 text-sm font-semibold text-white opacity-70">
+                      Invia promemoria
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-xl border border-zinc-200 bg-white p-4">

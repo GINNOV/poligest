@@ -125,7 +125,10 @@ export default async function MagazzinoPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
-                        {p.udiDi || p.sku || "—"}
+                        <div className="flex flex-col gap-0.5">
+                          <span>UDI-DI {p.udiDi ?? "—"}</span>
+                          <span className="text-[11px] text-zinc-400">SKU {p.sku ?? "—"}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         {p.supplier?.name ?? "—"}
