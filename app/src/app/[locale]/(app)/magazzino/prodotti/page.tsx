@@ -37,54 +37,67 @@ export default async function ProdottiPage() {
           Gestione prodotti
         </h2>
         <form action={createProduct} className="mt-3 space-y-3 text-sm">
-          <input
-            name="name"
-            placeholder="Nome prodotto"
-            required
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-          <input
-            name="sku"
-            placeholder="SKU"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-          <input
-            name="udiDi"
-            placeholder="UDI-DI"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-          <input
-            name="serviceType"
-            placeholder="Tipo servizio (es. Igiene)"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          />
-          <input
-            name="unitCost"
-            placeholder="Costo unitario (€)"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            type="number"
-            step="0.01"
-            min="0"
-          />
-          <input
-            name="minThreshold"
-            placeholder="Soglia minima"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            type="number"
-            min="0"
-            defaultValue={0}
-          />
-          <select
-            name="supplierId"
-            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-          >
-            <option value="">Senza fornitore</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+            <input
+              name="name"
+              placeholder="Nome prodotto"
+              required
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+            <input
+              name="sku"
+              placeholder="SKU"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo servizio</span>
+            <input
+              name="serviceType"
+              placeholder="Tipo servizio (es. Igiene)"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Costo unitario</span>
+            <input
+              name="unitCost"
+              placeholder="Costo unitario (€)"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              type="number"
+              step="0.01"
+              min="0"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia minima</span>
+            <input
+              name="minThreshold"
+              placeholder="Soglia minima"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              type="number"
+              min="0"
+              defaultValue={0}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+            <select
+              name="supplierId"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="">Senza fornitore</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
@@ -122,14 +135,6 @@ export default async function ProdottiPage() {
                 <input
                   name="sku"
                   defaultValue={product.sku ?? ""}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">UDI-DI</span>
-                <input
-                  name="udiDi"
-                  defaultValue={product.udiDi ?? ""}
                   className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 />
               </label>
