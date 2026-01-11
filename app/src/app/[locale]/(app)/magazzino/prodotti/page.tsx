@@ -108,7 +108,7 @@ export default async function ProdottiPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Prodotti</h2>
+        <h2 className="text-sm font-semibold text-zinc-900">Lista prodotti</h2>
         {products.length === 0 ? (
           <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
             Nessun prodotto presente.
@@ -118,7 +118,7 @@ export default async function ProdottiPage() {
             <form
               key={product.id}
               action={updateProduct}
-              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,1.5fr,1.5fr,1fr,1fr,auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,3fr,auto] sm:items-end"
             >
               <input type="hidden" name="productId" value={product.id} />
               <label className="flex flex-col gap-1">
@@ -130,38 +130,40 @@ export default async function ProdottiPage() {
                   required
                 />
               </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
-                <input
-                  name="sku"
-                  defaultValue={product.sku ?? ""}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia</span>
-                <input
-                  type="number"
-                  name="minThreshold"
-                  defaultValue={product.minThreshold ?? 0}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
-                <select
-                  name="supplierId"
-                  defaultValue={product.supplierId ?? ""}
-                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                >
-                  <option value="">—</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+                  <input
+                    name="sku"
+                    defaultValue={product.sku ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia</span>
+                  <input
+                    type="number"
+                    name="minThreshold"
+                    defaultValue={product.minThreshold ?? 0}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                  <select
+                    name="supplierId"
+                    defaultValue={product.supplierId ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="">—</option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="flex items-center gap-2 pb-1 sm:pb-0">
                 <button
                   type="submit"
