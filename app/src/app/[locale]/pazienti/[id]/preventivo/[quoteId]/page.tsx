@@ -4,8 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Preventivo",
+};
 
 export default async function QuotePrintPage({
   params,
@@ -118,7 +123,9 @@ export default async function QuotePrintPage({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-zinc-200">
+        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
           <table className="min-w-full divide-y divide-zinc-100 text-sm">
             <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
               <tr>

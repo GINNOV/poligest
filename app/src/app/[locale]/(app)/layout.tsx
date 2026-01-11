@@ -12,6 +12,7 @@ import { getAppVersion, getDeployDate } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -43,6 +44,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
   const version = getAppVersion();
   const deployedAt = getDeployDate();
+  const navLinks = [
+    { href: "/dashboard", label: "Cruscotto" },
+    ...(isStaff ? [{ href: "/agenda", label: t("agenda") }] : []),
+    ...(isStaff ? [{ href: "/pazienti", label: t("patients") }] : []),
+    ...(isStaff ? [{ href: "/richiami", label: t("recalls") }] : []),
+    ...(isManagerOrAdmin ? [{ href: "/magazzino", label: t("inventory") }] : []),
+    ...(isManagerOrAdmin ? [{ href: "/finanza", label: t("finance") }] : []),
+    ...(user ? [{ href: "/profilo", label: "Profilo" }] : []),
+    ...(isAdmin ? [{ href: "/admin", label: t("admin") }] : []),
+  ];
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const featureUpdateClient = prismaModels["featureUpdate"] as
@@ -72,11 +83,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-zinc-50">
       <header className="relative z-40 border-b border-zinc-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 lg:gap-8">
             <Link href="/dashboard" className="text-lg font-semibold text-emerald-800">
               {t("brand")}
             </Link>
-            <nav className="flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700">
+            <nav className="hidden items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700 lg:flex">
               <NavLink href="/dashboard" label="Cruscotto" />
               {isStaff ? (
                 <>
@@ -93,17 +104,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               ) : null}
             </nav>
           </div>
-          {user ? (
-            <UserMenu
-              name={user.name ?? user.email}
-              email={user.email}
-              avatarUrl={user.avatarUrl ?? null}
-              roleLabel={user.role ? roleLabels[user.role] : ""}
-              adminHref={isAdmin ? "/admin" : undefined}
-              adminLabel={isAdmin ? t("admin") : undefined}
-              signOutUrl={signOutUrl}
-            />
-          ) : null}
+          <div className="flex items-center gap-3">
+            <MobileNav links={navLinks} />
+            {user ? (
+              <UserMenu
+                name={user.name ?? user.email}
+                email={user.email}
+                avatarUrl={user.avatarUrl ?? null}
+                roleLabel={user.role ? roleLabels[user.role] : ""}
+                adminHref={isAdmin ? "/admin" : undefined}
+                adminLabel={isAdmin ? t("admin") : undefined}
+                signOutUrl={signOutUrl}
+              />
+            ) : null}
+          </div>
         </div>
       </header>
 
