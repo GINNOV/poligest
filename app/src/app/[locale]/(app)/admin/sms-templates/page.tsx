@@ -74,7 +74,7 @@ export default async function SmsTemplatesPage() {
                     <p className="text-sm font-semibold text-zinc-900">{tpl.name}</p>
                     <p className="whitespace-pre-wrap text-sm text-zinc-700">{tpl.body}</p>
                   </div>
-                  <form action={deleteTemplate}>
+                  <form action={deleteTemplate} data-confirm="Eliminare definitivamente questo template SMS?">
                     <input type="hidden" name="id" value={tpl.id} />
                     <FormSubmitButton className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50">
                       Elimina

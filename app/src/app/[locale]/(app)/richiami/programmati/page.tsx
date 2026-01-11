@@ -157,7 +157,10 @@ export default async function RichiamiProgrammatiPage({
                       {statusLabel}
                     </span>
                     {recall.status === RecallStatus.PENDING ? (
-                      <form action={deleteScheduledRecall}>
+                      <form
+                        action={deleteScheduledRecall}
+                        data-confirm="Rimuovere questo richiamo programmato?"
+                      >
                         <input type="hidden" name="recallId" value={recall.id} />
                         <button
                           type="submit"

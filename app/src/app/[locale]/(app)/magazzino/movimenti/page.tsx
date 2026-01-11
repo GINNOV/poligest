@@ -142,6 +142,7 @@ export default async function MovimentiPage() {
                 <button
                   type="submit"
                   formAction={deleteStockMovement}
+                  data-confirm="Eliminare definitivamente questo movimento di magazzino?"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
                 >
                   <span className="sr-only">Elimina</span>

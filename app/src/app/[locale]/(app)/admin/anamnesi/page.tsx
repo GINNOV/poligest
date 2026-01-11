@@ -177,7 +177,11 @@ export default async function AnamnesisSettingsPage() {
                       {t("anamnesisSave")}
                     </button>
                   </form>
-                  <form action={deleteAnamnesisCondition} className="flex justify-start sm:justify-end">
+                  <form
+                    action={deleteAnamnesisCondition}
+                    className="flex justify-start sm:justify-end"
+                    data-confirm="Eliminare definitivamente questa condizione?"
+                  >
                     <input type="hidden" name="conditionId" value={condition.id} />
                     <button
                       type="submit"

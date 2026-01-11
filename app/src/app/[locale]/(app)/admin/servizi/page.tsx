@@ -226,7 +226,11 @@ export default async function ServicesPage() {
                       </button>
                     </div>
                   </form>
-                  <form action={deleteService} className="flex justify-start sm:justify-end">
+                  <form
+                    action={deleteService}
+                    className="flex justify-start sm:justify-end"
+                    data-confirm="Eliminare definitivamente questo servizio?"
+                  >
                     <input type="hidden" name="serviceId" value={service.id} />
                     <button
                       type="submit"

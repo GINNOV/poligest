@@ -641,7 +641,11 @@ export default async function AdminCalendarSettingsPage({
                           </button>
                         </div>
                       </form>
-                      <form action={deletePracticeClosure} className="flex justify-start lg:justify-end">
+                      <form
+                        action={deletePracticeClosure}
+                        className="flex justify-start lg:justify-end"
+                        data-confirm="Eliminare definitivamente questa chiusura?"
+                      >
                         <input type="hidden" name="closureId" value={closure.id} />
                         <button
                           type="submit"

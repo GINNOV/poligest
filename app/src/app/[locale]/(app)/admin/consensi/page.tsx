@@ -219,7 +219,11 @@ export default async function AdminConsentModulesPage() {
                     </button>
                   </div>
                 </form>
-                <form action={deleteConsentModule} className="mt-3">
+                <form
+                  action={deleteConsentModule}
+                  className="mt-3"
+                  data-confirm="Eliminare definitivamente questo modulo di consenso?"
+                >
                   <input type="hidden" name="moduleId" value={module.id} />
                   <button
                     type="submit"

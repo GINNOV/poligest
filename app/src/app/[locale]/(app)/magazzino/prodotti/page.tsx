@@ -89,7 +89,7 @@ export default async function ProdottiPage() {
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
           >
-            Salva prodotto
+            Aggiungi prodotto
           </button>
         </form>
       </div>
@@ -162,11 +162,12 @@ export default async function ProdottiPage() {
                   type="submit"
                   className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
                 >
-                  Salva
+                  Aggiorna
                 </button>
                 <button
                   type="submit"
                   formAction={deleteProduct}
+                  data-confirm="Eliminare definitivamente questo prodotto e i movimenti collegati?"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
                 >
                   <span className="sr-only">Elimina</span>

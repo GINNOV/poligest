@@ -294,7 +294,11 @@ export function AdminDoctorAvailabilityEditor({
                       </button>
                     </div>
                   </form>
-                  <form action={deleteAction} className="flex justify-start sm:justify-end">
+                  <form
+                    action={deleteAction}
+                    className="flex justify-start sm:justify-end"
+                    data-confirm="Eliminare definitivamente questa disponibilita?"
+                  >
                     <input type="hidden" name="windowId" value={win.id} />
                     <input type="hidden" name="doctorId" value={doctorId} />
                     <button

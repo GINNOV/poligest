@@ -110,11 +110,12 @@ export default async function FornitoriPage() {
                   type="submit"
                   className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
                 >
-                  Salva
+                  Aggiorna
                 </button>
                 <button
                   type="submit"
                   formAction={deleteSupplier}
+                  data-confirm="Eliminare definitivamente questo fornitore?"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
                 >
                   <span className="sr-only">Elimina</span>
