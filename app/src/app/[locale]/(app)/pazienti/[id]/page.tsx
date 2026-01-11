@@ -20,6 +20,7 @@ import { QuoteAccordion } from "@/components/quote-accordion";
 import { sendEmailWithHtml } from "@/lib/email";
 import { stackServerApp } from "@/lib/stack-app";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
+import { PatientDeleteButton } from "@/components/patient-delete-button";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -680,6 +681,7 @@ export default async function PatientDetailPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
   const isAdmin = user.role === Role.ADMIN;
+  const canExport = isAdmin || user.role === Role.MANAGER;
 
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
@@ -1312,21 +1314,44 @@ export default async function PatientDetailPage({
                           </div>
                         )}
                       </div>
-                      <ConsentForm
-                        patientId={patient.id}
-                        modules={consentModules}
-                        doctors={doctors}
-                        consents={patient.consents.map((consent) => ({
-                          id: consent.id,
-                          moduleId: consent.moduleId,
-                          status: consent.status,
-                          channel: consent.channel,
-                          givenAt: consent.givenAt,
-                          signatureUrl: (consent as { signatureUrl?: string | null }).signatureUrl ?? null,
-                          module: consent.module ? { name: consent.module.name } : null,
-                        }))}
-                        revokeAction={revokeConsent}
-                      />
+                      <div className="space-y-4">
+                        <ConsentForm
+                          patientId={patient.id}
+                          modules={consentModules}
+                          doctors={doctors}
+                          consents={patient.consents.map((consent) => ({
+                            id: consent.id,
+                            moduleId: consent.moduleId,
+                            status: consent.status,
+                            channel: consent.channel,
+                            givenAt: consent.givenAt,
+                            signatureUrl: (consent as { signatureUrl?: string | null }).signatureUrl ?? null,
+                            module: consent.module ? { name: consent.module.name } : null,
+                          }))}
+                          revokeAction={revokeConsent}
+                        />
+                        {canExport ? (
+                          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                              Strumenti GDPR
+                            </p>
+                            <p className="mt-2 text-sm text-emerald-900">
+                              Esporta o elimina i dati personali per richieste dell&apos;interessato.
+                            </p>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              {canExport ? (
+                                <a
+                                  href={`/api/patients/${patient.id}/export`}
+                                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                                >
+                                  Scarica dati
+                                </a>
+                              ) : null}
+                              {isAdmin ? <PatientDeleteButton patientId={patient.id} /> : null}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
           </details>
 

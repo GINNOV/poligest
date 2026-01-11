@@ -9,6 +9,7 @@ import { PreventDoubleSubmit } from "@/components/prevent-double-submit";
 import { GlobalLoadingOverlay } from "@/components/global-loading-overlay";
 import { GlobalToasts } from "@/components/global-toasts";
 import { ConfirmBeforeSubmit } from "@/components/confirm-before-submit";
+import { CookieBanner } from "@/components/cookie-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,6 +63,7 @@ export default async function RootLayout({
                 <GlobalLoadingOverlay />
                 <PreventDoubleSubmit />
                 <ConfirmBeforeSubmit />
+                <CookieBanner />
               </StackProvider>
             </NextIntlClientProvider>
           </TooltipProvider>

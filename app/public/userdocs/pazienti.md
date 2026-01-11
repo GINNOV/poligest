@@ -6,6 +6,8 @@ La sezione **Pazienti** rappresenta la memoria storica dello studio, dove ogni i
 
 Per registrare un nuovo paziente, clicca sul pulsante **"Nuovo Paziente"** nella schermata principale della sezione. Il modulo ti chiederà di inserire i dati essenziali come Nome, Cognome, Data di Nascita e Codice Fiscale. È di fondamentale importanza inserire correttamente l'indirizzo email e il numero di cellulare, poiché il sistema li utilizzerà per l'invio automatico dei promemoria degli appuntamenti. All'interno della scheda paziente, troverai sezioni dedicate per caricare file esterni (come radiografie, referti o scansioni di documenti firmati) e per gestire i consensi privacy (GDPR), necessari per poter trattare i dati in conformità con la legge.
 
+All'interno della sezione **Consensi & Privacy** puoi anche scaricare il pacchetto completo dei dati personali del paziente (diritto di accesso) e, se autorizzato, avviare la cancellazione definitiva dei dati (diritto all'oblio). Queste azioni sono riservate agli utenti con privilegi amministrativi o manageriali.
+
 ---
 
 ## Il Diario Clinico e l'Odontogramma

@@ -13,27 +13,33 @@ async function saveConsentModule(formData: FormData) {
   const content = (formData.get("content") as string)?.trim();
   const active = formData.get("active") === "on";
   const required = formData.get("required") === "on";
-  const sortOrderRaw = (formData.get("sortOrder") as string) ?? "";
-  const sortOrder = Number.isNaN(Number(sortOrderRaw)) ? 0 : Number(sortOrderRaw);
 
   if (!name || !content) {
     throw new Error("Nome e contenuto sono obbligatori.");
   }
 
+  const nextSortOrder = async () => {
+    const latest = await prisma.consentModule.findFirst({
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+    return (latest?.sortOrder ?? -1) + 1;
+  };
+
   const saved = moduleId
     ? await prisma.consentModule.update({
         where: { id: moduleId },
-        data: { name, content, active, required, sortOrder },
+        data: { name, content, active, required },
       })
     : await prisma.consentModule.create({
-        data: { name, content, active, required, sortOrder },
+        data: { name, content, active, required, sortOrder: await nextSortOrder() },
       });
 
   await logAudit(admin, {
     action: "consentModule.saved",
     entity: "ConsentModule",
     entityId: saved.id,
-    metadata: { active, required, sortOrder },
+    metadata: { active, required, sortOrder: saved.sortOrder },
   });
 
   revalidatePath("/[locale]/admin/consensi", "page");
@@ -98,15 +104,6 @@ export default async function AdminConsentModulesPage() {
                 className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Privacy, Trattamento, Marketing..."
                 required
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Ordine
-              <input
-                name="sortOrder"
-                type="number"
-                defaultValue={0}
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
@@ -181,15 +178,6 @@ export default async function AdminConsentModulesPage() {
                       defaultValue={module.name}
                       className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                       required
-                    />
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                    Ordine
-                    <input
-                      name="sortOrder"
-                      type="number"
-                      defaultValue={module.sortOrder}
-                      className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                     />
                   </label>
                   <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">

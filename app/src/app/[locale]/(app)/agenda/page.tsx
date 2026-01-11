@@ -47,7 +47,7 @@ export default async function AgendaPage() {
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Crea appuntamento</h2>
+              <h2 className="text-lg font-semibold text-emerald-900">Calendario</h2>
               <p className="text-sm text-emerald-800">
                 Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
               </p>

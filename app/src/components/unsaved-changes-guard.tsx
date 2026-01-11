@@ -57,6 +57,11 @@ export function UnsavedChangesGuard({ formId, message = defaultMessage }: Props)
   useEffect(() => {
     const shouldBlock = () => dirtyRef.current && !submittingRef.current;
 
+    const handleSkip = () => {
+      dirtyRef.current = false;
+      submittingRef.current = false;
+    };
+
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!shouldBlock()) return;
       event.preventDefault();
@@ -82,9 +87,11 @@ export function UnsavedChangesGuard({ formId, message = defaultMessage }: Props)
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("unsaved-guard:skip", handleSkip as EventListener);
     document.addEventListener("click", handleClick, true);
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("unsaved-guard:skip", handleSkip as EventListener);
       document.removeEventListener("click", handleClick, true);
     };
   }, [message]);

@@ -138,6 +138,15 @@ export default async function AdminPage() {
       icon: "🧾",
     },
     {
+      key: "privacy",
+      title: t("privacy"),
+      description: t("privacyDescription"),
+      href: "/admin/privacy",
+      badge: "GDPR",
+      tone: "primary",
+      icon: "🔒",
+    },
+    {
       key: "services",
       title: t("services"),
       description: "Catalogo delle prestazioni: nome, descrizione e costo base.",

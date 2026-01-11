@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
+import { ConfirmLeaveButton } from "@/components/confirm-leave-button";
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 
@@ -197,12 +198,12 @@ export default async function NuovoPazientePage() {
           >
             Salva nuovo paziente
           </button>
-          <Link
+          <ConfirmLeaveButton
+            formId="patient-create-form"
             href="/pazienti"
+            label="Annulla"
             className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-          >
-            Annulla
-          </Link>
+          />
         </div>
       </form>
     </div>

@@ -38,6 +38,11 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ patient
       entity: "Patient",
       entityId: patientId,
     });
+    await logAudit(user, {
+      action: "gdpr.erased",
+      entity: "Patient",
+      entityId: patientId,
+    });
 
     // Ensure list is refreshed
     revalidatePath("/pazienti");

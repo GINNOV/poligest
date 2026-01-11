@@ -20,6 +20,12 @@ In conformità con le normative sulla protezione dei dati, SORRIDI registra ogni
 
 ---
 
+## Privacy e GDPR
+
+La sezione **Privacy & GDPR** raccoglie gli strumenti per gestire le richieste degli interessati e applicare la retention dei log. Da qui puoi lanciare la pulizia periodica dei registri e consultare le indicazioni su come esportare o cancellare i dati del singolo paziente direttamente dalla sua scheda.
+
+---
+
 ## Sicurezza e Backup dei Dati
 
 Sebbene la piattaforma sia ospitata su infrastrutture sicure e ridondate, è responsabilità dell'amministratore garantire la disponibilità di copie di sicurezza locali. Nella sezione **Gestione Dati**, troverai gli strumenti per:
