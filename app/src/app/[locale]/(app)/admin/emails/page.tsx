@@ -40,7 +40,9 @@ export default async function AdminEmailsPage() {
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-zinc-900">{tpl.name}</h3>
+                      <h3 className="text-lg font-semibold text-zinc-900">
+                        {tpl.description ?? tpl.name}
+                      </h3>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                         Modifica
                       </span>

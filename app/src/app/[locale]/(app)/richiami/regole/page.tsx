@@ -312,7 +312,7 @@ export default async function RichiamiRegolePage() {
               >
                 {emailTemplates.map((template) => (
                   <option key={template.id} value={template.name}>
-                    {template.name}
+                    {template.description ?? template.name}
                   </option>
                 ))}
               </select>
