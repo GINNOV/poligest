@@ -40,14 +40,14 @@ export default async function AgendaPage() {
             <div className="relative aspect-[2752/1536] overflow-hidden rounded-xl border border-emerald-100 bg-white">
               <Image
                 src="/tiles/calendar.png"
-                alt="Calendario"
+                alt="Aggiungi appuntamenti"
                 fill
                 sizes="(min-width: 1024px) 320px, 100vw"
                 className="object-contain"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Calendario</h2>
+              <h2 className="text-lg font-semibold text-emerald-900">Aggiungi appuntamenti</h2>
               <p className="text-sm text-emerald-800">
                 Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
               </p>

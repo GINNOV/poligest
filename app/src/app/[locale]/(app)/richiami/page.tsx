@@ -2,19 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { RecallStatus, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 
 const TILE_IMAGE_VERSION = "3";
 
 const TILES = [
-  {
-    key: "programmati",
-    title: "Richiami in scadenza",
-    description: "Coda dei richiami e pianificazione manuale per i pazienti.",
-    href: "/richiami/programmati",
-    tone: "primary",
-    image: "/tiles/expiring_recalls.png",
-  },
   {
     key: "regole",
     title: "Regole automatiche",
@@ -51,25 +43,15 @@ export default async function RichiamiPage() {
   const soon = new Date();
   soon.setDate(soon.getDate() + 30);
 
-  const [recallsCount, rulesCount, upcomingAppointmentsCount, recurringConfigsCount] =
-    await Promise.all([
-      prisma.recall.count({
-        where: {
-          status: { in: [RecallStatus.PENDING, RecallStatus.CONTACTED, RecallStatus.SKIPPED] },
-          dueAt: { lte: soon },
-        },
-      }),
-      prisma.recallRule.count(),
-      prisma.appointment.count({
-        where: { startsAt: { gte: now, lte: soon } },
-      }),
-      prisma.recurringMessageConfig.count(),
-    ]);
+  const [rulesCount, upcomingAppointmentsCount, recurringConfigsCount] = await Promise.all([
+    prisma.recallRule.count(),
+    prisma.appointment.count({
+      where: { startsAt: { gte: now, lte: soon } },
+    }),
+    prisma.recurringMessageConfig.count(),
+  ]);
 
   const tiles: TileWithBadge[] = TILES.map((tile) => {
-    if (tile.key === "programmati") {
-      return { ...tile, badge: `${recallsCount} in coda` };
-    }
     if (tile.key === "regole") {
       return { ...tile, badge: `${rulesCount} regole` };
     }
