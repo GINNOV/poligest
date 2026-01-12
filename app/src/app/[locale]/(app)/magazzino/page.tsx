@@ -289,10 +289,6 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
 
       {/* Movements Section */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-900">Ultimi Movimenti</h2>
-        </div>
-
         <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(query)}>
           <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900">
             Lista movimenti

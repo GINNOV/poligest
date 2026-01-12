@@ -45,7 +45,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const version = getAppVersion();
   const deployedAt = getDeployDate();
   const navLinks = [
-    { href: "/dashboard", label: "Cruscotto" },
+    { href: "/dashboard", label: "Giornata" },
     ...(isStaff ? [{ href: "/agenda", label: t("agenda") }] : []),
     ...(isStaff ? [{ href: "/pazienti", label: t("patients") }] : []),
     ...(isStaff ? [{ href: "/richiami", label: t("recalls") }] : []),
@@ -88,7 +88,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               {t("brand")}
             </Link>
             <nav className="hidden items-center gap-4 text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700 lg:flex">
-              <NavLink href="/dashboard" label="Cruscotto" />
+              <NavLink href="/dashboard" label="Giornata" />
               {isStaff ? (
                 <>
                   <NavLink href="/agenda" label={t("agenda")} />
