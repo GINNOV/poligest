@@ -165,13 +165,15 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
             <div className="overflow-hidden rounded-2xl border border-zinc-100">
               <Image
                 src="/tiles/products.png"
-                alt="Gestione prodotti"
+                alt="Gestione Materiali & Impianti"
                 width={640}
                 height={360}
                 className="h-44 w-full object-cover"
               />
             </div>
-            <h2 className="mt-3 text-base font-semibold text-zinc-900">Gestione prodotti</h2>
+            <h2 className="mt-3 text-base font-semibold text-zinc-900">
+              Gestione Materiali &amp; Impianti
+            </h2>
             <p className="mt-1 text-sm text-zinc-600">
               Aggiungi un prodotto da utilizzare nei movimenti
             </p>
