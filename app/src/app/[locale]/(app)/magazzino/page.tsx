@@ -93,6 +93,9 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
               />
             </div>
             <h2 className="mt-3 text-base font-semibold text-zinc-900">Gestione fornitori</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Aggiungi nuovi fornitori. Aggiorna fornitori esistenti.
+            </p>
           </Link>
           <Link
             href="/magazzino/prodotti"
@@ -108,6 +111,9 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
               />
             </div>
             <h2 className="mt-3 text-base font-semibold text-zinc-900">Gestione prodotti</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Aggiungi un prodotto da utilizzare nei movimenti
+            </p>
           </Link>
           <Link
             href="/magazzino/movimenti"
@@ -123,6 +129,9 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
               />
             </div>
             <h2 className="mt-3 text-base font-semibold text-zinc-900">Movimenti</h2>
+            <p className="mt-1 text-sm text-zinc-600">
+              Entrate e uscite per il magazzino
+            </p>
           </Link>
         </div>
 

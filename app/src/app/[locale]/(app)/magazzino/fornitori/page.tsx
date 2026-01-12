@@ -24,6 +24,9 @@ export default async function FornitoriPage() {
           </span>
           Gestione fornitori
         </h2>
+        <p className="mt-1 text-xs text-zinc-600">
+          Aggiungi nuovi fornitori. Aggiorna fornitori esistenti.
+        </p>
         <form action={createSupplier} className="mt-3 space-y-3 text-sm">
           <input
             name="name"
