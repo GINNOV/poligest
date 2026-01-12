@@ -144,6 +144,81 @@ const toLocalInput = (date: string, minutes: number) => {
   return `${date}T${padTime(hours)}:${padTime(mins)}`;
 };
 
+type PositionedAppointment = CalendarAppointment & {
+  startMinute: number;
+  endMinute: number;
+  columnIndex: number;
+  columnCount: number;
+};
+
+const overlaps = (a: { startMinute: number; endMinute: number }, b: { startMinute: number; endMinute: number }) =>
+  a.startMinute < b.endMinute && b.startMinute < a.endMinute;
+
+const buildPositionedAppointments = (appointments: CalendarAppointment[]) => {
+  const items = appointments.map((appt, index) => {
+    const start = new Date(appt.startsAt);
+    const end = new Date(appt.endsAt);
+    const startMinute = start.getHours() * 60 + start.getMinutes();
+    const endMinute = end.getHours() * 60 + end.getMinutes();
+    return { appt, index, startMinute, endMinute };
+  });
+
+  const layout = new Map<number, { columnIndex: number; columnCount: number }>();
+  const visited = new Set<number>();
+
+  for (let i = 0; i < items.length; i += 1) {
+    const seed = items[i];
+    if (visited.has(seed.index)) continue;
+    const stack = [seed];
+    const component: typeof items = [];
+    visited.add(seed.index);
+
+    while (stack.length) {
+      const current = stack.pop();
+      if (!current) break;
+      component.push(current);
+      for (const candidate of items) {
+        if (visited.has(candidate.index)) continue;
+        if (overlaps(current, candidate)) {
+          visited.add(candidate.index);
+          stack.push(candidate);
+        }
+      }
+    }
+
+    component.sort((a, b) => a.startMinute - b.startMinute || a.endMinute - b.endMinute);
+    const columnEnds: number[] = [];
+    const assigned = new Map<number, number>();
+
+    component.forEach((item) => {
+      let columnIndex = columnEnds.findIndex((end) => end <= item.startMinute);
+      if (columnIndex === -1) {
+        columnIndex = columnEnds.length;
+        columnEnds.push(item.endMinute);
+      } else {
+        columnEnds[columnIndex] = item.endMinute;
+      }
+      assigned.set(item.index, columnIndex);
+    });
+
+    const columnCount = Math.max(1, columnEnds.length);
+    assigned.forEach((columnIndex, index) => {
+      layout.set(index, { columnIndex, columnCount });
+    });
+  }
+
+  return items.map((item) => {
+    const placement = layout.get(item.index) ?? { columnIndex: 0, columnCount: 1 };
+    return {
+      ...item.appt,
+      startMinute: item.startMinute,
+      endMinute: item.endMinute,
+      columnIndex: placement.columnIndex,
+      columnCount: placement.columnCount,
+    } satisfies PositionedAppointment;
+  });
+};
+
 type Props = {
   weekDays: WeekDay[];
   patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
@@ -276,6 +351,7 @@ export function CalendarWeekView({
             </div>
 
             {weekDays.map((day) => {
+              const positionedAppointments = buildPositionedAppointments(day.appointments);
               return (
                 <div
                   key={day.date}
@@ -344,17 +420,24 @@ export function CalendarWeekView({
                   </div>
 
                   <div className="absolute inset-0">
-                    {day.appointments.map((appt) => {
+                    {positionedAppointments.map((appt) => {
                       const start = new Date(appt.startsAt);
                       const end = new Date(appt.endsAt);
-                      const startMinute = start.getHours() * 60 + start.getMinutes();
-                      const endMinute = end.getHours() * 60 + end.getMinutes();
+                      const startMinute = appt.startMinute;
+                      const endMinute = appt.endMinute;
                       if (endMinute <= timeStartMinute || startMinute >= timeEndMinute) return null;
                       const clampedStart = Math.max(startMinute, timeStartMinute);
                       const clampedEnd = Math.min(endMinute, timeEndMinute);
                       const top = ((clampedStart - timeStartMinute) / 60) * HOUR_HEIGHT;
-                      const height = Math.max(18, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT);
+                      const slotHeight = ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT;
+                      const height = Math.max(15, slotHeight - 2);
                       const styles = getServiceStyle(appt.serviceType);
+                      const isCompact = height < 34;
+                      const columnGap = 6;
+                      const clickGutter = 8;
+                      const columnWidth = 100 / appt.columnCount;
+                      const left = `calc(${columnWidth * appt.columnIndex}% + ${columnGap / 2}px)`;
+                      const width = `calc(${columnWidth}% - ${columnGap}px - ${clickGutter}px)`;
                       return (
                         <button
                           type="button"
@@ -364,18 +447,26 @@ export function CalendarWeekView({
                             setSelectedSlot(null);
                             setSelectedAppointment(appt);
                           }}
-                          className={`absolute left-1 right-1 z-10 rounded-lg border px-2 py-1 text-left text-[10px] shadow-sm transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text}`}
-                          style={{ top, height }}
+                          className={`absolute z-10 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text} ${
+                            isCompact ? "px-1.5 py-0.5" : "px-2 py-1"
+                          }`}
+                          style={{ top, height, left, width }}
                         >
-                          <div className="flex flex-wrap items-center gap-1">
-                            <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}>
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span
+                              className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}
+                            >
                               {appt.serviceType}
                             </span>
-                            <span className="text-[10px] font-semibold text-zinc-600">
+                            <span className="shrink-0 text-[9px] font-semibold text-zinc-600">
                               {start.toLocaleTimeString("it-IT", { timeStyle: "short" })}
                             </span>
                           </div>
-                          <div className="mt-1 truncate text-[11px] font-semibold">{appt.patientName}</div>
+                          {!isCompact ? (
+                            <div className="mt-1 truncate text-[10px] font-semibold">
+                              {appt.patientName}
+                            </div>
+                          ) : null}
                         </button>
                       );
                     })}
