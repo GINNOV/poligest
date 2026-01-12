@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { normalizePersonName } from "@/lib/name";
 import { Role, StockMovementType } from "@prisma/client";
 
 export async function updateProduct(formData: FormData) {
@@ -256,7 +257,8 @@ export async function importStockFromCSV(formData: FormData) {
 
     if (!patientNameRaw) continue;
 
-    const nameParts = patientNameRaw.split(/\s+/);
+    const normalizedFullName = normalizePersonName(patientNameRaw);
+    const nameParts = normalizedFullName.split(/\s+/).filter(Boolean);
     let patient = null;
     if (nameParts.length >= 2) {
       const firstName = nameParts[0];
@@ -273,7 +275,7 @@ export async function importStockFromCSV(formData: FormData) {
         patient = await prisma.patient.create({ data: { firstName, lastName } });
       }
     } else {
-      patient = await prisma.patient.create({ data: { firstName: patientNameRaw, lastName: "" } });
+      patient = await prisma.patient.create({ data: { firstName: normalizedFullName, lastName: "" } });
     }
 
     let supplier = null;

@@ -3,6 +3,7 @@ import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
+import { PatientListFilters } from "@/components/patient-list-filters";
 
 const PAGE_SIZE = 20;
 
@@ -117,6 +118,22 @@ export default async function PazientiListaPage({
 
   const requiredModules = consentModules;
   const paginatedPatients = sortedPatients.slice(skip, skip + PAGE_SIZE);
+  const letterTargets = new Map<string, { page: number; id: string }>();
+
+  sortedPatients.forEach((patient, index) => {
+    const displayName = getDisplayName(patient);
+    const initialRaw = displayName.trim().charAt(0);
+    if (!initialRaw) return;
+    const normalizedInitial = initialRaw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const letter = normalizedInitial.toLocaleUpperCase("it");
+    if (letter < "A" || letter > "Z") return;
+    if (!letterTargets.has(letter)) {
+      letterTargets.set(letter, {
+        page: Math.floor(index / PAGE_SIZE) + 1,
+        id: patient.id,
+      });
+    }
+  });
 
   if (process.env.NODE_ENV !== "production") {
     const preview = paginatedPatients
@@ -154,45 +171,7 @@ export default async function PazientiListaPage({
       </div>
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
-        <form className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3" method="get">
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
-            Cerca
-            <input
-              type="text"
-              name="q"
-              defaultValue={qParam ?? ""}
-              placeholder="Nome, cognome, email, telefono"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 sm:max-w-xs">
-            Ordina per
-            <select
-              name="sort"
-              defaultValue={sortRaw ?? sortOption}
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            >
-              <option value="name_asc">Alfabetico (A-Z)</option>
-              <option value="name_desc">Alfabetico (Z-A)</option>
-              <option value="date_desc">Data di inserimento (recenti)</option>
-              <option value="date_asc">Data di inserimento (meno recenti)</option>
-            </select>
-          </label>
-          <div className="flex gap-2 sm:self-end">
-            <button
-              type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
-              Applica
-            </button>
-            <a
-              href={`/pazienti/lista${sortOption ? `?sort=${sortOption}` : ""}`}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-            >
-              Mostra tutto
-            </a>
-          </div>
-        </form>
+        <PatientListFilters initialQuery={qParam ?? ""} sortValue={sortRaw ?? sortOption} />
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
           <span className="font-semibold text-zinc-700">Legenda:</span>
           <span className="inline-flex items-center gap-1">
@@ -215,6 +194,27 @@ export default async function PazientiListaPage({
             <span className="text-emerald-600">✓</span>
             Dati completi
           </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm font-semibold uppercase text-zinc-500">
+          {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
+            const target = letterTargets.get(letter);
+            if (!target) {
+              return (
+                <span key={letter} className="px-1 text-zinc-300">
+                  {letter}
+                </span>
+              );
+            }
+            return (
+              <Link
+                key={letter}
+                href={`${buildPageHref(target.page)}#patient-${target.id}`}
+                className="rounded px-1 text-emerald-700 transition hover:text-emerald-600"
+              >
+                {letter}
+              </Link>
+            );
+          })}
         </div>
         <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
           {paginatedPatients.length === 0 ? (
@@ -261,7 +261,11 @@ export default async function PazientiListaPage({
               }
 
               return (
-                <div key={patient.id} className="flex flex-col gap-2 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={patient.id}
+                  id={`patient-${patient.id}`}
+                  className="flex flex-col gap-2 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div className="flex items-center gap-2 text-lg sm:hidden" aria-hidden={!badge}>
                     {badge}
                   </div>

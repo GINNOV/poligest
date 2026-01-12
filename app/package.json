@@ -10,6 +10,7 @@
     "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
     "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
+    "db:normalize-patient-names": "dotenv -e .env.local -- tsx scripts/normalize-patient-names.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

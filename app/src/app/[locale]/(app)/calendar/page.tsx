@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { normalizePersonName } from "@/lib/name";
 import { AppointmentStatus, Role } from "@prisma/client";
 import {
   addDays,
@@ -151,6 +152,8 @@ async function resolvePatientIdForAppointment(params: {
 }) {
   const { selectedPatientId, newEmail, newFirstName, newLastName, newPhone } = params;
   const normalizedEmail = newEmail?.trim().toLowerCase() || null;
+  const normalizedFirstName = normalizePersonName(newFirstName ?? "");
+  const normalizedLastName = normalizePersonName(newLastName ?? "");
 
   if (selectedPatientId === "new") {
     if (normalizedEmail) {
@@ -163,8 +166,8 @@ async function resolvePatientIdForAppointment(params: {
 
     const patient = await prisma.patient.create({
       data: {
-        firstName: newFirstName ?? "",
-        lastName: newLastName ?? "",
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         phone: newPhone ?? null,
         email: normalizedEmail,
       },

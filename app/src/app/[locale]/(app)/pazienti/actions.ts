@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
+import { normalizePersonName } from "@/lib/name";
 import { put } from "@vercel/blob";
 import { sendEmail } from "@/lib/email";
 import { stackServerApp } from "@/lib/stack-app";
@@ -41,8 +42,8 @@ function resolveSiteOrigin() {
 export async function createPatient(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
-  const firstName = (formData.get("firstName") as string)?.trim();
-  const lastName = (formData.get("lastName") as string)?.trim();
+  const firstName = normalizePersonName((formData.get("firstName") as string) ?? "");
+  const lastName = normalizePersonName((formData.get("lastName") as string) ?? "");
   const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
   const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const address = (formData.get("address") as string)?.trim() || null;

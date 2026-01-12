@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { put } from "@vercel/blob";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { normalizePersonName } from "@/lib/name";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -23,7 +24,8 @@ function ensureEmoji(value: unknown) {
 }
 
 function splitFullName(value: string) {
-  const tokens = value.split(" ").filter(Boolean);
+  const normalized = normalizePersonName(value);
+  const tokens = normalized.split(" ").filter(Boolean);
   if (!tokens.length) return null;
   const [firstName, ...rest] = tokens;
   const lastName = rest.join(" ").trim() || firstName;

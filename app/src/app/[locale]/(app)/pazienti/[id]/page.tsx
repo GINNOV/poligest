@@ -13,6 +13,7 @@ import { sendSms } from "@/lib/sms";
 import { ConsentForm } from "@/components/consent-form";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalDate } from "@/lib/date";
+import { normalizePersonName } from "@/lib/name";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { put } from "@vercel/blob";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
@@ -255,8 +256,8 @@ async function updatePatient(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const id = (formData.get("patientId") as string) || "";
-  const firstName = (formData.get("firstName") as string)?.trim();
-  const lastName = (formData.get("lastName") as string)?.trim();
+  const firstName = normalizePersonName((formData.get("firstName") as string) ?? "");
+  const lastName = normalizePersonName((formData.get("lastName") as string) ?? "");
   const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
   const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const conditions = formData

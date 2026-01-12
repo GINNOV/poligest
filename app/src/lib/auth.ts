@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { stackServerApp } from "@/lib/stack-app";
 import { getRandomAvatarUrl } from "@/lib/avatars";
+import { normalizePersonName } from "@/lib/name";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ensureUserPersonalPin } from "@/lib/personal-pin";
@@ -70,10 +71,13 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
     }
   }
 
+  const normalizedFirstName = fullName ? normalizePersonName(firstName) : firstName;
+  const normalizedLastName = fullName ? normalizePersonName(lastName) : lastName;
+
   return prisma.patient.create({
     data: {
-      firstName: firstName || email,
-      lastName,
+      firstName: normalizedFirstName || email,
+      lastName: normalizedLastName,
       email,
       notes: "Creato automaticamente dall'account paziente.",
     },
