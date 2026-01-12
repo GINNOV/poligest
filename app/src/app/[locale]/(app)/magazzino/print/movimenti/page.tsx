@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import type { Metadata } from "next";
 import { format } from "date-fns";
@@ -26,14 +26,30 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
   const dateTo = toParam ? new Date(`${toParam}T23:59:59.999`) : null;
   const safeDateFrom = dateFrom && !Number.isNaN(dateFrom.getTime()) ? dateFrom : null;
   const safeDateTo = dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : null;
-  const movementWhere = movementQuery
+  const movementWhere: Prisma.StockMovementWhereInput | undefined = movementQuery
     ? {
         OR: [
-          { product: { name: { contains: movementQuery, mode: "insensitive" } } },
-          { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
-          { udiPi: { contains: movementQuery, mode: "insensitive" } },
-          { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
-          { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
+          {
+            product: {
+              is: { name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          {
+            product: {
+              is: { udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          { udiPi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+          {
+            patient: {
+              is: { firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          {
+            patient: {
+              is: { lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
         ],
       }
     : undefined;

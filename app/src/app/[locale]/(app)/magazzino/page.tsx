@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -36,14 +36,30 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
   const toParam = typeof resolvedParams?.to === "string" ? resolvedParams.to : "";
   const dateFrom = parseDateStart(fromParam);
   const dateTo = parseDateEnd(toParam);
-  const movementWhere = movementQuery
+  const movementWhere: Prisma.StockMovementWhereInput | undefined = movementQuery
     ? {
         OR: [
-          { product: { name: { contains: movementQuery, mode: "insensitive" } } },
-          { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
-          { udiPi: { contains: movementQuery, mode: "insensitive" } },
-          { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
-          { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
+          {
+            product: {
+              is: { name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          {
+            product: {
+              is: { udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          { udiPi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+          {
+            patient: {
+              is: { firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
+          {
+            patient: {
+              is: { lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+            },
+          },
         ],
       }
     : undefined;
