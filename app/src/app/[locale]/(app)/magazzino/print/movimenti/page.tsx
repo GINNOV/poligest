@@ -13,26 +13,46 @@ export const metadata: Metadata = {
 };
 
 type MovimentiPrintPageProps = {
-  searchParams?: Promise<{ mq?: string }>;
+  searchParams?: Promise<{ mq?: string; from?: string; to?: string }>;
 };
 
 export default async function MovimentiPrintPage({ searchParams }: MovimentiPrintPageProps) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const resolvedParams = searchParams ? await searchParams : undefined;
   const movementQuery = typeof resolvedParams?.mq === "string" ? resolvedParams.mq.trim() : "";
+  const fromParam = typeof resolvedParams?.from === "string" ? resolvedParams.from : "";
+  const toParam = typeof resolvedParams?.to === "string" ? resolvedParams.to : "";
+  const dateFrom = fromParam ? new Date(`${fromParam}T00:00:00`) : null;
+  const dateTo = toParam ? new Date(`${toParam}T23:59:59.999`) : null;
+  const safeDateFrom = dateFrom && !Number.isNaN(dateFrom.getTime()) ? dateFrom : null;
+  const safeDateTo = dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : null;
+  const movementWhere = movementQuery
+    ? {
+        OR: [
+          { product: { name: { contains: movementQuery, mode: "insensitive" } } },
+          { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
+          { udiPi: { contains: movementQuery, mode: "insensitive" } },
+          { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
+          { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
+        ],
+      }
+    : undefined;
+  const dateWhere =
+    safeDateFrom || safeDateTo
+      ? {
+          createdAt: {
+            ...(safeDateFrom ? { gte: safeDateFrom } : {}),
+            ...(safeDateTo ? { lte: safeDateTo } : {}),
+          },
+        }
+      : undefined;
+  const movementFilters =
+    movementWhere && dateWhere
+      ? { AND: [movementWhere, dateWhere] }
+      : movementWhere ?? dateWhere;
 
   const movements = await prisma.stockMovement.findMany({
-    where: movementQuery
-      ? {
-          OR: [
-            { product: { name: { contains: movementQuery, mode: "insensitive" } } },
-            { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
-            { udiPi: { contains: movementQuery, mode: "insensitive" } },
-            { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
-            { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
-          ],
-        }
-      : undefined,
+    where: movementFilters,
     orderBy: { createdAt: "desc" },
     include: {
       product: true,
@@ -59,8 +79,13 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
                 Lista movimenti
               </p>
               <h1 className="text-2xl font-semibold text-zinc-900">Studio Agovino & Angrisano</h1>
-              {movementQuery ? (
-                <p className="text-xs text-zinc-500">Filtro: {movementQuery}</p>
+              {movementQuery || safeDateFrom || safeDateTo ? (
+                <p className="text-xs text-zinc-500">
+                  Filtro:
+                  {movementQuery ? ` ${movementQuery}` : null}
+                  {safeDateFrom ? ` dal ${format(safeDateFrom, "dd/MM/yyyy")}` : null}
+                  {safeDateTo ? ` al ${format(safeDateTo, "dd/MM/yyyy")}` : null}
+                </p>
               ) : null}
             </div>
           </div>

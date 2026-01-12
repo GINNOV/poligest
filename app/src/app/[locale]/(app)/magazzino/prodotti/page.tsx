@@ -37,94 +37,100 @@ export default async function ProdottiPage() {
           Gestione prodotti
         </h2>
         <form action={createProduct} className="mt-3 space-y-3 text-sm">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
-            <input
-              name="name"
-              placeholder="Nome prodotto"
-              required
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
-            <input
-              name="sku"
-              placeholder="SKU"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
-            <input
-              name="serviceType"
-              placeholder="es. impianto"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
-            <input
-              name="brand"
-              placeholder="Marca"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
-            <input
-              name="udiDi"
-              placeholder="UDI-DI"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
-            <input
-              name="udiPi"
-              placeholder="UDI-PI"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Costo unitario</span>
-            <input
-              name="unitCost"
-              placeholder="Costo unitario (€)"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              type="number"
-              step="0.01"
-              min="0"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia minima</span>
-            <input
-              name="minThreshold"
-              placeholder="Soglia minima"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              type="number"
-              min="0"
-              defaultValue={0}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
-            <select
-              name="supplierId"
-              required
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            >
-              <option value="" disabled>
-                Seleziona fornitore
-              </option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+              <input
+                name="name"
+                placeholder="Nome prodotto"
+                required
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+              <select
+                name="supplierId"
+                required
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="" disabled>
+                  Seleziona fornitore
                 </option>
-              ))}
-            </select>
-          </label>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+              <input
+                name="sku"
+                placeholder="SKU"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+              <input
+                name="brand"
+                placeholder="Marca"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
+              <input
+                name="serviceType"
+                placeholder="es. impianto"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
+              <input
+                name="udiDi"
+                placeholder="UDI-DI"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
+              <input
+                name="udiPi"
+                placeholder="UDI-PI"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Costo unitario</span>
+              <input
+                name="unitCost"
+                placeholder="Costo unitario (€)"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                type="number"
+                step="0.01"
+                min="0"
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia minima</span>
+              <input
+                name="minThreshold"
+                placeholder="Soglia minima"
+                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                type="number"
+                min="0"
+                defaultValue={0}
+              />
+            </label>
+          </div>
           <button
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
@@ -145,24 +151,52 @@ export default async function ProdottiPage() {
             <form
               key={product.id}
               action={updateProduct}
-              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,3fr,auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[3fr,3fr,auto] sm:items-end"
             >
               <input type="hidden" name="productId" value={product.id} />
-              <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
-                <input
-                  name="name"
-                  defaultValue={product.name}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  required
-                />
-              </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                  <input
+                    name="name"
+                    defaultValue={product.name}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                  <select
+                    name="supplierId"
+                    defaultValue={product.supplierId ?? ""}
+                    required
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="" disabled>
+                      Seleziona
+                    </option>
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
                   <input
                     name="sku"
                     defaultValue={product.sku ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+                  <input
+                    name="brand"
+                    defaultValue={product.brand ?? ""}
                     className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
                 </label>
@@ -184,14 +218,6 @@ export default async function ProdottiPage() {
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
-                  <input
-                    name="brand"
-                    defaultValue={product.brand ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
                   <input
                     name="udiDi"
@@ -206,24 +232,6 @@ export default async function ProdottiPage() {
                     defaultValue={product.udiPi ?? ""}
                     className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
-                  <select
-                    name="supplierId"
-                    defaultValue={product.supplierId ?? ""}
-                    required
-                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                  >
-                    <option value="" disabled>
-                      Seleziona
-                    </option>
-                    {suppliers.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
                 </label>
               </div>
               <div className="flex items-center gap-2 pb-1 sm:pb-0">
