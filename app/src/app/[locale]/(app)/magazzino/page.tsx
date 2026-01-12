@@ -8,7 +8,23 @@ import { format } from "date-fns";
 export const dynamic = "force-dynamic";
 
 type MagazzinoPageProps = {
-  searchParams?: Promise<{ q?: string; mq?: string }>;
+  searchParams?: Promise<{ q?: string; mq?: string; from?: string; to?: string }>;
+};
+
+const parseDateStart = (value: string) => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const parseDateEnd = (value: string) => {
+  if (!value) {
+    return null;
+  }
+  const date = new Date(`${value}T23:59:59.999`);
+  return Number.isNaN(date.getTime()) ? null : date;
 };
 
 export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps) {
@@ -16,11 +32,49 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
   const resolvedParams = searchParams ? await searchParams : undefined;
   const query = typeof resolvedParams?.q === "string" ? resolvedParams.q.trim() : "";
   const movementQuery = typeof resolvedParams?.mq === "string" ? resolvedParams.mq.trim() : "";
+  const fromParam = typeof resolvedParams?.from === "string" ? resolvedParams.from : "";
+  const toParam = typeof resolvedParams?.to === "string" ? resolvedParams.to : "";
+  const dateFrom = parseDateStart(fromParam);
+  const dateTo = parseDateEnd(toParam);
+  const movementWhere = movementQuery
+    ? {
+        OR: [
+          { product: { name: { contains: movementQuery, mode: "insensitive" } } },
+          { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
+          { udiPi: { contains: movementQuery, mode: "insensitive" } },
+          { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
+          { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
+        ],
+      }
+    : undefined;
+  const dateWhere =
+    dateFrom || dateTo
+      ? {
+          createdAt: {
+            ...(dateFrom ? { gte: dateFrom } : {}),
+            ...(dateTo ? { lte: dateTo } : {}),
+          },
+        }
+      : undefined;
+  const movementFilters =
+    movementWhere && dateWhere
+      ? { AND: [movementWhere, dateWhere] }
+      : movementWhere ?? dateWhere;
   const productPrintHref = query
     ? `/magazzino/print/prodotti?q=${encodeURIComponent(query)}`
     : "/magazzino/print/prodotti";
-  const movementPrintHref = movementQuery
-    ? `/magazzino/print/movimenti?mq=${encodeURIComponent(movementQuery)}`
+  const movementPrintParams = new URLSearchParams();
+  if (movementQuery) {
+    movementPrintParams.set("mq", movementQuery);
+  }
+  if (fromParam) {
+    movementPrintParams.set("from", fromParam);
+  }
+  if (toParam) {
+    movementPrintParams.set("to", toParam);
+  }
+  const movementPrintHref = movementPrintParams.toString()
+    ? `/magazzino/print/movimenti?${movementPrintParams.toString()}`
     : "/magazzino/print/movimenti";
   const [productsRaw, suppliers, movements] = await Promise.all([
     prisma.product.findMany({
@@ -42,17 +96,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
     prisma.supplier.findMany({ orderBy: { name: "asc" } }),
     prisma.stockMovement.findMany({
       take: 50,
-      where: movementQuery
-        ? {
-            OR: [
-              { product: { name: { contains: movementQuery, mode: "insensitive" } } },
-              { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
-              { udiPi: { contains: movementQuery, mode: "insensitive" } },
-              { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
-              { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
-            ],
-          }
-        : undefined,
+      where: movementFilters,
       orderBy: { createdAt: "desc" },
       include: {
         product: true,
@@ -60,6 +104,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
       },
     }),
   ]);
+  const hasMovementFilters = Boolean(movementQuery || fromParam || toParam);
 
   const products = productsRaw.map((p) => {
     const stock = p.stockMovements.reduce((acc, m) => {
@@ -264,13 +309,27 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                   className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
+              <input
+                type="date"
+                name="from"
+                aria-label="Data da"
+                defaultValue={fromParam}
+                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+              <input
+                type="date"
+                name="to"
+                aria-label="Data a"
+                defaultValue={toParam}
+                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
               <button
                 type="submit"
                 className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
               >
                 Cerca
               </button>
-              {movementQuery ? (
+              {hasMovementFilters ? (
                 <Link
                   href={query ? `/magazzino?q=${encodeURIComponent(query)}` : "/magazzino"}
                   className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
