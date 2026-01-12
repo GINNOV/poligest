@@ -55,10 +55,34 @@ export default async function ProdottiPage() {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo servizio</span>
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
             <input
               name="serviceType"
-              placeholder="Tipo servizio (es. Igiene)"
+              placeholder="es. impianto"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+            <input
+              name="brand"
+              placeholder="Marca"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
+            <input
+              name="udiDi"
+              placeholder="UDI-DI"
+              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
+            <input
+              name="udiPi"
+              placeholder="UDI-PI"
               className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </label>
@@ -88,9 +112,12 @@ export default async function ProdottiPage() {
             <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
             <select
               name="supplierId"
+              required
               className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             >
-              <option value="">Senza fornitore</option>
+              <option value="" disabled>
+                Seleziona fornitore
+              </option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -102,7 +129,7 @@ export default async function ProdottiPage() {
             type="submit"
             className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
           >
-            Aggiungi prodotto
+            Aggiungi definizione prodotto
           </button>
         </form>
       </div>
@@ -140,6 +167,14 @@ export default async function ProdottiPage() {
                   />
                 </label>
                 <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
+                  <input
+                    name="serviceType"
+                    defaultValue={product.serviceType ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia</span>
                   <input
                     type="number"
@@ -149,13 +184,40 @@ export default async function ProdottiPage() {
                   />
                 </label>
                 <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+                  <input
+                    name="brand"
+                    defaultValue={product.brand ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
+                  <input
+                    name="udiDi"
+                    defaultValue={product.udiDi ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
+                  <input
+                    name="udiPi"
+                    defaultValue={product.udiPi ?? ""}
+                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
                   <select
                     name="supplierId"
                     defaultValue={product.supplierId ?? ""}
+                    required
                     className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                   >
-                    <option value="">—</option>
+                    <option value="" disabled>
+                      Seleziona
+                    </option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -175,9 +237,8 @@ export default async function ProdottiPage() {
                   type="submit"
                   formAction={deleteProduct}
                   data-confirm="Eliminare definitivamente questo prodotto e i movimenti collegati?"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
                 >
-                  <span className="sr-only">Elimina</span>
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path
                       fillRule="evenodd"
@@ -185,6 +246,7 @@ export default async function ProdottiPage() {
                       clipRule="evenodd"
                     />
                   </svg>
+                  Elimina
                 </button>
               </div>
             </form>

@@ -116,9 +116,8 @@ export default async function FornitoriPage() {
                   type="submit"
                   formAction={deleteSupplier}
                   data-confirm="Eliminare definitivamente questo fornitore?"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-200 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
                 >
-                  <span className="sr-only">Elimina</span>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
@@ -131,6 +130,7 @@ export default async function FornitoriPage() {
                       clipRule="evenodd"
                     />
                   </svg>
+                  Elimina
                 </button>
               </div>
             </form>

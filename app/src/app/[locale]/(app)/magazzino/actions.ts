@@ -12,14 +12,16 @@ export async function updateProduct(formData: FormData) {
   const sku = (formData.get("sku") as string)?.trim() || null;
   const serviceType = (formData.get("serviceType") as string)?.trim() || null;
   const udiDi = (formData.get("udiDi") as string)?.trim() || null;
+  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
+  const brand = (formData.get("brand") as string)?.trim() || null;
   const minThreshold = Number(formData.get("minThreshold")) || 0;
-  const supplierId = (formData.get("supplierId") as string) || null;
+  const supplierId = (formData.get("supplierId") as string)?.trim() || "";
 
-  if (!id || !name) throw new Error("Dati prodotto non validi");
+  if (!id || !name || !supplierId) throw new Error("Dati prodotto non validi");
 
   await prisma.product.update({
     where: { id },
-    data: { name, sku, serviceType, udiDi, minThreshold, supplierId },
+    data: { name, sku, serviceType, udiDi, udiPi, brand, minThreshold, supplierId },
   });
 
   revalidatePath("/magazzino");
@@ -65,10 +67,25 @@ export async function deleteSupplier(formData: FormData) {
   if (!supplierId) return;
 
   try {
-    // Scollega i prodotti da questo fornitore per evitare blocchi sui FK
+    const supplier = await prisma.supplier.findUnique({ where: { id: supplierId } });
+    if (!supplier) return;
+
+    const fallbackName = "Fornitore non specificato";
+    if (supplier.name.toLowerCase() === fallbackName.toLowerCase()) {
+      throw new Error("Impossibile eliminare il fornitore predefinito");
+    }
+
+    let fallback = await prisma.supplier.findFirst({
+      where: { name: { equals: fallbackName, mode: "insensitive" } },
+    });
+    if (!fallback) {
+      fallback = await prisma.supplier.create({ data: { name: fallbackName } });
+    }
+
+    // Riassegna i prodotti a un fornitore predefinito per evitare vincoli FK
     await prisma.product.updateMany({
       where: { supplierId },
-      data: { supplierId: null },
+      data: { supplierId: fallback.id },
     });
     await prisma.supplier.delete({ where: { id: supplierId } });
   } catch (err) {
@@ -97,9 +114,11 @@ export async function createProduct(formData: FormData) {
   const serviceType = (formData.get("serviceType") as string)?.trim() || null;
   const unitCostRaw = (formData.get("unitCost") as string)?.trim();
   const minThreshold = Number(formData.get("minThreshold")) || 0;
-  const supplierId = (formData.get("supplierId") as string) || null;
+  const supplierId = (formData.get("supplierId") as string)?.trim() || "";
   const udiDi = (formData.get("udiDi") as string)?.trim() || null;
-  if (!name) throw new Error("Nome prodotto obbligatorio");
+  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
+  const brand = (formData.get("brand") as string)?.trim() || null;
+  if (!name || !supplierId) throw new Error("Nome e fornitore obbligatori");
 
   await prisma.product.create({
     data: {
@@ -110,6 +129,8 @@ export async function createProduct(formData: FormData) {
       minThreshold,
       supplierId,
       udiDi,
+      udiPi,
+      brand,
     },
   });
 
@@ -215,6 +236,8 @@ export async function importStockFromCSV(formData: FormData) {
   
   const startIdx = headerIdx !== -1 ? headerIdx + 1 : 0;
 
+  let fallbackSupplierId: string | null = null;
+
   for (let i = startIdx; i < lines.length; i++) {
     const line = lines[i];
     const cols = line.split(";").map((c) => c.trim());
@@ -261,6 +284,21 @@ export async function importStockFromCSV(formData: FormData) {
       }
     }
 
+    let supplierId = supplier?.id ?? null;
+    if (!supplierId) {
+      if (!fallbackSupplierId) {
+        const fallbackName = "Fornitore non specificato";
+        const fallback = await prisma.supplier.findFirst({
+          where: { name: { equals: fallbackName, mode: "insensitive" } },
+        });
+        fallbackSupplierId = fallback
+          ? fallback.id
+          : (await prisma.supplier.create({ data: { name: fallbackName } })).id;
+      }
+      supplierId = fallbackSupplierId;
+    }
+    if (!supplierId) throw new Error("Fornitore mancante");
+
     const productName = `${type || "Dispositivo"} ${brand || ""}`.trim();
     
     let product: { id: string; udiDi: string | null } | null = null;
@@ -300,8 +338,10 @@ export async function importStockFromCSV(formData: FormData) {
         data: {
           name: productName,
           serviceType: type,
-          supplierId: supplier?.id,
+          supplierId,
           udiDi: udiDi || null,
+          udiPi: udiPi || null,
+          brand: brand || null,
         },
       });
     }

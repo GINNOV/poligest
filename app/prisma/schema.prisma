@@ -442,14 +442,16 @@ model Product {
   name         String
   sku          String?  @unique
   udiDi        String? // Unique Device Identification - Device Identifier
+  udiPi        String?
+  brand        String?
   serviceType  String?
   unitCost     Decimal? @db.Decimal(10, 2)
   minThreshold Int      @default(0)
-  supplierId   String?
+  supplierId   String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  supplier       Supplier        @relation(fields: [supplierId], references: [id])
   stockMovements StockMovement[]
 
   @@index([name])

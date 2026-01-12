@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   const rows = movements.map(m => {
     const patientName = m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "";
     const deviceType = m.product.serviceType || "Impianto";
-    const brand = m.product.supplier?.name || "";
+    const brand = m.product.brand || m.product.supplier?.name || "";
     const pDate = m.purchaseDate ? format(m.purchaseDate, "dd/MM/yyyy") : "";
     const udiDi = m.product.udiDi || "";
     const udiPi = m.udiPi || "";

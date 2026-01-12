@@ -7,10 +7,32 @@ import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
-export default async function MagazzinoPage() {
+type MagazzinoPageProps = {
+  searchParams?: Promise<{ q?: string; mq?: string }>;
+};
+
+export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const query = typeof resolvedParams?.q === "string" ? resolvedParams.q.trim() : "";
+  const movementQuery = typeof resolvedParams?.mq === "string" ? resolvedParams.mq.trim() : "";
+  const productPrintHref = query
+    ? `/magazzino/print/prodotti?q=${encodeURIComponent(query)}`
+    : "/magazzino/print/prodotti";
+  const movementPrintHref = movementQuery
+    ? `/magazzino/print/movimenti?mq=${encodeURIComponent(movementQuery)}`
+    : "/magazzino/print/movimenti";
   const [productsRaw, suppliers, movements] = await Promise.all([
     prisma.product.findMany({
+      where: query
+        ? {
+            OR: [
+              { name: { contains: query, mode: "insensitive" } },
+              { udiDi: { contains: query, mode: "insensitive" } },
+              { udiPi: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : undefined,
       include: {
         supplier: true,
         stockMovements: { select: { quantity: true, movement: true } },
@@ -20,6 +42,17 @@ export default async function MagazzinoPage() {
     prisma.supplier.findMany({ orderBy: { name: "asc" } }),
     prisma.stockMovement.findMany({
       take: 50,
+      where: movementQuery
+        ? {
+            OR: [
+              { product: { name: { contains: movementQuery, mode: "insensitive" } } },
+              { product: { udiDi: { contains: movementQuery, mode: "insensitive" } } },
+              { udiPi: { contains: movementQuery, mode: "insensitive" } },
+              { patient: { firstName: { contains: movementQuery, mode: "insensitive" } } },
+              { patient: { lastName: { contains: movementQuery, mode: "insensitive" } } },
+            ],
+          }
+        : undefined,
       orderBy: { createdAt: "desc" },
       include: {
         product: true,
@@ -93,67 +126,111 @@ export default async function MagazzinoPage() {
           </Link>
         </div>
 
-        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-          <table className="min-w-full divide-y divide-zinc-100">
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <th className="px-4 py-3">Prodotto</th>
-                <th className="px-4 py-3">UDI-DI / SKU</th>
-                <th className="px-4 py-3">Fornitore</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3">Soglia</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 text-sm">
-              {products.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-4 text-zinc-600" colSpan={5}>
-                    Nessun prodotto a catalogo.
-                  </td>
-                </tr>
-              ) : (
-                products.map((p) => {
-                  const low = p.stock <= p.minThreshold;
-                  return (
-                    <tr key={p.id} className="hover:bg-zinc-50">
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-zinc-900">{p.name}</span>
-                          <span className="text-xs text-zinc-500">
-                            {p.serviceType ?? "Generico"}
-                          </span>
-                        </div>
+        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(movementQuery)}>
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900">
+            Lista prodotti
+          </summary>
+          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
+            <form className="flex flex-wrap items-center gap-3" method="get">
+              {movementQuery ? (
+                <input type="hidden" name="mq" value={movementQuery} />
+              ) : null}
+              <div className="flex-1 min-w-[220px]">
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Cerca per nome o UDI"
+                  defaultValue={query}
+                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                Cerca
+              </button>
+              {query ? (
+                <Link
+                  href={movementQuery ? `/magazzino?mq=${encodeURIComponent(movementQuery)}` : "/magazzino"}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+                >
+                  Annulla
+                </Link>
+              ) : null}
+              <a
+                href={productPrintHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                Stampa lista
+              </a>
+            </form>
+
+            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
+              <table className="min-w-full divide-y divide-zinc-100">
+                <thead className="bg-zinc-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3">Prodotto</th>
+                    <th className="px-4 py-3">UDI-DI / UDI-PI</th>
+                    <th className="px-4 py-3">Fornitore</th>
+                    <th className="px-4 py-3">Stock</th>
+                    <th className="px-4 py-3">Soglia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 text-sm">
+                  {products.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-4 text-zinc-600" colSpan={5}>
+                        Nessun prodotto a catalogo.
                       </td>
-                      <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
-                        <div className="flex flex-col gap-0.5">
-                          <span>UDI-DI {p.udiDi ?? "—"}</span>
-                          <span className="text-[11px] text-zinc-400">SKU {p.sku ?? "—"}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-700">
-                        {p.supplier?.name ?? "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                            low
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-emerald-50 text-emerald-800"
-                          }`}
-                        >
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-700">{p.minThreshold}</td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ) : (
+                    products.map((p) => {
+                      const low = p.stock <= p.minThreshold;
+                      return (
+                        <tr key={p.id} className="hover:bg-zinc-50">
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-zinc-900">{p.name}</span>
+                              <span className="text-xs text-zinc-500">
+                                {p.serviceType ?? "Generico"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
+                            <div className="flex flex-col gap-0.5">
+                              <span>UDI-DI {p.udiDi ?? "—"}</span>
+                              <span className="text-[11px] text-zinc-400">UDI-PI {p.udiPi ?? "—"}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-700">
+                            {p.supplier?.name ?? "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                low
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-emerald-50 text-emerald-800"
+                              }`}
+                            >
+                              {p.stock}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-700">{p.minThreshold}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
 
       {/* Movements Section */}
@@ -162,70 +239,112 @@ export default async function MagazzinoPage() {
           <h2 className="text-lg font-semibold text-zinc-900">Ultimi Movimenti</h2>
         </div>
 
-        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-          <table className="min-w-full divide-y divide-zinc-100">
-            <thead className="bg-zinc-50">
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                <th className="px-4 py-3">Data</th>
-                <th className="px-4 py-3">Paziente</th>
-                <th className="px-4 py-3">Prodotto</th>
-                <th className="px-4 py-3">UDI-PI (Lotto)</th>
-                <th className="px-4 py-3">Qta</th>
-                <th className="px-4 py-3">Sede</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100 text-sm">
-              {movements.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-4 text-zinc-600" colSpan={6}>
-                    Nessun movimento recente.
-                  </td>
-                </tr>
-              ) : (
-                movements.map((m) => (
-                  <tr key={m.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-zinc-600">
-                      {m.interventionDate
-                        ? format(m.interventionDate, "dd/MM/yyyy")
-                        : format(m.createdAt, "dd/MM/yyyy HH:mm")}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">
-                      {m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-zinc-900">{m.product.name}</span>
-                        <span className="text-xs text-zinc-500 font-mono">
-                          {m.product.udiDi || "—"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
-                      {m.udiPi ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
-                          m.movement === "IN"
-                            ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                            : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10"
-                        }`}
-                      >
-                        {m.movement === "IN" ? "+" : "-"}
-                        {m.quantity}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-600 text-xs">
-                      {m.interventionSite ?? "—"}
-                    </td>
+        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(query)}>
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900">
+            Lista movimenti
+          </summary>
+          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
+            <form className="flex flex-wrap items-center gap-3" method="get">
+              {query ? <input type="hidden" name="q" value={query} /> : null}
+              <div className="flex-1 min-w-[220px]">
+                <input
+                  type="search"
+                  name="mq"
+                  placeholder="Cerca movimenti"
+                  defaultValue={movementQuery}
+                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                Cerca
+              </button>
+              {movementQuery ? (
+                <Link
+                  href={query ? `/magazzino?q=${encodeURIComponent(query)}` : "/magazzino"}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+                >
+                  Annulla
+                </Link>
+              ) : null}
+              <a
+                href={movementPrintHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+              >
+                Stampa lista
+              </a>
+            </form>
+
+            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
+              <table className="min-w-full divide-y divide-zinc-100">
+                <thead className="bg-zinc-50">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    <th className="px-4 py-3">Data</th>
+                    <th className="px-4 py-3">Paziente</th>
+                    <th className="px-4 py-3">Prodotto</th>
+                    <th className="px-4 py-3">UDI-PI (Lotto)</th>
+                    <th className="px-4 py-3">Qta</th>
+                    <th className="px-4 py-3">Sede</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 text-sm">
+                  {movements.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-4 text-zinc-600" colSpan={6}>
+                        Nessun movimento recente.
+                      </td>
+                    </tr>
+                  ) : (
+                    movements.map((m) => (
+                      <tr key={m.id} className="hover:bg-zinc-50">
+                        <td className="px-4 py-3 text-zinc-600">
+                          {m.interventionDate
+                            ? format(m.interventionDate, "dd/MM/yyyy")
+                            : format(m.createdAt, "dd/MM/yyyy HH:mm")}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-zinc-900">
+                          {m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col">
+                            <span className="text-zinc-900">{m.product.name}</span>
+                            <span className="text-xs text-zinc-500 font-mono">
+                              {m.product.udiDi || "—"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
+                          {m.udiPi ?? "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                              m.movement === "IN"
+                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                                : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10"
+                            }`}
+                          >
+                            {m.movement === "IN" ? "+" : "-"}
+                            {m.quantity}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-zinc-600 text-xs">
+                          {m.interventionSite ?? "—"}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
       </div>
 
     </div>
