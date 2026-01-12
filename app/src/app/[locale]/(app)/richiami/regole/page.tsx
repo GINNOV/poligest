@@ -6,7 +6,7 @@ import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
 
 export default async function RichiamiRegolePage() {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const serviceClient = prismaModels["service"] as
