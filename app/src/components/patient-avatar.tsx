@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 
 type Props = {
@@ -54,14 +54,20 @@ export function PatientAvatar({ src, alt, size, className }: Props) {
       : genderGuess === "male"
         ? [maleFallback, ...avatarPool]
         : avatarPool;
-  const [randomAvatar] = useState(
-    () => genderPool[Math.floor(Math.random() * genderPool.length)] ?? fallback
-  );
-  const [currentSrc, setCurrentSrc] = useState(src || randomAvatar || fallback);
+  const deterministicAvatar = useMemo(() => {
+    const value = alt.trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = (hash * 31 + value.charCodeAt(i)) | 0;
+    }
+    const index = Math.abs(hash) % genderPool.length;
+    return genderPool[index] ?? fallback;
+  }, [alt, genderPool, fallback]);
+  const [currentSrc, setCurrentSrc] = useState(src || deterministicAvatar || fallback);
 
   useEffect(() => {
-    setCurrentSrc(src || randomAvatar || fallback);
-  }, [src, randomAvatar, fallback]);
+    setCurrentSrc(src || deterministicAvatar || fallback);
+  }, [src, deterministicAvatar, fallback]);
 
   return (
     // Using <img> avoids Next image optimization errors on missing uploads.
