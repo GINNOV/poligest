@@ -14,6 +14,7 @@ type CalendarAppointment = {
   patientId: string;
   doctorId: string | null;
   status: string;
+  notes?: string | null;
 };
 
 type CalendarDay = {
@@ -390,6 +391,7 @@ export function CalendarMonthView({
                   patientId: selectedAppointment.patientId,
                   doctorId: selectedAppointment.doctorId,
                   status: selectedAppointment.status,
+                  notes: selectedAppointment.notes ?? "",
                 }}
                 patients={patients}
                 doctors={doctors}

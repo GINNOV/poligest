@@ -23,6 +23,7 @@ type AppointmentUpdateFormProps = {
     patientId: string;
     doctorId: string | null;
     status: string;
+    notes?: string | null;
   };
   patients: Person[];
   doctors: Doctor[];
@@ -275,6 +276,15 @@ export function AppointmentUpdateForm({
         </select>
       </label>
       <input type="hidden" name="status" value={appointment.status} />
+      <label className="col-span-full flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+        Note
+        <textarea
+          name="notes"
+          defaultValue={appointment.notes ?? ""}
+          className="min-h-[80px] rounded-lg border border-zinc-200 px-2 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          placeholder="Note per il team o dettagli sul paziente/servizio"
+        />
+      </label>
       {error ? (
         <p className="col-span-full rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{error}</p>
       ) : null}

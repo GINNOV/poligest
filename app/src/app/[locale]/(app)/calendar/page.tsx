@@ -37,6 +37,7 @@ type CalendarAppointmentRecord = {
   patientId: string;
   doctorId: string | null;
   status: AppointmentStatus;
+  notes: string | null;
   patient: { firstName: string; lastName: string };
 };
 
@@ -318,6 +319,7 @@ async function updateAppointment(formData: FormData) {
     const patientId = formData.get("patientId") as string;
     const doctorId = (formData.get("doctorId") as string) || null;
     const status = formData.get("status") as AppointmentStatus;
+    const notes = (formData.get("notes") as string)?.trim() || null;
 
     if (!appointmentId || !title || !serviceType || !startsAt || !endsAt || !patientId) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
@@ -375,6 +377,7 @@ async function updateAppointment(formData: FormData) {
         patientId,
         doctorId,
         status,
+        notes,
       },
     });
 
@@ -521,7 +524,16 @@ export default async function CalendarPage({
             startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
           },
           orderBy: { startsAt: "asc" },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            serviceType: true,
+            startsAt: true,
+            endsAt: true,
+            patientId: true,
+            doctorId: true,
+            status: true,
+            notes: true,
             patient: { select: { firstName: true, lastName: true } },
           },
         })
@@ -532,7 +544,16 @@ export default async function CalendarPage({
               startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
             },
             orderBy: { startsAt: "asc" },
-            include: {
+            select: {
+              id: true,
+              title: true,
+              serviceType: true,
+              startsAt: true,
+              endsAt: true,
+              patientId: true,
+              doctorId: true,
+              status: true,
+              notes: true,
               patient: { select: { firstName: true, lastName: true } },
             },
           })
@@ -689,6 +710,7 @@ export default async function CalendarPage({
         patientId: appt.patientId,
         doctorId: appt.doctorId,
         status: appt.status,
+        notes: appt.notes ?? null,
       })),
     };
   });
@@ -730,6 +752,7 @@ export default async function CalendarPage({
         patientId: appt.patientId,
         doctorId: appt.doctorId,
         status: appt.status,
+        notes: appt.notes ?? null,
       })),
     };
   });
