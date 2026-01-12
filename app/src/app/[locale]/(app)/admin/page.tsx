@@ -94,7 +94,7 @@ export default async function AdminPage() {
     },
     {
       key: "email-templates",
-      title: "Template email",
+      title: "Gestione emails",
       description: "Editor, anteprima e invio di test per le email di sistema.",
       href: "/admin/emails",
       badge: emailTemplatesCount ? `${emailTemplatesCount} template` : "Nessun template",

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, RecallStatus } from "@prisma/client";
 import { sendSms } from "@/lib/sms";
+import { replacePlaceholders } from "@/lib/email-template-utils";
 import { sendEmail } from "@/lib/email";
+import { getEmailTemplateByName } from "@/lib/email-templates";
 import { errorResponse } from "@/lib/error-response";
 
 const HORIZON_DAYS = 30;
@@ -235,17 +237,32 @@ export async function GET(req: Request) {
         });
         continue;
       }
-      const appointmentLabel = new Intl.DateTimeFormat("it-IT", {
+      const appointmentDate = new Intl.DateTimeFormat("it-IT", {
         dateStyle: "medium",
+      }).format(appointment.startsAt);
+      const appointmentTime = new Intl.DateTimeFormat("it-IT", {
         timeStyle: "short",
       }).format(appointment.startsAt);
       const doctorLabel = appointment.doctor?.fullName ?? "lo staff";
-      const subject = rule.emailSubject ?? "Promemoria appuntamento";
       const patientName =
         `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
-      const body =
+      const placeholderData = {
+        patientName,
+        appointmentDate,
+        appointmentTime,
+        doctorName: doctorLabel,
+        button: "",
+      };
+      const reminderExtras = rule as unknown as { templateName?: string | null };
+      const templateName = reminderExtras.templateName ?? "appointment-reminder";
+      const template = await getEmailTemplateByName(templateName);
+      const subjectSource = template?.subject ?? rule.emailSubject ?? "Promemoria appuntamento";
+      const bodySource =
+        template?.body ??
         rule.message ??
-        `Gentile ${patientName}, promemoria per l'appuntamento del ${appointmentLabel} con ${doctorLabel}.`;
+        "Gentile {{patientName}}, promemoria per l'appuntamento del {{appointmentDate}} alle {{appointmentTime}} con {{doctorName}}.";
+      const subject = replacePlaceholders(subjectSource, placeholderData);
+      const body = replacePlaceholders(bodySource, placeholderData);
 
       const channel = rule.channel ?? "EMAIL";
       const wantsEmail = channel === "EMAIL" || channel === "BOTH";

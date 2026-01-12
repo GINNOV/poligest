@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { NotificationChannel, Role } from "@prisma/client";
+import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
 
 export default async function RichiamiRegolePage() {
@@ -12,17 +13,20 @@ export default async function RichiamiRegolePage() {
     | { findMany?: (args: unknown) => Promise<unknown[]> }
     | undefined;
 
-  const [rules, servicesRaw, appointmentReminderRule] = await Promise.all([
+  const [rules, servicesRaw, appointmentReminderRule, emailTemplates] = await Promise.all([
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
     prisma.appointmentReminderRule.findFirst(),
+    getAllEmailTemplates(),
   ]);
 
   const services = servicesRaw as Array<{ id: string; name: string }>;
+  const reminderRuleExtras = appointmentReminderRule as unknown as { templateName?: string | null } | null;
   const appointmentReminderDefaults = {
     id: appointmentReminderRule?.id ?? "",
     daysBefore: appointmentReminderRule?.daysBefore ?? 1,
     channel: appointmentReminderRule?.channel ?? NotificationChannel.EMAIL,
+    templateName: reminderRuleExtras?.templateName ?? "appointment-reminder",
     emailSubject: appointmentReminderRule?.emailSubject ?? "",
     message: appointmentReminderRule?.message ?? "",
     enabled: appointmentReminderRule?.enabled ?? true,
@@ -300,23 +304,18 @@ export default async function RichiamiRegolePage() {
               </select>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Oggetto email</span>
-              <input
-                name="emailSubject"
-                placeholder="Facoltativo"
-                defaultValue={appointmentReminderDefaults.emailSubject}
+              <span className="text-xs font-semibold uppercase text-emerald-700">Template email</span>
+              <select
+                name="templateName"
+                defaultValue={appointmentReminderDefaults.templateName}
                 className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              />
-            </label>
-            <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Messaggio</span>
-              <textarea
-                name="message"
-                placeholder="Facoltativo: se vuoto useremo un promemoria standard."
-                defaultValue={appointmentReminderDefaults.message}
-                className="w-full rounded-xl border border-emerald-100 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                rows={3}
-              />
+              >
+                {emailTemplates.map((template) => (
+                  <option key={template.id} value={template.name}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <button
               type="submit"

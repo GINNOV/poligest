@@ -64,8 +64,18 @@ export async function getAllEmailTemplates() {
 }
 
 export async function getEmailTemplateByName(name: string) {
+  const normalized = typeof name === "string" ? name.trim() : "";
+  if (!normalized) return null;
   await ensureDefaultTemplates();
-  const template = await prisma.emailTemplate.findUnique({ where: { name } });
+  let template = await prisma.emailTemplate.findUnique({ where: { name: normalized } });
+  if (!template) {
+    template = await prisma.emailTemplate.findUnique({ where: { id: normalized } });
+  }
+  if (!template) {
+    template = await prisma.emailTemplate.findFirst({
+      where: { name: { equals: normalized, mode: "insensitive" } },
+    });
+  }
   if (template) return template;
   const fallback = defaultEmailTemplates.find((t) => t.name === name);
   if (!fallback) return null;

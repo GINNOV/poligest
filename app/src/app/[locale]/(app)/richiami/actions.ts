@@ -71,6 +71,7 @@ export async function updateAppointmentReminderRule(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const ruleId = (formData.get("ruleId") as string) || null;
   const daysBefore = Number(formData.get("daysBefore"));
+  const templateName = (formData.get("templateName") as string)?.trim() || null;
   const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
   const message = (formData.get("message") as string)?.trim() || null;
   const enabled = formData.get("enabled") === "on";
@@ -83,22 +84,57 @@ export async function updateAppointmentReminderRule(formData: FormData) {
     throw new Error("Intervallo non valido");
   }
 
-  if (ruleId) {
-    await prisma.appointmentReminderRule.update({
-      where: { id: ruleId },
-      data: { daysBefore, channel, emailSubject, message, enabled },
-    });
-  } else {
-    const existing = await prisma.appointmentReminderRule.findFirst();
-    if (existing) {
+  const data: Record<string, unknown> = {
+    daysBefore,
+    channel,
+    emailSubject,
+    message,
+    enabled,
+    templateName,
+  };
+
+  try {
+    if (ruleId) {
       await prisma.appointmentReminderRule.update({
-        where: { id: existing.id },
-        data: { daysBefore, channel, emailSubject, message, enabled },
+        where: { id: ruleId },
+        data: data as Prisma.AppointmentReminderRuleUpdateInput,
       });
     } else {
-      await prisma.appointmentReminderRule.create({
-        data: { daysBefore, channel, emailSubject, message, enabled },
-      });
+      const existing = await prisma.appointmentReminderRule.findFirst();
+      if (existing) {
+        await prisma.appointmentReminderRule.update({
+          where: { id: existing.id },
+          data: data as Prisma.AppointmentReminderRuleUpdateInput,
+        });
+      } else {
+        await prisma.appointmentReminderRule.create({
+          data: data as Prisma.AppointmentReminderRuleCreateInput,
+        });
+      }
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.includes("Unknown argument `templateName`")) {
+      delete data.templateName;
+      if (ruleId) {
+        await prisma.appointmentReminderRule.update({
+          where: { id: ruleId },
+          data: data as Prisma.AppointmentReminderRuleUpdateInput,
+        });
+      } else {
+        const existing = await prisma.appointmentReminderRule.findFirst();
+        if (existing) {
+          await prisma.appointmentReminderRule.update({
+            where: { id: existing.id },
+            data: data as Prisma.AppointmentReminderRuleUpdateInput,
+          });
+        } else {
+          await prisma.appointmentReminderRule.create({
+            data: data as Prisma.AppointmentReminderRuleCreateInput,
+          });
+        }
+      }
+    } else {
+      throw err;
     }
   }
 

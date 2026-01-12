@@ -26,6 +26,19 @@ Sono previste tre tipologie:
 
 ---
 
+## Promemoria appuntamenti
+
+Per inviare promemoria automatici prima degli appuntamenti:
+1. Vai in **Richiami → Regole automatiche**.
+2. Nella sezione **Promemoria appuntamenti**, attiva **Attivo**.
+3. Imposta **Invia (giorni prima)** a `1` per il promemoria 24 ore prima.
+4. Seleziona il **Canale** (Email o Email + SMS).
+5. Salva con **Salva promemoria appuntamenti**.
+
+Il promemoria viene inviato solo se l'appuntamento è programmato e l'indirizzo email del paziente è presente.
+
+---
+
 ## Festività coperte
 
 Le festività incluse nell'invio automatico sono:

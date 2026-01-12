@@ -9,10 +9,11 @@ export const dynamic = "force-dynamic";
 export default async function EmailTemplateEditPage({
   params,
 }: {
-  params: { templateName: string };
+  params: Promise<{ templateName: string }>;
 }) {
   await requireUser([Role.ADMIN]);
-  const template = await getEmailTemplateByName(params.templateName);
+  const resolvedParams = await params;
+  const template = await getEmailTemplateByName(resolvedParams.templateName);
 
   if (!template) {
     return (
@@ -33,7 +34,7 @@ export default async function EmailTemplateEditPage({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-            Template email
+            Gestione emails
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-zinc-900">{template.name}</h1>
         </div>

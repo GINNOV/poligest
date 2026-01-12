@@ -561,6 +561,7 @@ model AppointmentReminderRule {
   id           String              @id @default(cuid())
   daysBefore   Int
   channel      NotificationChannel @default(EMAIL)
+  templateName String?
   emailSubject String?
   message      String?
   enabled      Boolean             @default(true)

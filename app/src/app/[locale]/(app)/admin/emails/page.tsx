@@ -19,7 +19,7 @@ export default async function AdminEmailsPage() {
     <div className="space-y-6">
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Email</p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Template email</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Gestione emails</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Gestisci i template transazionali, anteprima live e invio di test.
         </p>
@@ -45,7 +45,7 @@ export default async function AdminEmailsPage() {
                         Modifica
                       </span>
                     </div>
-                    <p className="text-sm text-zinc-600">{tpl.description ?? "Template email"}</p>
+                    <p className="text-sm text-zinc-600">{tpl.description ?? "Gestione emails"}</p>
                   </div>
                   <div className="mt-4 text-xs text-zinc-500">Oggetto: {tpl.subject}</div>
                 </Link>
