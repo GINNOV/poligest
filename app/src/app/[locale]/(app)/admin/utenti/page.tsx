@@ -27,8 +27,8 @@ async function resolveStackUserIdByEmail(email: string, displayName?: string | n
   });
   const users = Array.isArray(result) ? result : [];
   const match =
-    users.find((u) => (u.primaryEmail ?? u.email ?? "").toLowerCase() === normalized) ??
-    users.find((u) => (u.primaryEmail ?? u.email ?? "").toLowerCase().includes(normalized)) ??
+    users.find((u) => (u.primaryEmail ?? "").toLowerCase() === normalized) ??
+    users.find((u) => (u.primaryEmail ?? "").toLowerCase().includes(normalized)) ??
     null;
   if (match?.id) {
     return match.id as string;
@@ -39,9 +39,7 @@ async function resolveStackUserIdByEmail(email: string, displayName?: string | n
     includeAnonymous: true,
   });
   const fallbackUsers = Array.isArray(fallback) ? fallback : [];
-  const fallbackMatch = fallbackUsers.find(
-    (u) => (u.primaryEmail ?? u.email ?? "").toLowerCase() === normalized
-  );
+  const fallbackMatch = fallbackUsers.find((u) => (u.primaryEmail ?? "").toLowerCase() === normalized);
   if (fallbackMatch?.id) {
     return fallbackMatch.id as string;
   }
