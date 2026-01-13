@@ -182,10 +182,6 @@ export default async function PazientiListaPage({
             Consensi obbligatori mancanti
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-amber-500">⚠️</span>
-            Dati di contatto mancanti
-          </span>
-          <span className="inline-flex items-center gap-1">
             <span className="text-zinc-500">📧</span>
             Email mancante
           </span>
@@ -226,42 +222,47 @@ export default async function PazientiListaPage({
             paginatedPatients.map((patient) => {
               const missingEmail = !patient.email;
               const missingPhone = !patient.phone;
-              const missingCount = Number(missingEmail) + Number(missingPhone);
               const hasMissingRequired = requiredModules.some(
                 (module) => !patient.consents?.some((c) => c.moduleId === module.id),
               );
-              let badge: React.ReactNode = null;
+              const indicators: Array<{ title: string; className: string; icon: string }> = [];
               if (hasMissingRequired) {
-                badge = (
-                  <span title="Consensi obbligatori mancanti" className="text-rose-600">
-                    ▲
-                  </span>
-                );
-              } else if (missingCount > 1) {
-                badge = (
-                  <span title="Dati di contatto mancanti" className="text-amber-500">
-                    ⚠️
-                  </span>
-                );
-              } else if (missingEmail) {
-                badge = (
-                  <span title="Email mancante" className="text-zinc-500">
-                    📧
-                  </span>
-                );
-              } else if (missingPhone) {
-                badge = (
-                  <span title="Telefono mancante" className="text-zinc-500">
-                    ☎️
-                  </span>
-                );
-              } else {
-                badge = (
-                  <span title="Dati completi" className="text-emerald-600">
-                    ✓
-                  </span>
-                );
+                indicators.push({
+                  title: "Consensi obbligatori mancanti",
+                  className: "text-rose-600",
+                  icon: "▲",
+                });
               }
+              if (missingEmail) {
+                indicators.push({
+                  title: "Email mancante",
+                  className: "text-zinc-500",
+                  icon: "📧",
+                });
+              }
+              if (missingPhone) {
+                indicators.push({
+                  title: "Telefono mancante",
+                  className: "text-zinc-500",
+                  icon: "☎️",
+                });
+              }
+              if (indicators.length === 0) {
+                indicators.push({
+                  title: "Dati completi",
+                  className: "text-emerald-600",
+                  icon: "✓",
+                });
+              }
+              const badge = indicators.map((item, index) => (
+                <span
+                  key={`${patient.id}-indicator-${index}`}
+                  title={item.title}
+                  className={item.className}
+                >
+                  {item.icon}
+                </span>
+              ));
 
               return (
                 <div
