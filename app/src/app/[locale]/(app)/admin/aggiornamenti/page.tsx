@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
+import { FeatureUpdateMarkdownPreview } from "@/components/feature-update-markdown";
 
 const updateClient = (prisma as unknown as Record<string, unknown>)["featureUpdate"] as
   | {
@@ -74,10 +75,6 @@ export default async function AdminUpdatesPage() {
           Imposta un messaggio in Markdown che verrà mostrato allo staff (non ai pazienti) una sola
           volta per utente.
         </p>
-        <p className="mt-2 text-sm text-zinc-600">
-          Le immagini vanno caricate in <code className="rounded bg-zinc-100 px-1">public/updates</code> e
-          referenziate come <code className="rounded bg-zinc-100 px-1">/updates/nome-file.png</code>.
-        </p>
       </div>
 
       {!updateClient?.findFirst ? (
@@ -120,33 +117,35 @@ export default async function AdminUpdatesPage() {
                 required
               />
             </label>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
-              <input
-                type="checkbox"
-                name="isActive"
-                className="h-4 w-4 rounded border-zinc-300"
-                defaultChecked={latest?.isActive ?? true}
-              />
-              Mostra popup allo staff
-            </label>
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-            >
-              Salva
-            </button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  className="h-4 w-4 rounded border-zinc-300"
+                  defaultChecked={latest?.isActive ?? true}
+                />
+                Mostra popup allo staff
+              </label>
+              <button
+                type="submit"
+                className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 sm:w-auto"
+              >
+                Aggiorna
+              </button>
+            </div>
           </form>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">Stato attuale</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">Anteprima</h2>
           {latest ? (
-            <div className="mt-4 space-y-2 text-sm text-zinc-700">
-              <div className="flex items-center justify-between">
+            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-700">
+              <div className="flex items-center gap-2">
                 <span className="text-zinc-500">Titolo</span>
                 <span className="font-semibold text-zinc-900">{latest.title}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <span className="text-zinc-500">Attivo</span>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -166,10 +165,14 @@ export default async function AdminUpdatesPage() {
           ) : (
             <p className="mt-3 text-sm text-zinc-600">Nessun messaggio configurato.</p>
           )}
-          <div className="mt-6 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700">
-            Suggerimento: usa immagini leggere (PNG/JPG) e nomi file semplici (es.{" "}
-            <code className="rounded bg-zinc-100 px-1">updates/v1-calendar.png</code>).
-          </div>
+          {latest ? (
+            <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
+              <h3 className="text-sm font-semibold text-zinc-900">Anteprima messaggio</h3>
+              <div className="mt-3">
+                <FeatureUpdateMarkdownPreview markdown={latest.bodyMarkdown} />
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -111,7 +111,7 @@ export default async function RichiamiRicorrentiPage() {
                   type="submit"
                   className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
                 >
-                  Salva impostazioni
+                  Aggiorna impostazioni
                 </button>
               </form>
             );

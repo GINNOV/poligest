@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
@@ -13,6 +13,33 @@ import { prisma } from "@/lib/prisma";
 import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 import { MobileNav } from "@/components/mobile-nav";
+import { logAudit } from "@/lib/audit";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+async function stopImpersonation() {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const store = await cookies();
+  const current = store.get("impersonateUserId")?.value;
+  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
+  if (projectId) {
+    store.delete(`stack-access-${projectId}`);
+    store.delete(`stack-refresh-${projectId}`);
+  }
+  store.delete("impersonateUserId");
+
+  if (current) {
+    await logAudit(admin, {
+      action: "admin.user.stop_impersonation",
+      entity: "User",
+      entityId: current,
+    });
+  }
+
+  redirect("/dashboard");
+}
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -82,6 +109,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-50">
       <header className="relative z-40 border-b border-zinc-200 bg-white/80 backdrop-blur">
+        {user?.impersonatedFrom ? (
+          <div className="border-b border-amber-200 bg-amber-50">
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-2 text-sm text-amber-900">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">
+                  Impersonificazione attiva: {user.name ?? user.email} ({user.role})
+                </span>
+                <span className="text-xs text-amber-800">Stai navigando come questo utente.</span>
+              </div>
+              <form action={stopImpersonation}>
+                <button className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900 transition hover:bg-amber-100">
+                  Termina impersonazione
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : null}
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4 lg:gap-8">
             <Link href="/dashboard" className="text-lg font-semibold text-emerald-800">

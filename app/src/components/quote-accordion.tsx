@@ -529,7 +529,7 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
             disabled={!signatureReady}
             className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
-            Salva preventivo
+            Aggiorna preventivo
           </FormSubmitButton>
         </div>
       </form>

@@ -105,7 +105,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
             disabled={isSaving}
             className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isSaving ? "Salvataggio..." : "Salva"}
+            {isSaving ? "Aggiornamento..." : "Aggiorna"}
           </button>
         </div>
 

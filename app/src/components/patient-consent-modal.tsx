@@ -618,7 +618,7 @@ export function PatientConsentSection({
           disabled={!signatureData || disabled || submitDisabled}
           className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Salva Modulo
+          Aggiorna Modulo
         </FormSubmitButton>
       </div>
 
@@ -704,7 +704,7 @@ export function PatientConsentSection({
                     disabled={!hasStroke}
                     className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Salva firma
+                    Aggiorna firma
                   </button>
                 </div>
               </div>

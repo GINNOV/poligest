@@ -284,7 +284,7 @@ export default async function ProfilePage() {
                   type="submit"
                   className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600"
                 >
-                  Salva
+                  Aggiorna
                 </button>
               </div>
             </form>

@@ -21,7 +21,11 @@ export default async function RichiamiRegolePage() {
   ]);
 
   const services = servicesRaw as Array<{ id: string; name: string }>;
-  const reminderRuleExtras = appointmentReminderRule as unknown as { templateName?: string | null } | null;
+  const reminderRuleExtras = appointmentReminderRule as unknown as {
+    templateName?: string | null;
+    timingType?: string | null;
+    timeOfDayMinutes?: number | null;
+  } | null;
   const appointmentReminderDefaults = {
     id: appointmentReminderRule?.id ?? "",
     daysBefore: appointmentReminderRule?.daysBefore ?? 1,
@@ -30,7 +34,16 @@ export default async function RichiamiRegolePage() {
     emailSubject: appointmentReminderRule?.emailSubject ?? "",
     message: appointmentReminderRule?.message ?? "",
     enabled: appointmentReminderRule?.enabled ?? true,
+    timingType: reminderRuleExtras?.timingType ?? "SAME_DAY_TIME",
+    timeOfDayMinutes: reminderRuleExtras?.timeOfDayMinutes ?? 540,
   };
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  };
+  const formatServiceLabel = (serviceType: string) =>
+    serviceType === "ANY" ? "Qualunque servizio" : serviceType;
 
   return (
     <div className="space-y-6">
@@ -46,7 +59,7 @@ export default async function RichiamiRegolePage() {
           href="/richiami"
           className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
         >
-          Torna alle sezioni
+        Torna ai richiami
         </Link>
       </div>
 
@@ -70,6 +83,7 @@ export default async function RichiamiRegolePage() {
                 className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 defaultValue=""
               >
+                <option value="ANY">Qualunque servizio</option>
                 <option value="" disabled>
                   Seleziona servizio
                 </option>
@@ -104,28 +118,29 @@ export default async function RichiamiRegolePage() {
                 <option value="BOTH">Email + SMS</option>
               </select>
             </label>
-            <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
-              <input
-                name="emailSubject"
-                placeholder="Facoltativo"
-                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              />
-            </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Messaggio</span>
-              <textarea
-                name="message"
-                placeholder="Facoltativo: se vuoto useremo un messaggio standard."
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                rows={3}
-              />
+              <span className="text-xs font-semibold uppercase text-zinc-500">Template</span>
+              <select
+                name="templateName"
+                required
+                defaultValue=""
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="" disabled>
+                  Seleziona template
+                </option>
+                {emailTemplates.map((template) => (
+                  <option key={template.id} value={template.name}>
+                    {template.description ?? template.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <button
               type="submit"
               className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-2"
             >
-              Salva regola automatica
+              Aggiorna regola automatica
             </button>
           </form>
 
@@ -138,10 +153,16 @@ export default async function RichiamiRegolePage() {
                 <p className="text-xs text-zinc-500">Nessuna regola configurata.</p>
               ) : (
                 rules.map((rule) => {
-                  const extras = rule as unknown as { channel?: string | null; emailSubject?: string | null };
+                  const extras = rule as unknown as {
+                    channel?: string | null;
+                    emailSubject?: string | null;
+                    templateName?: string | null;
+                  };
                   const channel = extras.channel ?? "EMAIL";
                   const emailSubject = extras.emailSubject ?? null;
-                  const serviceOptionMissing = !services.some((s) => s.name === rule.serviceType);
+                  const templateName = extras.templateName ?? null;
+                  const serviceOptionMissing =
+                    rule.serviceType !== "ANY" && !services.some((s) => s.name === rule.serviceType);
                   return (
                     <details
                       key={rule.id}
@@ -151,7 +172,7 @@ export default async function RichiamiRegolePage() {
                         <div>
                           <p className="font-semibold text-zinc-900">{rule.name}</p>
                           <p className="text-xs text-zinc-600">
-                            {rule.serviceType} · ogni {rule.intervalDays} giorni · {channel}
+                            {formatServiceLabel(rule.serviceType)} · ogni {rule.intervalDays} giorni · {channel}
                           </p>
                           {emailSubject ? (
                             <p className="text-[11px] text-zinc-500">Oggetto email: {emailSubject}</p>
@@ -178,8 +199,9 @@ export default async function RichiamiRegolePage() {
                             defaultValue={rule.serviceType}
                             className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                           >
+                            <option value="ANY">Qualunque servizio</option>
                             {serviceOptionMissing ? (
-                              <option value={rule.serviceType}>{rule.serviceType}</option>
+                              <option value={rule.serviceType}>{formatServiceLabel(rule.serviceType)}</option>
                             ) : null}
                             {services.map((s) => (
                               <option key={s.id} value={s.name}>
@@ -212,6 +234,23 @@ export default async function RichiamiRegolePage() {
                             <option value="BOTH">Email + SMS</option>
                           </select>
                         </label>
+                        <label className="flex flex-col gap-2 sm:col-span-2">
+                          <span className="text-xs font-semibold uppercase text-zinc-500">Template</span>
+                          <select
+                            name="templateName"
+                            defaultValue={templateName ?? ""}
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          >
+                            {templateName && !emailTemplates.some((template) => template.name === templateName) ? (
+                              <option value={templateName}>{templateName}</option>
+                            ) : null}
+                            {emailTemplates.map((template) => (
+                              <option key={template.id} value={template.name}>
+                                {template.description ?? template.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         <label className="flex flex-col gap-2">
                           <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
                           <input
@@ -233,7 +272,7 @@ export default async function RichiamiRegolePage() {
                           type="submit"
                           className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-2"
                         >
-                          Salva modifiche
+                          Aggiorna modifiche
                         </button>
                       </form>
                       <form
@@ -276,10 +315,21 @@ export default async function RichiamiRegolePage() {
                 defaultChecked={appointmentReminderDefaults.enabled}
                 className="h-4 w-4 rounded border-emerald-200 text-emerald-600"
               />
-              Attivo
+              Attiva regola
             </label>
           </div>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <label className="flex flex-col gap-2">
+              <span className="text-xs font-semibold uppercase text-emerald-700">Logica invio</span>
+              <select
+                name="timingType"
+                defaultValue={appointmentReminderDefaults.timingType}
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="DAYS_BEFORE">Giorni prima</option>
+                <option value="SAME_DAY_TIME">Stesso giorno a orario fisso</option>
+              </select>
+            </label>
             <label className="flex flex-col gap-2">
               <span className="text-xs font-semibold uppercase text-emerald-700">Invia (giorni prima)</span>
               <input
@@ -289,8 +339,19 @@ export default async function RichiamiRegolePage() {
                 defaultValue={appointmentReminderDefaults.daysBefore}
                 className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
+              <span className="text-[11px] text-emerald-700">Usato solo con "Giorni prima".</span>
             </label>
             <label className="flex flex-col gap-2">
+              <span className="text-xs font-semibold uppercase text-emerald-700">Orario invio</span>
+              <input
+                name="timeOfDay"
+                type="time"
+                defaultValue={formatTime(appointmentReminderDefaults.timeOfDayMinutes)}
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+              <span className="text-[11px] text-emerald-700">Default 09:00, usato con "Stesso giorno".</span>
+            </label>
+            <label className="flex flex-col gap-2 sm:col-span-2">
               <span className="text-xs font-semibold uppercase text-emerald-700">Canale</span>
               <select
                 name="channel"
@@ -319,9 +380,9 @@ export default async function RichiamiRegolePage() {
             </label>
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-2"
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-3"
             >
-              Salva promemoria appuntamenti
+              Aggiorna regola
             </button>
           </div>
         </form>

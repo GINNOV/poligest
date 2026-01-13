@@ -829,7 +829,7 @@ export function DentalChart({
                             disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
                             className="rounded-full border border-emerald-200 px-2 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Salva nota
+                            Aggiorna nota
                           </button>
                         </div>
                       </div>

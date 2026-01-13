@@ -531,6 +531,7 @@ model RecallRule {
   name         String
   serviceType  String
   intervalDays Int
+  templateName String?
   message      String?
   emailSubject String?
   channel      NotificationChannel @default(EMAIL)
@@ -565,6 +566,8 @@ model AppointmentReminderRule {
   emailSubject String?
   message      String?
   enabled      Boolean             @default(true)
+  timingType   String              @default("DAYS_BEFORE")
+  timeOfDayMinutes Int?
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 

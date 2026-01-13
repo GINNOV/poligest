@@ -20,11 +20,12 @@ async function enqueueRecurringRecalls(now: Date) {
   const rules = await prisma.recallRule.findMany();
 
   for (const rule of rules) {
+    const ruleServiceType = rule.serviceType === "ANY" ? null : rule.serviceType;
     const [lastAppointments, lastRecalls, pendingRecalls] = await prisma.$transaction([
       prisma.appointment.groupBy({
         by: ["patientId"],
         where: {
-          serviceType: rule.serviceType,
+          ...(ruleServiceType ? { serviceType: ruleServiceType } : {}),
           startsAt: { lte: now },
           status: AppointmentStatus.COMPLETED,
         },
@@ -104,7 +105,9 @@ async function enqueueAppointmentReminders(now: Date) {
   const rule = await prisma.appointmentReminderRule.findFirst({ where: { enabled: true } });
   if (!rule) return;
 
-  const upperBound = addDays(horizon, rule.daysBefore);
+  const timingType = rule.timingType === "DAYS_BEFORE" ? "DAYS_BEFORE" : "SAME_DAY_TIME";
+  const timeOfDayMinutes = typeof rule.timeOfDayMinutes === "number" ? rule.timeOfDayMinutes : 540;
+  const upperBound = timingType === "DAYS_BEFORE" ? addDays(horizon, rule.daysBefore) : horizon;
   const upcomingAppointments = await prisma.appointment.findMany({
     where: {
       startsAt: { gt: now, lte: upperBound },
@@ -115,7 +118,15 @@ async function enqueueAppointmentReminders(now: Date) {
 
   const pendingCreates = upcomingAppointments
     .map((appointment) => {
-      let dueAt = addDays(appointment.startsAt, -rule.daysBefore);
+      let dueAt: Date;
+      if (timingType === "SAME_DAY_TIME") {
+        dueAt = new Date(appointment.startsAt);
+        const hours = Math.floor(timeOfDayMinutes / 60);
+        const minutes = timeOfDayMinutes % 60;
+        dueAt.setHours(hours, minutes, 0, 0);
+      } else {
+        dueAt = addDays(appointment.startsAt, -rule.daysBefore);
+      }
       if (dueAt < now) {
         dueAt = now;
       }
@@ -163,12 +174,26 @@ export async function GET(req: Request) {
     for (const recall of dueRecalls) {
       const patient = recall.patient;
       const rule = recall.rule as any;
-      const subject = rule?.emailSubject ?? `Promemoria ${rule?.serviceType ?? ""}`;
       const patientName =
         `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
-      const body =
+      const serviceLabel = rule?.serviceType === "ANY" ? "il prossimo controllo" : rule?.serviceType ?? "";
+      const placeholderData = {
+        patientName,
+        patientFirstName: patient.firstName ?? "",
+        patientLastName: patient.lastName ?? "",
+        serviceType: serviceLabel,
+        button: "",
+      };
+      const recallExtras = rule as unknown as { templateName?: string | null };
+      const templateName = recallExtras.templateName ?? null;
+      const template = templateName ? await getEmailTemplateByName(templateName) : null;
+      const subjectSource = template?.subject ?? rule?.emailSubject ?? `Promemoria ${serviceLabel}`;
+      const bodySource =
+        template?.body ??
         rule?.message ??
-        `Gentile ${patientName}, promemoria per ${rule.serviceType}.`;
+        `Gentile {{patientName}}, promemoria per ${serviceLabel}.`;
+      const subject = replacePlaceholders(subjectSource, placeholderData);
+      const body = replacePlaceholders(bodySource, placeholderData);
 
       const channel = rule?.channel ?? "EMAIL";
       const wantsEmail = channel === "EMAIL" || channel === "BOTH";

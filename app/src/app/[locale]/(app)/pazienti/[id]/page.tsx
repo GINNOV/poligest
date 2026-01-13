@@ -1090,7 +1090,7 @@ export default async function PatientDetailPage({
                     type="submit"
                     className="w-full rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
                   >
-                    Salva foto
+                    Aggiorna foto
                   </button>
                 </form>
 
@@ -1698,7 +1698,7 @@ export default async function PatientDetailPage({
                                   type="submit"
                                   className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
                                 >
-                                  Salva
+                                  Aggiorna
                                 </button>
                               </div>
                             </form>

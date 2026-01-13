@@ -201,7 +201,7 @@ export default async function MediciPage() {
                       type="submit"
                       className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
                     >
-                      Salva
+                      Aggiorna
                     </button>
                   </form>
                   <form

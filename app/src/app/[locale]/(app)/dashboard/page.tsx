@@ -13,6 +13,7 @@ import { it } from "date-fns/locale";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
+import { normalizeItalianPhone } from "@/lib/phone";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -184,7 +185,7 @@ export default async function DashboardPage({
         },
     orderBy: { startsAt: isPatient ? "desc" : "asc" },
     include: {
-      patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true } },
+      patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true, phone: true } },
       doctor: { select: { fullName: true, specialty: true } },
     },
   });
@@ -578,46 +579,80 @@ export default async function DashboardPage({
             {listAppointments.length === 0 ? (
               <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
             ) : (
-              listAppointments.map((appt) => (
-                <div
-                  key={appt.id}
-                  className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}
-                >
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-zinc-900">
-                    {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
-                  </p>
-                  <p className="text-sm text-zinc-800">
-                    🧑‍⚕️ Paziente{" "}
-                    <Link
-                      href={`/pazienti/${appt.patient.id}`}
-                      className="font-semibold hover:text-emerald-700"
-                    >
-                      {appt.patient.lastName} {appt.patient.firstName}
-                    </Link>{" "}
-                    sarà visitato da{" "}
-                    <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
-                    {new Intl.DateTimeFormat("it-IT", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                    }).format(appt.startsAt)}{" "}
-                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
-                  </p>
-                  <p className="text-sm text-zinc-800">
-                    🕒 Il servizio richiederà circa{" "}
-                    {Math.max(
-                      1,
-                      Math.round(
-                        (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
-                      )
-                    )}{" "}
-                    ora/e.
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
+              listAppointments.map((appt) => {
+                const patientPhone = normalizeItalianPhone(appt.patient.phone);
+                const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
+                const appointmentDate = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
+                  appt.startsAt
+                );
+                const appointmentTime = new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(
+                  appt.startsAt
+                );
+                const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
+                const whatsappMessage = `Ciao ${appt.patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+                const whatsappHref = whatsappPhone
+                  ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
+                  : null;
+
+                return (
+                  <div
+                    key={appt.id}
+                    className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-2">
+                        <p className="text-sm font-semibold text-zinc-900">
+                          {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
+                        </p>
+                        <p className="text-sm text-zinc-800">
+                          🧑‍⚕️ Paziente{" "}
+                          <Link
+                            href={`/pazienti/${appt.patient.id}`}
+                            className="font-semibold hover:text-emerald-700"
+                          >
+                            {appt.patient.lastName} {appt.patient.firstName}
+                          </Link>{" "}
+                          sarà visitato da{" "}
+                          <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
+                          {new Intl.DateTimeFormat("it-IT", {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                          }).format(appt.startsAt)}{" "}
+                          alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                        </p>
+                        <p className="text-sm text-zinc-800">
+                          🕒 Il servizio richiederà circa{" "}
+                          {Math.max(
+                            1,
+                            Math.round(
+                              (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
+                            )
+                          )}{" "}
+                          ora/e.
+                        </p>
+                      </div>
+                      <div className="flex justify-end">
+                        {whatsappHref ? (
+                          <a
+                            href={whatsappHref}
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                          >
+                            <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                            Promemoria
+                          </a>
+                        ) : (
+                          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-4 text-sm font-semibold text-white opacity-70">
+                            <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                            Promemoria
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
         </div>
       </section>
     </div>

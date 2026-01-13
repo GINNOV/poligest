@@ -36,6 +36,7 @@ export async function createRecallRule(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const serviceType = (formData.get("serviceType") as string)?.trim();
   const intervalDays = Number(formData.get("intervalDays"));
+  const templateName = (formData.get("templateName") as string)?.trim() || null;
   const message = (formData.get("message") as string)?.trim() || null;
   const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
   const channelRaw = (formData.get("channel") as string) || NotificationChannel.EMAIL;
@@ -46,7 +47,15 @@ export async function createRecallRule(formData: FormData) {
     throw new Error("Dati regola non validi");
   }
 
-  const data: Record<string, unknown> = { name, serviceType, intervalDays, message, emailSubject, channel };
+  const data: Record<string, unknown> = {
+    name,
+    serviceType,
+    intervalDays,
+    templateName,
+    message,
+    emailSubject,
+    channel,
+  };
   try {
     await prisma.recallRule.create({ data: data as Prisma.RecallRuleCreateInput });
   } catch (err: unknown) {
@@ -54,6 +63,9 @@ export async function createRecallRule(formData: FormData) {
       const msg = err.message;
       if (msg.includes("Unknown argument `emailSubject`")) {
         delete data.emailSubject;
+      }
+      if (msg.includes("Unknown argument `templateName`")) {
+        delete data.templateName;
       }
       if (msg.includes("Unknown argument `channel`")) {
         delete data.channel;
@@ -71,6 +83,16 @@ export async function updateAppointmentReminderRule(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const ruleId = (formData.get("ruleId") as string) || null;
   const daysBefore = Number(formData.get("daysBefore"));
+  const timingTypeRaw = (formData.get("timingType") as string) || "SAME_DAY_TIME";
+  const timingType = timingTypeRaw === "DAYS_BEFORE" || timingTypeRaw === "SAME_DAY_TIME"
+    ? timingTypeRaw
+    : "SAME_DAY_TIME";
+  const timeOfDayRaw = (formData.get("timeOfDay") as string) || "";
+  const timeMatch = timeOfDayRaw.match(/^(\d{1,2}):(\d{2})$/);
+  const parsedMinutes = timeMatch
+    ? Math.min(23, Math.max(0, Number(timeMatch[1]))) * 60 + Math.min(59, Math.max(0, Number(timeMatch[2])))
+    : null;
+  const timeOfDayMinutes = timingType === "SAME_DAY_TIME" ? parsedMinutes ?? 540 : null;
   const templateName = (formData.get("templateName") as string)?.trim() || null;
   const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
   const message = (formData.get("message") as string)?.trim() || null;
@@ -80,17 +102,20 @@ export async function updateAppointmentReminderRule(formData: FormData) {
     ? (channelRaw as NotificationChannel)
     : NotificationChannel.EMAIL;
 
-  if (Number.isNaN(daysBefore) || daysBefore <= 0) {
+  if (timingType === "DAYS_BEFORE" && (Number.isNaN(daysBefore) || daysBefore <= 0)) {
     throw new Error("Intervallo non valido");
   }
 
+  const safeDaysBefore = Number.isNaN(daysBefore) || daysBefore <= 0 ? 1 : daysBefore;
   const data: Record<string, unknown> = {
-    daysBefore,
+    daysBefore: safeDaysBefore,
     channel,
     emailSubject,
     message,
     enabled,
     templateName,
+    timingType,
+    timeOfDayMinutes,
   };
 
   try {
@@ -113,8 +138,19 @@ export async function updateAppointmentReminderRule(formData: FormData) {
       }
     }
   } catch (err: unknown) {
-    if (err instanceof Error && err.message.includes("Unknown argument `templateName`")) {
-      delete data.templateName;
+    if (err instanceof Error) {
+      const message = err.message;
+      if (message.includes("Unknown argument `templateName`")) {
+        delete data.templateName;
+      }
+      if (message.includes("Unknown argument `timingType`")) {
+        delete data.timingType;
+      }
+      if (message.includes("Unknown argument `timeOfDayMinutes`")) {
+        delete data.timeOfDayMinutes;
+      }
+    }
+    if (err instanceof Error && err.message.includes("Unknown argument")) {
       if (ruleId) {
         await prisma.appointmentReminderRule.update({
           where: { id: ruleId },
@@ -212,6 +248,7 @@ export async function updateRecallRule(formData: FormData) {
   const name = (formData.get("name") as string)?.trim();
   const serviceType = (formData.get("serviceType") as string)?.trim();
   const intervalDays = Number(formData.get("intervalDays"));
+  const templateName = (formData.get("templateName") as string)?.trim() || null;
   const message = (formData.get("message") as string)?.trim() || null;
   const emailSubject = (formData.get("emailSubject") as string)?.trim() || null;
   const channelRaw = (formData.get("channel") as string) || NotificationChannel.EMAIL;
@@ -229,6 +266,7 @@ export async function updateRecallRule(formData: FormData) {
       name,
       serviceType,
       intervalDays,
+      templateName,
       message,
       emailSubject,
       channel,

@@ -130,7 +130,7 @@ export default async function AdminConsentModulesPage() {
               type="submit"
               className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
             >
-              Salva modulo
+              Aggiorna modulo
             </button>
           </form>
         </div>
@@ -215,7 +215,7 @@ export default async function AdminConsentModulesPage() {
                       type="submit"
                       className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
                     >
-                      Salva modifiche
+                      Aggiorna modifiche
                     </button>
                   </div>
                 </form>

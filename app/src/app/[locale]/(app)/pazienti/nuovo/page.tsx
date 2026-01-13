@@ -196,7 +196,7 @@ export default async function NuovoPazientePage() {
             type="submit"
             className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
           >
-            Salva nuovo paziente
+            Aggiorna nuovo paziente
           </button>
           <ConfirmLeaveButton
             formId="patient-create-form"

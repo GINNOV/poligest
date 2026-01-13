@@ -290,7 +290,7 @@ export function AdminDoctorAvailabilityEditor({
                         type="submit"
                         className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
                       >
-                        Salva
+                        Aggiorna
                       </button>
                     </div>
                   </form>

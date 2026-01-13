@@ -522,7 +522,7 @@ export default async function AdminCalendarSettingsPage({
                   type="submit"
                   className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                 >
-                  Salva regole
+                  Aggiorna regole
                 </button>
               </form>
             </details>
@@ -637,7 +637,7 @@ export default async function AdminCalendarSettingsPage({
                             type="submit"
                             className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
                           >
-                            Salva
+                            Aggiorna
                           </button>
                         </div>
                       </form>
