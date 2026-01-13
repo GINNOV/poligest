@@ -609,7 +609,7 @@ export default async function DashboardPage({
             Passato ✅
           </span>
         </div>
-        <div className="mt-4 divide-y divide-zinc-100">
+        <div className="mt-4 divide-y divide-zinc-100" suppressHydrationWarning>
           {orderedAppointments.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
           ) : (
