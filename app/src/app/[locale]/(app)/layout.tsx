@@ -10,12 +10,13 @@ import { SiteFooter } from "@/components/site-footer";
 import { UserMenu } from "@/components/user-menu";
 import { getAppVersion, getDeployDate } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
-import { FALLBACK_PERMISSIONS } from "@/lib/feature-access";
+import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 import { MobileNav } from "@/components/mobile-nav";
 import { logAudit } from "@/lib/audit";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 async function stopImpersonation() {
   "use server";
@@ -57,21 +58,22 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isStaff =
     user?.role === Role.ADMIN ||
     user?.role === Role.MANAGER ||
+    user?.role === ASSISTANT_ROLE ||
     user?.role === Role.SECRETARY;
   const featureAccess = isStaff && user?.role
-    ? await prisma.roleFeatureAccess.findMany({ where: { role: user.role } })
-    : [];
-  const featureAccessMap = new Map(
-    featureAccess.map((access) => [`${access.role}-${access.feature}`, access.allowed])
-  );
-  const isCalendarAllowed =
-    isStaff && user?.role
-      ? featureAccessMap.get(`${user.role}-calendar`) ??
-        (FALLBACK_PERMISSIONS[user.role]?.has("calendar") ?? false)
-      : false;
+    ? await getRoleFeatureAccess(user.role)
+    : null;
+  const isFeatureAllowed = (feature: FeatureId) =>
+    featureAccess?.isAllowed(feature) ?? false;
+  const isAgendaAllowed = isStaff && isFeatureAllowed("agenda");
+  const isCalendarAllowed = isStaff && isFeatureAllowed("calendar");
+  const isPatientsAllowed = isStaff && isFeatureAllowed("patients");
+  const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
+  const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
   const roleLabels: Record<Role, string> = {
     [Role.ADMIN]: t("roleLabels.admin"),
     [Role.MANAGER]: t("roleLabels.manager"),
+    [ASSISTANT_ROLE]: t("roleLabels.assistant"),
     [Role.SECRETARY]: t("roleLabels.secretary"),
     [Role.PATIENT]: t("roleLabels.patient"),
   };
@@ -80,11 +82,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const deployedAt = getDeployDate();
   const navLinks = [
     { href: "/dashboard", label: "Giornata" },
-    ...(isStaff ? [{ href: "/agenda", label: t("agenda") }] : []),
-    ...(isStaff ? [{ href: "/pazienti", label: t("patients") }] : []),
-    ...(isStaff ? [{ href: "/richiami", label: t("recalls") }] : []),
-    ...(isManagerOrAdmin ? [{ href: "/magazzino", label: t("inventory") }] : []),
-    ...(isManagerOrAdmin ? [{ href: "/finanza", label: t("finance") }] : []),
+    ...(isAgendaAllowed ? [{ href: "/agenda", label: t("agenda") }] : []),
+    ...(isPatientsAllowed ? [{ href: "/pazienti", label: t("patients") }] : []),
+    ...(isAgendaAllowed ? [{ href: "/richiami", label: t("recalls") }] : []),
+    ...(isManagerOrAdmin && isInventoryAllowed ? [{ href: "/magazzino", label: t("inventory") }] : []),
+    ...(isManagerOrAdmin && isFinanceAllowed ? [{ href: "/finanza", label: t("finance") }] : []),
     ...(user ? [{ href: "/profilo", label: "Profilo" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: t("admin") }] : []),
   ];
@@ -142,13 +144,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               <NavLink href="/dashboard" label="Giornata" />
               {isStaff ? (
                 <>
-                  <NavLink href="/agenda" label={t("agenda")} />
-                  <NavLink href="/pazienti" label={t("patients")} />
-                  <NavLink href="/richiami" label={t("recalls")} />
+                  {isAgendaAllowed ? <NavLink href="/agenda" label={t("agenda")} /> : null}
+                  {isPatientsAllowed ? <NavLink href="/pazienti" label={t("patients")} /> : null}
+                  {isAgendaAllowed ? <NavLink href="/richiami" label={t("recalls")} /> : null}
                   {isManagerOrAdmin ? (
                     <>
-                      <NavLink href="/magazzino" label={t("inventory")} />
-                      <NavLink href="/finanza" label={t("finance")} />
+                      {isInventoryAllowed ? <NavLink href="/magazzino" label={t("inventory")} /> : null}
+                      {isFinanceAllowed ? <NavLink href="/finanza" label={t("finance")} /> : null}
                     </>
                   ) : null}
                 </>

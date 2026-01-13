@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const renderInline = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {
@@ -87,7 +88,7 @@ export default async function ConsentPrintPage({
 }: {
   params: Promise<{ id?: string; consentId?: string }>;
 }) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const resolved = await params;
   const patientId = resolved?.id;
   const consentId = resolved?.consentId;

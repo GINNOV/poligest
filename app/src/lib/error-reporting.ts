@@ -22,13 +22,56 @@ const createErrorCode = () => {
   return `ERR-${stamp}-${rand}`;
 };
 
-const serializeError = (error: unknown) => {
+const safeStringify = (value: unknown) => {
+  try {
+    return typeof value === "string" ? value : JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const serializeError = (error: unknown): Record<string, unknown> | null => {
   if (!error) return null;
   if (error instanceof Error) {
+    const extended = error as Error & {
+      digest?: string;
+      cause?: unknown;
+      statusCode?: number;
+      humanReadableMessage?: string;
+      details?: unknown;
+    };
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
+      digest: extended.digest,
+      statusCode: extended.statusCode,
+      humanReadableMessage: extended.humanReadableMessage,
+      details: extended.details,
+      cause: extended.cause ? serializeError(extended.cause) : undefined,
+    };
+  }
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    return {
+      name: typeof record.name === "string" ? record.name : undefined,
+      message:
+        typeof record.message === "string"
+          ? record.message
+          : record.message !== undefined
+            ? safeStringify(record.message)
+            : safeStringify(error),
+      stack: typeof record.stack === "string" ? record.stack : undefined,
+      digest: typeof record.digest === "string" ? record.digest : undefined,
+      statusCode: typeof record.statusCode === "number" ? record.statusCode : undefined,
+      humanReadableMessage:
+        typeof record.humanReadableMessage === "string"
+          ? record.humanReadableMessage
+          : typeof record.human_readable_message === "string"
+            ? record.human_readable_message
+            : undefined,
+      details: record.details ?? record.extraData ?? undefined,
+      cause: record.cause ? serializeError(record.cause) : undefined,
     };
   }
   return { message: String(error) };

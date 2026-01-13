@@ -1,9 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Prisma, Role } from "@prisma/client";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   eachDayOfInterval,
   endOfWeek,
@@ -16,8 +15,6 @@ import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
 import { normalizeItalianPhone } from "@/lib/phone";
-import { logAudit } from "@/lib/audit";
-import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -50,43 +47,6 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
 };
 
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
-
-async function updateAppointmentStatus(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
-  const appointmentId = formData.get("appointmentId") as string;
-  const status = formData.get("status") as AppointmentStatus;
-  const returnToRaw = (formData.get("returnTo") as string) || "/dashboard";
-
-  if (!appointmentId || !status || !Object.keys(AppointmentStatus).includes(status)) {
-    throw new Error("Dati aggiornamento non validi");
-  }
-
-  const current = await prisma.appointment.findUnique({
-    where: { id: appointmentId },
-    select: { status: true },
-  });
-  if (!current) throw new Error("Appuntamento non trovato");
-  if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
-    throw new Error("Solo l'admin può modificare appuntamenti completati");
-  }
-
-  await prisma.appointment.update({
-    where: { id: appointmentId },
-    data: { status },
-  });
-
-  await logAudit(user, {
-    action: "appointment.status_updated",
-    entity: "Appointment",
-    entityId: appointmentId,
-    metadata: { status },
-  });
-
-  revalidatePath("/dashboard");
-  redirect(returnToRaw);
-}
 
 type StatCardProps = { label: string; value: number };
 
@@ -172,6 +132,7 @@ export default async function DashboardPage({
   const user = await requireUser([
     Role.ADMIN,
     Role.MANAGER,
+    ASSISTANT_ROLE,
     Role.SECRETARY,
     Role.PATIENT,
   ]);
@@ -251,15 +212,6 @@ export default async function DashboardPage({
       : Array.isArray(params.doctor)
         ? params.doctor[0] ?? ""
         : "";
-  const returnToParams = new URLSearchParams();
-  if (view === "day") {
-    returnToParams.set("view", "day");
-    returnToParams.set("day", selectedDay);
-  }
-  if (selectedDoctor && selectedDoctor !== "all") {
-    returnToParams.set("doctor", selectedDoctor);
-  }
-  const returnTo = `/dashboard${returnToParams.toString() ? `?${returnToParams.toString()}` : ""}`;
   const filteredByDoctor =
     selectedDoctor && selectedDoctor !== "all"
       ? (view === "day" ? selectedAppointments : appointments).filter(
@@ -283,11 +235,6 @@ export default async function DashboardPage({
       .filter((appt) => appt.startsAt < now && !isSameDay(appt.startsAt, now))
       .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()),
   ];
-  const statusOptions = Object.values(AppointmentStatus).map((status) => ({
-    value: status,
-    label: statusLabels[status],
-  }));
-
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
     ? appointments
@@ -746,29 +693,21 @@ export default async function DashboardPage({
                             </div>
                           </div>
                         </div>
-                        <div className="grid w-full grid-cols-2 gap-2 text-xs sm:w-auto">
+                        <div className="flex justify-end">
                           {whatsappHref ? (
                             <a
                               href={whatsappHref}
-                              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600 sm:w-auto"
                             >
                               <Image src="/whatsapp.png" alt="" width={18} height={18} />
                               Promemoria
                             </a>
                           ) : (
-                            <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70">
+                            <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70 sm:w-auto">
                               <Image src="/whatsapp.png" alt="" width={18} height={18} />
                               Promemoria
                             </span>
                           )}
-                          <AppointmentStatusAutoSubmit
-                            appointmentId={appt.id}
-                            defaultValue={appt.status}
-                            options={statusOptions}
-                            action={updateAppointmentStatus}
-                            className="w-full"
-                            returnTo={returnTo}
-                          />
                         </div>
                       </div>
                     </div>

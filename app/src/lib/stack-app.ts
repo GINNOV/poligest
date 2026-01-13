@@ -42,9 +42,7 @@ export function getStackServerApp(explicitOrigin?: string) {
   const siteOrigin = normalizeSiteOrigin(explicitOrigin) || resolveDefaultSiteOrigin();
   const browserBaseUrl = process.env.NEXT_PUBLIC_STACK_BROWSER_URL
     ? normalizeSiteOrigin(process.env.NEXT_PUBLIC_STACK_BROWSER_URL)
-    : process.env.NODE_ENV === "production"
-      ? STACK_API_BASE
-      : buildBrowserBaseUrl(siteOrigin);
+    : STACK_API_BASE;
   return new StackServerApp({
     projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
     publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),

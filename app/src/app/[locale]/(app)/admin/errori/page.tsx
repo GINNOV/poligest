@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
@@ -7,7 +8,14 @@ type ErrorMetadata = {
   source?: string;
   path?: string;
   context?: Record<string, unknown>;
-  error?: { name?: string; message?: string };
+  error?: {
+    name?: string;
+    message?: string;
+    stack?: string;
+    digest?: string;
+    statusCode?: number;
+    humanReadableMessage?: string;
+  };
 };
 
 export default async function AdminErrorsPage({
@@ -68,11 +76,32 @@ export default async function AdminErrorsPage({
       source: meta?.source ?? null,
       path: meta?.path ?? null,
       errorMessage: meta?.error?.message ?? null,
+      errorHuman: meta?.error?.humanReadableMessage ?? null,
+      errorName: meta?.error?.name ?? null,
+      errorDigest: meta?.error?.digest ?? null,
+      errorStack: meta?.error?.stack ?? null,
       actor: log.user?.name || log.user?.email || null,
       role: log.user?.role ?? null,
       createdAt: log.createdAt,
+      context: meta?.context ?? null,
     };
   });
+  const formatDetail = (entry: (typeof normalized)[number]) => {
+    const detail =
+      entry.errorHuman ||
+      (entry.errorMessage && entry.errorMessage !== "[object Object]" ? entry.errorMessage : null);
+    const stackLine = entry.errorStack?.split("\n")[0] ?? null;
+    return { detail, stackLine };
+  };
+  const formatContext = (context: Record<string, unknown> | null) => {
+    if (!context) return null;
+    try {
+      const raw = JSON.stringify(context);
+      return raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
+    } catch {
+      return String(context);
+    }
+  };
 
   const query = q.toLowerCase();
   const filtered = query
@@ -93,6 +122,14 @@ export default async function AdminErrorsPage({
       timeStyle: "short",
     }).format(date);
 
+  async function clearErrors() {
+    "use server";
+
+    await requireUser([Role.ADMIN]);
+    await prisma.auditLog.deleteMany({ where: { action: "error.reported" } });
+    revalidatePath("/admin/errori");
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -103,9 +140,19 @@ export default async function AdminErrorsPage({
             Elenco degli errori applicativi con codice per il supporto.
           </p>
         </div>
-        <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-          {filtered.length} errori (max 200)
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+            {filtered.length} errori (max 200)
+          </span>
+          <form action={clearErrors}>
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+            >
+              Trash all errors
+            </button>
+          </form>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -156,14 +203,35 @@ export default async function AdminErrorsPage({
                   <p className="text-xs text-zinc-500">{formatDate(entry.createdAt)}</p>
                 </div>
                 <p className="mt-2 text-sm font-semibold text-zinc-900">{entry.message}</p>
-                {entry.errorMessage ? (
-                  <p className="mt-1 text-xs text-rose-700">Dettaglio: {entry.errorMessage}</p>
-                ) : null}
+                {(() => {
+                  const { detail, stackLine } = formatDetail(entry);
+                  return (
+                    <>
+                      {detail ? (
+                        <p className="mt-1 text-xs text-rose-700">Dettaglio: {detail}</p>
+                      ) : null}
+                      {entry.errorName ? (
+                        <p className="mt-1 text-xs text-zinc-600">Tipo: {entry.errorName}</p>
+                      ) : null}
+                      {entry.errorDigest ? (
+                        <p className="mt-1 text-xs text-zinc-600">Digest: {entry.errorDigest}</p>
+                      ) : null}
+                      {stackLine ? (
+                        <p className="mt-1 text-xs text-zinc-500">Stack: {stackLine}</p>
+                      ) : null}
+                    </>
+                  );
+                })()}
                 <p className="mt-2 text-xs text-zinc-500">
                   {entry.source ? `Sorgente: ${entry.source}` : "Sorgente: —"}
                   {" · "}
                   {entry.path ? `Percorso: ${entry.path}` : "Percorso: —"}
                 </p>
+                {entry.context ? (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Contesto: {formatContext(entry.context)}
+                  </p>
+                ) : null}
                 {entry.actor ? (
                   <p className="mt-1 text-xs text-zinc-500">
                     Utente: {entry.actor}

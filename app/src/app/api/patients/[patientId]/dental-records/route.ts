@@ -5,11 +5,12 @@ import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 type RouteParams = { params: Promise<{ patientId: string }> };
 
 export async function POST(req: Request, { params }: RouteParams) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const { patientId } = await params;
 
   if (!patientId) {
@@ -76,7 +77,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(req: Request, { params }: RouteParams) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const { patientId } = await params;
 
   if (!patientId) {
@@ -145,7 +146,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
 }
 
 export async function PATCH(req: Request, { params }: RouteParams) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const { patientId } = await params;
 
   if (!patientId) {

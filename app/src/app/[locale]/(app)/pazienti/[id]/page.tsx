@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -22,6 +23,7 @@ import { sendEmailWithHtml } from "@/lib/email";
 import { stackServerApp } from "@/lib/stack-app";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -77,7 +79,7 @@ function resolveSiteOrigin() {
 async function updateAppointmentStatus(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const appointmentId = formData.get("appointmentId") as string;
   const patientId = formData.get("patientId") as string;
   const status = formData.get("status") as AppointmentStatus;
@@ -116,7 +118,7 @@ async function updateAppointmentStatus(formData: FormData) {
 async function addImplantAssociation(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const patientId = (formData.get("patientId") as string) || "";
   const productId = (formData.get("productId") as string) || "";
   const deviceType = (formData.get("deviceType") as string)?.trim() || null;
@@ -167,7 +169,7 @@ async function addImplantAssociation(formData: FormData) {
 async function updateImplantAssociation(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const implantId = (formData.get("implantId") as string) || "";
   const patientId = (formData.get("patientId") as string) || "";
   const productId = (formData.get("productId") as string) || "";
@@ -216,7 +218,7 @@ async function updateImplantAssociation(formData: FormData) {
 async function uploadPhoto(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
   const patientId = formData.get("patientId") as string;
   const file = formData.get("photo") as File | null;
@@ -253,7 +255,7 @@ async function uploadPhoto(formData: FormData) {
 async function updatePatient(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
   const id = (formData.get("patientId") as string) || "";
   const firstName = normalizePersonName((formData.get("firstName") as string) ?? "");
@@ -331,7 +333,7 @@ async function updatePatient(formData: FormData) {
 async function savePreventivo(_: { savedAt: number }, formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const patientId = (formData.get("patientId") as string) || "";
   const itemsRaw = (formData.get("itemsJson") as string) || "";
   const signatureData = (formData.get("quoteSignatureData") as string)?.trim();
@@ -442,7 +444,7 @@ async function savePreventivo(_: { savedAt: number }, formData: FormData) {
 async function revokeConsent(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const consentId = (formData.get("consentId") as string) ?? "";
 
   if (!consentId) {
@@ -480,7 +482,7 @@ async function revokeConsent(formData: FormData) {
 async function sendPatientSms(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const patientId = (formData.get("patientId") as string) ?? "";
   const templateId = (formData.get("templateId") as string) ?? "";
 
@@ -565,7 +567,7 @@ async function sendPatientSms(formData: FormData) {
 async function sendPatientAccessEmail(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const patientId = (formData.get("patientId") as string) ?? "";
 
   try {
@@ -680,7 +682,8 @@ export default async function PatientDetailPage({
   params: Promise<{ id?: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "patients");
   const isAdmin = user.role === Role.ADMIN;
   const canExport = isAdmin || user.role === Role.MANAGER;
 

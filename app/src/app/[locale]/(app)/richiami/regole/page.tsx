@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { NotificationChannel, Role } from "@prisma/client";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export default async function RichiamiRegolePage() {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "agenda");
 
   const prismaModels = prisma as unknown as Record<string, unknown>;
   const serviceClient = prismaModels["service"] as

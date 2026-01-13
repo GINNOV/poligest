@@ -11,7 +11,12 @@ export default function GlobalError({
   reset: () => void;
 }) {
   // Generate a stable fallback ID if digest is missing.
-  const fallbackId = useMemo(() => crypto.randomUUID(), []);
+  const fallbackId = useMemo(() => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `ERR-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
+  }, []);
   const errorId = error.digest || fallbackId;
   const reportedRef = useRef(false);
 
@@ -29,6 +34,8 @@ export default function GlobalError({
         name: error.name,
         message: error.message,
         stack: error.stack,
+        digest: error.digest,
+        cause: (error as Error & { cause?: unknown }).cause,
       },
     };
     const body = JSON.stringify(payload);

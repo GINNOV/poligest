@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export async function GET(req: Request) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
   try {
     const { searchParams } = new URL(req.url);

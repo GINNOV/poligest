@@ -58,6 +58,7 @@
     "roleLabels": {
       "admin": "Admin",
       "manager": "Manager",
+      "assistant": "Assistente",
       "secretary": "Segreteria",
       "patient": "Paziente"
     },
@@ -190,6 +191,7 @@
   "featureAccessRoleLabel": "Ruolo",
   "featureAccessRoleAdmin": "Amministratore",
   "featureAccessRoleManager": "Manager",
+  "featureAccessRoleAssistant": "Assistente",
   "featureAccessRoleSecretary": "Segreteria",
   "featureAccessToast": "Accessi aggiornati",
   "servicesTitle": "Catalogo Servizi",

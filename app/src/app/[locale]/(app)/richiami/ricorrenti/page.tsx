@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { RECURRING_MESSAGE_DEFAULTS } from "@/lib/recurring-messages";
 import { updateRecurringConfig } from "@/app/[locale]/(app)/richiami/actions";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export default async function RichiamiRicorrentiPage() {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "communications");
   const recurringConfigsRaw = await prisma.recurringMessageConfig.findMany();
   const recurringConfigs = RECURRING_MESSAGE_DEFAULTS.map((defaults) => {
     const stored = recurringConfigsRaw.find((config) => config.kind === defaults.kind);

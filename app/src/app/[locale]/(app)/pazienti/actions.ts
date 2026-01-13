@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -40,7 +41,7 @@ function resolveSiteOrigin() {
 }
 
 export async function createPatient(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
   const firstName = normalizePersonName((formData.get("firstName") as string) ?? "");
   const lastName = normalizePersonName((formData.get("lastName") as string) ?? "");

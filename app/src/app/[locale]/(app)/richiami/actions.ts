@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -178,7 +179,7 @@ export async function updateAppointmentReminderRule(formData: FormData) {
 }
 
 export async function scheduleRecall(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const patientId = formData.get("patientId") as string;
   const ruleId = formData.get("ruleId") as string;
   const dueAt = formData.get("dueAt") as string;
@@ -277,7 +278,7 @@ export async function updateRecallRule(formData: FormData) {
 }
 
 export async function deleteScheduledRecall(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const recallId = formData.get("recallId") as string;
   if (!recallId) throw new Error("Richiamo non valido");
 
@@ -287,7 +288,7 @@ export async function deleteScheduledRecall(formData: FormData) {
 
 export async function sendManualNotification(formData: FormData) {
   try {
-    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
     const notificationType = (formData.get("notificationType") as string) || "appointment";
     const channel = (formData.get("channel") as string) || "EMAIL";
     const messageInput = (formData.get("message") as string)?.trim() || "";

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
@@ -8,9 +9,11 @@ import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { ConfirmLeaveButton } from "@/components/confirm-leave-button";
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export default async function NuovoPazientePage() {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "patients");
 
   const [doctors, consentModules, conditionsList] = await Promise.all([
     prisma.doctor.findMany({

@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { StackHandler } from "@stackframe/stack";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackServerApp } from "@/lib/stack-app";
+import { headers } from "next/headers";
 
 // Optional catch-all so /it/handler and /it/handler/* both work.
 export default async function StackAuthHandlerPage(props: {
@@ -10,6 +11,10 @@ export default async function StackAuthHandlerPage(props: {
 }) {
   const params = await props.params;
   const searchParams = await props.searchParams;
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const origin = host ? `${proto}://${host}` : undefined;
 
   const audienceRaw = (searchParams?.audience ?? searchParams?.role ?? "").toLowerCase();
   const isStaff = audienceRaw === "staff";
@@ -107,7 +112,7 @@ export default async function StackAuthHandlerPage(props: {
               <div className={`rounded-2xl border ${theme.cardBorder} ${theme.cardBg} p-4 shadow-sm sm:p-5`}>
                 <StackHandler
                   fullPage={false}
-                  app={stackServerApp}
+                  app={getStackServerApp(origin)}
                   params={params}
                   searchParams={searchParams}
                 />

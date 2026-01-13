@@ -5,8 +5,9 @@ import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { FALLBACK_PERMISSIONS, FEATURES, type FeatureId } from "@/lib/feature-access";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
-const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY];
+const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY];
 
 async function saveAccess(formData: FormData) {
   "use server";
@@ -54,6 +55,7 @@ export default async function FeatureAccessPage() {
   const roleLabels: Record<Role, string> = {
     [Role.ADMIN]: t("featureAccessRoleAdmin"),
     [Role.MANAGER]: t("featureAccessRoleManager"),
+    [ASSISTANT_ROLE]: t("featureAccessRoleAssistant"),
     [Role.SECRETARY]: t("featureAccessRoleSecretary"),
     [Role.PATIENT]: "Paziente",
   };

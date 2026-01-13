@@ -3,10 +3,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
 import { AppointmentStatus, Role } from "@prisma/client";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   addDays,
   addMonths,
@@ -206,7 +208,7 @@ async function createAppointment(formData: FormData) {
   "use server";
 
   try {
-    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
@@ -306,7 +308,7 @@ async function updateAppointment(formData: FormData) {
   "use server";
 
   try {
-    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
     const appointmentId = formData.get("appointmentId") as string;
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
@@ -407,7 +409,7 @@ async function updateAppointment(formData: FormData) {
 async function deleteAppointment(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const appointmentId = (formData.get("appointmentId") as string) || "";
 
   if (!appointmentId) {
@@ -433,7 +435,8 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "calendar");
   const params = await searchParams;
 
   const monthParam =

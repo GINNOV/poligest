@@ -1,4 +1,5 @@
 "use server";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 import { ConsentStatus, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -8,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function addConsentAction(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
 
   const patientId = (formData.get("patientId") as string) ?? "";
   const moduleId = (formData.get("consentModuleId") as string) ?? "";

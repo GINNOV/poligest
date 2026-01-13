@@ -2,7 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const TILE_IMAGE_VERSION = "3";
 
@@ -38,7 +40,8 @@ type Tile = (typeof TILES)[number];
 type TileWithBadge = Tile & { badge?: string };
 
 export default async function RichiamiPage() {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "agenda");
   const now = new Date();
   const soon = new Date();
   soon.setDate(soon.getDate() + 30);

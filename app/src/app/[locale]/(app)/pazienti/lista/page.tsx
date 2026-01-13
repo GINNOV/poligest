@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientListFilters } from "@/components/patient-list-filters";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const PAGE_SIZE = 20;
 
@@ -22,7 +24,8 @@ export default async function PazientiListaPage({
           ),
         );
 
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "patients");
 
   const qParam = params.get("q") ?? undefined;
   const searchQuery = qParam?.toLowerCase();

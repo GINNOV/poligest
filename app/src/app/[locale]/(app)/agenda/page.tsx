@@ -2,9 +2,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
+import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export default async function AgendaPage() {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "agenda");
+  const featureAccess = await getRoleFeatureAccess(user.role);
+  const showCalendar = featureAccess.isAllowed("calendar");
 
   return (
     <div className="grid grid-cols-1 gap-6">
@@ -32,28 +37,30 @@ export default async function AgendaPage() {
           </div>
         </Link>
 
-        <Link
-          href="/calendar"
-          className="group flex flex-col justify-between rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
-        >
-          <div className="space-y-3">
-            <div className="relative aspect-[2752/1536] overflow-hidden rounded-xl border border-emerald-100 bg-white">
-              <Image
-                src="/tiles/calendar.png"
-                alt="Aggiungi appuntamenti"
-                fill
-                sizes="(min-width: 1024px) 320px, 100vw"
-                className="object-contain"
-              />
+        {showCalendar ? (
+          <Link
+            href="/calendar"
+            className="group flex flex-col justify-between rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+          >
+            <div className="space-y-3">
+              <div className="relative aspect-[2752/1536] overflow-hidden rounded-xl border border-emerald-100 bg-white">
+                <Image
+                  src="/tiles/calendar.png"
+                  alt="Aggiungi appuntamenti"
+                  fill
+                  sizes="(min-width: 1024px) 320px, 100vw"
+                  className="object-contain"
+                />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-emerald-900">Aggiungi appuntamenti</h2>
+                <p className="text-sm text-emerald-800">
+                  Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Aggiungi appuntamenti</h2>
-              <p className="text-sm text-emerald-800">
-                Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
-              </p>
-            </div>
-          </div>
-        </Link>
+          </Link>
+        ) : null}
       </div>
     </div>
   );

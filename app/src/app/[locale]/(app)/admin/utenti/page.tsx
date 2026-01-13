@@ -4,14 +4,16 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
+import { reportError } from "@/lib/error-reporting";
 import { Prisma, Role } from "@prisma/client";
 import { cookies } from "next/headers";
 import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { getRandomAvatarUrl } from "@/lib/avatars";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
-const roles: Role[] = [Role.ADMIN, Role.MANAGER, Role.SECRETARY, Role.PATIENT];
+const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
 async function resolveStackUserIdByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -242,12 +244,32 @@ async function sendPasswordResetLink(formData: FormData) {
     throw new Error("Email utente non valida");
   }
 
-  const result = await stackServerApp.sendForgotPasswordEmail(user.email);
-  if (result && typeof result === "object" && "status" in result && result.status === "error") {
+  try {
+    const result = await stackServerApp.sendForgotPasswordEmail(user.email);
+    if (result && typeof result === "object" && "status" in result && result.status === "error") {
+      const message =
+        typeof (result as { error?: { message?: string } }).error?.message === "string"
+          ? (result as { error?: { message?: string } }).error?.message
+          : "Errore invio link reset password.";
+      throw new Error(message);
+    }
+  } catch (err) {
+    const stackMessage =
+      err && typeof err === "object"
+        ? (err as { humanReadableMessage?: string; message?: string }).humanReadableMessage ??
+          (err as { message?: string }).message
+        : null;
     const message =
-      typeof (result as { error?: { message?: string } }).error?.message === "string"
-        ? (result as { error?: { message?: string } }).error?.message
-        : "Errore invio link reset password.";
+      stackMessage?.trim() ||
+      "Impossibile inviare il link: verifica che l'utente abbia un'email valida.";
+    await reportError({
+      message: "Errore invio link reset password",
+      source: "admin.reset_password",
+      path: "/admin/utenti",
+      context: { userId: user.id, email: user.email },
+      error: err,
+      actor: { id: admin.id, role: admin.role },
+    });
     throw new Error(message);
   }
 

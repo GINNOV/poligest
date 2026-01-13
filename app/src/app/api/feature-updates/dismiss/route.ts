@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export async function POST(req: Request) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const body = (await req.json().catch(() => null)) as { updateId?: string } | null;
   const updateId = (body?.updateId ?? "").trim();
   if (!updateId) {

@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { RecallStatus, Role } from "@prisma/client";
 import { deleteScheduledRecall, scheduleRecall } from "@/app/[locale]/(app)/richiami/actions";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export default async function RichiamiProgrammatiPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "agenda");
   const params = await searchParams;
   const qParam = params.q;
   const qValue =

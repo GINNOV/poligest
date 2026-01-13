@@ -1,4 +1,7 @@
 import { Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export type FeatureId =
   | "agenda"
@@ -69,5 +72,31 @@ export const FALLBACK_PERMISSIONS: Partial<Record<Role, Set<FeatureId>>> = {
     "finance",
     "communications",
   ]),
+  [ASSISTANT_ROLE]: new Set(["agenda", "calendar", "patients", "communications"]),
   [Role.SECRETARY]: new Set(["agenda", "calendar", "patients", "communications"]),
 };
+
+export async function getRoleFeatureAccess(role: Role) {
+  const accessEntries = await prisma.roleFeatureAccess.findMany({
+    where: { role },
+    select: { feature: true, allowed: true },
+  });
+  const allowedMap = new Map<FeatureId, boolean>(
+    accessEntries.map((entry) => [entry.feature as FeatureId, entry.allowed])
+  );
+  const isAllowed = (feature: FeatureId) =>
+    allowedMap.get(feature) ?? (FALLBACK_PERMISSIONS[role]?.has(feature) ?? false);
+
+  return { isAllowed, allowedMap };
+}
+
+export async function requireFeatureAccess(
+  role: Role,
+  feature: FeatureId,
+  redirectTo = "/dashboard"
+) {
+  const { isAllowed } = await getRoleFeatureAccess(role);
+  if (!isAllowed(feature)) {
+    redirect(redirectTo);
+  }
+}

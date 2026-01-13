@@ -8,6 +8,7 @@ import { put } from "@vercel/blob";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -116,7 +117,7 @@ async function uploadAvatar(formData: FormData) {
 async function assignAward(formData: FormData) {
   "use server";
 
-  const staffUser = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const staffUser = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const doctor = await prisma.doctor.findFirst({
     where: { userId: staffUser.id },
     select: { id: true },

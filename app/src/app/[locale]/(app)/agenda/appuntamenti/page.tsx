@@ -5,11 +5,13 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { logAudit } from "@/lib/audit";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 import { AgendaFilters } from "@/components/agenda-filters";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -55,7 +57,7 @@ async function hasDoctorConflict(params: {
 async function updateAppointmentStatus(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const appointmentId = formData.get("appointmentId") as string;
   const status = formData.get("status") as AppointmentStatus;
 
@@ -92,7 +94,7 @@ async function updateAppointment(formData: FormData) {
   "use server";
 
   try {
-    const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
     const appointmentId = formData.get("appointmentId") as string;
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
@@ -188,7 +190,7 @@ async function updateAppointment(formData: FormData) {
 async function deleteAppointment(formData: FormData) {
   "use server";
 
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const appointmentId = (formData.get("appointmentId") as string) || "";
 
   if (!appointmentId) {
@@ -267,7 +269,8 @@ export default async function AgendaPage({
         ? dateParam[0]
         : undefined;
 
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "agenda");
 
   const statusFilter =
     statusValue &&

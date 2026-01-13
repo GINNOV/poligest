@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import type { Metadata } from "next";
+import { ASSISTANT_ROLE } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function QuotePrintPage({
 }: {
   params: Promise<{ id?: string; quoteId?: string }>;
 }) {
-  await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const resolvedParams = await params;
   const patientId = resolvedParams?.id;
   const quoteId = resolvedParams?.quoteId;
