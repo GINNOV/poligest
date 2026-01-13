@@ -52,6 +52,11 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
 };
 
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
+const LOCALE = "it-IT";
+const TIME_ZONE = "Europe/Rome";
+
+const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
+  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }).format(date);
 
 type StatCardProps = { label: string; value: number };
 
@@ -616,21 +621,17 @@ export default async function DashboardPage({
             orderedAppointments.map((appt, index) => {
               const patientPhone = normalizeItalianPhone(appt.patient.phone);
               const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
-              const appointmentDate = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
-                appt.startsAt
-              );
-              const appointmentTime = new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(
-                appt.startsAt
-              );
+              const appointmentDate = formatDate(appt.startsAt, { dateStyle: "long" });
+              const appointmentTime = formatDate(appt.startsAt, { timeStyle: "short" });
               const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-              const whatsappAppointmentDate = new Intl.DateTimeFormat("it-IT", {
+              const whatsappAppointmentDate = formatDate(appt.startsAt, {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
                 year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
-              }).format(appt.startsAt);
+              });
               const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
                 firstName: appt.patient.firstName ?? "",
                 lastName: appt.patient.lastName ?? "",
@@ -646,13 +647,9 @@ export default async function DashboardPage({
               const cardClass = isPast
                 ? "border-amber-200 bg-amber-50"
                 : statusCardBackgrounds[appt.status];
-              const dayKey = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
-                appt.startsAt
-              );
+              const dayKey = formatDate(appt.startsAt, { dateStyle: "long" });
               const prevAppt = index > 0 ? orderedAppointments[index - 1] : null;
-              const prevDayKey = prevAppt
-                ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(prevAppt.startsAt)
-                : null;
+              const prevDayKey = prevAppt ? formatDate(prevAppt.startsAt, { dateStyle: "long" }) : null;
               const showDivider = !prevDayKey || prevDayKey !== dayKey;
               const outerCardClass = index % 2 === 0
                 ? "border-zinc-200 bg-white/90"
@@ -700,12 +697,12 @@ export default async function DashboardPage({
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-zinc-500">Quando</span>
                               <span>
-                                {new Intl.DateTimeFormat("it-IT", {
+                                {formatDate(appt.startsAt, {
                                   weekday: "short",
                                   day: "numeric",
                                   month: "short",
-                                }).format(appt.startsAt)}{" "}
-                                alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}
+                                })}{" "}
+                                alle {formatDate(appt.startsAt, { timeStyle: "short" })}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
