@@ -15,6 +15,11 @@ import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
 import { normalizeItalianPhone } from "@/lib/phone";
+import {
+  DEFAULT_WHATSAPP_TEMPLATE,
+  WHATSAPP_TEMPLATE_NAME,
+  renderWhatsappTemplate,
+} from "@/lib/whatsapp-template";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -167,22 +172,28 @@ export default async function DashboardPage({
       ? selectedDayParam
       : format(today, "yyyy-MM-dd");
 
-  const appointments = await prisma.appointment.findMany({
-    where: isPatient
-      ? {
-          patient: {
-            email: { equals: user.email ?? "", mode: "insensitive" },
+  const [appointments, whatsappTemplate] = await Promise.all([
+    prisma.appointment.findMany({
+      where: isPatient
+        ? {
+            patient: {
+              email: { equals: user.email ?? "", mode: "insensitive" },
+            },
+          }
+        : {
+            startsAt: { gte: weekStart, lte: weekEnd },
           },
-        }
-      : {
-          startsAt: { gte: weekStart, lte: weekEnd },
-        },
-    orderBy: { startsAt: isPatient ? "desc" : "asc" },
-    include: {
-      patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true, phone: true } },
-      doctor: { select: { fullName: true, specialty: true } },
-    },
-  });
+      orderBy: { startsAt: isPatient ? "desc" : "asc" },
+      include: {
+        patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true, phone: true } },
+        doctor: { select: { fullName: true, specialty: true } },
+      },
+    }),
+    prisma.smsTemplate.findUnique({
+      where: { name: WHATSAPP_TEMPLATE_NAME },
+    }),
+  ]);
+  const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
 
   const uniquePatientsWeek = new Set(appointments.map((a) => a.patientId)).size;
 
@@ -612,7 +623,22 @@ export default async function DashboardPage({
                 appt.startsAt
               );
               const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-              const whatsappMessage = `Ciao ${appt.patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+              const whatsappAppointmentDate = new Intl.DateTimeFormat("it-IT", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(appt.startsAt);
+              const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
+                firstName: appt.patient.firstName ?? "",
+                lastName: appt.patient.lastName ?? "",
+                doctorName: appointmentDoctor,
+                appointmentDate: whatsappAppointmentDate,
+                serviceType: appt.serviceType ?? "",
+                notes: appt.notes ?? "",
+              });
               const whatsappHref = whatsappPhone
                 ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
                 : null;

@@ -12,6 +12,11 @@ import { AgendaFilters } from "@/components/agenda-filters";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import {
+  DEFAULT_WHATSAPP_TEMPLATE,
+  WHATSAPP_TEMPLATE_NAME,
+  renderWhatsappTemplate,
+} from "@/lib/whatsapp-template";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -340,7 +345,7 @@ export default async function AgendaPage({
       : {}),
   };
 
-  const [appointments, patients, doctors, servicesRaw, totalCount] = await Promise.all([
+  const [appointments, patients, doctors, servicesRaw, totalCount, whatsappTemplate] = await Promise.all([
     prisma.appointment.findMany({
       orderBy: { startsAt: "asc" },
       take: PAGE_SIZE,
@@ -358,7 +363,11 @@ export default async function AgendaPage({
     prisma.doctor.findMany({ orderBy: { fullName: "asc" } }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
     prisma.appointment.count({ where }),
+    prisma.smsTemplate.findUnique({
+      where: { name: WHATSAPP_TEMPLATE_NAME },
+    }),
   ]);
+  const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
 
   type ServiceRow = { name: string };
   const services = servicesRaw as ServiceRow[];
@@ -507,7 +516,22 @@ export default async function AgendaPage({
                 appt.startsAt
               );
               const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-              const whatsappMessage = `Ciao ${appt.patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+              const whatsappAppointmentDate = new Intl.DateTimeFormat("it-IT", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(appt.startsAt);
+              const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
+                firstName: appt.patient.firstName ?? "",
+                lastName: appt.patient.lastName ?? "",
+                doctorName: appointmentDoctor,
+                appointmentDate: whatsappAppointmentDate,
+                serviceType: appt.serviceType ?? "",
+                notes: appt.notes ?? "",
+              });
               const whatsappHref = whatsappPhone
                 ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
                 : null;

@@ -342,7 +342,9 @@ export default async function RichiamiRegolePage() {
                 defaultValue={appointmentReminderDefaults.daysBefore}
                 className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
-              <span className="text-[11px] text-emerald-700">Usato solo con "Giorni prima".</span>
+              <span className="text-[11px] text-emerald-700">
+                N giorni prima, inviato all&apos;orario configurato (es. 09:00).
+              </span>
             </label>
             <label className="flex flex-col gap-2">
               <span className="text-xs font-semibold uppercase text-emerald-700">Orario invio</span>

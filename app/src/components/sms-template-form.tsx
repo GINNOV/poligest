@@ -62,7 +62,7 @@ export function SmsTemplateForm({ action }: Props) {
       </label>
       <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          Placeholder disponibili
+          Segnaposto disponibili
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           {PLACEHOLDERS.map((item) => (

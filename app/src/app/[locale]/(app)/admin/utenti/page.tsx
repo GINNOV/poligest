@@ -11,22 +11,49 @@ import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { getRandomAvatarUrl } from "@/lib/avatars";
+import { sendEmail } from "@/lib/email";
+import { buildStaffInviteEmail } from "@/lib/invite-email";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
-async function resolveStackUserIdByEmail(email: string) {
+async function resolveStackUserIdByEmail(email: string, displayName?: string | null) {
   const normalized = email.trim().toLowerCase();
-  const response: any = await (stackServerApp as any)._interface.listServerUsers({
+  const result = await stackServerApp.listUsers({
     query: normalized,
-    limit: 20,
+    limit: 50,
+    includeRestricted: true,
+    includeAnonymous: true,
   });
-  const items: any[] = response?.items ?? response ?? [];
-  const match = items.find((u) => (u.primary_email ?? u.email ?? "").toLowerCase() === normalized) ?? items[0];
-  if (!match?.id) {
-    throw new Error("Impossibile trovare l'utente Stack per impersonificazione.");
+  const users = Array.isArray(result) ? result : [];
+  const match =
+    users.find((u) => (u.primaryEmail ?? u.email ?? "").toLowerCase() === normalized) ??
+    users.find((u) => (u.primaryEmail ?? u.email ?? "").toLowerCase().includes(normalized)) ??
+    null;
+  if (match?.id) {
+    return match.id as string;
   }
-  return match.id as string;
+  const fallback = await stackServerApp.listUsers({
+    limit: 100,
+    includeRestricted: true,
+    includeAnonymous: true,
+  });
+  const fallbackUsers = Array.isArray(fallback) ? fallback : [];
+  const fallbackMatch = fallbackUsers.find(
+    (u) => (u.primaryEmail ?? u.email ?? "").toLowerCase() === normalized
+  );
+  if (fallbackMatch?.id) {
+    return fallbackMatch.id as string;
+  }
+  const created = await stackServerApp.createUser({
+    primaryEmail: normalized,
+    primaryEmailVerified: false,
+    displayName: displayName ?? normalized.split("@")[0],
+  });
+  if (!created?.id) {
+    throw new Error("Impossibile creare l'utente Stack per impersonificazione.");
+  }
+  return created.id as string;
 }
 
 async function upsertUser(formData: FormData) {
@@ -43,6 +70,7 @@ async function upsertUser(formData: FormData) {
     throw new Error("Dati utente non validi");
   }
 
+  const existingUser = await prisma.user.findUnique({ where: { email } });
   const user = await prisma.user.upsert({
     where: { email },
     update: { name, role, locale, isActive },
@@ -56,6 +84,37 @@ async function upsertUser(formData: FormData) {
       avatarUrl: getRandomAvatarUrl(),
     },
   });
+
+  if (!existingUser && isActive) {
+    try {
+      const sender = stackServerApp as unknown as {
+        sendMagicLinkEmail?: (email: string, options?: { callbackUrl?: string }) => Promise<unknown>;
+      };
+      if (typeof sender.sendMagicLinkEmail !== "function") {
+        throw new Error("Stack magic link non disponibile.");
+      }
+      const callbackUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL;
+      if (!callbackUrl) {
+        throw new Error("Callback URL mancante per l'invito utente.");
+      }
+      await sender.sendMagicLinkEmail(user.email, { callbackUrl });
+
+      if (user.role !== Role.PATIENT) {
+        const staffEmail = buildStaffInviteEmail(user.role);
+        await sendEmail(user.email, staffEmail.subject, staffEmail.text);
+      }
+    } catch (err) {
+      await reportError({
+        message: "Errore invio invito utente",
+        source: "admin.user.invite",
+        path: "/admin/utenti",
+        context: { userId: user.id, email: user.email },
+        error: err,
+        actor: { id: admin.id, role: admin.role },
+      });
+      throw err instanceof Error ? err : new Error("Invio invito fallito");
+    }
+  }
 
   await logAudit(admin, {
     action: "admin.user.upsert",
@@ -169,16 +228,17 @@ async function startImpersonation(formData: FormData) {
   if (!targetUserId) throw new Error("Utente non valido");
   const target = await prisma.user.findUnique({
     where: { id: targetUserId },
-    select: { id: true, isActive: true, email: true },
+    select: { id: true, isActive: true, email: true, name: true },
   });
   if (!target) throw new Error("Utente non trovato");
   if (!target.isActive) throw new Error("Non è possibile impersonare un utente disattivato.");
+  if (!target.email) throw new Error("L'utente non ha un'email valida per l'impersonificazione.");
 
   const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
   if (!projectId) throw new Error("Project ID Stack mancante");
 
   // Resolve the Stack user id by email to generate an impersonation session.
-  const stackUserId = await resolveStackUserIdByEmail(target.email);
+  const stackUserId = await resolveStackUserIdByEmail(target.email, target.name);
 
   // Create a short-lived session flagged as impersonation.
   const { accessToken, refreshToken } = await (stackServerApp as any)._interface.createServerUserSession(

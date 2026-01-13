@@ -24,6 +24,11 @@ import { stackServerApp } from "@/lib/stack-app";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import {
+  DEFAULT_WHATSAPP_TEMPLATE,
+  WHATSAPP_TEMPLATE_NAME,
+  renderWhatsappTemplate,
+} from "@/lib/whatsapp-template";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -716,7 +721,7 @@ export default async function PatientDetailPage({
     typeof resolvedSearchParams.openContact === "string" &&
     resolvedSearchParams.openContact === "1";
 
-  const [doctors, patient, consentModules] = await Promise.all([
+  const [doctors, patient, consentModules, whatsappTemplate] = await Promise.all([
     prisma.doctor.findMany({
       orderBy: { fullName: "asc" },
       select: { id: true, fullName: true },
@@ -739,6 +744,9 @@ export default async function PatientDetailPage({
     }),
     prisma.consentModule.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.smsTemplate.findUnique({
+      where: { name: WHATSAPP_TEMPLATE_NAME },
     }),
   ]);
   const conditionsList = await getAnamnesisConditions();
@@ -775,7 +783,27 @@ export default async function PatientDetailPage({
     ? new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(upcomingAppointment.startsAt)
     : "da definire";
   const appointmentDoctor = upcomingAppointment?.doctor?.fullName ?? "da definire";
-  const whatsappMessage = `Ciao ${patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+  const whatsappAppointmentDate = upcomingAppointment
+    ? new Intl.DateTimeFormat("it-IT", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(upcomingAppointment.startsAt)
+    : "da definire";
+  const whatsappMessage = renderWhatsappTemplate(
+    whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE,
+    {
+      firstName: patient.firstName ?? "",
+      lastName: patient.lastName ?? "",
+      doctorName: appointmentDoctor,
+      appointmentDate: whatsappAppointmentDate,
+      serviceType: upcomingAppointment?.serviceType ?? "",
+      notes: upcomingAppointment?.notes ?? "",
+    }
+  );
   const whatsappHref = whatsappPhone
     ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
     : null;
@@ -895,6 +923,7 @@ export default async function PatientDetailPage({
       include: { template: true },
     }),
   ]);
+  const visibleSmsTemplates = smsTemplates.filter((template) => template.name !== WHATSAPP_TEMPLATE_NAME);
 
   return (
     <>
@@ -1426,12 +1455,12 @@ export default async function PatientDetailPage({
                       name="templateId"
                       required
                       className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                      defaultValue={smsTemplates[0]?.id ?? ""}
+                      defaultValue={visibleSmsTemplates[0]?.id ?? ""}
                     >
                       <option value="" disabled>
                         Seleziona template
                       </option>
-                      {smsTemplates.map((tpl) => (
+                      {visibleSmsTemplates.map((tpl) => (
                         <option key={tpl.id} value={tpl.id}>
                           {tpl.name}
                         </option>
@@ -1439,7 +1468,7 @@ export default async function PatientDetailPage({
                     </select>
                   </label>
                   <p className="text-xs text-zinc-600">
-                    Placeholder supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
+                    Segnaposto supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
                   </p>
                   <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
                     Invia SMS
