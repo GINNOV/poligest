@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { requireFeatureAccess } from "@/lib/feature-access";
+import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
 import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
@@ -684,6 +684,9 @@ export default async function PatientDetailPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
+  const featureAccess = await getRoleFeatureAccess(user.role);
+  const canViewQuotes = featureAccess.isAllowed("quotes");
+  const canViewClinicalRecords = featureAccess.isAllowed("clinical-records");
   const isAdmin = user.role === Role.ADMIN;
   const canExport = isAdmin || user.role === Role.MANAGER;
 
@@ -1359,24 +1362,28 @@ export default async function PatientDetailPage({
                     </div>
           </details>
 
-          <QuoteAccordion
-            patientId={patient.id}
-            services={services.map((service) => ({
-              id: service.id,
-              name: service.name,
-              costBasis: Number(service.costBasis?.toString?.() ?? service.costBasis ?? 0),
-            }))}
-            initialQuote={parsedQuote}
-            printHref={parsedQuote?.id ? `/pazienti/${patient.id}/preventivo/${parsedQuote.id}` : null}
-            className="bg-white"
-            onSave={savePreventivo}
-          />
+          {canViewQuotes ? (
+            <QuoteAccordion
+              patientId={patient.id}
+              services={services.map((service) => ({
+                id: service.id,
+                name: service.name,
+                costBasis: Number(service.costBasis?.toString?.() ?? service.costBasis ?? 0),
+              }))}
+              initialQuote={parsedQuote}
+              printHref={parsedQuote?.id ? `/pazienti/${patient.id}/preventivo/${parsedQuote.id}` : null}
+              className="bg-white"
+              onSave={savePreventivo}
+            />
+          ) : null}
 
-          <DentalChart
-            patientId={patient.id}
-            initialRecords={dentalRecordsSerialized}
-            containerClassName="bg-zinc-50"
-          />
+          {canViewClinicalRecords ? (
+            <DentalChart
+              patientId={patient.id}
+              initialRecords={dentalRecordsSerialized}
+              containerClassName="bg-zinc-50"
+            />
+          ) : null}
 
           <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
             <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">

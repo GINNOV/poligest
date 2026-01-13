@@ -70,7 +70,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isPatientsAllowed = isStaff && isFeatureAllowed("patients");
   const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
-  const roleLabels: Record<Role, string> = {
+  const roleLabels: Record<string, string> = {
     [Role.ADMIN]: t("roleLabels.admin"),
     [Role.MANAGER]: t("roleLabels.manager"),
     [ASSISTANT_ROLE]: t("roleLabels.assistant"),

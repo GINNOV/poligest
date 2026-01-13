@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import type { Metadata } from "next";
@@ -18,7 +19,9 @@ export default async function QuotePrintPage({
 }: {
   params: Promise<{ id?: string; quoteId?: string }>;
 }) {
-  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await requireFeatureAccess(user.role, "quotes");
+  await requireFeatureAccess(Role.ADMIN, "quotes");
   const resolvedParams = await params;
   const patientId = resolvedParams?.id;
   const quoteId = resolvedParams?.quoteId;

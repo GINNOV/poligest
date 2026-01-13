@@ -196,6 +196,15 @@ export default async function DashboardPage({
   });
 
   const maxCount = Math.max(...perDay.map((d) => d.count), 1);
+  const getDayBubbleClass = (count: number) => {
+    if (count < 10) return "bg-emerald-200";
+    const ratio = count / maxCount;
+    if (ratio <= 0.2) return "bg-emerald-200";
+    if (ratio <= 0.4) return "bg-teal-200";
+    if (ratio <= 0.6) return "bg-amber-200";
+    if (ratio <= 0.8) return "bg-orange-200";
+    return "bg-rose-200";
+  };
   const selectedAppointments = appointments.filter(
     (appt) => format(appt.startsAt, "yyyy-MM-dd") === selectedDay
   );
@@ -529,7 +538,7 @@ export default async function DashboardPage({
               }`}
             >
               <div
-                className="w-full rounded-full bg-emerald-200"
+                className={`w-full rounded-full ${getDayBubbleClass(day.count)}`}
                 style={{ height: `${Math.max((day.count / maxCount) * 120, 8)}px` }}
               />
               <span className="text-xs font-semibold text-zinc-800">{day.label}</span>
@@ -542,13 +551,7 @@ export default async function DashboardPage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-lg font-semibold text-zinc-900">
-              {view === "day"
-                ? `Appuntamenti ${format(new Date(selectedDay), "d MMMM", {
-                    locale: it,
-                  })}`
-                : "Appuntamenti"}
-            </h2>
+            <h2 className="text-lg font-semibold text-zinc-900">Filtra per...</h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
               <Link
                 href="/dashboard"

@@ -472,11 +472,22 @@ export default async function AdminUsersPage({
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr,0.85fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+        <details className="group rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden" open>
+          <summary className="flex cursor-pointer items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900">{t("usersList")}</h2>
-            <span className="text-xs font-semibold uppercase text-zinc-500">Ruoli &amp; stato</span>
-          </div>
+            <svg
+              className="h-5 w-5 text-zinc-500 transition-transform duration-200 group-open:rotate-180"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
 
           <div className="mt-4 divide-y divide-zinc-100">
             {users.length === 0 ? (
@@ -633,7 +644,7 @@ export default async function AdminUsersPage({
               ))
             )}
           </div>
-        </div>
+        </details>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-zinc-900">{t("createUser")}</h2>

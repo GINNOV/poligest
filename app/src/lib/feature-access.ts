@@ -7,6 +7,8 @@ export type FeatureId =
   | "agenda"
   | "calendar"
   | "patients"
+  | "quotes"
+  | "clinical-records"
   | "inventory"
   | "finance"
   | "communications"
@@ -29,6 +31,16 @@ export const FEATURES: { id: FeatureId; label: string; description: string }[] =
     id: "patients",
     label: "Pazienti e cartella",
     description: "Anagrafica, consensi, note cliniche e documenti.",
+  },
+  {
+    id: "quotes",
+    label: "Preventivi",
+    description: "Crea e stampa preventivi per il paziente.",
+  },
+  {
+    id: "clinical-records",
+    label: "Diario clinico",
+    description: "Gestisci interventi e cartella clinica odontoiatrica.",
   },
   {
     id: "inventory",
@@ -68,12 +80,14 @@ export const FALLBACK_PERMISSIONS: Partial<Record<Role, Set<FeatureId>>> = {
     "agenda",
     "calendar",
     "patients",
+    "quotes",
+    "clinical-records",
     "inventory",
     "finance",
     "communications",
   ]),
-  [ASSISTANT_ROLE]: new Set(["agenda", "calendar", "patients", "communications"]),
-  [Role.SECRETARY]: new Set(["agenda", "calendar", "patients", "communications"]),
+  [ASSISTANT_ROLE]: new Set(["agenda", "calendar", "patients", "quotes", "clinical-records", "communications"]),
+  [Role.SECRETARY]: new Set(["agenda", "calendar", "patients", "quotes", "clinical-records", "communications"]),
 };
 
 export async function getRoleFeatureAccess(role: Role) {

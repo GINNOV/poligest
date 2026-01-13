@@ -52,7 +52,7 @@ export default async function FeatureAccessPage() {
     return FALLBACK_PERMISSIONS[role]?.has(featureId) ?? false;
   };
 
-  const roleLabels: Record<Role, string> = {
+  const roleLabels: Record<string, string> = {
     [Role.ADMIN]: t("featureAccessRoleAdmin"),
     [Role.MANAGER]: t("featureAccessRoleManager"),
     [ASSISTANT_ROLE]: t("featureAccessRoleAssistant"),

@@ -89,22 +89,24 @@ export function UserMenu({
           <div className="flex flex-col divide-y divide-zinc-100 text-sm font-semibold text-zinc-800">
             <Link
               href={profileHref}
-              className="px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
+              className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
               onClick={() => setOpen(false)}
             >
+              <span aria-hidden>👤</span>
               Profilo
             </Link>
             {adminHref && adminLabel ? (
               <Link
                 href={adminHref}
-                className="px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
+                className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
                 onClick={() => setOpen(false)}
               >
+                <span aria-hidden>🛠️</span>
                 {adminLabel}
               </Link>
             ) : null}
             <div className="px-3 py-2">
-              <SignOutButton label="Esci" signOutUrl={signOutUrl} />
+              <SignOutButton label="🚪 Esci" signOutUrl={signOutUrl} />
             </div>
           </div>
         </div>
