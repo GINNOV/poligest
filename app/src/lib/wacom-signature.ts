@@ -62,12 +62,49 @@ const loadScript = (src: string) =>
     document.head.appendChild(script);
   });
 
+const loadModuleWithFallback = async (sources: string[]) => {
+  for (const src of sources) {
+    try {
+      const url = new URL(src, window.location.origin).toString();
+      const module = await import(/* webpackIgnore: true */ url);
+      return module;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  return null;
+};
+
+const loadScriptWithFallback = async (sources: string[]) => {
+  for (const src of sources) {
+    try {
+      await loadScript(src);
+      return src;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+  throw new Error("Script load failed");
+};
+
 export async function loadWacomSignatureSdk(): Promise<WacomSigSDK | null> {
   if (typeof window === "undefined") return null;
   if (window.__WACOM_SIG_SDK__) return window.__WACOM_SIG_SDK__;
 
   try {
-    await loadScript("/wacom/signature_sdk.js");
+    const module = await loadModuleWithFallback(["/wacom/signature-sdk.js", "/wacom/signature_sdk.js"]);
+    const SigSDK = module?.default as undefined | ((overrides?: unknown) => Promise<WacomSigSDK>);
+    if (SigSDK) {
+      const sdk = await SigSDK();
+      window.__WACOM_SIG_SDK__ = sdk;
+      return sdk;
+    }
+  } catch {
+    // Fall back to classic script loader below.
+  }
+
+  try {
+    await loadScriptWithFallback(["/wacom/signature_sdk.js", "/wacom/signature-sdk.js"]);
     const SigSDK = (window as unknown as { SigSDK?: new () => Promise<WacomSigSDK> }).SigSDK;
     if (!SigSDK) return null;
     const sdk = await new SigSDK();

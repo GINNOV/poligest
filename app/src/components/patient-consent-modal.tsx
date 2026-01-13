@@ -392,7 +392,9 @@ export function PatientConsentSection({
     try {
       const sigSDK = await loadWacomSignatureSdk();
       if (!sigSDK) {
-        throw new Error("SDK Wacom non disponibile. Aggiungi signature_sdk.js e signature_sdk.wasm in /public/wacom.");
+        throw new Error(
+          "SDK Wacom non disponibile. Installa il pacchetto Wacom e copia signature_sdk(.wasm/.js) in /public/wacom (npm run wacom:sync).",
+        );
       }
       if (!sigSDK.STUDevice.isHIDSupported()) {
         throw new Error("Il browser non supporta WebHID per il tablet STU.");
@@ -419,7 +421,22 @@ export function PatientConsentSection({
       config.source.pen = false;
       config.source.stu = true;
 
-      const dialog = new sigSDK.StuCaptDialog(stuDevice, config);
+      const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as any;
+      if (!dialog.sigCaptDialog) {
+        dialog.sigCaptDialog = {
+          getButton: () => -1,
+          onDown: () => {},
+          onMove: () => {},
+          onUp: () => {},
+          clickButton: () => {},
+          clear: () => {},
+          cancel: () => {},
+          accept: () => {},
+          clearTimeOnSurface: () => {},
+          startCapture: () => {},
+          stopCapture: () => {},
+        };
+      }
       dialog.addEventListener(sigSDK.EventType.OK, async () => {
         const image = await renderWacomSignature(sigSDK, sigObj);
         updateSignature(image);
