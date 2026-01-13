@@ -149,6 +149,7 @@ async function getUserFromStack(allowImpersonation = true): Promise<AppUser | nu
 
   const cookieStore = await cookies();
   const impersonateUserId = allowImpersonation ? cookieStore.get("impersonateUserId")?.value : undefined;
+  const impersonateAdminId = allowImpersonation ? cookieStore.get("impersonateAdminId")?.value : undefined;
   if (allowImpersonation && impersonateUserId && dbUser.role === Role.ADMIN && impersonateUserId !== dbUser.id) {
     const target = await prisma.user.findUnique({
       where: { id: impersonateUserId },
@@ -173,6 +174,13 @@ async function getUserFromStack(allowImpersonation = true): Promise<AppUser | nu
         impersonatedFrom: baseUser.id,
       };
     }
+  }
+
+  if (allowImpersonation && impersonateUserId && impersonateUserId === dbUser.id) {
+    return {
+      ...baseUser,
+      impersonatedFrom: impersonateAdminId ?? "impersonation",
+    };
   }
 
   return baseUser;

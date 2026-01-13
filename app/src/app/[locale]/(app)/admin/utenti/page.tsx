@@ -193,6 +193,13 @@ async function startImpersonation(formData: FormData) {
     secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60, // 1 hour
   });
+  store.set("impersonateAdminId", admin.id, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60, // 1 hour
+  });
   store.set(`stack-access-${projectId}`, accessToken, {
     path: "/",
     httpOnly: true,
@@ -268,6 +275,7 @@ async function stopImpersonation() {
     store.delete(`stack-refresh-${projectId}`);
   }
   store.delete("impersonateUserId");
+  store.delete("impersonateAdminId");
 
   if (current) {
     await logAudit(admin, {

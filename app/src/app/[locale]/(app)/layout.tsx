@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { getCurrentUser, requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
@@ -20,18 +20,22 @@ import { redirect } from "next/navigation";
 async function stopImpersonation() {
   "use server";
 
-  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const store = await cookies();
   const current = store.get("impersonateUserId")?.value;
+  const adminId = store.get("impersonateAdminId")?.value ?? null;
+  const admin = adminId
+    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, role: true } })
+    : null;
   const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
   if (projectId) {
     store.delete(`stack-access-${projectId}`);
     store.delete(`stack-refresh-${projectId}`);
   }
   store.delete("impersonateUserId");
+  store.delete("impersonateAdminId");
 
   if (current) {
-    await logAudit(admin, {
+    await logAudit(admin?.role === Role.ADMIN ? admin : null, {
       action: "admin.user.stop_impersonation",
       entity: "User",
       entityId: current,
@@ -43,6 +47,9 @@ async function stopImpersonation() {
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
+  const store = await cookies();
+  const impersonateUserId = store.get("impersonateUserId")?.value ?? null;
+  const isImpersonating = Boolean(user?.impersonatedFrom || impersonateUserId);
   const t = await getTranslations("app");
   const isManagerOrAdmin =
     user?.role === Role.ADMIN || user?.role === Role.MANAGER;
@@ -109,7 +116,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-zinc-50">
       <header className="relative z-40 border-b border-zinc-200 bg-white/80 backdrop-blur">
-        {user?.impersonatedFrom ? (
+        {isImpersonating && user ? (
           <div className="border-b border-amber-200 bg-amber-50">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-2 text-sm text-amber-900">
               <div className="flex flex-wrap items-center gap-2">

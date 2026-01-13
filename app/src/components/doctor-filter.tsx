@@ -24,7 +24,7 @@ export function DoctorFilter({ doctors, selectedDoctor }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-semibold text-zinc-700">Medico</label>
+      <label className="text-xs font-semibold text-zinc-700">Appuntamenti per...</label>
       <select
         onChange={(e) => handleChange(e.target.value)}
         value={selectedDoctor || "all"}

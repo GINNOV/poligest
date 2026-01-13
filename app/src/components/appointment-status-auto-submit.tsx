@@ -13,6 +13,7 @@ type Props = {
   options: StatusOption[];
   action: (formData: FormData) => void;
   className?: string;
+  returnTo?: string;
 };
 
 export function AppointmentStatusAutoSubmit({
@@ -21,6 +22,7 @@ export function AppointmentStatusAutoSubmit({
   options,
   action,
   className,
+  returnTo,
 }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +41,7 @@ export function AppointmentStatusAutoSubmit({
   return (
     <form ref={formRef} action={action} className={`flex flex-col ${className ?? ""}`}>
       <input type="hidden" name="appointmentId" value={appointmentId} />
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <select
         name="status"
         defaultValue={defaultValue}

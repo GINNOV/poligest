@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import {
@@ -14,6 +16,8 @@ import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { logAudit } from "@/lib/audit";
+import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -45,15 +49,44 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
 };
 
-const statusIcons: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "📅",
-  CONFIRMED: "✅",
-  IN_WAITING: "⏳",
-  IN_PROGRESS: "🔧",
-  COMPLETED: "⭐",
-  CANCELLED: "❌",
-  NO_SHOW: "🚫",
-};
+const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
+
+async function updateAppointmentStatus(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, Role.SECRETARY]);
+  const appointmentId = formData.get("appointmentId") as string;
+  const status = formData.get("status") as AppointmentStatus;
+  const returnToRaw = (formData.get("returnTo") as string) || "/dashboard";
+
+  if (!appointmentId || !status || !Object.keys(AppointmentStatus).includes(status)) {
+    throw new Error("Dati aggiornamento non validi");
+  }
+
+  const current = await prisma.appointment.findUnique({
+    where: { id: appointmentId },
+    select: { status: true },
+  });
+  if (!current) throw new Error("Appuntamento non trovato");
+  if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
+    throw new Error("Solo l'admin può modificare appuntamenti completati");
+  }
+
+  await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { status },
+  });
+
+  await logAudit(user, {
+    action: "appointment.status_updated",
+    entity: "Appointment",
+    entityId: appointmentId,
+    metadata: { status },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(returnToRaw);
+}
 
 type StatCardProps = { label: string; value: number };
 
@@ -218,6 +251,15 @@ export default async function DashboardPage({
       : Array.isArray(params.doctor)
         ? params.doctor[0] ?? ""
         : "";
+  const returnToParams = new URLSearchParams();
+  if (view === "day") {
+    returnToParams.set("view", "day");
+    returnToParams.set("day", selectedDay);
+  }
+  if (selectedDoctor && selectedDoctor !== "all") {
+    returnToParams.set("doctor", selectedDoctor);
+  }
+  const returnTo = `/dashboard${returnToParams.toString() ? `?${returnToParams.toString()}` : ""}`;
   const filteredByDoctor =
     selectedDoctor && selectedDoctor !== "all"
       ? (view === "day" ? selectedAppointments : appointments).filter(
@@ -227,6 +269,24 @@ export default async function DashboardPage({
         ? selectedAppointments
         : appointments;
   const listAppointments = filteredByDoctor;
+  const now = new Date();
+  const isSameDay = (date: Date, target: Date) =>
+    date.toDateString() === target.toDateString();
+  const orderedAppointments = [
+    ...listAppointments
+      .filter((appt) => isSameDay(appt.startsAt, now))
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+    ...listAppointments
+      .filter((appt) => appt.startsAt > now && !isSameDay(appt.startsAt, now))
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+    ...listAppointments
+      .filter((appt) => appt.startsAt < now && !isSameDay(appt.startsAt, now))
+      .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()),
+  ];
+  const statusOptions = Object.values(AppointmentStatus).map((status) => ({
+    value: status,
+    label: statusLabels[status],
+  }));
 
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
@@ -540,7 +600,7 @@ export default async function DashboardPage({
                 ? `Appuntamenti ${format(new Date(selectedDay), "d MMMM", {
                     locale: it,
                   })}`
-                : "Elenco degli appuntamenti"}
+                : "Appuntamenti"}
             </h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
               <Link
@@ -561,7 +621,7 @@ export default async function DashboardPage({
                   : "hover:text-emerald-700"
                 }`}
               >
-                Giorno
+                Oggi
               </Link>
             </div>
             {!isPatient && (
@@ -572,87 +632,151 @@ export default async function DashboardPage({
             {listAppointments.length} appuntamenti
           </span>
         </div>
-        <p className="mt-2 text-sm text-zinc-600">
-          Clicca il pulsante SETTIMANA per visualizzare tutti gli appuntamenti della settimana.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
+          <span className="font-semibold uppercase tracking-wide text-zinc-500">Legenda colori</span>
+          {statusLegendItems.map(([status, label]) => (
+            <span
+              key={status}
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold ${statusClasses[status]}`}
+            >
+              <span className="h-2 w-2 rounded-full bg-current" />
+              {label}
+            </span>
+          ))}
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800">
+            <span className="h-2 w-2 rounded-full bg-amber-600" />
+            Passato ✅
+          </span>
+        </div>
         <div className="mt-4 divide-y divide-zinc-100">
-            {listAppointments.length === 0 ? (
-              <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
-            ) : (
-              listAppointments.map((appt) => {
-                const patientPhone = normalizeItalianPhone(appt.patient.phone);
-                const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
-                const appointmentDate = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
-                  appt.startsAt
-                );
-                const appointmentTime = new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(
-                  appt.startsAt
-                );
-                const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-                const whatsappMessage = `Ciao ${appt.patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
-                const whatsappHref = whatsappPhone
-                  ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
-                  : null;
+          {orderedAppointments.length === 0 ? (
+            <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
+          ) : (
+            orderedAppointments.map((appt, index) => {
+              const patientPhone = normalizeItalianPhone(appt.patient.phone);
+              const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
+              const appointmentDate = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
+                appt.startsAt
+              );
+              const appointmentTime = new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(
+                appt.startsAt
+              );
+              const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
+              const whatsappMessage = `Ciao ${appt.patient.firstName}, ti ricordiamo il tuo appuntamento presso lo studio. E' il giorno ${appointmentDate} alle ore ${appointmentTime}. Il dottore ${appointmentDoctor} sara' lieto di farti sorridere. Per maggiorni informazioni usa il nostro nuovo sito http://sorrisosplendente.com. A presto e ricordati SORRIDI con noi!`;
+              const whatsappHref = whatsappPhone
+                ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
+                : null;
+              const isPast = appt.endsAt < now;
+              const cardClass = isPast
+                ? "border-amber-200 bg-amber-50"
+                : statusCardBackgrounds[appt.status];
+              const dayKey = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
+                appt.startsAt
+              );
+              const prevAppt = index > 0 ? orderedAppointments[index - 1] : null;
+              const prevDayKey = prevAppt
+                ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(prevAppt.startsAt)
+                : null;
+              const showDivider = !prevDayKey || prevDayKey !== dayKey;
+              const outerCardClass = index % 2 === 0
+                ? "border-zinc-200 bg-white/90"
+                : "border-zinc-200 bg-zinc-50/80";
 
-                return (
-                  <div
-                    key={appt.id}
-                    className={`mb-3 rounded-2xl border p-4 shadow-sm ${statusCardBackgrounds[appt.status]}`}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold text-zinc-900">
-                          {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
-                        </p>
-                        <p className="text-sm text-zinc-800">
-                          🧑‍⚕️ Paziente{" "}
-                          <Link
-                            href={`/pazienti/${appt.patient.id}`}
-                            className="font-semibold hover:text-emerald-700"
-                          >
-                            {appt.patient.lastName} {appt.patient.firstName}
-                          </Link>{" "}
-                          sarà visitato da{" "}
-                          <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
-                          {new Intl.DateTimeFormat("it-IT", {
-                            weekday: "short",
-                            day: "numeric",
-                            month: "short",
-                          }).format(appt.startsAt)}{" "}
-                          alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
-                        </p>
-                        <p className="text-sm text-zinc-800">
-                          🕒 Il servizio richiederà circa{" "}
-                          {Math.max(
-                            1,
-                            Math.round(
-                              (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
-                            )
-                          )}{" "}
-                          ora/e.
-                        </p>
-                      </div>
-                      <div className="flex justify-end">
-                        {whatsappHref ? (
-                          <a
-                            href={whatsappHref}
-                            className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
-                          >
-                            <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                            Promemoria
-                          </a>
-                        ) : (
-                          <span className="inline-flex h-9 items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-4 text-sm font-semibold text-white opacity-70">
-                            <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                            Promemoria
-                          </span>
-                        )}
+              return (
+                <div key={appt.id}>
+                  {showDivider ? (
+                    <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500">
+                      <div className="h-px flex-1 bg-zinc-200" />
+                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1">
+                        📅 {dayKey}
+                      </span>
+                      <div className="h-px flex-1 bg-zinc-200" />
+                    </div>
+                  ) : null}
+                  <div className={`mb-4 rounded-2xl border p-4 shadow-sm ${outerCardClass}`}>
+                    <div className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">
+                            <span>
+                              {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
+                            </span>
+                            {isPast ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                ✅ Passato
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="grid gap-2 text-sm text-zinc-800 sm:grid-cols-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-zinc-500">Paziente</span>
+                              <Link
+                                href={`/pazienti/${appt.patient.id}`}
+                                className="font-semibold hover:text-emerald-700"
+                              >
+                                {appt.patient.lastName} {appt.patient.firstName}
+                              </Link>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-zinc-500">Medico</span>
+                              <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-zinc-500">Quando</span>
+                              <span>
+                                {new Intl.DateTimeFormat("it-IT", {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                }).format(appt.startsAt)}{" "}
+                                alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-zinc-500">Durata</span>
+                              <span>
+                                {Math.max(
+                                  1,
+                                  Math.round(
+                                    (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
+                                  )
+                                )}{" "}
+                                ora/e
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid w-full grid-cols-2 gap-2 text-xs sm:w-auto">
+                          {whatsappHref ? (
+                            <a
+                              href={whatsappHref}
+                              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                            >
+                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                              Promemoria
+                            </a>
+                          ) : (
+                            <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70">
+                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                              Promemoria
+                            </span>
+                          )}
+                          <AppointmentStatusAutoSubmit
+                            appointmentId={appt.id}
+                            defaultValue={appt.status}
+                            options={statusOptions}
+                            action={updateAppointmentStatus}
+                            className="w-full"
+                            returnTo={returnTo}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })
-            )}
+                </div>
+              );
+            })
+          )}
         </div>
       </section>
     </div>
