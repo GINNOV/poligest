@@ -71,6 +71,109 @@ type PatientAward = {
   quote: string;
 };
 
+const DAILY_QUOTES = [
+  {
+    text: "Un sorriso caldo e' il linguaggio universale della gentilezza.",
+    author: "William Arthur Ward",
+  },
+  {
+    text: "Ogni volta che sorridi a qualcuno e' un atto d'amore, un dono a quella persona, una cosa bellissima.",
+    author: "Madre Teresa",
+  },
+  {
+    text: "Un sorriso e' una curva che raddrizza ogni cosa.",
+    author: "Phyllis Diller",
+  },
+  {
+    text: "A volte la tua gioia e' la fonte del tuo sorriso, ma a volte il tuo sorriso puo' essere la fonte della tua gioia.",
+    author: "Thich Nhat Hanh",
+  },
+  {
+    text: "Nulla di cio' che indossi e' piu' importante del tuo sorriso.",
+    author: "Connie Stevens",
+  },
+  {
+    text: "Un sorriso e' la felicita' che trovi proprio sotto il naso.",
+    author: "Tom Wilson",
+  },
+  {
+    text: "Le persone dimenticheranno cosa hai detto, dimenticheranno cosa hai fatto, ma non dimenticheranno mai come le hai fatte sentire.",
+    author: "Maya Angelou",
+  },
+  {
+    text: "Nessuno tiene a quanto sai, finche' non sa quanto ti importa.",
+    author: "Theodore Roosevelt",
+  },
+  {
+    text: "A volte cura, spesso tratta, sempre conforta.",
+    author: "Ippocrate",
+  },
+  {
+    text: "Spesso sottovalutiamo il potere di un tocco, di un sorriso, di una parola gentile, di un orecchio che ascolta, tutti capaci di cambiare una vita.",
+    author: "Leo Buscaglia",
+  },
+  {
+    text: "Nessun atto di gentilezza, per quanto piccolo, e' mai sprecato.",
+    author: "Esopo",
+  },
+  {
+    text: "L'empatia e' vedere con gli occhi di un altro, ascoltare con le orecchie di un altro, sentire con il cuore di un altro.",
+    author: "Alfred Adler",
+  },
+  {
+    text: "Da soli possiamo fare cosi' poco; insieme possiamo fare cosi' tanto.",
+    author: "Helen Keller",
+  },
+  {
+    text: "Le grandi cose in azienda non si fanno mai da soli. Le fanno i team di persone.",
+    author: "Steve Jobs",
+  },
+  {
+    text: "La forza della squadra e' ogni singolo membro. La forza di ogni membro e' la squadra.",
+    author: "Phil Jackson",
+  },
+  {
+    text: "Ritrovarsi e' un inizio, rimanere insieme e' un progresso, lavorare insieme e' un successo.",
+    author: "Henry Ford",
+  },
+  {
+    text: "Nessuno di noi e' intelligente quanto tutti noi.",
+    author: "Ken Blanchard",
+  },
+  {
+    text: "La sinergia e' l'attivita' piu' alta della vita: crea alternative nuove e inesplorate e valorizza le differenze mentali, emotive e psicologiche delle persone.",
+    author: "Stephen Covey",
+  },
+  {
+    text: "L'impegno individuale in uno sforzo di gruppo: e' questo che fa funzionare una squadra, un'azienda, una societa', una civilta'.",
+    author: "Vince Lombardi",
+  },
+  {
+    text: "La qualita' non e' un atto, e' un'abitudine.",
+    author: "Aristotele",
+  },
+  {
+    text: "La perfezione non e' raggiungibile, ma se perseguiamo la perfezione possiamo raggiungere l'eccellenza.",
+    author: "Vince Lombardi",
+  },
+  {
+    text: "Ogni dente nella testa di un uomo vale piu' di un diamante.",
+    author: "Miguel de Cervantes",
+  },
+  {
+    text: "L'eccellenza e' fare una cosa comune in modo non comune.",
+    author: "Booker T. Washington",
+  },
+  {
+    text: "Fai cio' che fai cosi' bene che vorranno rivederlo e porteranno gli amici.",
+    author: "Walt Disney",
+  },
+  {
+    text: "La vita e' breve. Sorridi finche' hai ancora i denti.",
+    author: "Mallory Hopkins",
+  },
+];
+
 function buildPatientAwards(appointments: Array<{ serviceType: string }>): PatientAward[] {
   const awards: PatientAward[] = [
     {
@@ -136,6 +239,11 @@ function getServiceIcon(serviceType: string | null, title: string) {
   if (s.includes("visita") || s.includes("controllo")) return "🔍";
   if (s.includes("ortodonzia")) return "🦷";
   return "📅";
+}
+
+function getDailyQuote(date: Date) {
+  const dayIndex = Math.abs(date.getDate() - 1) % DAILY_QUOTES.length;
+  return DAILY_QUOTES[dayIndex];
 }
 
 export default async function DashboardPage({
@@ -529,6 +637,12 @@ export default async function DashboardPage({
           <h1 className="text-3xl font-semibold text-zinc-900">
             {user.name ?? user.email}
           </h1>
+          <p className="mt-2 text-sm italic text-zinc-600">
+            “{getDailyQuote(today).text}”
+            <span className="ml-2 text-xs font-semibold text-zinc-500">
+              — {getDailyQuote(today).author}
+            </span>
+          </p>
         </div>
       </div>
 

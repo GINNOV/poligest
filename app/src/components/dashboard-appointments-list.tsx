@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
@@ -53,6 +53,8 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
 };
 
+const PAGE_SIZE = 10;
+
 const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
   const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
   if (label.includes("richiamo")) return "🔗";
@@ -64,6 +66,7 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
+  const [page, setPage] = useState(1);
   const orderedAppointments = useMemo(() => {
     const isSameDay = (date: Date, target: Date) => getDateKey(date) === getDateKey(target);
     const parsed = appointments.map((appt) => ({
@@ -83,6 +86,16 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         .sort((a, b) => b.startsAtDate.getTime() - a.startsAtDate.getTime()),
     ];
   }, [appointments, now]);
+  const totalPages = Math.max(1, Math.ceil(orderedAppointments.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedAppointments = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return orderedAppointments.slice(start, start + PAGE_SIZE);
+  }, [currentPage, orderedAppointments]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [orderedAppointments]);
 
   if (orderedAppointments.length === 0) {
     return <p className="py-4 text-sm text-zinc-600">{emptyLabel}</p>;
@@ -90,7 +103,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
 
   return (
     <>
-      {orderedAppointments.map((appt, index) => {
+      {paginatedAppointments.map((appt, index) => {
         const patientPhone = normalizeItalianPhone(appt.patient.phone);
         const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
         const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
@@ -119,7 +132,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           : statusCardBackgrounds[appt.status];
         const dayKey = getDateKey(appt.startsAtDate);
         const dayLabel = formatDate(appt.startsAtDate, { dateStyle: "long" });
-        const prevAppt = index > 0 ? orderedAppointments[index - 1] : null;
+        const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
         const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate) : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
         const outerCardClass = index % 2 === 0
@@ -212,6 +225,31 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           </div>
         );
       })}
+      {totalPages > 1 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700">
+          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Pagina {currentPage} di {totalPages}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Indietro
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Avanti
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
