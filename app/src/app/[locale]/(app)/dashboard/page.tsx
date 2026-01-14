@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -14,12 +13,11 @@ import { it } from "date-fns/locale";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
-import { normalizeItalianPhone } from "@/lib/phone";
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
   WHATSAPP_TEMPLATE_NAME,
-  renderWhatsappTemplate,
 } from "@/lib/whatsapp-template";
+import { DashboardAppointmentsList } from "@/components/dashboard-appointments-list";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -41,22 +39,19 @@ const statusClasses: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
-const statusCardBackgrounds: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50",
-  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50",
-  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50",
-  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50",
-  COMPLETED: "border-green-200 bg-gradient-to-r from-green-50 via-white to-green-50",
-  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50",
-  NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
-};
-
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
 const LOCALE = "it-IT";
 const TIME_ZONE = "Europe/Rome";
+const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
 const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }).format(date);
+const getDateKey = (date: Date) => DATE_KEY_FORMATTER.format(date);
 
 type StatCardProps = { label: string; value: number };
 
@@ -133,6 +128,16 @@ function buildPatientAwards(appointments: Array<{ serviceType: string }>): Patie
   return awards;
 }
 
+function getServiceIcon(serviceType: string | null, title: string) {
+  const s = (serviceType || title).toLowerCase();
+  if (s.includes("igiene") || s.includes("ablazione")) return "💎";
+  if (s.includes("chirurgia") || s.includes("estrazione") || s.includes("frenulectomia")) return "🛡️";
+  if (s.includes("otturazione") || s.includes("protesi")) return "🎯";
+  if (s.includes("visita") || s.includes("controllo")) return "🔍";
+  if (s.includes("ortodonzia")) return "🦷";
+  return "📅";
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -175,7 +180,7 @@ export default async function DashboardPage({
   const selectedDay =
     selectedDayParam && !Number.isNaN(Date.parse(selectedDayParam))
       ? selectedDayParam
-      : format(today, "yyyy-MM-dd");
+      : getDateKey(today);
 
   const [appointments, whatsappTemplate] = await Promise.all([
     prisma.appointment.findMany({
@@ -203,12 +208,16 @@ export default async function DashboardPage({
   const uniquePatientsWeek = new Set(appointments.map((a) => a.patientId)).size;
 
   const perDay = days.map((day) => {
-    const key = format(day, "yyyy-MM-dd");
+    const key = getDateKey(day);
     const dayAppointments = appointments.filter(
-      (appt) => format(appt.startsAt, "yyyy-MM-dd") === key
+      (appt) => getDateKey(appt.startsAt) === key
     );
     const uniquePatients = new Set(dayAppointments.map((a) => a.patientId)).size;
-    return { key, label: format(day, "EEE d", { locale: it }), count: uniquePatients };
+    return {
+      key,
+      label: formatDate(day, { weekday: "short", day: "numeric" }),
+      count: uniquePatients,
+    };
   });
 
   const maxCount = Math.max(...perDay.map((d) => d.count), 1);
@@ -222,7 +231,7 @@ export default async function DashboardPage({
     return "bg-rose-200";
   };
   const selectedAppointments = appointments.filter(
-    (appt) => format(appt.startsAt, "yyyy-MM-dd") === selectedDay
+    (appt) => getDateKey(appt.startsAt) === selectedDay
   );
   const doctors = Array.from(
     new Map(
@@ -246,20 +255,23 @@ export default async function DashboardPage({
         ? selectedAppointments
         : appointments;
   const listAppointments = filteredByDoctor;
-  const now = new Date();
-  const isSameDay = (date: Date, target: Date) =>
-    date.toDateString() === target.toDateString();
-  const orderedAppointments = [
-    ...listAppointments
-      .filter((appt) => isSameDay(appt.startsAt, now))
-      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    ...listAppointments
-      .filter((appt) => appt.startsAt > now && !isSameDay(appt.startsAt, now))
-      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    ...listAppointments
-      .filter((appt) => appt.startsAt < now && !isSameDay(appt.startsAt, now))
-      .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()),
-  ];
+  const nowIso = today.toISOString();
+  const appointmentsForList = listAppointments.map((appt) => ({
+    id: appt.id,
+    startsAt: appt.startsAt.toISOString(),
+    endsAt: appt.endsAt.toISOString(),
+    status: appt.status,
+    title: appt.title,
+    serviceType: appt.serviceType,
+    notes: appt.notes,
+    patient: {
+      id: appt.patient.id,
+      firstName: appt.patient.firstName,
+      lastName: appt.patient.lastName,
+      phone: appt.patient.phone,
+    },
+    doctor: appt.doctor?.fullName ? { fullName: appt.doctor.fullName } : null,
+  }));
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
     ? appointments
@@ -272,15 +284,6 @@ export default async function DashboardPage({
         .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
     : [];
   const patientAwards = isPatient ? buildPatientAwards(appointments) : [];
-  const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
-    const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
-    if (label.includes("richiamo")) return "🔗";
-    if (label.includes("prima visita")) return "📋";
-    if (label.includes("urgente") || label.includes("urgenza")) return "🚨";
-    if (label.includes("visita di controllo")) return "🔎";
-    return "🗓️";
-  };
-
   if (isPatient) {
     const quoteItems = latestQuote
       ? latestQuote.items.length
@@ -614,134 +617,13 @@ export default async function DashboardPage({
             Passato ✅
           </span>
         </div>
-        <div className="mt-4 divide-y divide-zinc-100" suppressHydrationWarning>
-          {orderedAppointments.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
-          ) : (
-            orderedAppointments.map((appt, index) => {
-              const patientPhone = normalizeItalianPhone(appt.patient.phone);
-              const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
-              const appointmentDate = formatDate(appt.startsAt, { dateStyle: "long" });
-              const appointmentTime = formatDate(appt.startsAt, { timeStyle: "short" });
-              const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-              const whatsappAppointmentDate = formatDate(appt.startsAt, {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-              const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
-                firstName: appt.patient.firstName ?? "",
-                lastName: appt.patient.lastName ?? "",
-                doctorName: appointmentDoctor,
-                appointmentDate: whatsappAppointmentDate,
-                serviceType: appt.serviceType ?? "",
-                notes: appt.notes ?? "",
-              });
-              const whatsappHref = whatsappPhone
-                ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
-                : null;
-              const isPast = appt.endsAt < now;
-              const cardClass = isPast
-                ? "border-amber-200 bg-amber-50"
-                : statusCardBackgrounds[appt.status];
-              const dayKey = formatDate(appt.startsAt, { dateStyle: "long" });
-              const prevAppt = index > 0 ? orderedAppointments[index - 1] : null;
-              const prevDayKey = prevAppt ? formatDate(prevAppt.startsAt, { dateStyle: "long" }) : null;
-              const showDivider = !prevDayKey || prevDayKey !== dayKey;
-              const outerCardClass = index % 2 === 0
-                ? "border-zinc-200 bg-white/90"
-                : "border-zinc-200 bg-zinc-50/80";
-
-              return (
-                <div key={appt.id}>
-                  {showDivider ? (
-                    <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500">
-                      <div className="h-px flex-1 bg-zinc-200" />
-                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1">
-                        📅 {dayKey}
-                      </span>
-                      <div className="h-px flex-1 bg-zinc-200" />
-                    </div>
-                  ) : null}
-                  <div className={`mb-4 rounded-2xl border p-4 shadow-sm ${outerCardClass}`}>
-                    <div className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">
-                            <span>
-                              {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
-                            </span>
-                            {isPast ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                                ✅ Passato
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="grid gap-2 text-sm text-zinc-800 sm:grid-cols-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Paziente</span>
-                              <Link
-                                href={`/pazienti/${appt.patient.id}`}
-                                className="font-semibold hover:text-emerald-700"
-                              >
-                                {appt.patient.lastName} {appt.patient.firstName}
-                              </Link>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Medico</span>
-                              <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Quando</span>
-                              <span>
-                                {formatDate(appt.startsAt, {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                })}{" "}
-                                alle {formatDate(appt.startsAt, { timeStyle: "short" })}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Durata</span>
-                              <span>
-                                {Math.max(
-                                  1,
-                                  Math.round(
-                                    (appt.endsAt.getTime() - appt.startsAt.getTime()) / (1000 * 60 * 60)
-                                  )
-                                )}{" "}
-                                ora/e
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-end">
-                          {whatsappHref ? (
-                            <a
-                              href={whatsappHref}
-                              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600 sm:w-auto"
-                            >
-                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                              Promemoria
-                            </a>
-                          ) : (
-                            <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70 sm:w-auto">
-                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                              Promemoria
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        <div className="mt-4 divide-y divide-zinc-100">
+          <DashboardAppointmentsList
+            appointments={appointmentsForList}
+            whatsappTemplateBody={whatsappTemplateBody}
+            nowIso={nowIso}
+            emptyLabel={t("empty")}
+          />
         </div>
       </section>
     </div>

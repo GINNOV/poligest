@@ -146,7 +146,8 @@ export function GlobalLoadingOverlay() {
         if (method.toUpperCase() !== "GET" && response.ok && shouldNotify) {
           emitToast("Salvato con successo", "success");
         }
-        if (!response.ok && shouldNotify) {
+        const isRedirectAfterPost = response.status === 303 && response.headers.has("location");
+        if (!response.ok && !isRedirectAfterPost && shouldNotify) {
           let errorCode = response.headers.get("x-error-code");
           if (!errorCode) {
             try {

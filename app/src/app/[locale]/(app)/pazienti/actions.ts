@@ -62,61 +62,128 @@ export async function createPatient(formData: FormData) {
   const consentModuleId = (formData.get("consentModuleId") as string)?.trim();
   const consentChannel = ((formData.get("consentChannel") as string) ?? "Di persona").trim() || "Di persona";
   const consentExpiresAtStr = (formData.get("consentExpiresAt") as string) ?? "";
+  const consentModuleIds = formData
+    .getAll("consentModuleIds[]")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+  const consentSignatureDataList = formData
+    .getAll("consentSignatureData[]")
+    .map((value) => String(value).trim());
+  const consentPlaces = formData.getAll("consentPlace[]").map((value) => String(value).trim());
+  const consentDates = formData.getAll("consentDate[]").map((value) => String(value).trim());
+  const patientSignatures = formData.getAll("patientSignature[]").map((value) => String(value).trim());
+  const doctorSignatures = formData.getAll("doctorSignature[]").map((value) => String(value).trim());
+  const consentChannels = formData.getAll("consentChannel[]").map((value) => String(value).trim());
+  const consentExpiresAtList = formData.getAll("consentExpiresAt[]").map((value) => String(value).trim());
   const photo = formData.get("photo") as File | null;
-
-  const signatureBase64 = consentSignatureData?.startsWith("data:image/png")
-    ? consentSignatureData.replace(/^data:image\/png;base64,/, "")
-    : consentSignatureData
-      ? consentSignatureData
-      : null;
-  const signatureBuffer = signatureBase64 ? Buffer.from(signatureBase64, "base64") : null;
 
   const birthDate = parseOptionalDate(birthDateValue);
 
   if (!firstName || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
   }
-  let consentModule: { id: string; name: string } | null = null;
-  let signedOn: Date | null = null;
-  let expiresAt: Date | null = null;
+  const buildSignatureParts = (rawValue: string | null | undefined) => {
+    const trimmed = rawValue?.trim() ?? "";
+    if (!trimmed) {
+      return { signatureBase64: null as string | null, signatureBuffer: null as Buffer | null, signatureUrl: null as string | null };
+    }
+    const signatureBase64 = trimmed.startsWith("data:image/png")
+      ? trimmed.replace(/^data:image\/png;base64,/, "")
+      : trimmed;
+    const signatureBuffer = signatureBase64 ? Buffer.from(signatureBase64, "base64") : null;
+    const signatureUrl = trimmed.startsWith("data:image/")
+      ? trimmed
+      : signatureBase64
+        ? `data:image/png;base64,${signatureBase64}`
+        : null;
+    return { signatureBase64, signatureBuffer, signatureUrl };
+  };
 
-  if (consentModuleId) {
-    if (!signatureBuffer) {
-      throw new Error("Firma digitale obbligatoria");
-    }
-    if (!patientSignature) {
-      throw new Error("Firma del paziente obbligatoria (nome leggibile).");
-    }
+  const hasMultiConsents = consentModuleIds.length > 0;
+  const consentEntries = hasMultiConsents
+    ? consentModuleIds.map((moduleId, index) => ({
+        moduleId,
+        place: consentPlaces[index] ?? "",
+        date: consentDates[index] ?? "",
+        patientSignature: patientSignatures[index] ?? "",
+        doctorSignature: doctorSignatures[index] ?? "",
+        signatureData: consentSignatureDataList[index] ?? "",
+        channel: consentChannels[index] || "Di persona",
+        expiresAtStr: consentExpiresAtList[index] ?? "",
+      }))
+    : consentModuleId
+      ? [
+          {
+            moduleId: consentModuleId,
+            place: consentPlace ?? "",
+            date: consentDate ?? "",
+            patientSignature: patientSignature ?? "",
+            doctorSignature: doctorSignature ?? "",
+            signatureData: consentSignatureData ?? "",
+            channel: consentChannel || "Di persona",
+            expiresAtStr: consentExpiresAtStr ?? "",
+          },
+        ]
+      : [];
 
-    consentModule = await prisma.consentModule.findFirst({
-      where: { id: consentModuleId, active: true },
-      select: { id: true, name: true },
-    });
-    if (!consentModule) {
-      throw new Error("Modulo consenso non valido o disattivato.");
-    }
-    signedOn = consentDate ? new Date(consentDate) : null;
-    if (signedOn && Number.isNaN(signedOn.getTime())) {
-      throw new Error("Data consenso non valida.");
-    }
-    expiresAt = consentExpiresAtStr ? new Date(consentExpiresAtStr) : null;
-    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
-      throw new Error("Data scadenza non valida.");
-    }
+  if (!hasMultiConsents && consentModuleId && !consentSignatureData) {
+    throw new Error("Firma digitale obbligatoria");
   }
 
+  const consentsToCreate = consentEntries
+    .filter((entry) => entry.moduleId && entry.signatureData)
+    .map((entry) => {
+      if (!entry.patientSignature) {
+        throw new Error("Firma del paziente obbligatoria (nome leggibile).");
+      }
+      const signedOn = entry.date ? new Date(entry.date) : null;
+      if (signedOn && Number.isNaN(signedOn.getTime())) {
+        throw new Error("Data consenso non valida.");
+      }
+      const expiresAt = entry.expiresAtStr ? new Date(entry.expiresAtStr) : null;
+      if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+        throw new Error("Data scadenza non valida.");
+      }
+      const signatureParts = buildSignatureParts(entry.signatureData);
+      return { ...entry, signedOn, expiresAt, ...signatureParts };
+    });
+
+  const consentModules = consentsToCreate.length
+    ? await prisma.consentModule.findMany({
+        where: { id: { in: consentsToCreate.map((entry) => entry.moduleId) }, active: true },
+        select: { id: true, name: true },
+      })
+    : [];
+  const consentModulesMap = new Map(consentModules.map((module) => [module.id, module]));
+  if (consentsToCreate.length && consentModules.length !== consentsToCreate.length) {
+    throw new Error("Modulo consenso non valido o disattivato.");
+  }
+
+  const requiredModules = await prisma.consentModule.findMany({
+    where: { active: true, required: true },
+    select: { id: true, name: true },
+  });
+  const missingRequired = requiredModules.filter(
+    (module) => !consentsToCreate.some((entry) => entry.moduleId === module.id),
+  );
+  if (missingRequired.length > 0) {
+    throw new Error("Mancano consensi obbligatori.");
+  }
+
+  const consentNotes = consentsToCreate.map((entry) => {
+    const moduleName = consentModulesMap.get(entry.moduleId)?.name ?? "Consenso";
+    return `Consenso ${moduleName} firmato${entry.place ? ` a ${entry.place}` : ""}${
+      entry.date ? ` il ${entry.date}` : ""
+    }. Firma paziente: ${entry.patientSignature || "—"} · Firma medico: ${entry.doctorSignature || "—"}`;
+  });
   const structuredNotesText = [
     address || city ? `Indirizzo: ${address ?? "—"}${city ? `, ${city}` : ""}` : null,
     taxId ? `Codice Fiscale: ${taxId}` : null,
     conditions.length > 0 ? `Anamnesi: ${conditions.join(", ")}` : null,
     medications ? `Farmaci: ${medications}` : null,
     extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
-    consentModule
-      ? `Consenso ${consentModule.name} firmato${consentPlace ? ` a ${consentPlace}` : ""}${
-          consentDate ? ` il ${consentDate}` : ""
-        }. Firma paziente: ${patientSignature || "—"} · Firma medico: ${doctorSignature || "—"}`
-      : null,
-    consentModule ? "Firma digitale acquisita." : null,
+    ...consentNotes,
+    consentsToCreate.length > 0 ? "Firma digitale acquisita." : null,
   ]
     .filter(Boolean)
     .join("\n");
@@ -132,28 +199,26 @@ export async function createPatient(formData: FormData) {
     },
   });
 
-  if (consentModule && signatureBuffer) {
-    const consentSignatureUrl = consentSignatureData?.startsWith("data:image/")
-      ? consentSignatureData
-      : signatureBase64
-        ? `data:image/png;base64,${signatureBase64}`
-        : null;
-
-    await prisma.patientConsent.create({
-      data: {
-        patientId: patient.id,
-        moduleId: consentModule.id,
-        status: ConsentStatus.GRANTED,
-        channel: consentChannel,
-        givenAt: new Date(),
-        signedOn,
-        expiresAt,
-        signatureUrl: consentSignatureUrl,
-        place: consentPlace || null,
-        patientName: patientSignature || null,
-        doctorName: doctorSignature || null,
-      },
-    });
+  if (consentsToCreate.length > 0) {
+    await Promise.all(
+      consentsToCreate.map((entry) =>
+        prisma.patientConsent.create({
+          data: {
+            patientId: patient.id,
+            moduleId: entry.moduleId,
+            status: ConsentStatus.GRANTED,
+            channel: entry.channel,
+            givenAt: new Date(),
+            signedOn: entry.signedOn,
+            expiresAt: entry.expiresAt,
+            signatureUrl: entry.signatureUrl,
+            place: entry.place || null,
+            patientName: entry.patientSignature || null,
+            doctorName: entry.doctorSignature || null,
+          },
+        })
+      )
+    );
   }
 
   const updates: Prisma.PatientUpdateInput = {};
@@ -169,10 +234,21 @@ export async function createPatient(formData: FormData) {
     updates.photoUrl = blob.url;
   }
 
-  if (signatureBuffer) {
-    const signatureName = `signatures/${patient.id}/signature-${Date.now()}.png`;
-    const signatureBlob = await put(signatureName, signatureBuffer, { access: "public", addRandomSuffix: false });
-    updates.notes = `${structuredNotesText}\nFirma digitale: ${signatureBlob.url}`;
+  if (consentsToCreate.length > 0) {
+    const signatureLines: string[] = [];
+    for (const entry of consentsToCreate) {
+      if (!entry.signatureBuffer) continue;
+      const moduleName = consentModulesMap.get(entry.moduleId)?.name ?? "Consenso";
+      const signatureName = `signatures/${patient.id}/${entry.moduleId}-${Date.now()}.png`;
+      const signatureBlob = await put(signatureName, entry.signatureBuffer, {
+        access: "public",
+        addRandomSuffix: false,
+      });
+      signatureLines.push(`Firma digitale (${moduleName}): ${signatureBlob.url}`);
+    }
+    if (signatureLines.length > 0) {
+      updates.notes = [structuredNotesText, ...signatureLines].filter(Boolean).join("\n");
+    }
   }
 
   await prisma.patient.update({
@@ -186,10 +262,11 @@ export async function createPatient(formData: FormData) {
     entityId: patient.id,
     metadata: {
       patientName: `${patient.lastName} ${patient.firstName}`,
-      consentAgreement: true,
+      consentAgreement: consentsToCreate.length > 0,
       taxIdProvided: Boolean(taxId),
       conditionsCount: conditions.length,
-      hasDigitalSignature: Boolean(signatureBuffer),
+      hasDigitalSignature: consentsToCreate.some((entry) => Boolean(entry.signatureBuffer)),
+      consentsCount: consentsToCreate.length,
     },
   });
 

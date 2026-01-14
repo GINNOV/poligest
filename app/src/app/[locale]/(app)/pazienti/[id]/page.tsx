@@ -1239,7 +1239,7 @@ export default async function PatientDetailPage({
                     </div>
                   <div className="flex justify-end">
                     <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-                      Aggiorna
+                      Aggiorna scheda paziente
                     </FormSubmitButton>
                   </div>
                 </form>

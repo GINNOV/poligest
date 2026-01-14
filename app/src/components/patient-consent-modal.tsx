@@ -14,6 +14,14 @@ type Props = {
   hideIntro?: boolean;
   disabled?: boolean;
   submitDisabled?: boolean;
+  showSubmitButton?: boolean;
+  initialValues?: {
+    place?: string;
+    date?: string;
+    patientName?: string;
+    doctorName?: string;
+    signatureData?: string;
+  };
   requireFields?: boolean;
   onSignatureChange?: (value: string) => void;
   onFieldChange?: (fields: {
@@ -140,12 +148,24 @@ export function PatientConsentSection({
   hideIntro,
   disabled,
   submitDisabled,
+  showSubmitButton = true,
+  initialValues,
   requireFields = true,
   onSignatureChange,
   onFieldChange,
 }: Props) {
   const [patientName, setPatientName] = useState("Paziente");
   const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
+  const defaultDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Rome",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date()),
+    [],
+  );
   const normalizedContent = useMemo(
     () =>
       content
@@ -157,9 +177,10 @@ export function PatientConsentSection({
   const [isOpen, setIsOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [hasReachedEnd, setHasReachedEnd] = useState(false);
-  const [signatureData, setSignatureData] = useState<string>("");
+  const [signatureData, setSignatureData] = useState<string>(initialValues?.signatureData ?? "");
   const [signatureError, setSignatureError] = useState<string | null>(null);
   const [wacomLoading, setWacomLoading] = useState(false);
+  const [useTabletSignature, setUseTabletSignature] = useState(false);
   const [hasStroke, setHasStroke] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inlineCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -240,7 +261,7 @@ export function PatientConsentSection({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !signatureData) return;
+    if (!isOpen || !signatureData || !useTabletSignature) return;
     let cancelled = false;
     const attemptDraw = () => {
       if (cancelled) return;
@@ -255,13 +276,20 @@ export function PatientConsentSection({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, signatureData]);
+  }, [isOpen, signatureData, useTabletSignature]);
 
   useEffect(() => {
     if (fiscalCodeProp) {
       setFiscalCode(fiscalCodeProp);
     }
   }, [fiscalCodeProp]);
+
+  useEffect(() => {
+    if (initialValues?.signatureData) {
+      setSignatureData(initialValues.signatureData);
+      setHasStroke(true);
+    }
+  }, [initialValues?.signatureData]);
 
   useEffect(() => {
     const updateName = () => {
@@ -511,6 +539,7 @@ export function PatientConsentSection({
             setPageIndex(0);
             setHasReachedEnd(Boolean(signatureData) || totalPages <= 1);
             setSignatureError(null);
+            setUseTabletSignature(false);
           }}
           className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
@@ -572,6 +601,7 @@ export function PatientConsentSection({
             name="consentPlace"
             disabled={disabled}
             required={!disabled && requireFields}
+            defaultValue={initialValues?.place ?? "Striano"}
             onChange={(event) => onFieldChange?.({ place: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="Luogo"
@@ -584,6 +614,7 @@ export function PatientConsentSection({
             name="consentDate"
             disabled={disabled}
             required={!disabled && requireFields}
+            defaultValue={initialValues?.date ?? defaultDate}
             onChange={(event) => onFieldChange?.({ date: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="dd/mm/yyyy"
@@ -597,6 +628,7 @@ export function PatientConsentSection({
             name="patientSignature"
             required={!disabled && requireFields}
             disabled={disabled}
+            defaultValue={initialValues?.patientName ?? ""}
             onChange={(event) => onFieldChange?.({ patientName: event.target.value })}
             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
             placeholder="Inserire nome"
@@ -607,7 +639,7 @@ export function PatientConsentSection({
           <select
             name="doctorSignature"
             className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
-            defaultValue=""
+            defaultValue={initialValues?.doctorName ?? ""}
             required={!disabled && requireFields}
             disabled={disabled}
             onChange={(event) => onFieldChange?.({ doctorName: event.target.value })}
@@ -631,117 +663,148 @@ export function PatientConsentSection({
         >
           Annulla
         </Link>
-        <FormSubmitButton
-          disabled={!signatureData || disabled || submitDisabled}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          Aggiorna Modulo
-        </FormSubmitButton>
+        {showSubmitButton ? (
+          <FormSubmitButton
+            disabled={!signatureData || disabled || submitDisabled}
+            className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            Registra consenso
+          </FormSubmitButton>
+        ) : null}
       </div>
 
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="relative w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  Informativa {moduleLabel || "consenso"}
-                </p>
-                <h2 className="text-xl font-semibold text-zinc-900">Lettura e firma digitale</h2>
-                <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
-              >
-                Chiudi
-              </button>
-            </div>
-
-            <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-              <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
-                <span>Pagina {pageIndex + 1} di {totalPages}</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPageIndex((idx) => Math.max(0, idx - 1))}
-                    disabled={pageIndex === 0}
-                    className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Indietro
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPageIndex((idx) => Math.min(totalPages - 1, idx + 1))}
-                    disabled={pageIndex === totalPages - 1}
-                    className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Avanti
-                  </button>
-                </div>
-              </div>
-              <div className="mt-3 max-h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800">
-                {renderedMarkdown}
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-              <div className="flex items-center justify-between gap-3">
+          <div className="relative h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex h-full flex-col">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
-                  <p className="text-xs text-emerald-700">
-                    Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.
-                    {!hasReachedEnd ? " Completa la lettura dell'informativa prima di salvare." : ""}
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    Informativa {moduleLabel || "consenso"}
                   </p>
+                  <h2 className="text-xl font-semibold text-zinc-900">Lettura e firma digitale</h2>
+                  <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={captureWithWacom}
-                    disabled={wacomLoading || disabled}
-                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {wacomLoading ? "Collego Wacom..." : "Firma con Wacom"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearCanvas(canvasRef);
-                      setHasStroke(false);
-                      updateSignature("");
-                    }}
-                    className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
-                  >
-                    Cancella
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => saveSignature(canvasRef)}
-                    disabled={!hasStroke}
-                    className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Aggiorna firma
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                >
+                  Chiudi
+                </button>
+              </div>
+
+              <div className="mt-4 flex-1 overflow-y-auto pr-1">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
+                    <span>Pagina {pageIndex + 1} di {totalPages}</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPageIndex((idx) => Math.max(0, idx - 1))}
+                        disabled={pageIndex === 0}
+                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Indietro
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPageIndex((idx) => Math.min(totalPages - 1, idx + 1))}
+                        disabled={pageIndex === totalPages - 1}
+                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Avanti
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800">
+                    {renderedMarkdown}
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+                      <p className="text-xs text-emerald-700">
+                        Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.
+                        {!hasReachedEnd ? " Completa la lettura dell'informativa prima di salvare." : ""}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUseTabletSignature((prev) => !prev);
+                          setSignatureError(null);
+                          if (!useTabletSignature) {
+                            setHasStroke(false);
+                            clearCanvas(canvasRef);
+                            setTimeout(resizeCanvas, 50);
+                          }
+                        }}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          useTabletSignature
+                            ? "bg-emerald-700 text-white"
+                            : "border border-emerald-200 text-emerald-800 hover:border-emerald-300"
+                        }`}
+                      >
+                        Tablet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={captureWithWacom}
+                        disabled={wacomLoading || disabled}
+                        className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {wacomLoading ? "Collego Wacom..." : "Wacom"}
+                      </button>
+                      {useTabletSignature ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            clearCanvas(canvasRef);
+                            setHasStroke(false);
+                            updateSignature("");
+                          }}
+                          className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                        >
+                          Cancella
+                        </button>
+                      ) : null}
+                      {useTabletSignature ? (
+                        <button
+                          type="button"
+                          onClick={() => saveSignature(canvasRef)}
+                          disabled={!hasStroke}
+                          className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Conferma firma
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {useTabletSignature ? (
+                    <div className="h-44 overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                      <canvas
+                        ref={canvasRef}
+                        className="h-full w-full touch-none"
+                        onPointerDown={(e) => handlePointerDown(e, canvasRef)}
+                        onPointerMove={(e) => handlePointerMove(e, canvasRef)}
+                        onPointerUp={handlePointerUp}
+                        onPointerLeave={handlePointerUp}
+                      />
+                    </div>
+                  ) : null}
+                  {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+                  {!hasReachedEnd ? (
+                    <p className="text-xs font-semibold text-amber-700">
+                      Scorri l&apos;informativa fino in fondo prima di salvare la firma.
+                    </p>
+                  ) : null}
                 </div>
               </div>
-                <div className="overflow-hidden rounded-lg border border-emerald-200 bg-white">
-                  <canvas
-                    ref={canvasRef}
-                    className="h-44 w-full touch-none"
-                    onPointerDown={(e) => handlePointerDown(e, canvasRef)}
-                    onPointerMove={(e) => handlePointerMove(e, canvasRef)}
-                    onPointerUp={handlePointerUp}
-                    onPointerLeave={handlePointerUp}
-                  />
-                </div>
-                {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
-                {!hasReachedEnd ? (
-                  <p className="text-xs font-semibold text-amber-700">
-                    Scorri l&apos;informativa fino in fondo prima di salvare la firma.
-                  </p>
-                ) : null}
-              </div>
+            </div>
           </div>
         </div>
       ) : null}

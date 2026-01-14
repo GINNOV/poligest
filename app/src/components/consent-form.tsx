@@ -30,12 +30,21 @@ type Props = {
 };
 
 const CHANNELS = ["Di persona", "Telefono", "Manuale", "Digitale"];
+const DEFAULT_PLACE = "Striano";
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Rome",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const getTodayDateKey = () => DATE_FORMATTER.format(new Date());
 
 export function ConsentForm({ patientId, modules, doctors, consents, revokeAction }: Props) {
   const [selectedModuleId, setSelectedModuleId] = useState<string>("");
   const [formState, setFormState] = useState({
-    place: "",
-    date: "",
+    place: DEFAULT_PLACE,
+    date: getTodayDateKey(),
     patientName: "",
     doctorName: "",
     signatureData: "",
@@ -87,8 +96,8 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
     if (moduleId === selectedModuleId) return;
     setSelectedModuleId(moduleId);
     setFormState({
-      place: "",
-      date: "",
+      place: DEFAULT_PLACE,
+      date: getTodayDateKey(),
       patientName: "",
       doctorName: "",
       signatureData: "",
@@ -119,15 +128,18 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
             const isSelected = module.id === selectedModuleId;
             const consent = consentByModule.get(module.id);
             const isActiveConsent = consent && consent.status !== "REVOKED";
+            const statusClass = isActiveConsent
+              ? "border-sky-300 bg-sky-50 text-sky-800"
+              : module.required
+                ? "border-rose-300 bg-rose-50 text-rose-800"
+                : "border-amber-300 bg-amber-50 text-amber-800";
             return (
               <div key={module.id} className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => handleModuleSelect(module.id)}
-                  className={`flex min-h-[120px] items-center justify-center rounded-xl border-2 px-4 text-center text-base font-semibold transition ${
-                    isSelected
-                      ? "border-emerald-500 text-emerald-700"
-                      : "border-zinc-200 text-zinc-700 hover:border-emerald-200 hover:text-emerald-600"
+                  className={`flex min-h-[120px] items-center justify-center rounded-xl border-2 px-4 text-center text-base font-semibold transition ${statusClass} ${
+                    isSelected ? "ring-2 ring-emerald-400" : "hover:brightness-95"
                   }`}
                 >
                   {module.name}

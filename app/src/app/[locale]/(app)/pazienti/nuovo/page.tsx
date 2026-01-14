@@ -7,6 +7,7 @@ import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { ConfirmLeaveButton } from "@/components/confirm-leave-button";
+import { PatientCreateSubmitButton } from "@/components/patient-create-submit-button";
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -51,7 +52,7 @@ export default async function NuovoPazientePage() {
             <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
             <p className="text-xs text-zinc-500">Informazioni personali del paziente.</p>
           </div>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               Cognome
               <input
@@ -72,7 +73,7 @@ export default async function NuovoPazientePage() {
                 placeholder="Nome"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               Indirizzo
               <input
                 className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
@@ -128,7 +129,7 @@ export default async function NuovoPazientePage() {
                 placeholder="dd/mm/yyyy"
               />
             </label>
-            <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+            <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               <span>Foto (opzionale)</span>
               <LocalizedFileInput
                 name="photo"
@@ -195,12 +196,11 @@ export default async function NuovoPazientePage() {
         </section>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
-          >
-            Aggiorna nuovo paziente
-          </button>
+          <PatientCreateSubmitButton
+            label="Aggiungi nuovo paziente"
+            className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+            pendingLabel="Salvataggio..."
+          />
           <ConfirmLeaveButton
             formId="patient-create-form"
             href="/pazienti"
