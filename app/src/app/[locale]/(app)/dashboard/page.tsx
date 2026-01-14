@@ -52,6 +52,12 @@ const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
 const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }).format(date);
 const getDateKey = (date: Date) => DATE_KEY_FORMATTER.format(date);
+const formatLocalDateTime = (date: Date) => {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+};
 
 type StatCardProps = { label: string; value: number };
 
@@ -366,8 +372,8 @@ export default async function DashboardPage({
   const nowIso = today.toISOString();
   const appointmentsForList = listAppointments.map((appt) => ({
     id: appt.id,
-    startsAt: appt.startsAt.toISOString(),
-    endsAt: appt.endsAt.toISOString(),
+    startsAt: formatLocalDateTime(appt.startsAt),
+    endsAt: formatLocalDateTime(appt.endsAt),
     status: appt.status,
     title: appt.title,
     serviceType: appt.serviceType,
