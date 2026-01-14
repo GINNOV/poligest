@@ -65,6 +65,11 @@ async function updateAppointmentStatus(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const appointmentId = formData.get("appointmentId") as string;
   const status = formData.get("status") as AppointmentStatus;
+  const returnToRaw = formData.get("returnTo");
+  const returnTo =
+    typeof returnToRaw === "string" && returnToRaw.startsWith("/agenda/appuntamenti")
+      ? returnToRaw
+      : "/agenda/appuntamenti";
 
   if (!appointmentId || !status || !Object.keys(AppointmentStatus).includes(status)) {
     throw new Error("Dati aggiornamento non validi");
@@ -92,7 +97,7 @@ async function updateAppointmentStatus(formData: FormData) {
   });
 
   revalidatePath("/agenda/appuntamenti");
-  redirect("/agenda/appuntamenti");
+  redirect(returnTo);
 }
 
 async function updateAppointment(formData: FormData) {
@@ -431,6 +436,13 @@ export default async function AgendaPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const showingFrom = totalCount === 0 ? 0 : skip + 1;
   const showingTo = skip + appointments.length;
+  const basePath = "/agenda/appuntamenti";
+  const returnParams = new URLSearchParams();
+  if (statusValue) returnParams.set("status", statusValue);
+  if (dateValue) returnParams.set("date", dateValue);
+  if (searchValue) returnParams.set("q", searchValue);
+  if (pageParam && pageParam !== "1") returnParams.set("page", pageParam);
+  const returnTo = returnParams.toString() ? `${basePath}?${returnParams.toString()}` : basePath;
   const buildPageHref = (targetPage: number) => {
     const query = new URLSearchParams();
     if (statusValue) query.set("status", statusValue);
@@ -636,6 +648,7 @@ export default async function AgendaPage({
                             defaultValue={appt.status}
                             options={statusOptions}
                             action={updateAppointmentStatus}
+                            returnTo={returnTo}
                             className="w-full"
                           />
                         </div>
