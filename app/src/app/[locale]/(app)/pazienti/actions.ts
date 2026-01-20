@@ -76,6 +76,7 @@ export async function createPatient(formData: FormData) {
   const consentChannels = formData.getAll("consentChannel[]").map((value) => String(value).trim());
   const consentExpiresAtList = formData.getAll("consentExpiresAt[]").map((value) => String(value).trim());
   const photo = formData.get("photo") as File | null;
+  const postCreateRedirect = (formData.get("postCreateRedirect") as string)?.trim() || "dashboard";
 
   const birthDate = parseOptionalDate(birthDateValue);
 
@@ -292,5 +293,11 @@ Se hai bisogno di assistenza, contatta la segreteria.`;
   revalidatePath("/pazienti");
   revalidatePath("/pazienti/nuovo");
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  const redirectTarget =
+    postCreateRedirect === "patients"
+      ? "/pazienti"
+      : postCreateRedirect === "patient_detail"
+        ? `/pazienti/${patient.id}`
+        : "/dashboard";
+  redirect(redirectTarget);
 }

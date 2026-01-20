@@ -21,11 +21,6 @@ export function SiteFooter({
           {deployLabel ? ` · Aggiornato a ${deployLabel}` : ""}
         </span>
         <div className="flex items-center gap-4 text-emerald-700">
-          {showDocs ? (
-            <a href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
-              Documentazione
-            </a>
-          ) : null}
           <a href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
             Manuale
           </a>

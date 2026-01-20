@@ -23,6 +23,7 @@ type Props = {
     signatureData?: string;
   };
   requireFields?: boolean;
+  markRequired?: boolean;
   onSignatureChange?: (value: string) => void;
   onFieldChange?: (fields: {
     place?: string;
@@ -151,9 +152,11 @@ export function PatientConsentSection({
   showSubmitButton = true,
   initialValues,
   requireFields = true,
+  markRequired = false,
   onSignatureChange,
   onFieldChange,
 }: Props) {
+  const requiredLabelClass = markRequired ? "text-rose-600" : "text-zinc-800";
   const [patientName, setPatientName] = useState("Paziente");
   const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
   const defaultDate = useMemo(
@@ -595,7 +598,7 @@ export function PatientConsentSection({
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+        <label className={`flex flex-col gap-2 text-sm font-medium ${requiredLabelClass}`}>
           Luogo
           <input
             name="consentPlace"
@@ -607,7 +610,7 @@ export function PatientConsentSection({
             placeholder="Luogo"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+        <label className={`flex flex-col gap-2 text-sm font-medium ${requiredLabelClass}`}>
           Data
           <input
             type="date"
@@ -622,8 +625,8 @@ export function PatientConsentSection({
         </label>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-          In stampatello, paziente o esercente podestà
+        <label className={`flex flex-col gap-2 text-sm font-medium ${requiredLabelClass}`}>
+          Nome del paziente o esercente podestà
           <input
             name="patientSignature"
             required={!disabled && requireFields}
@@ -634,7 +637,7 @@ export function PatientConsentSection({
             placeholder="Inserire nome"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+        <label className={`flex flex-col gap-2 text-sm font-medium ${requiredLabelClass}`}>
           Medico assegnato
           <select
             name="doctorSignature"
@@ -725,7 +728,13 @@ export function PatientConsentSection({
                 <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-emerald-900">Firma digitale del paziente</p>
+                      <p
+                        className={`text-sm font-semibold ${
+                          markRequired ? "text-rose-600" : "text-emerald-900"
+                        }`}
+                      >
+                        Firma digitale del paziente
+                      </p>
                       <p className="text-xs text-emerald-700">
                         Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.
                         {!hasReachedEnd ? " Completa la lettura dell'informativa prima di salvare." : ""}

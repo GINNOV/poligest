@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { PATIENT_LIST_AUTO_FILTER_STORAGE_KEY } from "@/lib/app-preferences";
 
 type Props = {
   initialQuery?: string;
@@ -10,13 +11,13 @@ type Props = {
 };
 
 const LIVE_SEARCH_DEBOUNCE_MS = 250;
-
 export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazienti/lista" }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState(initialQuery ?? "");
   const [sort, setSort] = useState(sortValue ?? "name_asc");
+  const [autoFilter, setAutoFilter] = useState(true);
   const isFirstRun = useRef(true);
 
   useEffect(() => {
@@ -28,6 +29,44 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
   }, [sortValue]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY);
+    if (stored === "false") {
+      setAutoFilter(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== PATIENT_LIST_AUTO_FILTER_STORAGE_KEY) return;
+      if (event.newValue === "false") {
+        setAutoFilter(false);
+      } else if (event.newValue === "true") {
+        setAutoFilter(true);
+      }
+    };
+    const handleCustom = (event: Event) => {
+      const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+      if (typeof detail?.enabled === "boolean") {
+        setAutoFilter(detail.enabled);
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("patient-auto-filter-changed", handleCustom as EventListener);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("patient-auto-filter-changed", handleCustom as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY, autoFilter ? "true" : "false");
+  }, [autoFilter]);
+
+  useEffect(() => {
+    if (!autoFilter) return;
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
@@ -55,7 +94,7 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
     }, LIVE_SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(handle);
-  }, [basePath, query, router, searchParams, sort, startTransition]);
+  }, [autoFilter, basePath, query, router, searchParams, sort, startTransition]);
 
   return (
     <form

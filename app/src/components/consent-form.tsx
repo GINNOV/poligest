@@ -191,6 +191,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
             disabled={!canEdit}
             hideIntro
             submitDisabled={!canSubmit}
+            markRequired={Boolean(selectedModule?.required)}
             onSignatureChange={(value) => {
               setFormState((prev) => ({ ...prev, signatureData: value }));
               markDirty();
@@ -205,8 +206,8 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
 
       {canEdit ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 font-medium text-zinc-800">
-            Canale
+        <label className="flex flex-col gap-1 font-medium text-zinc-800">
+          Consenso ottenuto via...
             <select
               name="consentChannel"
               defaultValue="Di persona"

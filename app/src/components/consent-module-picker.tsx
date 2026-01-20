@@ -169,6 +169,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             submitDisabled={!canSubmit}
             showSubmitButton={false}
             requireFields={false}
+            markRequired={Boolean(selectedModule?.required)}
             hideIntro
             initialValues={currentState}
             onSignatureChange={(value) => {
@@ -186,7 +187,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
       {canEdit ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 font-medium text-zinc-800">
-            Canale
+            Consenso ottenuto via...
             <select
               name="consentChannel"
               disabled={!canEdit}

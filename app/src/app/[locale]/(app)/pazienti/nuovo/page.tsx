@@ -12,6 +12,7 @@ import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { TaxIdBirthDateButton } from "@/components/taxid-birthdate-button";
+import { PatientCreateRedirectField } from "@/components/patient-create-redirect-field";
 
 export default async function NuovoPazientePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -48,6 +49,7 @@ export default async function NuovoPazientePage() {
 
       <UnsavedChangesGuard formId="patient-create-form" />
       <form action={createPatient} className="space-y-6" id="patient-create-form">
+        <PatientCreateRedirectField />
         <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>

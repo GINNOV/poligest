@@ -17,6 +17,7 @@ import { logAudit } from "@/lib/audit";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { AppStartRedirect } from "@/components/app-start-redirect";
 
 async function stopImpersonation() {
   "use server";
@@ -70,6 +71,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isPatientsAllowed = isStaff && isFeatureAllowed("patients");
   const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
+  const allowedHomeScreens = [
+    "/dashboard",
+    ...(isAgendaAllowed ? ["/agenda"] : []),
+    ...(isPatientsAllowed ? ["/pazienti"] : []),
+    ...(isFinanceAllowed && isManagerOrAdmin ? ["/finanza"] : []),
+    ...(isInventoryAllowed && isManagerOrAdmin ? ["/magazzino"] : []),
+  ];
   const roleLabels: Record<string, string> = {
     [Role.ADMIN]: t("roleLabels.admin"),
     [Role.MANAGER]: t("roleLabels.manager"),
@@ -165,6 +173,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 email={user.email}
                 avatarUrl={user.avatarUrl ?? null}
                 roleLabel={user.role ? roleLabels[user.role] : ""}
+                allowedHomeScreens={allowedHomeScreens}
                 adminHref={isAdmin ? "/admin" : undefined}
                 adminLabel={isAdmin ? t("admin") : undefined}
                 signOutUrl={signOutUrl}
@@ -175,6 +184,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <AppStartRedirect />
       <SiteFooter version={version} deployedAt={deployedAt} showDocs />
       {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
     </div>
