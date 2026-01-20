@@ -1454,6 +1454,7 @@ export default async function PatientDetailPage({
           {canViewQuotes ? (
             <QuoteAccordion
               patientId={patient.id}
+              patientName={`${patient.lastName} ${patient.firstName}`.trim() || "Paziente"}
               services={services.map((service) => ({
                 id: service.id,
                 name: service.name,
