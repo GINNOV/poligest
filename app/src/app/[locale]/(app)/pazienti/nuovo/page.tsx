@@ -11,6 +11,7 @@ import { PatientCreateSubmitButton } from "@/components/patient-create-submit-bu
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { TaxIdBirthDateButton } from "@/components/taxid-birthdate-button";
 
 export default async function NuovoPazientePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -53,7 +54,7 @@ export default async function NuovoPazientePage() {
             <p className="text-xs text-zinc-500">Informazioni personali del paziente.</p>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
               Cognome
               <input
                 className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
@@ -63,7 +64,7 @@ export default async function NuovoPazientePage() {
                 placeholder="Cognome"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
               Nome
               <input
                 className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
@@ -91,7 +92,7 @@ export default async function NuovoPazientePage() {
                 placeholder="Città"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
               Telefono
               <input
                 className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
@@ -112,7 +113,10 @@ export default async function NuovoPazientePage() {
               />
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Codice Fiscale
+              <span className="flex items-center justify-between gap-2">
+                Codice Fiscale
+                <TaxIdBirthDateButton />
+              </span>
               <input
                 className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 uppercase outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 name="taxId"

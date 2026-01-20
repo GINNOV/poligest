@@ -242,6 +242,14 @@ function SignaturePad({
 }
 
 export function QuoteAccordion({ patientId, services, initialQuote, onSave, className, printHref }: Props) {
+  const sortedServices = useMemo(
+    () =>
+      [...services].sort((a, b) =>
+        a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+      ),
+    [services]
+  );
+
   const initialItems = useMemo(() => {
     if (initialQuote?.items && initialQuote.items.length) {
       return initialQuote.items.map((item) => ({
@@ -265,14 +273,14 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
     }
     return [
       {
-        serviceId: services[0]?.id ?? "",
+        serviceId: sortedServices[0]?.id ?? "",
         quantity: "1",
-        price: services[0]?.costBasis != null ? String(services[0].costBasis) : "",
+        price: sortedServices[0]?.costBasis != null ? String(sortedServices[0].costBasis) : "",
         saldato: false,
         createdAt: null,
       },
     ];
-  }, [initialQuote, services]);
+  }, [initialQuote, sortedServices]);
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
@@ -290,14 +298,14 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
   };
 
   const addItem = () => {
-    const fallbackService = services[0]?.id ?? "";
+    const fallbackService = sortedServices[0]?.id ?? "";
     setItems((prev) => [
       ...prev,
       {
         serviceId: fallbackService,
         quantity: "1",
         price: fallbackService
-          ? String(services.find((service) => service.id === fallbackService)?.costBasis ?? "")
+          ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
           : "",
         saldato: false,
         createdAt: null,
@@ -410,7 +418,7 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
                   value={item.serviceId}
                   onChange={(event) => {
                     const nextServiceId = event.target.value;
-                    const nextService = services.find((service) => service.id === nextServiceId);
+                    const nextService = sortedServices.find((service) => service.id === nextServiceId);
                     updateItem(index, {
                       serviceId: nextServiceId,
                       price: item.priceValue === 0 ? String(nextService?.costBasis ?? "") : item.price,
@@ -422,7 +430,7 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
                   <option value="" disabled>
                     Seleziona servizio
                   </option>
-                  {services.map((service) => (
+                  {sortedServices.map((service) => (
                     <option key={service.id} value={service.id}>
                       {service.name}
                     </option>
@@ -435,8 +443,13 @@ export function QuoteAccordion({ patientId, services, initialQuote, onSave, clas
                   type="number"
                   min="1"
                   step="1"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={item.quantity}
-                  onChange={(event) => updateItem(index, { quantity: event.target.value })}
+                  onChange={(event) => {
+                    const nextValue = event.target.value.replace(/\D+/g, "");
+                    updateItem(index, { quantity: nextValue });
+                  }}
                   className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 />
               </label>

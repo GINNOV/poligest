@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
@@ -47,6 +47,11 @@ export function AppointmentCreateForm({
     )}:${pad(date.getMinutes())}`;
   };
 
+  const sortedServiceOptions = useMemo(
+    () => [...serviceOptions].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" })),
+    [serviceOptions]
+  );
+
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
@@ -64,7 +69,7 @@ export function AppointmentCreateForm({
   const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [title, setTitle] = useState<string>("Richiamo");
-  const [serviceType, setServiceType] = useState<string>(serviceOptions[0] ?? "");
+  const [serviceType, setServiceType] = useState<string>(() => sortedServiceOptions[0] ?? "");
 
   const setEndFromStart = (minutes: number) => {
     if (!localStartsAt) return;
@@ -317,7 +322,7 @@ export function AppointmentCreateForm({
             required
             onChange={(e) => setServiceType(e.target.value)}
           >
-            {serviceOptions.map((name) => (
+            {sortedServiceOptions.map((name) => (
               <option key={name} value={name}>
                 {name}
               </option>

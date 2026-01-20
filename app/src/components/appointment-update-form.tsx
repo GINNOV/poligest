@@ -51,6 +51,14 @@ export function AppointmentUpdateForm({
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [allowSubmit, setAllowSubmit] = useState(false);
 
+  const sortedServices = useMemo(
+    () =>
+      [...services].sort((a, b) =>
+        a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+      ),
+    [services]
+  );
+
   const originalStartsAt = useMemo(() => appointment.startsAt, [appointment.startsAt]);
   const originalEndsAt = useMemo(() => appointment.endsAt, [appointment.endsAt]);
   const originalDoctorId = useMemo(() => appointment.doctorId ?? "", [appointment.doctorId]);
@@ -204,11 +212,13 @@ export function AppointmentUpdateForm({
           <select
             name="serviceType"
             defaultValue={
-              services.find((s) => s.name === appointment.serviceType)?.name ?? services[0]?.name ?? ""
+              sortedServices.find((s) => s.name === appointment.serviceType)?.name ??
+              sortedServices[0]?.name ??
+              ""
             }
             className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           >
-            {services.map((s) => (
+            {sortedServices.map((s) => (
               <option key={s.id} value={s.name}>
                 {s.name}
               </option>
@@ -218,7 +228,9 @@ export function AppointmentUpdateForm({
           <input
             name="serviceTypeCustom"
             defaultValue={
-              services.find((s) => s.name === appointment.serviceType) ? "" : appointment.serviceType
+              sortedServices.find((s) => s.name === appointment.serviceType)
+                ? ""
+                : appointment.serviceType
             }
             className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             placeholder="Altro..."

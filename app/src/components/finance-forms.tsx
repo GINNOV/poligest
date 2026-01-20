@@ -17,7 +17,8 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
 
   const patientDiaryEntries = useMemo(() => {
     if (!patientId) return [];
-    return diaryOptions.filter((d) => d.patientId === patientId);
+    const entries = diaryOptions.filter((d) => d.patientId === patientId);
+    return entries.sort((a, b) => a.label.localeCompare(b.label, "it", { sensitivity: "base" }));
   }, [diaryOptions, patientId]);
 
   const selectedPatient = patients.find((p) => p.id === patientId);

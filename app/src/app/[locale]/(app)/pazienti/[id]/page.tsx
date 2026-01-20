@@ -267,6 +267,9 @@ async function updatePatient(formData: FormData) {
   const lastName = normalizePersonName((formData.get("lastName") as string) ?? "");
   const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
   const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
+  const address = (formData.get("address") as string)?.trim() || null;
+  const city = (formData.get("city") as string)?.trim() || null;
+  const taxId = (formData.get("taxId") as string)?.trim() || null;
   const conditions = formData
     .getAll("conditions")
     .map((c) => (c as string).trim())
@@ -290,8 +293,11 @@ async function updatePatient(formData: FormData) {
       .filter(Boolean) ?? [];
   const preservedLines = existingLines.filter(
     (line) =>
+      !line.startsWith("Indirizzo:") &&
+      !line.startsWith("Codice Fiscale:") &&
       !line.startsWith("Anamnesi:") &&
       !line.startsWith("Farmaci:") &&
+      !line.startsWith("Note aggiuntive:") &&
       !line.startsWith("Note:")
   );
 
@@ -307,9 +313,11 @@ async function updatePatient(formData: FormData) {
       notes:
         [
           ...preservedLines,
+          address || city ? `Indirizzo: ${address ?? "—"}${city ? `, ${city}` : ""}` : null,
+          taxId ? `Codice Fiscale: ${taxId}` : null,
           conditions.length ? `Anamnesi: ${conditions.join(", ")}` : null,
           medications ? `Farmaci: ${medications}` : null,
-          extraNotes ? `Note: ${extraNotes}` : null,
+          extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
         ]
           .filter(Boolean)
           .join("\n") || null,
@@ -809,6 +817,17 @@ export default async function PatientDetailPage({
     : null;
 
   const notesLines = (patient.notes ?? "").split("\n").map((line) => line.trim());
+  const addressLine = notesLines.find((line) => line.startsWith("Indirizzo:"));
+  const addressPayload = addressLine?.replace("Indirizzo:", "").trim() ?? "";
+  const addressSeparatorIndex = addressPayload.lastIndexOf(",");
+  const parsedAddressRaw =
+    addressSeparatorIndex >= 0 ? addressPayload.slice(0, addressSeparatorIndex).trim() : addressPayload;
+  const parsedCityRaw =
+    addressSeparatorIndex >= 0 ? addressPayload.slice(addressSeparatorIndex + 1).trim() : "";
+  const parsedAddress = parsedAddressRaw === "—" ? "" : parsedAddressRaw;
+  const parsedCity = parsedCityRaw === "—" ? "" : parsedCityRaw;
+  const taxIdLine = notesLines.find((line) => line.startsWith("Codice Fiscale:"));
+  const parsedTaxId = taxIdLine?.replace("Codice Fiscale:", "").trim() ?? "";
   const anamnesisLine = notesLines.find((line) => line.startsWith("Anamnesi:"));
   const parsedConditions = anamnesisLine
     ? anamnesisLine
@@ -819,8 +838,12 @@ export default async function PatientDetailPage({
     : [];
   const medicationsLine = notesLines.find((line) => line.startsWith("Farmaci:"));
   const parsedMedications = medicationsLine?.replace("Farmaci:", "").trim() ?? "";
-  const extraLine = notesLines.find((line) => line.startsWith("Note:"));
-  const parsedExtra = extraLine?.replace("Note:", "").trim() ?? "";
+  const extraLine = notesLines.find(
+    (line) => line.startsWith("Note aggiuntive:") || line.startsWith("Note:")
+  );
+  const parsedExtra = extraLine
+    ? extraLine.replace("Note aggiuntive:", "").replace("Note:", "").trim()
+    : "";
   let parsedQuote: {
     id?: string;
     serviceId?: string;
@@ -1133,116 +1156,153 @@ export default async function PatientDetailPage({
                   <UnsavedChangesGuard formId="patient-update-form" />
                   <form
                     action={updatePatient}
-                    className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4"
+                    className="space-y-6"
                     id="patient-update-form"
                   >
                     <input type="hidden" name="patientId" value={patient.id} />
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                        Nome
-                        <input
-                          name="firstName"
-                          defaultValue={patient.firstName}
-                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          required
-                        />
-                      </label>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                        Cognome
-                        <input
-                          name="lastName"
-                          defaultValue={patient.lastName}
-                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          required
-                        />
-                      </label>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                        Email
-                        <input
-                          name="email"
-                          type="email"
-                          defaultValue={patient.email ?? ""}
-                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          placeholder="email@esempio.it"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                        Telefono
-                        <input
-                          name="phone"
-                          defaultValue={patient.phone ?? ""}
-                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          placeholder="+39..."
-                        />
-                      </label>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-                        Data di nascita
-                        <input
-                          type="date"
-                          name="birthDate"
-                          defaultValue={
-                            patient.birthDate
-                              ? new Date(patient.birthDate).toISOString().split("T")[0]
-                              : ""
-                          }
-                          className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                        />
-                      </label>
-                      <div className="sm:col-span-2 rounded-lg border border-zinc-200 bg-white p-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
-                          <p className="text-xs text-zinc-500">
-                            Seleziona eventuali condizioni mediche presenti o passate.
-                          </p>
-                        </div>
-                        <div
-                          className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
-                          suppressHydrationWarning
-                        >
-                          {conditionsList.map((condition, index) => (
-                            <label
-                              key={`${condition}-${index}`}
-                              className="inline-flex items-start gap-2 rounded-lg px-2 py-1 text-sm text-zinc-800"
-                            >
-                              <input
-                                type="checkbox"
-                                name="conditions"
-                                value={condition}
-                                defaultChecked={parsedConditions.includes(condition)}
-                                className="mt-1 h-4 w-4 rounded border-zinc-300"
-                              />
-                              <span>{condition}</span>
-                            </label>
-                          ))}
-                        </div>
+                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
+                        <p className="text-xs text-zinc-500">Informazioni personali del paziente.</p>
                       </div>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-                        Farmaci
-                        <textarea
-                          name="medications"
-                          defaultValue={parsedMedications}
-                          rows={2}
-                          className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          placeholder="Farmaci assunti regolarmente"
-                        />
-                      </label>
-                      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
-                        Note aggiuntive
-                        <textarea
-                          name="extraNotes"
-                          defaultValue={parsedExtra}
-                          rows={2}
-                          className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                          placeholder="Annotazioni cliniche o amministrative"
-                        />
-                      </label>
+                      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
+                          Cognome
+                          <input
+                            name="lastName"
+                            defaultValue={patient.lastName}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            required
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
+                          Nome
+                          <input
+                            name="firstName"
+                            defaultValue={patient.firstName}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            required
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Indirizzo
+                          <input
+                            name="address"
+                            defaultValue={parsedAddress}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Via, Numero Civico"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Città
+                          <input
+                            name="city"
+                            defaultValue={parsedCity}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Città"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
+                          Telefono
+                          <input
+                            name="phone"
+                            defaultValue={patient.phone ?? ""}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Telefono"
+                            required
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Email
+                          <input
+                            name="email"
+                            type="email"
+                            defaultValue={patient.email ?? ""}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="email@esempio.it"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Codice Fiscale
+                          <input
+                            name="taxId"
+                            defaultValue={parsedTaxId}
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 uppercase outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Codice Fiscale"
+                            maxLength={16}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Data di Nascita
+                          <input
+                            type="date"
+                            name="birthDate"
+                            defaultValue={
+                              patient.birthDate
+                                ? new Date(patient.birthDate).toISOString().split("T")[0]
+                                : ""
+                            }
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          />
+                        </label>
+                      </div>
+                    </section>
+
+                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
+                        <p className="text-xs text-zinc-500">
+                          Seleziona eventuali condizioni mediche presenti o passate.
+                        </p>
+                      </div>
+                      <div
+                        className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                        suppressHydrationWarning
+                      >
+                        {conditionsList.map((condition, index) => (
+                          <label
+                            key={`${condition}-${index}`}
+                            className="inline-flex items-start gap-2 text-sm text-zinc-800"
+                          >
+                            <input
+                              type="checkbox"
+                              name="conditions"
+                              value={condition}
+                              defaultChecked={parsedConditions.includes(condition)}
+                              className="mt-1 h-4 w-4 rounded border-zinc-300"
+                            />
+                            <span>{condition}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Specificare eventuali farmaci assunti regolarmente
+                          <textarea
+                            name="medications"
+                            defaultValue={parsedMedications}
+                            className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Elenca farmaci e dosaggi"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Note aggiuntive
+                          <textarea
+                            name="extraNotes"
+                            defaultValue={parsedExtra}
+                            className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            placeholder="Annotazioni utili per il medico"
+                          />
+                        </label>
+                      </div>
+                    </section>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <FormSubmitButton className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600">
+                        Aggiorna scheda paziente
+                      </FormSubmitButton>
                     </div>
-                  <div className="flex justify-end">
-                    <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-                      Aggiorna scheda paziente
-                    </FormSubmitButton>
-                  </div>
-                </form>
+                  </form>
 
                 </div>
               </div>
