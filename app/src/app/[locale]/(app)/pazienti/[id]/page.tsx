@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { PatientAvatar } from "@/components/patient-avatar";
+import { PatientPhotoDialog } from "@/components/patient-photo-dialog";
 import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
@@ -255,6 +256,27 @@ async function uploadPhoto(formData: FormData) {
     entity: "Patient",
     entityId: patientId,
     metadata: { size: file.size },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
+async function resetPhoto(formData: FormData) {
+  "use server";
+
+  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  const patientId = formData.get("patientId") as string;
+  if (!patientId) throw new Error("Paziente non valido");
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: { photoUrl: null },
+  });
+
+  await logAudit(user, {
+    action: "patient.photo_reset",
+    entity: "Patient",
+    entityId: patientId,
   });
 
   revalidatePath(`/pazienti/${patientId}`);
@@ -1178,35 +1200,25 @@ export default async function PatientDetailPage({
             </summary>
             <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
-                <form
-                  action={uploadPhoto}
-                  className="flex flex-col items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm"
-                >
-                  <input type="hidden" name="patientId" value={patient.id} />
-                  <PatientAvatar
-                    src={patient.photoUrl}
-                    alt={`${patient.lastName} ${patient.firstName}`}
-                    gender={patient.gender}
-                    size={112}
-                    className="h-28 w-28 rounded-full"
-                  />
-                  <label className="flex cursor-pointer flex-col items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-600">
-                    <span>Scegli foto</span>
-                    <input
-                      type="file"
-                      name="photo"
-                      accept="image/*"
-                      className="hidden"
-                      required
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <PatientAvatar
+                      src={patient.photoUrl}
+                      alt={`${patient.lastName} ${patient.firstName}`}
+                      gender={patient.gender}
+                      size={112}
+                      className="h-28 w-28 rounded-full"
                     />
-                  </label>
-                  <button
-                    type="submit"
-                    className="w-full rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300"
-                  >
-                    Aggiorna foto
-                  </button>
-                </form>
+                    <PatientPhotoDialog
+                      patientId={patient.id}
+                      fullName={`${patient.lastName} ${patient.firstName}`}
+                      photoUrl={patient.photoUrl}
+                      gender={patient.gender}
+                      uploadPhoto={uploadPhoto}
+                      resetPhoto={resetPhoto}
+                    />
+                  </div>
+                </div>
 
                 <div className="space-y-6" id="contact-info">
                   <UnsavedChangesGuard formId="patient-update-form" />

@@ -115,6 +115,28 @@ async function uploadAvatar(formData: FormData) {
   revalidatePath("/profilo");
 }
 
+async function resetAvatar() {
+  "use server";
+
+  const user = await requireUser();
+  await prisma.user.update({ where: { id: user.id }, data: { avatarUrl: null } });
+
+  if (user.role === Role.PATIENT && user.email) {
+    await prisma.patient.updateMany({
+      where: { email: { equals: user.email, mode: "insensitive" } },
+      data: { photoUrl: null },
+    });
+  }
+
+  await logAudit(user, {
+    action: "profile.avatar_reset",
+    entity: "User",
+    entityId: user.id,
+  });
+
+  revalidatePath("/profilo");
+}
+
 async function assignAward(formData: FormData) {
   "use server";
 
@@ -232,6 +254,14 @@ export default async function ProfilePage() {
             </button>
           </form>
           <AvatarCameraCapture uploadAvatar={uploadAvatar} maxBytes={MAX_AVATAR_BYTES} />
+          <form action={resetAvatar} className="mt-3">
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 bg-white px-4 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300"
+            >
+              Ripristina avatar
+            </button>
+          </form>
         </section>
 
         <section className="space-y-6">

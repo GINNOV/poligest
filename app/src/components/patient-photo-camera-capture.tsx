@@ -3,12 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type AvatarCameraCaptureProps = {
-  uploadAvatar: (formData: FormData) => Promise<void>;
+type PatientPhotoCameraCaptureProps = {
+  patientId: string;
+  uploadPhoto: (formData: FormData) => Promise<void>;
   maxBytes: number;
+  onComplete?: () => void;
 };
 
-export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCaptureProps) {
+export function PatientPhotoCameraCapture({
+  patientId,
+  uploadPhoto,
+  maxBytes,
+  onComplete,
+}: PatientPhotoCameraCaptureProps) {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -141,9 +148,11 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
     setError(null);
     try {
       const formData = new FormData();
-      formData.set("avatar", new File([previewBlob], "avatar.jpg", { type: previewBlob.type }));
-      await uploadAvatar(formData);
+      formData.set("patientId", patientId);
+      formData.set("photo", new File([previewBlob], "photo.jpg", { type: previewBlob.type }));
+      await uploadPhoto(formData);
       router.refresh();
+      onComplete?.();
       setPreviewBlob(null);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -155,7 +164,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
     } finally {
       setIsBusy(false);
     }
-  }, [isBusy, previewBlob, previewUrl, router, uploadAvatar]);
+  }, [isBusy, onComplete, patientId, previewBlob, previewUrl, router, uploadPhoto]);
 
   const handleResetPreview = useCallback(() => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -176,28 +185,28 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
   }, [previewUrl, stopCamera]);
 
   return (
-    <div className="mt-4 space-y-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="text-sm font-semibold text-emerald-900">Scatta un avatar con la webcam</div>
-      <div className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white">
+    <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-xs">
+      <div className="text-[11px] font-semibold text-emerald-900">Scatta foto con la webcam</div>
+      <div className="relative overflow-hidden rounded-lg border border-emerald-100 bg-zinc-50">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={previewUrl} alt="Anteprima avatar" className="h-48 w-full object-cover" />
+          <img src={previewUrl} alt="Anteprima foto paziente" className="h-40 w-full object-cover" />
         ) : (
-          <video ref={videoRef} className="h-48 w-full object-cover" playsInline muted />
+          <video ref={videoRef} className="h-40 w-full object-cover" playsInline muted />
         )}
         {countdown !== null && countdown > 0 ? (
-          <div className="absolute inset-0 grid place-items-center bg-black/40 text-4xl font-semibold text-white">
+          <div className="absolute inset-0 grid place-items-center bg-black/40 text-3xl font-semibold text-white">
             {countdown}
           </div>
         ) : null}
         <canvas ref={canvasRef} className="hidden" />
       </div>
-      {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+      {error ? <p className="text-[11px] text-rose-600">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={isStreaming ? stopCamera : startCamera}
-          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300"
         >
           {isStreaming ? "Chiudi fotocamera" : "Apri fotocamera"}
         </button>
@@ -205,7 +214,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
           type="button"
           onClick={handleCapture}
           disabled={!isStreaming || isBusy}
-          className="inline-flex h-9 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full bg-emerald-700 px-3 text-[11px] font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
           Scatta foto (3-2-1)
         </button>
@@ -213,7 +222,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
           type="button"
           onClick={handleResetPreview}
           disabled={!previewUrl || isBusy}
-          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300"
         >
           Scatta di nuovo
         </button>
@@ -221,7 +230,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
           type="button"
           onClick={handleConfirm}
           disabled={!previewBlob || isBusy}
-          className="inline-flex h-9 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full bg-emerald-700 px-3 text-[11px] font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:bg-emerald-300"
         >
           Usa questa foto
         </button>
