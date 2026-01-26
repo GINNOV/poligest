@@ -251,8 +251,8 @@ export default async function PatientPrintPage({
                         })}
                       </td>
                       <td className="px-4 py-3">{imp.product?.name ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.brand ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.udiDi ?? "—"}</td>
+                      <td className="px-4 py-3">{imp.product?.brand ?? "—"}</td>
+                      <td className="px-4 py-3">{imp.product?.udiDi ?? "—"}</td>
                       <td className="px-4 py-3">{imp.udiPi ?? "—"}</td>
                       <td className="px-4 py-3">{imp.product?.supplier?.name ?? "—"}</td>
                     </tr>
