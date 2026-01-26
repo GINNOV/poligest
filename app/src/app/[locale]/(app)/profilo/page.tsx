@@ -6,6 +6,7 @@ import { Gender, Role } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { put } from "@vercel/blob";
 import { LocalizedFileInput } from "@/components/localized-file-input";
+import { AvatarCameraCapture } from "@/components/avatar-camera-capture";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -230,6 +231,7 @@ export default async function ProfilePage() {
               Carica avatar
             </button>
           </form>
+          <AvatarCameraCapture uploadAvatar={uploadAvatar} maxBytes={MAX_AVATAR_BYTES} />
         </section>
 
         <section className="space-y-6">

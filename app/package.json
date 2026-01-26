@@ -19,7 +19,7 @@
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.2.0",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@stackframe/stack": "^2.8.58",
+    "@stackframe/stack": "^2.8.60",
     "@types/pg": "^8.15.6",
     "@vercel/blob": "^2.0.0",
     "@wacom/signature-sdk": "^2.1.1",
@@ -56,7 +56,8 @@
     "path-to-regexp": "6.3.0",
     "cookie": "0.7.2",
     "undici": "5.29.0",
-    "esbuild": "0.25.0"
+    "esbuild": "0.25.0",
+    "lucide-react": "0.563.0"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
