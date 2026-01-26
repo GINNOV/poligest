@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
-import { Role } from "@prisma/client";
+import { Gender, Role } from "@prisma/client";
 import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
@@ -13,6 +13,7 @@ import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { TaxIdBirthDateButton } from "@/components/taxid-birthdate-button";
 import { PatientCreateRedirectField } from "@/components/patient-create-redirect-field";
+import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 
 export default async function NuovoPazientePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -84,6 +85,19 @@ export default async function NuovoPazientePage() {
                 autoComplete="street-address"
                 placeholder="Via, Numero Civico"
               />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              Genere
+              <select
+                name="gender"
+                defaultValue={Gender.NOT_SPECIFIED}
+                className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value={Gender.NOT_SPECIFIED}>Non specificato</option>
+                <option value={Gender.FEMALE}>Femmina</option>
+                <option value={Gender.MALE}>Maschio</option>
+                <option value={Gender.OTHER}>Altro</option>
+              </select>
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               Città
@@ -170,22 +184,7 @@ export default async function NuovoPazientePage() {
             ))}
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Specificare eventuali farmaci assunti regolarmente
-              <textarea
-                name="medications"
-                className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Elenca farmaci e dosaggi"
-              />
-            </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Note aggiuntive
-              <textarea
-                name="extraNotes"
-                className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder="Annotazioni utili per il medico"
-              />
-            </label>
+            <PatientAnamnesisNotes />
           </div>
         </section>
 

@@ -2,9 +2,9 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
+import { PrintLinkButton } from "@/components/print-link-button";
 
 type ServiceOption = {
   id: string;
@@ -564,18 +564,71 @@ export function QuoteAccordion({
           </svg>
           <span className="uppercase tracking-wide">Preventivo</span>
         </span>
-        <svg
-          className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <div className="flex items-center gap-2">
+          {initialQuote?.id ? (
+            isDirty ? (
+              <span
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-300"
+                title="Salva prima di stampare"
+                aria-label="Salva prima di stampare"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9V4h12v5" />
+                  <path d="M6 18h12v2H6z" />
+                  <path d="M6 14h12v4H6z" />
+                  <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+                  <path d="M2 15h4" />
+                </svg>
+              </span>
+            ) : (
+              <PrintLinkButton
+                href={printHref || `/pazienti/${patientId}/preventivo/${initialQuote.id}`}
+                label="Stampa preventivo"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9V4h12v5" />
+                  <path d="M6 18h12v2H6z" />
+                  <path d="M6 14h12v4H6z" />
+                  <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+                  <path d="M2 15h4" />
+                </svg>
+              </PrintLinkButton>
+            )
+          ) : null}
+          <svg
+            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </div>
       </summary>
       <form action={formAction} className="space-y-6 p-6">
         <input type="hidden" name="patientId" value={patientId} />
@@ -698,21 +751,6 @@ export function QuoteAccordion({
         />
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          {initialQuote?.id && (
-            isDirty ? (
-              <span className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-400">
-                Stampa
-              </span>
-            ) : (
-              <Link
-                href={printHref || `/pazienti/${patientId}/preventivo/${initialQuote.id}`}
-                target="_blank"
-                className="inline-flex h-11 items-center justify-center rounded-full border border-emerald-200 px-5 text-sm font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-900"
-              >
-                Stampa
-              </Link>
-            )
-          )}
           <FormSubmitButton
             disabled={!signatureReady}
             className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"

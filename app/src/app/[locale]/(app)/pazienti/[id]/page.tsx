@@ -3,13 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
-import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus } from "@prisma/client";
+import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus, Gender } from "@prisma/client";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { PatientAvatar } from "@/components/patient-avatar";
 import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
+import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 import { sendSms } from "@/lib/sms";
 import { ConsentForm } from "@/components/consent-form";
 import { normalizeItalianPhone } from "@/lib/phone";
@@ -24,6 +25,8 @@ import { stackServerApp } from "@/lib/stack-app";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { PrintLinkButton } from "@/components/print-link-button";
+import { isSystemAvatar, pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
   WHATSAPP_TEMPLATE_NAME,
@@ -270,6 +273,10 @@ async function updatePatient(formData: FormData) {
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
   const taxId = (formData.get("taxId") as string)?.trim() || null;
+  const genderRaw = (formData.get("gender") as string) || Gender.NOT_SPECIFIED;
+  const gender = Object.values(Gender).includes(genderRaw as Gender)
+    ? (genderRaw as Gender)
+    : Gender.NOT_SPECIFIED;
   const conditions = formData
     .getAll("conditions")
     .map((c) => (c as string).trim())
@@ -284,7 +291,7 @@ async function updatePatient(formData: FormData) {
 
   const existing = await prisma.patient.findUnique({
     where: { id },
-    select: { notes: true },
+    select: { notes: true, photoUrl: true, gender: true },
   });
   const existingLines =
     (existing?.notes ?? "")
@@ -303,6 +310,14 @@ async function updatePatient(formData: FormData) {
 
   const birthDate = parseOptionalDate(birthDateValue);
 
+  const shouldAssignAvatar =
+    !existing?.photoUrl || (isSystemAvatar(existing.photoUrl) && existing.gender !== gender);
+  const nextPhotoUrl = shouldAssignAvatar
+    ? gender === Gender.NOT_SPECIFIED
+      ? pickRandomSystemAvatar(gender)
+      : pickSystemAvatar(id, gender)
+    : existing?.photoUrl;
+
   await prisma.patient.update({
     where: { id },
     data: {
@@ -310,6 +325,8 @@ async function updatePatient(formData: FormData) {
       lastName,
       email,
       phone,
+      gender,
+      photoUrl: nextPhotoUrl,
       notes:
         [
           ...preservedLines,
@@ -336,11 +353,13 @@ async function updatePatient(formData: FormData) {
       medications,
       extraNotes,
       birthDate: birthDate?.toISOString() ?? null,
+      gender,
     },
   });
 
   revalidatePath(`/pazienti/${id}`);
   revalidatePath("/pazienti");
+  redirect(`/pazienti/${id}?openContact=1`);
 }
 
 async function savePreventivo(_: { savedAt: number }, formData: FormData) {
@@ -815,6 +834,7 @@ export default async function PatientDetailPage({
   const whatsappHref = whatsappPhone
     ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
     : null;
+  const hasConsents = patient.consents.length > 0;
 
   const notesLines = (patient.notes ?? "").split("\n").map((line) => line.trim());
   const addressLine = notesLines.find((line) => line.startsWith("Indirizzo:"));
@@ -878,7 +898,7 @@ export default async function PatientDetailPage({
         }) => Promise<any | null>;
       }
     | undefined;
-  const [products, implants, dentalRecords, services, latestQuote] = await Promise.all([
+  const [products, implants, dentalRecords, services, latestQuote, lastAccessEmailLog, lastWhatsappLog] = await Promise.all([
     prisma.product.findMany({
       orderBy: { name: "asc" },
       include: { supplier: true },
@@ -898,6 +918,14 @@ export default async function PatientDetailPage({
     quoteClient?.findFirst
       ? quoteClient.findFirst({ where: { patientId }, orderBy: { createdAt: "desc" }, include: { items: true } })
       : Promise.resolve(null),
+    prisma.auditLog.findFirst({
+      where: { action: "patient.access_email_sent", entity: "Patient", entityId: patientId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.auditLog.findFirst({
+      where: { action: "patient.whatsapp_reminder_sent", entity: "Patient", entityId: patientId },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
   if (latestQuote) {
     parsedQuote = {
@@ -1092,6 +1120,7 @@ export default async function PatientDetailPage({
                   <PatientAvatar
                     src={patient.photoUrl}
                     alt={`${patient.lastName} ${patient.firstName}`}
+                    gender={patient.gender}
                     size={56}
                     className="h-full w-full rounded-full"
                   />
@@ -1108,18 +1137,44 @@ export default async function PatientDetailPage({
                   </div>
                 </div>
               </div>
-              <svg
-                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
+              <div className="flex items-center gap-2">
+                <PrintLinkButton
+                  href={`/pazienti/${patient.id}/scheda`}
+                  label="Stampa scheda paziente"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sky-200 text-sky-700 transition hover:border-sky-300 hover:text-sky-800"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9V4h12v5" />
+                    <path d="M6 18h12v2H6z" />
+                    <path d="M6 14h12v4H6z" />
+                    <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+                    <path d="M2 15h4" />
+                  </svg>
+                </PrintLinkButton>
+                <svg
+                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </summary>
             <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
@@ -1131,6 +1186,7 @@ export default async function PatientDetailPage({
                   <PatientAvatar
                     src={patient.photoUrl}
                     alt={`${patient.lastName} ${patient.firstName}`}
+                    gender={patient.gender}
                     size={112}
                     className="h-28 w-28 rounded-full"
                   />
@@ -1201,6 +1257,19 @@ export default async function PatientDetailPage({
                             className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                             placeholder="Città"
                           />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                          Genere
+                          <select
+                            name="gender"
+                            defaultValue={patient.gender ?? Gender.NOT_SPECIFIED}
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          >
+                            <option value={Gender.NOT_SPECIFIED}>Non specificato</option>
+                            <option value={Gender.FEMALE}>Femmina</option>
+                            <option value={Gender.MALE}>Maschio</option>
+                            <option value={Gender.OTHER}>Altro</option>
+                          </select>
                         </label>
                         <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
                           Telefono
@@ -1276,24 +1345,10 @@ export default async function PatientDetailPage({
                         ))}
                       </div>
                       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                          Specificare eventuali farmaci assunti regolarmente
-                          <textarea
-                            name="medications"
-                            defaultValue={parsedMedications}
-                            className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                            placeholder="Elenca farmaci e dosaggi"
-                          />
-                        </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                          Note aggiuntive
-                          <textarea
-                            name="extraNotes"
-                            defaultValue={parsedExtra}
-                            className="min-h-[90px] rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                            placeholder="Annotazioni utili per il medico"
-                          />
-                        </label>
+                        <PatientAnamnesisNotes
+                          medicationsDefault={parsedMedications}
+                          extraNotesDefault={parsedExtra}
+                        />
                       </div>
                     </section>
 
@@ -1329,18 +1384,46 @@ export default async function PatientDetailPage({
                 </svg>
                 <span className="uppercase tracking-wide">Consensi & Privacy</span>
               </span>
-              <svg
-                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
+              <div className="flex items-center gap-2">
+                {hasConsents ? (
+                  <PrintLinkButton
+                    href={`/pazienti/${patient.id}/consensi`}
+                    label="Stampa consensi"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 9V4h12v5" />
+                      <path d="M6 18h12v2H6z" />
+                      <path d="M6 14h12v4H6z" />
+                      <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+                      <path d="M2 15h4" />
+                    </svg>
+                  </PrintLinkButton>
+                ) : null}
+                <svg
+                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </summary>
             <div className="grid grid-cols-1 gap-4 px-6 pb-6 pt-4 lg:grid-cols-[1.1fr,0.9fr]">
                       <div className="space-y-3">
@@ -1471,6 +1554,8 @@ export default async function PatientDetailPage({
             <DentalChart
               patientId={patient.id}
               initialRecords={dentalRecordsSerialized}
+              services={services.map((service) => ({ id: service.id, name: service.name }))}
+              printHref={`/pazienti/${patient.id}/diario`}
               containerClassName="bg-zinc-50"
             />
           ) : null}
@@ -1506,8 +1591,8 @@ export default async function PatientDetailPage({
                 <path d="m6 9 6 6 6-6" />
               </svg>
             </summary>
-            <div className="grid gap-4 p-6 lg:grid-cols-[340px,1fr]">
-              <div className="space-y-3">
+            <div className="space-y-4 p-6">
+              <div className="grid gap-3 lg:grid-cols-3">
                 <form action={sendPatientSms} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
                   <input type="hidden" name="patientId" value={patient.id} />
                   <label className="flex flex-col gap-1">
@@ -1528,9 +1613,6 @@ export default async function PatientDetailPage({
                       ))}
                     </select>
                   </label>
-                  <p className="text-xs text-zinc-600">
-                    Segnaposto supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
-                  </p>
                   <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
                     Invia SMS
                   </FormSubmitButton>
@@ -1554,6 +1636,15 @@ export default async function PatientDetailPage({
                   >
                     Invia email accesso
                   </FormSubmitButton>
+                  <p className="text-xs text-zinc-500">
+                    Ultimo invio:{" "}
+                    {lastAccessEmailLog
+                      ? new Date(lastAccessEmailLog.createdAt).toLocaleString("it-IT", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                      : "mai"}
+                  </p>
                 </form>
 
                 <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800">
@@ -1576,6 +1667,15 @@ export default async function PatientDetailPage({
                       Invia promemoria
                     </span>
                   )}
+                  <p className="text-xs text-zinc-500">
+                    Ultimo invio:{" "}
+                    {lastWhatsappLog
+                      ? new Date(lastWhatsappLog.createdAt).toLocaleString("it-IT", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                      : "mai"}
+                  </p>
                 </div>
               </div>
 

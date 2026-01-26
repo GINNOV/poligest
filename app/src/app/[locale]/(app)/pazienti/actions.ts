@@ -3,7 +3,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Prisma, Role, ConsentStatus } from "@prisma/client";
+import { Prisma, Role, ConsentStatus, Gender } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -14,6 +14,7 @@ import { put } from "@vercel/blob";
 import { sendEmail } from "@/lib/email";
 import { stackServerApp } from "@/lib/stack-app";
 import sharp from "sharp";
+import { pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");
@@ -50,6 +51,10 @@ export async function createPatient(formData: FormData) {
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
   const taxId = (formData.get("taxId") as string)?.trim() || null;
+  const genderRaw = (formData.get("gender") as string) || Gender.NOT_SPECIFIED;
+  const gender = Object.values(Gender).includes(genderRaw as Gender)
+    ? (genderRaw as Gender)
+    : Gender.NOT_SPECIFIED;
   const birthDateValue = formData.get("birthDate");
   const conditions = formData.getAll("conditions").map((c) => (c as string).trim()).filter(Boolean);
   const medications = (formData.get("medications") as string)?.trim();
@@ -196,6 +201,7 @@ export async function createPatient(formData: FormData) {
       email,
       phone,
       birthDate,
+      gender,
       notes: structuredNotesText || null,
     },
   });
@@ -233,6 +239,11 @@ export async function createPatient(formData: FormData) {
     const blobName = `patients/${patient.id}/photo-${Date.now()}.jpg`;
     const blob = await put(blobName, resized, { access: "public", addRandomSuffix: false });
     updates.photoUrl = blob.url;
+  } else {
+    updates.photoUrl =
+      gender === Gender.NOT_SPECIFIED
+        ? pickRandomSystemAvatar(gender)
+        : pickSystemAvatar(patient.id, gender);
   }
 
   if (consentsToCreate.length > 0) {

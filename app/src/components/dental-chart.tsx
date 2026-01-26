@@ -3,6 +3,8 @@
 import clsx from "clsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { emitToast } from "./global-toasts";
+import { DictationTextarea } from "./dictation-textarea";
+import { PrintLinkButton } from "./print-link-button";
 
 type DentalRecord = {
   id: string;
@@ -91,23 +93,56 @@ const LEGACY_PROCEDURES: Record<string, { label: string; color: string }> = {
   veneer: { label: "Faccetta", color: "bg-pink-100 text-pink-800" },
 };
 
-const resolveProcedure = (value: string) => {
-  const normalized = value.trim().toLowerCase();
-  const byId = PROCEDURES.find((p) => p.id === normalized);
-  if (byId) return byId;
+type ProcedureTint = { active: string; idle: string; tag: string };
 
-  const byLabel = PROCEDURES.find((p) => p.label.toLowerCase() === normalized);
-  if (byLabel) return byLabel;
+const PROCEDURE_TINTS: ProcedureTint[] = [
+  { active: "bg-amber-100 text-amber-800", idle: "bg-amber-50 text-amber-800", tag: "bg-amber-100 text-amber-800" },
+  { active: "bg-rose-100 text-rose-800", idle: "bg-rose-50 text-rose-800", tag: "bg-rose-100 text-rose-800" },
+  { active: "bg-sky-100 text-sky-800", idle: "bg-sky-50 text-sky-800", tag: "bg-sky-100 text-sky-800" },
+  { active: "bg-teal-100 text-teal-800", idle: "bg-teal-50 text-teal-800", tag: "bg-teal-100 text-teal-800" },
+  { active: "bg-indigo-100 text-indigo-800", idle: "bg-indigo-50 text-indigo-800", tag: "bg-indigo-100 text-indigo-800" },
+  { active: "bg-lime-100 text-lime-800", idle: "bg-lime-50 text-lime-800", tag: "bg-lime-100 text-lime-800" },
+  { active: "bg-orange-100 text-orange-800", idle: "bg-orange-50 text-orange-800", tag: "bg-orange-100 text-orange-800" },
+  { active: "bg-cyan-100 text-cyan-800", idle: "bg-cyan-50 text-cyan-800", tag: "bg-cyan-100 text-cyan-800" },
+  { active: "bg-violet-100 text-violet-800", idle: "bg-violet-50 text-violet-800", tag: "bg-violet-100 text-violet-800" },
+];
+
+const hashLabel = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+};
+
+const tintForLabel = (label: string) => {
+  if (!PROCEDURE_TINTS.length) {
+    return { active: "bg-zinc-100 text-zinc-800", idle: "bg-zinc-50 text-zinc-800", tag: "bg-zinc-100 text-zinc-800" };
+  }
+  const index = hashLabel(label.trim().toLowerCase()) % PROCEDURE_TINTS.length;
+  return PROCEDURE_TINTS[index] ?? PROCEDURE_TINTS[0];
+};
+
+const resolveProcedure = (value: string, services: Array<{ name: string }>) => {
+  const normalized = value.trim().toLowerCase();
+  const match = services.find((service) => service.name.trim().toLowerCase() === normalized);
+  if (match) {
+    return { label: match.name, tint: tintForLabel(match.name) };
+  }
 
   const legacy = LEGACY_PROCEDURES[normalized];
-  if (legacy) return legacy;
+  if (legacy) {
+    return { label: legacy.label, tint: tintForLabel(legacy.label) };
+  }
 
   const legacyByLabel = Object.values(LEGACY_PROCEDURES).find(
     (p) => p.label.toLowerCase() === normalized
   );
-  if (legacyByLabel) return legacyByLabel;
+  if (legacyByLabel) {
+    return { label: legacyByLabel.label, tint: tintForLabel(legacyByLabel.label) };
+  }
 
-  return { label: value, color: "bg-zinc-100 text-zinc-800" };
+  return { label: value, tint: tintForLabel(value) };
 };
 
 const TEETH: ToothData[] = [
@@ -145,16 +180,6 @@ const TEETH: ToothData[] = [
   { id: 38, type: "molar", label: "38", x: 400, y: 360, rot: -20 },
 ];
 
-const PROCEDURES = [
-  { id: "otturazione", label: "Otturazione", color: "bg-amber-100 text-amber-800" },
-  { id: "devitalizzazione", label: "Devitalizzazione", color: "bg-red-100 text-red-800" },
-  { id: "estrazione", label: "Estrazione", color: "bg-slate-100 text-slate-800" },
-  { id: "estrazione-chirurgica", label: "Estrazione chirurgica", color: "bg-slate-200 text-slate-900" },
-  { id: "ablazione-tartaro", label: "Ablazione tartaro", color: "bg-sky-100 text-sky-800" },
-  { id: "implantologia", label: "Implantologia", color: "bg-teal-100 text-teal-800" },
-  { id: "protesi-mobile", label: "Protesi mobile", color: "bg-purple-100 text-purple-800" },
-  { id: "protesi-fissa", label: "Protesi fissa", color: "bg-indigo-100 text-indigo-800" },
-];
 
 function Tooth({
   data,
@@ -238,11 +263,15 @@ function Tooth({
 export function DentalChart({
   patientId,
   initialRecords,
+  services,
+  printHref,
   defaultCollapsed = true,
   containerClassName,
 }: {
   patientId: string;
   initialRecords: DentalRecord[];
+  services: Array<{ id: string; name: string }>;
+  printHref?: string | null;
   defaultCollapsed?: boolean;
   containerClassName?: string;
 }) {
@@ -250,6 +279,7 @@ export function DentalChart({
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [procedure, setProcedure] = useState("");
   const [notes, setNotes] = useState("");
+  const [isNotesActive, setIsNotesActive] = useState(false);
   const [customProcedure, setCustomProcedure] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -281,9 +311,22 @@ export function DentalChart({
       ),
     [records]
   );
+  const sortedServices = useMemo(
+    () =>
+      [...services].sort((a, b) =>
+        a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+      ),
+    [services]
+  );
 
   const selectedRecord =
     selectedTooth === null ? undefined : recordsByTooth.get(selectedTooth);
+  const selectedProcedureLabel =
+    procedure === "altro"
+      ? customProcedure.trim() || "Altro"
+      : procedure.trim()
+        ? procedure.trim()
+        : "";
 
   const resetSelection = () => {
     setSelectedTooth(null);
@@ -488,48 +531,59 @@ export function DentalChart({
           </svg>
           <span className="uppercase tracking-wide">Diario clinico</span>
         </span>
-        <svg
-          className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <div className="flex items-center gap-2">
+          {records.length > 0 ? (
+            <PrintLinkButton
+              href={printHref || `/pazienti/${patientId}/diario`}
+              label="Stampa diario"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700"
+            >
+              <svg
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6 9V4h12v5" />
+                <path d="M6 18h12v2H6z" />
+                <path d="M6 14h12v4H6z" />
+                <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+                <path d="M2 15h4" />
+              </svg>
+            </PrintLinkButton>
+          ) : null}
+          <svg
+            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </div>
       </summary>
       <div className="p-0">
         <div className="px-6 pt-2 text-sm text-zinc-600">
           Seleziona un dente o “Tutta la bocca” per registrare una procedura.
         </div>
-    <div className="rounded-2xl bg-white">
-      <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4">
-        <div />
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
-            Seleziona dente e salva procedura
-          </span>
-          <button
-            type="button"
-            onClick={() => handleSelectTooth(0)}
-            className={clsx(
-              "rounded-full border px-3 py-1 text-[11px] font-semibold transition",
-              selectedTooth === 0
-                ? "border-emerald-400 bg-emerald-50 text-emerald-800"
-                : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-200 hover:text-emerald-700"
-            )}
-          >
-            Tutta la bocca
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr,280px]">
+        <div className="rounded-2xl bg-white">
+          <div className="border-b border-zinc-200 px-6 py-4" />
+          <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr,280px]">
         <section className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white">
           <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              Legenda
+            </span>
             {[
               {
                 label: "Trattato",
@@ -608,9 +662,37 @@ export function DentalChart({
               </label>
             </div>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-500">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 font-semibold text-emerald-800">
+              Seleziona dente e salva procedura
+            </span>
+            <button
+              type="button"
+              onClick={() => handleSelectTooth(0)}
+              className={clsx(
+                "rounded-full border px-3 py-1 text-[11px] font-semibold transition",
+                selectedTooth === 0
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-800"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-200 hover:text-emerald-700"
+              )}
+            >
+              Tutta la bocca
+            </button>
+          </div>
         </section>
 
-        <aside className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <aside className="relative rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+          {selectedTooth === null ? (
+            <div
+              className="absolute inset-0 z-10 rounded-xl bg-white/70"
+              title="Seleziona un dente o “Tutta la bocca” per scegliere una procedura."
+            />
+          ) : null}
+          <div
+            className={clsx(
+              selectedTooth === null && "pointer-events-none opacity-50"
+            )}
+          >
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
@@ -622,7 +704,7 @@ export function DentalChart({
               </p>
               <h3 className="text-lg font-semibold text-zinc-900">Procedura</h3>
               <p className="mt-1 text-xs text-zinc-500">
-                Cosa e&apos; eseguito al dente selezionato?
+                Seleziona un dente, poi una procedura che sara&apos; effettuata su quel dente. Aggiungi le note cliniche e poi clicca su Aggiungi al diario.
               </p>
             </div>
             {selectedTooth !== null && (
@@ -636,22 +718,25 @@ export function DentalChart({
           </div>
 
           <div className="mt-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              {PROCEDURES.map((proc) => (
+            <div className="grid grid-cols-3 gap-2">
+              {sortedServices.map((service) => {
+                const tint = tintForLabel(service.name);
+                return (
                 <button
-                  key={proc.id}
+                  key={service.id}
                   type="button"
-                  onClick={() => setProcedure(proc.id)}
+                  onClick={() => setProcedure(service.name)}
                   className={clsx(
                     "rounded-lg border px-3 py-2 text-left text-sm font-medium transition",
-                    procedure === proc.id
-                      ? `border-emerald-500 ring-2 ring-emerald-100 ${proc.color}`
-                      : "border-zinc-200 bg-zinc-50 hover:border-emerald-200 hover:bg-white text-zinc-700"
+                    procedure === service.name
+                      ? `border-emerald-500 ring-2 ring-emerald-100 ${tint.active}`
+                      : `border-zinc-200 hover:border-emerald-200 ${tint.idle}`
                   )}
                 >
-                  {proc.label}
+                  {service.name}
                 </button>
-              ))}
+                );
+              })}
               <button
                 type="button"
                 onClick={() => setProcedure("altro")}
@@ -679,10 +764,25 @@ export function DentalChart({
             )}
 
             <div>
-              <label className="block text-sm font-medium text-zinc-800">Note cliniche</label>
-              <textarea
+              <label className="block text-sm font-medium text-zinc-800">
+                <span
+                  className={
+                    isNotesActive
+                      ? "font-semibold text-emerald-700"
+                      : "font-medium text-zinc-800"
+                  }
+                >
+                  {selectedProcedureLabel
+                    ? `Note cliniche per procedura: ${selectedProcedureLabel}`
+                    : "Note cliniche"}
+                </span>
+              </label>
+              <DictationTextarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                onValueChange={setNotes}
+                onFocus={() => setIsNotesActive(true)}
+                onBlur={() => setIsNotesActive(false)}
                 placeholder="Materiali, superfici, complicanze..."
                 className="mt-1 h-28 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
@@ -698,16 +798,7 @@ export function DentalChart({
             >
               {selectedRecord ? "Aggiorna questa procedura" : "Aggiungi al diario"}
             </button>
-            {selectedRecord ? (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isSubmitting}
-                className="rounded-lg border border-rose-200 px-3 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Rimuovi
-              </button>
-            ) : null}
+          </div>
           </div>
         </aside>
       </div>
@@ -724,7 +815,7 @@ export function DentalChart({
             <p className="text-xs text-zinc-500">Nessun record. Seleziona un dente.</p>
           ) : (
             sortedRecords.map((rec) => {
-              const proc = resolveProcedure(rec.procedure);
+              const proc = resolveProcedure(rec.procedure, sortedServices);
               const isActive = selectedTooth === rec.tooth;
               const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
               const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
@@ -773,7 +864,7 @@ export function DentalChart({
                       <div
                         className={clsx(
                           "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                          proc?.color ?? "bg-zinc-100 text-zinc-800"
+                          proc?.tint.tag ?? "bg-zinc-100 text-zinc-800"
                         )}
                       >
                         {proc?.label ?? rec.procedure}

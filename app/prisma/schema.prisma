@@ -296,6 +296,7 @@ model Patient {
   lastName  String
   email     String?
   phone     String?
+  gender    Gender    @default(NOT_SPECIFIED)
   birthDate DateTime?
   notes     String?
   photoUrl  String?
