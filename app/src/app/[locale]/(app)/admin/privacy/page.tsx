@@ -19,7 +19,7 @@ async function applyRetentionAction() {
       metadata: summary,
     });
     redirect(`/admin/privacy?retentionSuccess=${encodeURIComponent("Retention completata.")}`);
-  } catch (error) {
+  } catch {
     redirect(`/admin/privacy?retentionError=${encodeURIComponent("Retention non riuscita.")}`);
   }
 }

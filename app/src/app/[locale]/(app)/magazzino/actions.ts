@@ -7,7 +7,7 @@ import { normalizePersonName } from "@/lib/name";
 import { Role, StockMovementType } from "@prisma/client";
 
 export async function updateProduct(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER]);
   const id = formData.get("productId") as string;
   const name = (formData.get("name") as string)?.trim();
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -29,7 +29,7 @@ export async function updateProduct(formData: FormData) {
 }
 
 export async function updateSupplier(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER]);
   const id = formData.get("supplierId") as string;
   const name = (formData.get("name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim() || null;
@@ -47,7 +47,7 @@ export async function updateSupplier(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER]);
   const productId = formData.get("productId") as string;
   if (!productId) return;
 
@@ -63,7 +63,7 @@ export async function deleteProduct(formData: FormData) {
 }
 
 export async function deleteSupplier(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER]);
   const supplierId = formData.get("supplierId") as string;
   if (!supplierId) return;
 
@@ -162,7 +162,7 @@ export async function addStockMovement(formData: FormData) {
 }
 
 export async function deleteStockMovement(formData: FormData) {
-  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER]);
   const movementId = formData.get("movementId") as string;
   if (!movementId) return;
 

@@ -92,7 +92,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
   const movementPrintHref = movementPrintParams.toString()
     ? `/magazzino/print/movimenti?${movementPrintParams.toString()}`
     : "/magazzino/print/movimenti";
-  const [productsRaw, suppliers, movements] = await Promise.all([
+  const [productsRaw, movements] = await Promise.all([
     prisma.product.findMany({
       where: query
         ? {
@@ -109,7 +109,6 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
       },
       orderBy: { name: "asc" },
     }),
-    prisma.supplier.findMany({ orderBy: { name: "asc" } }),
     prisma.stockMovement.findMany({
       take: 50,
       where: movementFilters,

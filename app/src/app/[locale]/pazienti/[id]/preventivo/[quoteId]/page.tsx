@@ -177,9 +177,12 @@ export default async function QuotePrintPage({
           </div>
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center">
             <p className="text-xs font-semibold text-zinc-700">Firma cliente</p>
-            <img
+            <Image
               src={quote.signatureUrl}
               alt="Firma cliente"
+              width={320}
+              height={96}
+              unoptimized
               className="mt-2 h-24 w-full object-contain"
             />
           </div>

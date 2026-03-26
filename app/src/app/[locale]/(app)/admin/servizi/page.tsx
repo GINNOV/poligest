@@ -5,11 +5,35 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
-const serviceClient = (prisma as any).service as {
-  create: (args: any) => Promise<any>;
-  update: (args: any) => Promise<any>;
-  delete: (args: any) => Promise<any>;
-  findMany: (args?: any) => Promise<any[]>;
+type ServiceRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  costBasis: Prisma.Decimal;
+};
+
+const serviceClient = (prisma as unknown as {
+  service: {
+    create: (args: {
+      data: { name: string; description: string | null; costBasis: Prisma.Decimal };
+    }) => Promise<ServiceRecord>;
+    update: (args: {
+      where: { id: string };
+      data: { name: string; description: string | null; costBasis: Prisma.Decimal };
+    }) => Promise<ServiceRecord>;
+    delete: (args: { where: { id: string } }) => Promise<unknown>;
+    findMany: (args?: { orderBy?: { createdAt: "desc" | "asc" } }) => Promise<ServiceRecord[]>;
+  };
+}).service as {
+  create: (args: {
+    data: { name: string; description: string | null; costBasis: Prisma.Decimal };
+  }) => Promise<ServiceRecord>;
+  update: (args: {
+    where: { id: string };
+    data: { name: string; description: string | null; costBasis: Prisma.Decimal };
+  }) => Promise<ServiceRecord>;
+  delete: (args: { where: { id: string } }) => Promise<unknown>;
+  findMany: (args?: { orderBy?: { createdAt: "desc" | "asc" } }) => Promise<ServiceRecord[]>;
 };
 
 async function createService(formData: FormData) {
@@ -182,7 +206,7 @@ export default async function ServicesPage() {
             {services.length === 0 ? (
               <p className="py-4 text-sm text-zinc-600">{t("servicesEmpty")}</p>
             ) : (
-              services.map((service: any) => (
+              services.map((service) => (
                 <div
                   key={service.id}
                   className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"

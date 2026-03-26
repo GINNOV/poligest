@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import clsx from "clsx";
@@ -179,87 +180,6 @@ const TEETH: ToothData[] = [
   { id: 37, type: "molar", label: "37", x: 385, y: 390, rot: -15 },
   { id: 38, type: "molar", label: "38", x: 400, y: 360, rot: -20 },
 ];
-
-
-function Tooth({
-  data,
-  isSelected,
-  hasRecord,
-  onClick,
-}: {
-  data: ToothData;
-  isSelected: boolean;
-  hasRecord: boolean;
-  onClick: (id: number) => void;
-}) {
-  const path = TOOTH_PATHS[data.type];
-
-  const stroke = hasRecord ? "#22c55e" : "transparent";
-  const strokeWidth = stroke === "transparent" ? 0 : 2;
-
-  // Ease compression between arches (looks less squished) and lift everything upward to use top space.
-  const yScaled = 140 + (data.y - 210) * 0.6;
-  const xShifted = data.x - 80; // nudge entire mouth further left to keep right side visible
-
-  return (
-    <g
-      transform={`translate(${xShifted}, ${yScaled}) rotate(${data.rot}) scale(1.45)`}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(data.id);
-      }}
-      className="cursor-pointer transition-opacity hover:opacity-80"
-    >
-      {isSelected && (
-        <circle
-          cx="10"
-          cy="12"
-          r="14.4"
-          fill="none"
-          stroke="#ef4444"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-      <defs>
-        <pattern
-          id={`tooth-img-${data.id}`}
-          patternUnits="userSpaceOnUse"
-          width="24"
-          height="26"
-        >
-          <image
-            href={TOOTH_IMAGES[data.type]}
-            x="0"
-            y="0"
-            width="24"
-            height="26"
-            preserveAspectRatio="xMidYMid meet"
-          />
-        </pattern>
-      </defs>
-      <path
-        d={path}
-        fill={`url(#tooth-img-${data.id})`}
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-      />
-      <text
-        x="10"
-        y="12"
-        fontSize="6"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill={isSelected ? "#0f172a" : "#1f2937"}
-        className="pointer-events-none select-none font-semibold"
-      >
-        {data.label}
-      </text>
-    </g>
-  );
-}
-
 export function DentalChart({
   patientId,
   initialRecords,
@@ -410,11 +330,6 @@ export function DentalChart({
     }
   };
 
-  const handleDelete = async () => {
-    if (!selectedRecord) return;
-    await deleteRecord(selectedRecord.id, selectedTooth ?? undefined);
-  };
-
   const deleteRecord = async (recordId: string, tooth?: number) => {
     setIsSubmitting(true);
     try {
@@ -426,7 +341,9 @@ export function DentalChart({
         cache: "no-store",
       });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({} as any));
+        const body = (await res.json().catch(
+          () => ({}) as Promise<{ error?: string }>
+        )) as { error?: string };
         console.error("[dental-chart] delete failed", { status: res.status, body });
         throw new Error(body?.error || "Eliminazione non riuscita");
       }

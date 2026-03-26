@@ -2,6 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
+import Link from "next/link";
 
 export default async function AuditPage({
   searchParams,
@@ -156,13 +157,13 @@ export default async function AuditPage({
             >
               {t("apply")}
             </button>
-            <a
+            <Link
               href="/admin/audit"
               aria-label={t("auditResetFilters")}
               className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
             >
               {t("resetFilters")}
-            </a>
+            </Link>
           </div>
         </form>
 

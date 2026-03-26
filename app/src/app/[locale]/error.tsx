@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function GlobalError({
   error,
@@ -11,12 +12,13 @@ export default function GlobalError({
   reset: () => void;
 }) {
   // Generate a stable fallback ID if digest is missing.
-  const fallbackId = useMemo(() => {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
-    }
-    return `ERR-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`.toUpperCase();
-  }, []);
+  const fallbackId = useMemo(
+    () =>
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : "ERR-UNKNOWN",
+    []
+  );
   const errorId = error.digest || fallbackId;
   const reportedRef = useRef(false);
 
@@ -51,7 +53,7 @@ export default function GlobalError({
       body,
       keepalive: true,
     }).catch(() => undefined);
-  }, [error]);
+  }, [error, errorId]);
 
   return (
     <div className="min-h-screen bg-emerald-50 text-zinc-900">
@@ -87,12 +89,12 @@ export default function GlobalError({
           >
             Riprova
           </button>
-          <a
+          <Link
             href="/"
             className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
           >
             Torna alla home
-          </a>
+          </Link>
         </div>
       </main>
     </div>

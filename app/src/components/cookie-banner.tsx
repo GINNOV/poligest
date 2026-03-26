@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const COOKIE_KEY = "cookie_consent";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
@@ -20,14 +20,7 @@ function writeCookie(name: string, value: string) {
 }
 
 export function CookieBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const existing = readCookie(COOKIE_KEY);
-    if (!existing) {
-      setVisible(true);
-    }
-  }, []);
+  const [visible, setVisible] = useState(() => !readCookie(COOKIE_KEY));
 
   const saveChoice = (choice: ConsentChoice) => {
     writeCookie(COOKIE_KEY, choice);

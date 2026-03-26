@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
@@ -46,6 +47,27 @@ type Props = {
 };
 
 type Point = { x: number; y: number };
+type LoadedWacomSdk = NonNullable<Awaited<ReturnType<typeof loadWacomSignatureSdk>>>;
+type WacomSigObject = InstanceType<LoadedWacomSdk["SigObj"]>;
+type WacomStuDeviceInstance = { delete?: () => void };
+type WacomStuDeviceFactory = LoadedWacomSdk["STUDevice"] & {
+  new (device: unknown): WacomStuDeviceInstance;
+};
+type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]> & {
+  sigCaptDialog?: {
+    getButton: () => number;
+    onDown: () => void;
+    onMove: () => void;
+    onUp: () => void;
+    clickButton: () => void;
+    clear: () => void;
+    cancel: () => void;
+    accept: () => void;
+    clearTimeOnSurface: () => void;
+    startCapture: () => void;
+    stopCapture: () => void;
+  };
+};
 
 function SignaturePad({
   name,
@@ -163,7 +185,7 @@ function SignaturePad({
     onDirty?.();
   };
 
-  const renderWacomSignature = async (sigSDK: Awaited<ReturnType<typeof loadWacomSignatureSdk>>, sigObj: any) => {
+  const renderWacomSignature = async (sigSDK: LoadedWacomSdk, sigObj: WacomSigObject) => {
     if (!sigSDK) throw new Error("SDK Wacom non disponibile.");
     const width = Math.trunc((96 * sigObj.getWidth(false) * 0.01) / 25.4);
     const height = Math.trunc((96 * sigObj.getHeight(false) * 0.01) / 25.4);
@@ -215,14 +237,14 @@ function SignaturePad({
         throw new Error("Nessun dispositivo STU selezionato.");
       }
 
-      const stuDevice = new (sigSDK as any).STUDevice(devices[0]);
+      const stuDevice = new (sigSDK.STUDevice as WacomStuDeviceFactory)(devices[0]);
       const config = new sigSDK.Config();
       config.source.mouse = false;
       config.source.touch = false;
       config.source.pen = false;
       config.source.stu = true;
 
-      const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as any;
+      const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as WacomDialogInstance;
       if (!dialog.sigCaptDialog) {
         dialog.sigCaptDialog = {
           getButton: () => -1,
@@ -458,17 +480,25 @@ export function QuoteAccordion({
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
-  const [isDirty, setIsDirty] = useState(false);
-  const [saveState, formAction] = useActionState(onSave, { savedAt: 0 });
-  useEffect(() => {
-    if (saveState.savedAt) {
-      setIsDirty(false);
-    }
-  }, [saveState.savedAt]);
+  const [dirtyVersion, setDirtyVersion] = useState(0);
+  const [savedVersion, setSavedVersion] = useState(0);
+  const dirtyVersionRef = useRef(0);
+  const [, formAction] = useActionState(onSave, { savedAt: 0 });
+  const isDirty = dirtyVersion > savedVersion;
+  const markDirty = () =>
+    setDirtyVersion((prev) => {
+      const next = prev + 1;
+      dirtyVersionRef.current = next;
+      return next;
+    });
+  const handleFormAction = async (formData: FormData) => {
+    await formAction(formData);
+    setSavedVersion(dirtyVersionRef.current);
+  };
 
   const updateItem = (index: number, next: Partial<(typeof items)[number]>) => {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...next } : item)));
-    setIsDirty(true);
+    markDirty();
   };
 
   const addItem = () => {
@@ -485,12 +515,12 @@ export function QuoteAccordion({
         createdAt: null,
       },
     ]);
-    setIsDirty(true);
+    markDirty();
   };
 
   const removeItem = (index: number) => {
     setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
-    setIsDirty(true);
+    markDirty();
   };
 
   const itemsWithTotals = useMemo(() => {
@@ -630,7 +660,7 @@ export function QuoteAccordion({
           </svg>
         </div>
       </summary>
-      <form action={formAction} className="space-y-6 p-6">
+      <form action={handleFormAction} className="space-y-6 p-6">
         <input type="hidden" name="patientId" value={patientId} />
         <input type="hidden" name="itemsJson" value={itemsJson} readOnly />
         <div className="space-y-4">
@@ -747,7 +777,7 @@ export function QuoteAccordion({
           existingSignatureUrl={initialQuote?.signatureUrl ?? null}
           patientName={patientName}
           onSignatureStateChange={setSignatureReady}
-          onDirty={() => setIsDirty(true)}
+          onDirty={markDirty}
         />
 
         <div className="flex flex-wrap items-center justify-end gap-3">

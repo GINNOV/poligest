@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { format } from "date-fns";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   await requireUser([Role.ADMIN, Role.MANAGER]);
 
   const movements = await prisma.stockMovement.findMany({

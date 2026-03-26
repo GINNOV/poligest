@@ -1,18 +1,18 @@
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 import { FeatureUpdateMarkdownPreview } from "@/components/feature-update-markdown";
 
-const updateClient = (prisma as unknown as Record<string, unknown>)["featureUpdate"] as
+const updateClient = getOptionalPrismaModel<
   | {
       findFirst?: (args: unknown) => Promise<unknown>;
       updateMany?: (args: unknown) => Promise<unknown>;
       create?: (args: unknown) => Promise<unknown>;
       update?: (args: unknown) => Promise<unknown>;
     }
-  | undefined;
+>("featureUpdate");
 
 async function saveFeatureUpdate(formData: FormData) {
   "use server";

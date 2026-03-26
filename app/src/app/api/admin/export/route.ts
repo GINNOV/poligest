@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import type { JsonObject } from "@/lib/json-types";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
 
@@ -26,6 +27,11 @@ const tableQueries = {
 } as const;
 
 type TableKey = keyof typeof tableQueries;
+type ExportBody = {
+  exportedAt: string;
+  tables: TableKey[];
+  data: Partial<Record<TableKey, unknown[]>> & JsonObject;
+};
 
 export async function GET(req: Request) {
   const admin = await requireUser([Role.ADMIN]);
@@ -49,12 +55,12 @@ export async function GET(req: Request) {
   }
 
   try {
-    const data: Record<string, unknown> = {};
+    const data: ExportBody["data"] = {};
     for (const table of selected) {
       data[table] = await tableQueries[table]();
     }
 
-    const body = {
+    const body: ExportBody = {
       exportedAt: new Date().toISOString(),
       tables: selected,
       data,

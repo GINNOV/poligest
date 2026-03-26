@@ -7,6 +7,8 @@
     "build": "node scripts/build-with-deploy-time.mjs",
     "start": "npm run build && next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "wacom:sync": "node scripts/sync-wacom-sdk.mjs",
     "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
     "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
@@ -50,12 +52,15 @@
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vercel": "^49.1.1"
+    "vitest": "^3.2.4"
   },
   "overrides": {
+    "@hono/node-server": "1.19.11",
+    "@mrleebo/prisma-ast": "0.15.0",
+    "@prisma/dev": "0.22.3",
+    "effect": "3.21.0",
+    "hono": "4.12.9",
     "path-to-regexp": "6.3.0",
-    "cookie": "0.7.2",
-    "undici": "5.29.0",
     "esbuild": "0.25.0",
     "lucide-react": "0.563.0"
   },

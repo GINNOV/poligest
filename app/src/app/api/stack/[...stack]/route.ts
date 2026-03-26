@@ -71,7 +71,7 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ stack?: string[] }> } | { params: { stack?: string[] } },
+  context: { params: Promise<{ stack?: string[] }> },
 ) {
   const params = await context.params;
   return proxyToStack(req, params.stack ?? []);
@@ -79,7 +79,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ stack?: string[] }> } | { params: { stack?: string[] } },
+  context: { params: Promise<{ stack?: string[] }> },
 ) {
   const params = await context.params;
   return proxyToStack(req, params.stack ?? []);
@@ -87,7 +87,7 @@ export async function POST(
 
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ stack?: string[] }> } | { params: { stack?: string[] } },
+  context: { params: Promise<{ stack?: string[] }> },
 ) {
   const params = await context.params;
   return proxyToStack(req, params.stack ?? []);
@@ -95,7 +95,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ stack?: string[] }> } | { params: { stack?: string[] } },
+  context: { params: Promise<{ stack?: string[] }> },
 ) {
   const params = await context.params;
   return proxyToStack(req, params.stack ?? []);

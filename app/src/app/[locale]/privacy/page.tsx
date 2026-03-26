@@ -35,7 +35,7 @@ const sections: { title: string; content: ReactNode }[] = [
     title: "2. Responsabile della protezione dei dati (DPO)",
     content: (
       <p className="text-sm leading-6 text-zinc-700">
-        Lo Studio non è obbligato a nominare un Responsabile della Protezione dei Dati (DPO) ai sensi dell'art. 37 del
+        Lo Studio non è obbligato a nominare un Responsabile della Protezione dei Dati (DPO) ai sensi dell&apos;art. 37 del
         GDPR. Per qualsiasi questione relativa al trattamento dei dati personali è possibile contattare direttamente il
         Titolare ai recapiti sopra indicati.
       </p>
@@ -51,7 +51,7 @@ const sections: { title: string; content: ReactNode }[] = [
         </li>
         <li>
           <span className="font-semibold">Dati sanitari</span>: anamnesi medica, referti, radiografie, diagnosi, terapie
-          effettuate e pianificate, nonché ogni altro dato relativo allo stato di salute necessario per l'erogazione
+          effettuate e pianificate, nonché ogni altro dato relativo allo stato di salute necessario per l&apos;erogazione
           delle cure odontoiatriche.
         </li>
         <li>
@@ -71,7 +71,7 @@ const sections: { title: string; content: ReactNode }[] = [
       <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-zinc-700">
         <li>Erogazione delle prestazioni sanitarie odontoiatriche (diagnosi, cura, prevenzione).</li>
         <li>Gestione degli appuntamenti e delle comunicazioni con il paziente.</li>
-        <li>Adempimento di obblighi legali (es. tenuta delle cartelle cliniche, fatturazione, comunicazioni all'Agenzia delle Entrate).</li>
+        <li>Adempimento di obblighi legali (es. tenuta delle cartelle cliniche, fatturazione, comunicazioni all&apos;Agenzia delle Entrate).</li>
         <li>Invio di comunicazioni relative ai servizi dello Studio (es. promemoria appuntamenti, aggiornamenti su terapie).</li>
         <li>Eventuale invio di comunicazioni informative e promozionali (solo con consenso esplicito).</li>
         <li>Miglioramento del sito web e analisi statistica anonima della navigazione.</li>
@@ -84,7 +84,7 @@ const sections: { title: string; content: ReactNode }[] = [
       <>
         <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-zinc-700">
           <li>
-            <span className="font-semibold">Esecuzione del contratto</span> e misure precontrattuali (art. 6, par. 1, lett. b GDPR) per l'erogazione delle cure e la gestione degli appuntamenti.
+            <span className="font-semibold">Esecuzione del contratto</span> e misure precontrattuali (art. 6, par. 1, lett. b GDPR) per l&apos;erogazione delle cure e la gestione degli appuntamenti.
           </li>
           <li>
             <span className="font-semibold">Obbligo legale</span> (art. 6, par. 1, lett. c GDPR) per la tenuta della documentazione sanitaria e gli adempimenti fiscali.
@@ -93,14 +93,14 @@ const sections: { title: string; content: ReactNode }[] = [
             <span className="font-semibold">Interesse legittimo del Titolare</span> (art. 6, par. 1, lett. f GDPR) per comunicazioni di servizio e sicurezza del sito.
           </li>
           <li>
-            <span className="font-semibold">Consenso dell'interessato</span> (art. 6, par. 1, lett. a GDPR e art. 9, par. 2, lett. a GDPR) per trattamenti di dati particolari (sanitari) non strettamente necessari alla cura o per comunicazioni promozionali.
+            <span className="font-semibold">Consenso dell&apos;interessato</span> (art. 6, par. 1, lett. a GDPR e art. 9, par. 2, lett. a GDPR) per trattamenti di dati particolari (sanitari) non strettamente necessari alla cura o per comunicazioni promozionali.
           </li>
           <li>
             <span className="font-semibold">Protezione degli interessi vitali</span> (in casi eccezionali).
           </li>
         </ul>
         <p className="mt-3 text-sm leading-6 text-zinc-700">
-          Il trattamento dei dati sanitari è inoltre legittimato dall'art. 9, par. 2, lett. h GDPR (finalità di medicina
+          Il trattamento dei dati sanitari è inoltre legittimato dall&apos;art. 9, par. 2, lett. h GDPR (finalità di medicina
           preventiva, diagnosi, assistenza o terapia sanitaria).
         </p>
       </>
@@ -120,8 +120,8 @@ const sections: { title: string; content: ReactNode }[] = [
     content: (
       <>
         <p className="text-sm leading-6 text-zinc-700">
-          Il conferimento dei dati identificativi e sanitari è obbligatorio per l'erogazione delle cure odontoiatriche.
-          Il rifiuto comporterebbe l'impossibilità di prestare i servizi richiesti.
+          Il conferimento dei dati identificativi e sanitari è obbligatorio per l&apos;erogazione delle cure odontoiatriche.
+          Il rifiuto comporterebbe l&apos;impossibilità di prestare i servizi richiesti.
         </p>
         <p className="text-sm leading-6 text-zinc-700">Il conferimento dei dati per finalità promozionali è facoltativo.</p>
       </>
@@ -136,7 +136,7 @@ const sections: { title: string; content: ReactNode }[] = [
           <li>Fornitori esterni (es. laboratori odontotecnici, consulenti contabili, provider IT) nominati Responsabili del trattamento.</li>
           <li>Autorità sanitarie o Enti pubblici in caso di obbligo di legge.</li>
         </ul>
-        <p className="mt-3 text-sm leading-6 text-zinc-700">I dati non sono trasferiti al di fuori dell'Unione Europea.</p>
+        <p className="mt-3 text-sm leading-6 text-zinc-700">I dati non sono trasferiti al di fuori dell&apos;Unione Europea.</p>
       </>
     ),
   },
@@ -157,13 +157,13 @@ const sections: { title: string; content: ReactNode }[] = [
       <>
         <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-zinc-700">
           <li>Accedere ai propri dati.</li>
-          <li>Richiederne la rettifica o l'aggiornamento.</li>
-          <li>Richiederne la cancellazione (“diritto all'oblio”) nei casi previsti.</li>
+          <li>Richiederne la rettifica o l&apos;aggiornamento.</li>
+          <li>Richiederne la cancellazione (“diritto all&apos;oblio”) nei casi previsti.</li>
           <li>Limitarne il trattamento.</li>
           <li>Opporsi al trattamento.</li>
           <li>Ricevere i dati in formato strutturato (portabilità).</li>
           <li>Revocare il consenso in qualsiasi momento senza pregiudicare la liceità del trattamento precedente.</li>
-          <li>Proporre reclamo all'Autorità Garante per la protezione dei dati personali (www.garanteprivacy.it).</li>
+          <li>Proporre reclamo all&apos;Autorità Garante per la protezione dei dati personali (www.garanteprivacy.it).</li>
         </ul>
         <p className="mt-3 text-sm leading-6 text-zinc-700">
           Per esercitare i diritti è possibile contattare il Titolare ai recapiti indicati.
@@ -176,7 +176,7 @@ const sections: { title: string; content: ReactNode }[] = [
     content: (
       <p className="text-sm leading-6 text-zinc-700">
         Il sito web dello Studio utilizza cookie tecnici necessari per il funzionamento del sito e cookie analitici
-        anonimizzati. Per maggiori dettagli consultare l'Informativa Cookie disponibile sul sito.
+        anonimizzati. Per maggiori dettagli consultare l&apos;Informativa Cookie disponibile sul sito.
       </p>
     ),
   },

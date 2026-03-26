@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { pickSystemAvatar } from "@/lib/patient-avatars";
 
@@ -18,14 +19,11 @@ export function PatientAvatar({ src, alt, size, gender, className }: Props) {
     const seed = alt.trim().toLowerCase();
     return pickSystemAvatar(seed, gender);
   }, [alt, gender]);
-  const [currentSrc, setCurrentSrc] = useState(src || deterministicAvatar || fallback);
-
-  useEffect(() => {
-    setCurrentSrc(src || deterministicAvatar || fallback);
-  }, [src, deterministicAvatar, fallback]);
+  const preferredSrc = src || deterministicAvatar || fallback;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const currentSrc = failedSrc === preferredSrc ? fallback : preferredSrc;
 
   return (
-    // Using <img> avoids Next image optimization errors on missing uploads.
     <img
       src={currentSrc}
       alt={alt}
@@ -33,8 +31,8 @@ export function PatientAvatar({ src, alt, size, gender, className }: Props) {
       height={size}
       className={clsx("object-cover", className)}
       onError={() => {
-        if (currentSrc !== fallback) {
-          setCurrentSrc(fallback);
+        if (preferredSrc !== fallback) {
+          setFailedSrc(preferredSrc);
         }
       }}
     />

@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
-import { SignOutButton } from "@/components/sign-out-button";
 import { Role } from "@prisma/client";
 import { NavLink } from "@/components/nav-link";
 import { stackServerApp } from "@/lib/stack-app";
@@ -14,6 +13,7 @@ import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 import { MobileNav } from "@/components/mobile-nav";
 import { logAudit } from "@/lib/audit";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -67,7 +67,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isFeatureAllowed = (feature: FeatureId) =>
     featureAccess?.isAllowed(feature) ?? false;
   const isAgendaAllowed = isStaff && isFeatureAllowed("agenda");
-  const isCalendarAllowed = isStaff && isFeatureAllowed("calendar");
   const isPatientsAllowed = isStaff && isFeatureAllowed("patients");
   const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
@@ -99,13 +98,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     ...(isAdmin ? [{ href: "/admin", label: t("admin") }] : []),
   ];
 
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const featureUpdateClient = prismaModels["featureUpdate"] as
+  const featureUpdateClient = getOptionalPrismaModel<
     | { findFirst?: (args: unknown) => Promise<unknown> }
-    | undefined;
-  const dismissalClient = prismaModels["featureUpdateDismissal"] as
+  >("featureUpdate");
+  const dismissalClient = getOptionalPrismaModel<
     | { findUnique?: (args: unknown) => Promise<unknown> }
-    | undefined;
+  >("featureUpdateDismissal");
 
   const activeUpdate =
     isStaff && user?.id && featureUpdateClient?.findFirst

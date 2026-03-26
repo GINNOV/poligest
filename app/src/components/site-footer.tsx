@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter({
   version,
   deployedAt,
@@ -21,15 +23,17 @@ export function SiteFooter({
           {deployLabel ? ` · Aggiornato a ${deployLabel}` : ""}
         </span>
         <div className="flex items-center gap-4 text-emerald-700">
-          <a href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
-            Manuale
-          </a>
-          <a href="/privacy" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
+          {showDocs ? (
+            <Link href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
+              Manuale
+            </Link>
+          ) : null}
+          <Link href="/privacy" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
             Privacy
-          </a>
-          <a href="/terms" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
+          </Link>
+          <Link href="/terms" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800">
             Termini
-          </a>
+          </Link>
         </div>
       </div>
     </footer>

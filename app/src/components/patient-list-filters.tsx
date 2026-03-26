@@ -15,26 +15,13 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const [query, setQuery] = useState(initialQuery ?? "");
-  const [sort, setSort] = useState(sortValue ?? "name_asc");
-  const [autoFilter, setAutoFilter] = useState(true);
+  const [query, setQuery] = useState(() => initialQuery ?? "");
+  const [sort, setSort] = useState(() => sortValue ?? "name_asc");
+  const [autoFilter, setAutoFilter] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY) !== "false";
+  });
   const isFirstRun = useRef(true);
-
-  useEffect(() => {
-    setQuery(initialQuery ?? "");
-  }, [initialQuery]);
-
-  useEffect(() => {
-    setSort(sortValue ?? "name_asc");
-  }, [sortValue]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY);
-    if (stored === "false") {
-      setAutoFilter(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

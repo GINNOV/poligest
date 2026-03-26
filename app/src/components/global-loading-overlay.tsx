@@ -106,9 +106,9 @@ export function GlobalLoadingOverlay() {
     };
 
     const wrap = (fn: typeof window.history.pushState) => {
-      return function (this: History, ...args: Parameters<typeof window.history.pushState>) {
+      return (...args: Parameters<typeof window.history.pushState>) => {
         scheduleNavLoading(1800);
-        return fn.apply(this, args);
+        return fn.apply(window.history, args);
       };
     };
 

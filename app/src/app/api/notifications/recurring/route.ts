@@ -1,159 +1,69 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { RecurringMessageKind, RecurringMessageStatus } from "@prisma/client";
+import { RecurringMessageStatus, Role } from "@prisma/client";
 import { sendEmail } from "@/lib/email";
 import { errorResponse } from "@/lib/error-response";
 import {
-  RECURRING_MESSAGE_DEFAULTS,
-  applyTemplate,
-  getItalianHolidays,
-  normalizeBirthday,
-} from "@/lib/recurring-messages";
+  buildAdminBackupReminderCandidates,
+  buildRecurringCandidates,
+  filterRecurringCandidates,
+  getAdminBackupReminderMonthKey,
+  materializeRecurringDelivery,
+  mergeRecurringConfigs,
+  type RecurringCandidate,
+} from "@/lib/recurring-messages/domain";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
 const MAX_SEND = 200;
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) return "";
+  if (/^https?:\/\//.test(rawOrigin)) return rawOrigin.replace(/\/$/, "");
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
 }
 
-function setLocalHour(date: Date, hour: number) {
-  const next = new Date(date);
-  next.setHours(hour, 0, 0, 0);
-  return next;
+function resolveSiteOrigin() {
+  return normalizeSiteOrigin(
+    process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+  );
 }
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(date);
-}
-
-type Candidate = {
-  kind: RecurringMessageKind;
-  patientId: string;
-  email: string;
-  scheduledFor: Date;
-  eventDate?: Date;
-  dedupeKey: string;
-  templateVars: Record<string, string>;
-  subject: string;
-  body: string;
-};
 
 async function getConfigs() {
   const stored = await prisma.recurringMessageConfig.findMany();
-  return RECURRING_MESSAGE_DEFAULTS.map((defaults) => {
-    const match = stored.find((entry) => entry.kind === defaults.kind);
-    return {
-      kind: defaults.kind as RecurringMessageKind,
-      enabled: match?.enabled ?? true,
-      subject: match?.subject ?? defaults.subject,
-      body: match?.body ?? defaults.body,
-      daysBefore: match?.daysBefore ?? defaults.daysBefore ?? null,
-    };
-  });
+  return mergeRecurringConfigs(stored);
 }
 
-async function buildCandidates(now: Date): Promise<Candidate[]> {
+async function buildCandidates(now: Date): Promise<RecurringCandidate[]> {
   const configs = await getConfigs();
   const patients = await prisma.patient.findMany({
     where: { email: { not: null } },
     select: { id: true, email: true, firstName: true, lastName: true, birthDate: true },
   });
-  const candidates: Candidate[] = [];
+  const closureWindowStart = new Date(now);
+  closureWindowStart.setUTCDate(closureWindowStart.getUTCDate() - 30);
+  const closures = await prisma.practiceClosure.findMany({
+    where: { startsAt: { gte: closureWindowStart } },
+  });
 
-  const holidayConfig = configs.find((c) => c.kind === RecurringMessageKind.HOLIDAY && c.enabled);
-  if (holidayConfig) {
-    const holidays = getItalianHolidays(now.getFullYear());
-    for (const holiday of holidays) {
-      const scheduledFor = setLocalHour(holiday.date, 9);
-      const isDue = now >= scheduledFor && now < addDays(scheduledFor, 1);
-      if (!isDue) continue;
-      for (const patient of patients) {
-        const dedupeKey = `holiday:${holiday.key}:${holiday.date.getFullYear()}:${patient.id}`;
-        candidates.push({
-          kind: RecurringMessageKind.HOLIDAY,
-          patientId: patient.id,
-          email: patient.email ?? "",
-          scheduledFor,
-          eventDate: holiday.date,
-          dedupeKey,
-          templateVars: {
-            firstName: patient.firstName,
-            lastName: patient.lastName,
-            holidayName: holiday.name,
-            holidayDate: formatDate(holiday.date),
-          },
-          subject: holidayConfig.subject,
-          body: holidayConfig.body,
-        });
-      }
-    }
-  }
-
-  const closureConfig = configs.find((c) => c.kind === RecurringMessageKind.CLOSURE && c.enabled);
-  if (closureConfig) {
-    const closures = await prisma.practiceClosure.findMany({
-      where: { startsAt: { gte: addDays(now, -30) } },
-    });
-    const daysBefore = closureConfig.daysBefore ?? 7;
-    for (const closure of closures) {
-      const scheduledFor = setLocalHour(addDays(new Date(closure.startsAt), -daysBefore), 9);
-      if (!(now >= scheduledFor && now < closure.startsAt)) continue;
-      const closureTitle = closure.title ?? "chiusura programmata";
-      for (const patient of patients) {
-        const dedupeKey = `closure:${closure.id}:${patient.id}`;
-        candidates.push({
-          kind: RecurringMessageKind.CLOSURE,
-          patientId: patient.id,
-          email: patient.email ?? "",
-          scheduledFor,
-          eventDate: closure.startsAt,
-          dedupeKey,
-          templateVars: {
-            firstName: patient.firstName,
-            lastName: patient.lastName,
-            closureTitle,
-            closureStart: formatDate(closure.startsAt),
-            closureEnd: formatDate(closure.endsAt),
-          },
-          subject: closureConfig.subject,
-          body: closureConfig.body,
-        });
-      }
-    }
-  }
-
-  const birthdayConfig = configs.find((c) => c.kind === RecurringMessageKind.BIRTHDAY && c.enabled);
-  if (birthdayConfig) {
-    for (const patient of patients) {
-      if (!patient.birthDate) continue;
-      const birthdayThisYear = normalizeBirthday(patient.birthDate, now.getFullYear());
-      const scheduledFor = setLocalHour(birthdayThisYear, 9);
-      const isDue = now >= scheduledFor && now < addDays(scheduledFor, 1);
-      if (!isDue) continue;
-      const dedupeKey = `birthday:${birthdayThisYear.getFullYear()}:${patient.id}`;
-      candidates.push({
-        kind: RecurringMessageKind.BIRTHDAY,
-        patientId: patient.id,
-        email: patient.email ?? "",
-        scheduledFor,
-        eventDate: birthdayThisYear,
-        dedupeKey,
-        templateVars: {
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          birthdayDate: formatDate(birthdayThisYear),
-        },
-        subject: birthdayConfig.subject,
-        body: birthdayConfig.body,
-      });
-    }
-  }
-
-  return candidates;
+  return buildRecurringCandidates({
+    now,
+    configs,
+    patients: patients.map((patient) => ({
+      id: patient.id,
+      email: patient.email ?? "",
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      birthDate: patient.birthDate,
+    })),
+    closures: closures.map((closure) => ({
+      id: closure.id,
+      title: closure.title,
+      startsAt: closure.startsAt,
+      endsAt: closure.endsAt,
+    })),
+  });
 }
 
 export async function GET(req: Request) {
@@ -170,8 +80,50 @@ export async function GET(req: Request) {
   try {
     const now = new Date();
     const candidates = await buildCandidates(now);
+    const siteOrigin = resolveSiteOrigin();
+    const adminResetUrl = siteOrigin ? `${siteOrigin}/admin/reset` : "/admin/reset";
+    const monthKey = getAdminBackupReminderMonthKey(now);
+    const [adminsRaw, existingAdminReminderLogs] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          role: Role.ADMIN,
+          isActive: true,
+        },
+        select: { id: true, email: true, name: true },
+      }),
+      prisma.auditLog.findMany({
+        where: {
+          action: "admin.backup_reminder_sent",
+          entity: "System",
+          entityId: { endsWith: `:${monthKey}` },
+        },
+        select: { entityId: true },
+      }),
+    ]);
+    const admins = adminsRaw.filter(
+      (admin): admin is { id: string; email: string; name: string | null } =>
+        typeof admin.email === "string" && admin.email.trim().length > 0,
+    );
+
+    const adminBackupCandidates = buildAdminBackupReminderCandidates({
+      now,
+      admins: admins.map((admin) => ({
+        id: admin.id,
+        email: admin.email ?? "",
+        name: admin.name,
+      })),
+      existingAuditEntityIds: new Set(
+        existingAdminReminderLogs
+          .map((log) => log.entityId)
+          .filter((entityId): entityId is string => Boolean(entityId)),
+      ),
+      adminResetUrl,
+    });
+
     if (candidates.length === 0) {
-      return NextResponse.json({ processed: 0 });
+      if (adminBackupCandidates.length === 0) {
+        return NextResponse.json({ processed: 0, adminBackupReminders: 0 });
+      }
     }
 
     const dedupeKeys = candidates.map((candidate) => candidate.dedupeKey);
@@ -181,23 +133,23 @@ export async function GET(req: Request) {
     });
     const existingByKey = new Map(existing.map((row) => [row.dedupeKey, row.status]));
 
-    let processed = 0;
-    for (const candidate of candidates) {
-      if (processed >= MAX_SEND) break;
-      const existingStatus = existingByKey.get(candidate.dedupeKey);
-      if (existingStatus === RecurringMessageStatus.SENT || existingStatus === RecurringMessageStatus.SKIPPED) {
-        continue;
-      }
+    const selectedCandidates = filterRecurringCandidates({
+      candidates,
+      existingStatuses: existingByKey,
+      maxSend: MAX_SEND,
+    });
 
-      const subject = applyTemplate(candidate.subject, candidate.templateVars);
-      const body = applyTemplate(candidate.body, candidate.templateVars);
+    let processed = 0;
+    for (const candidate of selectedCandidates) {
+      const existingStatus = existingByKey.get(candidate.dedupeKey);
 
       let status: RecurringMessageStatus = RecurringMessageStatus.SENT;
       let error: string | null = null;
       let sentAt: Date | null = new Date();
 
       try {
-        await sendEmail(candidate.email, subject, body);
+        const delivery = materializeRecurringDelivery(candidate);
+        await sendEmail(candidate.email, delivery.subject, delivery.body);
       } catch (err) {
         status = RecurringMessageStatus.FAILED;
         error = err instanceof Error ? err.message : String(err);
@@ -231,7 +183,29 @@ export async function GET(req: Request) {
       processed += 1;
     }
 
-    return NextResponse.json({ processed });
+    let adminBackupProcessed = 0;
+    for (const candidate of adminBackupCandidates) {
+      try {
+        await sendEmail(candidate.email, candidate.subject, candidate.body);
+        await logAudit(null, {
+          action: "admin.backup_reminder_sent",
+          entity: "System",
+          entityId: candidate.auditEntityId,
+          metadata: {
+            monthKey: candidate.monthKey,
+            email: candidate.email,
+          },
+        });
+        adminBackupProcessed += 1;
+      } catch (err) {
+        console.error("[admin_backup_reminder] email failed", {
+          userId: candidate.userId,
+          err,
+        });
+      }
+    }
+
+    return NextResponse.json({ processed, adminBackupReminders: adminBackupProcessed });
   } catch (error) {
     return errorResponse({
       message: "Errore invio notifiche ricorrenti",

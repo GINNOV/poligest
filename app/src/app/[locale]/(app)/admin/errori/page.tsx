@@ -1,13 +1,15 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import type { JsonObject } from "@/lib/json-types";
 import { Prisma, Role } from "@prisma/client";
+import Link from "next/link";
 
 type ErrorMetadata = {
   message?: string;
   source?: string;
   path?: string;
-  context?: Record<string, unknown>;
+  context?: JsonObject;
   error?: {
     name?: string;
     message?: string;
@@ -93,7 +95,7 @@ export default async function AdminErrorsPage({
     const stackLine = entry.errorStack?.split("\n")[0] ?? null;
     return { detail, stackLine };
   };
-  const formatContext = (context: Record<string, unknown> | null) => {
+  const formatContext = (context: JsonObject | null) => {
     if (!context) return null;
     try {
       const raw = JSON.stringify(context);
@@ -183,12 +185,12 @@ export default async function AdminErrorsPage({
             >
               Applica
             </button>
-            <a
+            <Link
               href="/admin/errori"
               className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-rose-200 hover:text-rose-600"
             >
               Reset
-            </a>
+            </Link>
           </div>
         </form>
 

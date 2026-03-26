@@ -5,11 +5,16 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
+type AnamnesisConditionRecord = {
+  id: string;
+  label: string;
+};
+
 type AnamnesisClient = {
-  create: (args: any) => Promise<any>;
-  update: (args: any) => Promise<any>;
-  delete: (args: any) => Promise<any>;
-  findMany: (args?: any) => Promise<any[]>;
+  create: (args: { data: { label: string } }) => Promise<AnamnesisConditionRecord>;
+  update: (args: { where: { id: string }; data: { label: string } }) => Promise<AnamnesisConditionRecord>;
+  delete: (args: { where: { id: string } }) => Promise<unknown>;
+  findMany: (args?: { orderBy?: { createdAt: "desc" | "asc" } }) => Promise<AnamnesisConditionRecord[]>;
 };
 
 function getAnamnesisClient() {
@@ -158,7 +163,7 @@ export default async function AnamnesisSettingsPage() {
             {conditions.length === 0 ? (
               <p className="py-4 text-sm text-zinc-600">{t("anamnesisEmpty")}</p>
             ) : (
-              conditions.map((condition: any) => (
+              conditions.map((condition) => (
                 <div
                   key={condition.id}
                   className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"

@@ -7,8 +7,33 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { ImportForm } from "../../magazzino/import-form";
 import { LocalizedFileInput } from "@/components/localized-file-input";
+import {
+  IMPORT_CONFIRMATION_TEXT,
+  RESET_CONFIRMATION_TEXT,
+  assertBulkDestructiveActionEnabled,
+  hasTypedConfirmation,
+} from "@/lib/destructive-action-guard";
+import type { JsonObject } from "@/lib/json-types";
 import fs from "fs/promises";
 import path from "path";
+
+type ExportJson = {
+  data?: Partial<Record<ExportTableKey, JsonObject[]>>;
+  tables?: string[];
+};
+
+type DecimalInput = string | number | Prisma.Decimal;
+
+const toDecimal = (value: unknown) =>
+  new Prisma.Decimal(
+    typeof value === "number" ||
+      typeof value === "string" ||
+      value instanceof Prisma.Decimal
+      ? (value as DecimalInput)
+      : typeof value === "bigint"
+        ? value.toString()
+      : 0
+  );
 
 async function resetSystem(formData: FormData) {
   "use server";
@@ -17,8 +42,10 @@ async function resetSystem(formData: FormData) {
   const confirmation = (formData.get("confirm") as string)?.trim();
   const seedDemo = (formData.get("seedDemo") as string) === "on";
 
-  if (confirmation !== "Si, confermo") {
-    throw new Error("Devi digitare 'Si, confermo' per procedere.");
+  assertBulkDestructiveActionEnabled();
+
+  if (!hasTypedConfirmation(confirmation, RESET_CONFIRMATION_TEXT)) {
+    throw new Error(`Devi digitare '${RESET_CONFIRMATION_TEXT}' per procedere.`);
   }
 
   // Wipe data respecting FK order
@@ -47,19 +74,14 @@ async function resetSystem(formData: FormData) {
   if (seedDemo) {
     const seedPath = path.join(process.cwd(), "AI", "CONTENT", "poligest-export-generated.json");
     const raw = await fs.readFile(seedPath, "utf-8");
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as ExportJson;
     const data = parsed?.data ?? {};
     const selected: ExportTableKey[] = Array.isArray(parsed.tables)
-      ? parsed.tables.filter((t: string) =>
-          exportTables.some((table) => table.key === t)
-        )
-      : (exportTables.map((t) => t.key) as ExportTableKey[]);
+      ? parsed.tables.filter(isExportTableKey)
+      : [...exportTableKeys];
 
     const tableData = (key: ExportTableKey) =>
-      (data[key] as Record<string, any>[] | undefined) ?? [];
-
-    const toDecimal = (value: unknown) =>
-      new Prisma.Decimal(value === null || value === undefined ? 0 : (value as any));
+      data[key] ?? [];
 
     await prisma.$transaction(async (tx) => {
       if (selected.includes("users")) {
@@ -241,22 +263,30 @@ const exportTables = [
 ] as const;
 
 type ExportTableKey = (typeof exportTables)[number]["key"];
+const exportTableKeys = new Set<ExportTableKey>(exportTables.map((table) => table.key));
+const isExportTableKey = (value: string): value is ExportTableKey => exportTableKeys.has(value as ExportTableKey);
 
 async function importData(formData: FormData) {
   "use server";
 
   const admin = await requireUser([Role.ADMIN]);
   const file = formData.get("file");
+  const confirmation = (formData.get("confirmImport") as string)?.trim();
 
   if (!file || typeof file === "string") {
     throw new Error("Carica un file JSON valido.");
   }
 
+  assertBulkDestructiveActionEnabled();
+  if (!hasTypedConfirmation(confirmation, IMPORT_CONFIRMATION_TEXT)) {
+    throw new Error(`Devi digitare '${IMPORT_CONFIRMATION_TEXT}' per procedere.`);
+  }
+
   const content = await file.text();
-  let parsed: any;
+  let parsed: ExportJson;
   try {
-    parsed = JSON.parse(content);
-  } catch (error) {
+    parsed = JSON.parse(content) as ExportJson;
+  } catch {
     throw new Error("Il file non è un JSON valido.");
   }
 
@@ -266,16 +296,11 @@ async function importData(formData: FormData) {
   }
 
   const selected: ExportTableKey[] = Array.isArray(parsed.tables)
-    ? parsed.tables.filter((t: string) =>
-        exportTables.some((table) => table.key === t)
-      )
-    : (exportTables.map((t) => t.key) as ExportTableKey[]);
+    ? parsed.tables.filter(isExportTableKey)
+    : [...exportTableKeys];
 
   const tableData = (key: ExportTableKey) =>
-    (data[key] as Record<string, any>[] | undefined) ?? [];
-
-  const toDecimal = (value: unknown) =>
-    new Prisma.Decimal(value === null || value === undefined ? 0 : (value as any));
+    data[key] ?? [];
 
   await prisma.$transaction(async (tx) => {
     // wipe
@@ -492,6 +517,13 @@ export default async function ResetPage() {
                 autoComplete="off"
               />
             </label>
+            <p className="text-xs text-rose-900">
+              Questa azione richiede la variabile ambiente
+              <code className="ml-1 rounded bg-white/70 px-1 py-0.5">
+                ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
+              </code>
+              .
+            </p>
             <label className="flex items-center gap-2 text-sm font-semibold text-rose-900">
               <input
                 type="checkbox"
@@ -578,7 +610,25 @@ export default async function ResetPage() {
                 {t("importLabel")}
                 <LocalizedFileInput name="file" accept="application/json" required />
               </div>
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                Digita <span className="font-semibold">{IMPORT_CONFIRMATION_TEXT}</span> per
+                confermare l&apos;import che sovrascrive i dati esistenti
+                <input
+                  name="confirmImport"
+                  placeholder={IMPORT_CONFIRMATION_TEXT}
+                  autoComplete="off"
+                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                  required
+                />
+              </label>
               <p className="text-xs text-zinc-500">{t("importHint")}</p>
+              <p className="text-xs text-zinc-500">
+                L&apos;import distruttivo richiede anche
+                <code className="ml-1 rounded bg-zinc-100 px-1 py-0.5">
+                  ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
+                </code>
+                .
+              </p>
               <button
                 type="submit"
                 className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"

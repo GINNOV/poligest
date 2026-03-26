@@ -2,10 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, RecallStatus } from "@prisma/client";
 import { sendSms } from "@/lib/sms";
-import { replacePlaceholders } from "@/lib/email-template-utils";
 import { sendEmail } from "@/lib/email";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { errorResponse } from "@/lib/error-response";
+import {
+  buildAppointmentReminderDeliveryPlan,
+  buildRecallDeliveryPlan,
+  computeAppointmentReminderCreates,
+  computeRecurringRecallCreates,
+  shouldSkipAppointmentReminder,
+} from "@/lib/recalls/send-domain";
 
 const HORIZON_DAYS = 30;
 
@@ -52,47 +58,14 @@ async function enqueueRecurringRecalls(now: Date) {
       }),
     ]);
 
-    const lastRecallByPatient = new Map(
-      lastRecalls
-        .map((entry) => [entry.patientId, entry._max?.dueAt ?? null] as const)
-        .filter((entry): entry is [string, Date] => Boolean(entry[1])),
-    );
-    const pendingRecallByPatient = new Map(
-      pendingRecalls
-        .map((entry) => [entry.patientId, entry._max?.dueAt ?? null] as const)
-        .filter((entry): entry is [string, Date] => Boolean(entry[1])),
-    );
-
-    const pendingCreates = lastAppointments
-      .map((entry) => {
-        const lastVisit = entry._max?.startsAt ?? null;
-        if (!lastVisit) return null;
-        const pendingRecallDueAt = pendingRecallByPatient.get(entry.patientId);
-        if (pendingRecallDueAt) {
-          return null;
-        }
-
-        const lastRecallDueAt = lastRecallByPatient.get(entry.patientId);
-        let nextDueAt = addDays(lastVisit, rule.intervalDays);
-
-        if (lastRecallDueAt && lastRecallDueAt >= lastVisit) {
-          nextDueAt = addDays(lastRecallDueAt, rule.intervalDays);
-        }
-
-        if (nextDueAt < now) {
-          nextDueAt = now;
-        }
-
-        if (nextDueAt > horizon) return null;
-
-        return {
-          patientId: entry.patientId,
-          ruleId: rule.id,
-          dueAt: nextDueAt,
-          status: RecallStatus.PENDING,
-        };
-      })
-      .filter((value): value is NonNullable<typeof value> => value !== null);
+    const pendingCreates = computeRecurringRecallCreates({
+      now,
+      horizon,
+      rule: { id: rule.id, intervalDays: rule.intervalDays },
+      lastAppointments,
+      lastRecalls,
+      pendingRecalls,
+    });
 
     if (pendingCreates.length > 0) {
       await prisma.recall.createMany({ data: pendingCreates });
@@ -113,34 +86,15 @@ async function enqueueAppointmentReminders(now: Date) {
       startsAt: { gt: now, lte: upperBound },
       status: { in: [AppointmentStatus.TO_CONFIRM, AppointmentStatus.CONFIRMED, AppointmentStatus.IN_WAITING, AppointmentStatus.IN_PROGRESS] },
     },
-    select: { id: true, patientId: true, startsAt: true },
+    select: { id: true, patientId: true, startsAt: true, status: true },
   });
 
-  const pendingCreates = upcomingAppointments
-    .map((appointment) => {
-      let dueAt: Date;
-      if (timingType === "SAME_DAY_TIME") {
-        dueAt = new Date(appointment.startsAt);
-        const hours = Math.floor(timeOfDayMinutes / 60);
-        const minutes = timeOfDayMinutes % 60;
-        dueAt.setHours(hours, minutes, 0, 0);
-      } else {
-        dueAt = addDays(appointment.startsAt, -rule.daysBefore);
-      }
-      if (dueAt < now) {
-        dueAt = now;
-      }
-      if (dueAt > horizon) return null;
-
-      return {
-        appointmentId: appointment.id,
-        patientId: appointment.patientId,
-        ruleId: rule.id,
-        dueAt,
-        status: RecallStatus.PENDING,
-      };
-    })
-    .filter((value): value is NonNullable<typeof value> => value !== null);
+  const pendingCreates = computeAppointmentReminderCreates({
+    now,
+    horizon,
+    rule: { id: rule.id, daysBefore: rule.daysBefore, timingType, timeOfDayMinutes },
+    appointments: upcomingAppointments,
+  });
 
   if (pendingCreates.length > 0) {
     await prisma.appointmentReminder.createMany({ data: pendingCreates, skipDuplicates: true });
@@ -173,31 +127,20 @@ export async function GET(req: Request) {
 
     for (const recall of dueRecalls) {
       const patient = recall.patient;
-      const rule = recall.rule as any;
-      const patientName =
-        `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
-      const serviceLabel = rule?.serviceType === "ANY" ? "il prossimo controllo" : rule?.serviceType ?? "";
-      const placeholderData = {
-        patientName,
-        patientFirstName: patient.firstName ?? "",
-        patientLastName: patient.lastName ?? "",
-        serviceType: serviceLabel,
-        button: "",
+      const rule = recall.rule as {
+        serviceType?: string | null;
+        templateName?: string | null;
+        emailSubject?: string | null;
+        message?: string | null;
+        channel?: "EMAIL" | "SMS" | "BOTH" | null;
       };
-      const recallExtras = rule as unknown as { templateName?: string | null };
-      const templateName = recallExtras.templateName ?? null;
+      const templateName = rule.templateName ?? null;
       const template = templateName ? await getEmailTemplateByName(templateName) : null;
-      const subjectSource = template?.subject ?? rule?.emailSubject ?? `Promemoria ${serviceLabel}`;
-      const bodySource =
-        template?.body ??
-        rule?.message ??
-        `Gentile {{patientName}}, promemoria per ${serviceLabel}.`;
-      const subject = replacePlaceholders(subjectSource, placeholderData);
-      const body = replacePlaceholders(bodySource, placeholderData);
-
-      const channel = rule?.channel ?? "EMAIL";
-      const wantsEmail = channel === "EMAIL" || channel === "BOTH";
-      const wantsSms = channel === "SMS" || channel === "BOTH";
+      const { subject, body, wantsEmail, wantsSms } = buildRecallDeliveryPlan({
+        patient,
+        rule,
+        template,
+      });
 
       let delivered = false;
       let attempted = false;
@@ -255,43 +198,22 @@ export async function GET(req: Request) {
       const patient = reminder.patient;
       const rule = reminder.rule;
       const appointment = reminder.appointment;
-      if (appointment.startsAt <= now || appointment.status === AppointmentStatus.CANCELLED || appointment.status === AppointmentStatus.NO_SHOW || appointment.status === AppointmentStatus.COMPLETED) {
+      if (shouldSkipAppointmentReminder(now, appointment)) {
         await prisma.appointmentReminder.update({
           where: { id: reminder.id },
           data: { status: RecallStatus.SKIPPED, lastContactAt: new Date() },
         });
         continue;
       }
-      const appointmentDate = new Intl.DateTimeFormat("it-IT", {
-        dateStyle: "medium",
-      }).format(appointment.startsAt);
-      const appointmentTime = new Intl.DateTimeFormat("it-IT", {
-        timeStyle: "short",
-      }).format(appointment.startsAt);
-      const doctorLabel = appointment.doctor?.fullName ?? "lo staff";
-      const patientName =
-        `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || "paziente";
-      const placeholderData = {
-        patientName,
-        appointmentDate,
-        appointmentTime,
-        doctorName: doctorLabel,
-        button: "",
-      };
       const reminderExtras = rule as unknown as { templateName?: string | null };
       const templateName = reminderExtras.templateName ?? "appointment-reminder";
       const template = await getEmailTemplateByName(templateName);
-      const subjectSource = template?.subject ?? rule.emailSubject ?? "Promemoria appuntamento";
-      const bodySource =
-        template?.body ??
-        rule.message ??
-        "Gentile {{patientName}}, promemoria per l'appuntamento del {{appointmentDate}} alle {{appointmentTime}} con {{doctorName}}.";
-      const subject = replacePlaceholders(subjectSource, placeholderData);
-      const body = replacePlaceholders(bodySource, placeholderData);
-
-      const channel = rule.channel ?? "EMAIL";
-      const wantsEmail = channel === "EMAIL" || channel === "BOTH";
-      const wantsSms = channel === "SMS" || channel === "BOTH";
+      const { subject, body, wantsEmail, wantsSms } = buildAppointmentReminderDeliveryPlan({
+        patient,
+        appointment,
+        rule,
+        template,
+      });
 
       let delivered = false;
       let attempted = false;

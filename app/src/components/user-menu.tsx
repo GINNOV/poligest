@@ -33,12 +33,23 @@ export function UserMenu({
   signOutUrl = "/handler/sign-out",
   allowedHomeScreens,
 }: Props) {
+  const initialHomeScreen =
+    typeof window === "undefined"
+      ? "/dashboard"
+      : window.localStorage.getItem(HOME_SCREEN_STORAGE_KEY) ?? "/dashboard";
+  const initialPatientPostCreate =
+    typeof window === "undefined"
+      ? "dashboard"
+      : window.localStorage.getItem(PATIENT_POST_CREATE_STORAGE_KEY) ?? "dashboard";
+  const initialPatientAutoFilter =
+    typeof window === "undefined"
+      ? true
+      : window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY) !== "false";
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [homeScreen, setHomeScreen] = useState("/dashboard");
-  const [patientPostCreate, setPatientPostCreate] = useState("dashboard");
-  const [patientAutoFilter, setPatientAutoFilter] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
+  const [patientPostCreate, setPatientPostCreate] = useState(initialPatientPostCreate);
+  const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const settingsRef = useRef<HTMLDivElement | null>(null);
 
@@ -59,34 +70,6 @@ export function UserMenu({
       document.removeEventListener("keydown", handleKey);
     };
   }, [open]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(HOME_SCREEN_STORAGE_KEY);
-    if (stored) {
-      setHomeScreen(stored);
-    }
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(PATIENT_POST_CREATE_STORAGE_KEY);
-    if (stored) {
-      setPatientPostCreate(stored);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY);
-    if (stored === "false") {
-      setPatientAutoFilter(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (!showSettings) return;
@@ -120,12 +103,9 @@ export function UserMenu({
     return options.filter((option) => allowedHomeScreens.includes(option.value));
   }, [allowedHomeScreens]);
 
-  useEffect(() => {
-    if (homeOptions.length === 0) return;
-    if (!homeOptions.some((option) => option.value === homeScreen)) {
-      setHomeScreen(homeOptions[0].value);
-    }
-  }, [homeOptions, homeScreen]);
+  const selectedHomeScreen = homeOptions.some((option) => option.value === homeScreen)
+    ? homeScreen
+    : (homeOptions[0]?.value ?? "/dashboard");
 
   const initials = (name || email || "U")
     .split(" ")
@@ -204,7 +184,7 @@ export function UserMenu({
         </div>
       ) : null}
 
-      {showSettings && mounted
+      {showSettings && typeof document !== "undefined"
         ? createPortal(
             <div className="fixed inset-0 z-[100000] flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10">
               <div
@@ -221,7 +201,7 @@ export function UserMenu({
                   <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                     Schermata iniziale
                     <select
-                      value={homeScreen}
+                      value={selectedHomeScreen}
                       onChange={(event) => setHomeScreen(event.target.value)}
                       className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                     >
@@ -267,7 +247,7 @@ export function UserMenu({
                   <button
                     type="button"
                     onClick={() => {
-                      window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, homeScreen);
+                      window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, selectedHomeScreen);
                       window.localStorage.setItem(
                         PATIENT_POST_CREATE_STORAGE_KEY,
                         patientPostCreate

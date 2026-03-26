@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -18,10 +18,9 @@ export async function POST(req: Request) {
     });
   }
 
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const dismissalClient = prismaModels["featureUpdateDismissal"] as
-    | { upsert?: (args: unknown) => Promise<unknown> }
-    | undefined;
+  const dismissalClient = getOptionalPrismaModel<{ upsert?: (args: unknown) => Promise<unknown> }>(
+    "featureUpdateDismissal"
+  );
 
   if (!dismissalClient?.upsert) {
     return errorResponse({

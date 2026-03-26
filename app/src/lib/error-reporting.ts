@@ -1,4 +1,5 @@
 import { logAudit } from "@/lib/audit";
+import { isJsonObject } from "@/lib/json-types";
 import { Prisma, Role } from "@prisma/client";
 
 type Actor = {
@@ -30,7 +31,7 @@ const safeStringify = (value: unknown) => {
   }
 };
 
-const serializeError = (error: unknown): Record<string, unknown> | null => {
+const serializeError = (error: unknown): Prisma.InputJsonObject | null => {
   if (!error) return null;
   if (error instanceof Error) {
     const extended = error as Error & {
@@ -40,39 +41,48 @@ const serializeError = (error: unknown): Record<string, unknown> | null => {
       humanReadableMessage?: string;
       details?: unknown;
     };
-    return {
+    const serialized: Record<string, Prisma.InputJsonValue> = {
       name: error.name,
       message: error.message,
-      stack: error.stack,
-      digest: extended.digest,
-      statusCode: extended.statusCode,
-      humanReadableMessage: extended.humanReadableMessage,
-      details: extended.details,
-      cause: extended.cause ? serializeError(extended.cause) : undefined,
     };
+    if (typeof error.stack === "string") serialized.stack = error.stack;
+    if (typeof extended.digest === "string") serialized.digest = extended.digest;
+    if (typeof extended.statusCode === "number") serialized.statusCode = extended.statusCode;
+    if (typeof extended.humanReadableMessage === "string") {
+      serialized.humanReadableMessage = extended.humanReadableMessage;
+    }
+    if (extended.details !== undefined) serialized.details = toJsonValue(extended.details);
+    const cause = extended.cause ? serializeError(extended.cause) : null;
+    if (cause) serialized.cause = cause;
+    return serialized;
   }
-  if (typeof error === "object") {
-    const record = error as Record<string, unknown>;
-    return {
-      name: typeof record.name === "string" ? record.name : undefined,
+  if (isJsonObject(error)) {
+    const record = error;
+    const serialized: Record<string, Prisma.InputJsonValue> = {
       message:
         typeof record.message === "string"
           ? record.message
           : record.message !== undefined
             ? safeStringify(record.message)
             : safeStringify(error),
-      stack: typeof record.stack === "string" ? record.stack : undefined,
-      digest: typeof record.digest === "string" ? record.digest : undefined,
-      statusCode: typeof record.statusCode === "number" ? record.statusCode : undefined,
-      humanReadableMessage:
-        typeof record.humanReadableMessage === "string"
-          ? record.humanReadableMessage
-          : typeof record.human_readable_message === "string"
-            ? record.human_readable_message
-            : undefined,
-      details: record.details ?? record.extraData ?? undefined,
-      cause: record.cause ? serializeError(record.cause) : undefined,
     };
+    if (typeof record.name === "string") serialized.name = record.name;
+    if (typeof record.stack === "string") serialized.stack = record.stack;
+    if (typeof record.digest === "string") serialized.digest = record.digest;
+    if (typeof record.statusCode === "number") serialized.statusCode = record.statusCode;
+    if (typeof record.humanReadableMessage === "string") {
+      serialized.humanReadableMessage = record.humanReadableMessage;
+    } else if (typeof record.human_readable_message === "string") {
+      serialized.humanReadableMessage = record.human_readable_message;
+    }
+    if (record.details !== undefined) {
+      serialized.details = toJsonValue(record.details);
+    } else if (record.extraData !== undefined) {
+      serialized.details = toJsonValue(record.extraData);
+    }
+    const cause = record.cause ? serializeError(record.cause) : null;
+    if (cause) serialized.cause = cause;
+    return serialized;
   }
   return { message: String(error) };
 };
@@ -85,8 +95,8 @@ const toJsonValue = (value: unknown): Prisma.InputJsonValue => {
   if (Array.isArray(value)) {
     return value.map((entry) => toJsonValue(entry));
   }
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
+  if (isJsonObject(value)) {
+    const record = value;
     const result: Record<string, Prisma.InputJsonValue> = {};
     for (const [key, entry] of Object.entries(record)) {
       result[key] = toJsonValue(entry);

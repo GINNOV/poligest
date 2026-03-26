@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
@@ -87,15 +87,11 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
     ];
   }, [appointments, now]);
   const totalPages = Math.max(1, Math.ceil(orderedAppointments.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
+  const safeCurrentPage = Math.min(page, totalPages);
   const paginatedAppointments = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
+    const start = (safeCurrentPage - 1) * PAGE_SIZE;
     return orderedAppointments.slice(start, start + PAGE_SIZE);
-  }, [currentPage, orderedAppointments]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [orderedAppointments]);
+  }, [orderedAppointments, safeCurrentPage]);
 
   if (orderedAppointments.length === 0) {
     return <p className="py-4 text-sm text-zinc-600">{emptyLabel}</p>;
@@ -228,13 +224,13 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
       {totalPages > 1 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700">
           <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Pagina {currentPage} di {totalPages}
+            Pagina {safeCurrentPage} di {totalPages}
           </span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
+              disabled={safeCurrentPage === 1}
               className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Indietro
@@ -242,7 +238,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
             <button
               type="button"
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
+              disabled={safeCurrentPage === totalPages}
               className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Avanti

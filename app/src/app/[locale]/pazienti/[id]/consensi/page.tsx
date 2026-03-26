@@ -129,9 +129,12 @@ export default async function ConsensiPrintPage({
                       <p>Firma medico: {consent.doctorName ?? "—"}</p>
                       <div className="mt-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-xs text-zinc-500">
                         {signatureUrl ? (
-                          <img
+                          <Image
                             src={signatureUrl}
                             alt="Firma digitale"
+                            width={256}
+                            height={64}
+                            unoptimized
                             className="h-16 w-auto max-w-full"
                           />
                         ) : (

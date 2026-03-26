@@ -116,9 +116,9 @@ export async function sendSms({
           : "Configurazione ClickSend non completa";
       console.log(`[sms] invio simulato (${reason})`, { to, body });
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     status = "FAILED";
-    error = err?.message ?? String(err);
+    error = err instanceof Error ? err.message : String(err);
   }
 
   await prisma.smsLog.create({

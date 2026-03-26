@@ -45,3 +45,4 @@ gha-creds-*.json
 .github
 app/.gemini-clipboard
 app/logs
+output

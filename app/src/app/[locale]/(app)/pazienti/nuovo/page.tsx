@@ -192,7 +192,7 @@ export default async function NuovoPazientePage() {
           <div className="space-y-1">
             <p className="text-sm font-semibold text-zinc-900">Consenso e firma digitale</p>
             <p className="text-xs text-zinc-600">
-              Leggi l'informativa e acquisisci la firma digitale del paziente.
+              Leggi l&apos;informativa e acquisisci la firma digitale del paziente.
             </p>
           </div>
           <div className="mt-4">

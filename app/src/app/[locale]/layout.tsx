@@ -1,6 +1,5 @@
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
-import type { Metadata } from "next";
 import { StackProvider, StackTheme } from "@stackframe/stack";
 import { stackServerApp } from "@/lib/stack-app";
 import { PreventDoubleSubmit } from "@/components/prevent-double-submit";

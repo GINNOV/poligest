@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 
 const DEFAULT_ANAMNESIS_CONDITIONS = [
   "Affezioni cardiache",
@@ -27,8 +27,7 @@ type AnamnesisClient = {
 };
 
 export async function getAnamnesisConditions() {
-  const prismaModels = prisma as unknown as Record<string, AnamnesisClient | undefined>;
-  const anamnesisClient = prismaModels["anamnesisCondition"];
+  const anamnesisClient = getOptionalPrismaModel<AnamnesisClient>("anamnesisCondition");
 
   if (!anamnesisClient?.findMany) {
     return [...DEFAULT_ANAMNESIS_CONDITIONS];

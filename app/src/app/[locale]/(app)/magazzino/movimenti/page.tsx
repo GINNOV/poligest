@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Prisma, Role, StockMovementType } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { addStockMovement, deleteStockMovement, updateStockMovement } from "../actions";
 import { format } from "date-fns";
 

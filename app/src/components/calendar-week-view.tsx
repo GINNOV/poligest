@@ -423,7 +423,6 @@ export function CalendarWeekView({
                   <div className="absolute inset-0">
                     {positionedAppointments.map((appt) => {
                       const start = new Date(appt.startsAt);
-                      const end = new Date(appt.endsAt);
                       const startMinute = appt.startMinute;
                       const endMinute = appt.endMinute;
                       if (endMinute <= timeStartMinute || startMinute >= timeEndMinute) return null;

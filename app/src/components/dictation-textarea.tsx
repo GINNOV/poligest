@@ -88,11 +88,10 @@ export function DictationTextarea({
 }: DictationTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState(() => !!getSpeechRecognition());
   const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
-    setIsSupported(!!getSpeechRecognition());
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.onresult = null;

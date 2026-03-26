@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, Prisma, Role } from "@prisma/client";
+import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   eachDayOfInterval,
@@ -58,17 +58,6 @@ const formatLocalDateTime = (date: Date) => {
     date.getHours()
   )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
-
-type StatCardProps = { label: string; value: number };
-
-function StatCard({ label, value }: StatCardProps) {
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <p className="text-sm text-zinc-600">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-zinc-900">{value}</p>
-    </div>
-  );
-}
 
 type PatientAward = {
   key: string;
@@ -318,8 +307,6 @@ export default async function DashboardPage({
     }),
   ]);
   const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
-
-  const uniquePatientsWeek = new Set(appointments.map((a) => a.patientId)).size;
 
   const perDay = days.map((day) => {
     const key = getDateKey(day);
@@ -739,6 +726,7 @@ export default async function DashboardPage({
         </div>
         <div className="mt-4 divide-y divide-zinc-100">
           <DashboardAppointmentsList
+            key={appointmentsForList.map((appt) => appt.id).join("|")}
             appointments={appointmentsForList}
             whatsappTemplateBody={whatsappTemplateBody}
             nowIso={nowIso}

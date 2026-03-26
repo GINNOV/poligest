@@ -1,38 +1,32 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
-import { Prisma, Role, AppointmentStatus, StockMovementType, ConsentStatus, Gender } from "@prisma/client";
-import { logAudit } from "@/lib/audit";
-import { revalidatePath } from "next/cache";
+import { Role, AppointmentStatus, Gender } from "@prisma/client";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { PatientAvatar } from "@/components/patient-avatar";
 import { PatientPhotoDialog } from "@/components/patient-photo-dialog";
-import sharp from "sharp";
 import { DentalChart } from "@/components/dental-chart";
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
-import { sendSms } from "@/lib/sms";
 import { ConsentForm } from "@/components/consent-form";
-import { normalizeItalianPhone } from "@/lib/phone";
-import { parseOptionalDate } from "@/lib/date";
-import { normalizePersonName } from "@/lib/name";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
-import { put } from "@vercel/blob";
-import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { QuoteAccordion } from "@/components/quote-accordion";
-import { sendEmailWithHtml } from "@/lib/email";
-import { stackServerApp } from "@/lib/stack-app";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { PrintLinkButton } from "@/components/print-link-button";
-import { isSystemAvatar, pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
 import {
-  DEFAULT_WHATSAPP_TEMPLATE,
-  WHATSAPP_TEMPLATE_NAME,
-  renderWhatsappTemplate,
-} from "@/lib/whatsapp-template";
+  addImplantAssociationAction,
+  resetPhotoAction,
+  revokeConsentAction,
+  savePreventivoAction,
+  sendPatientAccessEmailAction,
+  sendPatientSmsAction,
+  updateImplantAssociationAction,
+  updatePatientAction,
+  uploadPhotoAction,
+} from "@/lib/patients/actions";
+import { getPatientDetailPageData } from "@/lib/patients/page-data";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -60,674 +54,6 @@ const statusClasses: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700 shadow-sm",
 };
 
-function withParam(url: string, key: string, value: string) {
-  const hasQuery = url.includes("?");
-  const separator = hasQuery ? "&" : "?";
-  return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-}
-
-function normalizeSiteOrigin(rawOrigin: string | undefined) {
-  if (!rawOrigin) {
-    return "";
-  }
-  if (/^https?:\/\//.test(rawOrigin)) {
-    return rawOrigin.replace(/\/$/, "");
-  }
-  return `https://${rawOrigin.replace(/\/$/, "")}`;
-}
-
-function resolveSiteOrigin() {
-  if (process.env.NODE_ENV === "production") {
-    return normalizeSiteOrigin(
-      process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
-    );
-  }
-  return normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
-}
-
-async function updateAppointmentStatus(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const appointmentId = formData.get("appointmentId") as string;
-  const patientId = formData.get("patientId") as string;
-  const status = formData.get("status") as AppointmentStatus;
-
-  if (!appointmentId || !status || !Object.keys(AppointmentStatus).includes(status)) {
-    throw new Error("Dati aggiornamento non validi");
-  }
-
-  const current = await prisma.appointment.findUnique({
-    where: { id: appointmentId },
-    select: { status: true },
-  });
-  if (!current) throw new Error("Appuntamento non trovato");
-  if (current.status === AppointmentStatus.COMPLETED && user.role !== Role.ADMIN) {
-    throw new Error("Solo l'admin può modificare appuntamenti completati");
-  }
-
-  await prisma.appointment.update({
-    where: { id: appointmentId },
-    data: { status },
-  });
-
-  await logAudit(user, {
-    action: "appointment.status_updated",
-    entity: "Appointment",
-    entityId: appointmentId,
-    metadata: { status },
-  });
-
-  revalidatePath("/pazienti");
-  if (patientId) {
-    revalidatePath(`/pazienti/${patientId}`);
-  }
-}
-
-async function addImplantAssociation(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const patientId = (formData.get("patientId") as string) || "";
-  const productId = (formData.get("productId") as string) || "";
-  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
-  const brand = (formData.get("brand") as string)?.trim() || null;
-  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
-  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
-  const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
-  const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
-  const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
-
-  if (!patientId || !productId) {
-    throw new Error("Dati impianto non validi");
-  }
-
-  const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
-  const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
-
-  await prisma.stockMovement.create({
-    data: {
-      productId,
-      quantity: 1,
-      movement: StockMovementType.OUT,
-      note: [
-        deviceType ? `Tipo: ${deviceType}` : null,
-        brand ? `Marca: ${brand}` : null,
-        udiDi ? `UDI-DI: ${udiDi}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ") || null,
-      patientId,
-      udiPi,
-      interventionSite,
-      interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
-      purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
-    },
-  });
-
-  await logAudit(user, {
-    action: "patient.implant_added",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { productId, udiPi, brand, deviceType, interventionSite },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-}
-
-async function updateImplantAssociation(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const implantId = (formData.get("implantId") as string) || "";
-  const patientId = (formData.get("patientId") as string) || "";
-  const productId = (formData.get("productId") as string) || "";
-  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
-  const brand = (formData.get("brand") as string)?.trim() || null;
-  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
-  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
-  const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
-  const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
-  const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
-
-  if (!implantId || !patientId || !productId) {
-    throw new Error("Dati impianto non validi");
-  }
-
-  const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
-  const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
-
-  await prisma.stockMovement.update({
-    where: { id: implantId },
-    data: {
-      productId,
-      note: [
-        deviceType ? `Tipo: ${deviceType}` : null,
-        brand ? `Marca: ${brand}` : null,
-        udiDi ? `UDI-DI: ${udiDi}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · ") || null,
-      udiPi,
-      interventionSite,
-      interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
-      purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
-    },
-  });
-
-  await logAudit(user, {
-    action: "patient.implant_updated",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { implantId, productId },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-}
-async function uploadPhoto(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-
-  const patientId = formData.get("patientId") as string;
-  const file = formData.get("photo") as File | null;
-
-  if (!patientId || !file || file.size === 0) {
-    throw new Error("File non valido");
-  }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const resized = await sharp(buffer)
-    .resize(512, 512, { fit: "cover" })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-  const blobName = `patients/${patientId}/photo-${Date.now()}.jpg`;
-  const blob = await put(blobName, resized, { access: "public", addRandomSuffix: false });
-
-  await prisma.patient.update({
-    where: { id: patientId },
-    data: { photoUrl: blob.url },
-  });
-
-  await logAudit(user, {
-    action: "patient.photo_uploaded",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: { size: file.size },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-}
-
-async function resetPhoto(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const patientId = formData.get("patientId") as string;
-  if (!patientId) throw new Error("Paziente non valido");
-
-  await prisma.patient.update({
-    where: { id: patientId },
-    data: { photoUrl: null },
-  });
-
-  await logAudit(user, {
-    action: "patient.photo_reset",
-    entity: "Patient",
-    entityId: patientId,
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-}
-
-async function updatePatient(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-
-  const id = (formData.get("patientId") as string) || "";
-  const firstName = normalizePersonName((formData.get("firstName") as string) ?? "");
-  const lastName = normalizePersonName((formData.get("lastName") as string) ?? "");
-  const email = (formData.get("email") as string)?.trim().toLowerCase() || null;
-  const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
-  const address = (formData.get("address") as string)?.trim() || null;
-  const city = (formData.get("city") as string)?.trim() || null;
-  const taxId = (formData.get("taxId") as string)?.trim() || null;
-  const genderRaw = (formData.get("gender") as string) || Gender.NOT_SPECIFIED;
-  const gender = Object.values(Gender).includes(genderRaw as Gender)
-    ? (genderRaw as Gender)
-    : Gender.NOT_SPECIFIED;
-  const conditions = formData
-    .getAll("conditions")
-    .map((c) => (c as string).trim())
-    .filter(Boolean);
-  const medications = (formData.get("medications") as string)?.trim() || null;
-  const extraNotes = (formData.get("extraNotes") as string)?.trim() || null;
-  const birthDateValue = formData.get("birthDate");
-
-  if (!id || !firstName || !lastName) {
-    throw new Error("Dati paziente non validi");
-  }
-
-  const existing = await prisma.patient.findUnique({
-    where: { id },
-    select: { notes: true, photoUrl: true, gender: true },
-  });
-  const existingLines =
-    (existing?.notes ?? "")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean) ?? [];
-  const preservedLines = existingLines.filter(
-    (line) =>
-      !line.startsWith("Indirizzo:") &&
-      !line.startsWith("Codice Fiscale:") &&
-      !line.startsWith("Anamnesi:") &&
-      !line.startsWith("Farmaci:") &&
-      !line.startsWith("Note aggiuntive:") &&
-      !line.startsWith("Note:")
-  );
-
-  const birthDate = parseOptionalDate(birthDateValue);
-
-  const shouldAssignAvatar =
-    !existing?.photoUrl || (isSystemAvatar(existing.photoUrl) && existing.gender !== gender);
-  const nextPhotoUrl = shouldAssignAvatar
-    ? gender === Gender.NOT_SPECIFIED
-      ? pickRandomSystemAvatar(gender)
-      : pickSystemAvatar(id, gender)
-    : existing?.photoUrl;
-
-  await prisma.patient.update({
-    where: { id },
-    data: {
-      firstName,
-      lastName,
-      email,
-      phone,
-      gender,
-      photoUrl: nextPhotoUrl,
-      notes:
-        [
-          ...preservedLines,
-          address || city ? `Indirizzo: ${address ?? "—"}${city ? `, ${city}` : ""}` : null,
-          taxId ? `Codice Fiscale: ${taxId}` : null,
-          conditions.length ? `Anamnesi: ${conditions.join(", ")}` : null,
-          medications ? `Farmaci: ${medications}` : null,
-          extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n") || null,
-      birthDate,
-    },
-  });
-
-  await logAudit(user, {
-    action: "patient.updated",
-    entity: "Patient",
-    entityId: id,
-    metadata: {
-      emailChanged: Boolean(email),
-      patientName: `${lastName} ${firstName}`,
-      conditions,
-      medications,
-      extraNotes,
-      birthDate: birthDate?.toISOString() ?? null,
-      gender,
-    },
-  });
-
-  revalidatePath(`/pazienti/${id}`);
-  revalidatePath("/pazienti");
-  redirect(`/pazienti/${id}?openContact=1`);
-}
-
-async function savePreventivo(_: { savedAt: number }, formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const patientId = (formData.get("patientId") as string) || "";
-  const itemsRaw = (formData.get("itemsJson") as string) || "";
-  const signatureData = (formData.get("quoteSignatureData") as string)?.trim();
-  const existingSignatureUrl = (formData.get("existingQuoteSignatureUrl") as string)?.trim() || null;
-
-  if (!patientId || !itemsRaw) {
-    throw new Error("Preventivo non valido");
-  }
-
-  let itemsPayload: Array<{ serviceId: string; quantity: number; price: number; saldato?: boolean }> = [];
-  try {
-    itemsPayload = JSON.parse(itemsRaw);
-  } catch {
-    throw new Error("Dati preventivo non validi");
-  }
-
-  if (!Array.isArray(itemsPayload) || itemsPayload.length === 0) {
-    throw new Error("Inserisci almeno una prestazione");
-  }
-
-  if (!signatureData?.startsWith("data:image/png") && !existingSignatureUrl) {
-    throw new Error("Firma digitale obbligatoria");
-  }
-
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const serviceClient = prismaModels["service"] as
-    | { findMany?: (args?: { where?: { id: { in: string[] } } }) => Promise<{ id: string; name: string }[]> }
-    | undefined;
-  const serviceIds = itemsPayload.map((item) => item.serviceId).filter(Boolean);
-  const services =
-    serviceClient?.findMany && serviceIds.length
-      ? await serviceClient.findMany({ where: { id: { in: serviceIds } } })
-      : [];
-  const serviceNameMap = new Map(services.map((service) => [service.id, service.name]));
-
-  const normalizedItems = itemsPayload.map((item) => {
-    const quantityParsed = Number.parseInt(String(item.quantity), 10);
-    const quantity = Number.isNaN(quantityParsed) || quantityParsed <= 0 ? 1 : quantityParsed;
-    const priceParsed = Number.parseFloat(String(item.price).replace(",", "."));
-    if (Number.isNaN(priceParsed)) {
-      throw new Error("Prezzo non valido");
-    }
-    const serviceName = serviceNameMap.get(item.serviceId) ?? "Prestazione";
-    const total = Number((priceParsed * quantity).toFixed(2));
-    const saldato = Boolean(item.saldato);
-    return {
-      serviceId: item.serviceId,
-      serviceName,
-      quantity,
-      price: priceParsed,
-      total,
-      saldato,
-    };
-  });
-
-  let signatureUrl = existingSignatureUrl;
-  if (signatureData?.startsWith("data:image/png")) {
-    const signatureBuffer = Buffer.from(signatureData.replace(/^data:image\/png;base64,/, ""), "base64");
-    const signatureName = `signatures/quotes/${patientId}/quote-${Date.now()}.png`;
-    const signatureBlob = await put(signatureName, signatureBuffer, { access: "public", addRandomSuffix: false });
-    signatureUrl = signatureBlob.url;
-  }
-
-  const totalSum = normalizedItems.reduce((sum, item) => sum + (item.saldato ? 0 : item.total), 0);
-  const primaryItem = normalizedItems[0];
-
-  const quote = await prisma.quote.create({
-    data: {
-      patientId,
-      serviceId: primaryItem.serviceId,
-      serviceName: primaryItem.serviceName,
-      quantity: primaryItem.quantity,
-      price: new Prisma.Decimal(primaryItem.price),
-      total: new Prisma.Decimal(totalSum),
-      signatureUrl: signatureUrl ?? "",
-      signedAt: new Date(),
-      items: {
-        create: normalizedItems.map((item) => ({
-          serviceId: item.serviceId,
-          serviceName: item.serviceName,
-          quantity: item.quantity,
-          price: new Prisma.Decimal(item.price),
-          total: new Prisma.Decimal(item.total),
-          saldato: item.saldato,
-        })),
-      },
-    },
-  });
-
-  await logAudit(user, {
-    action: "patient.quote_saved",
-    entity: "Patient",
-    entityId: patientId,
-    metadata: {
-      quoteId: quote.id,
-      serviceId: primaryItem.serviceId,
-      serviceName: primaryItem.serviceName,
-      quantity: primaryItem.quantity,
-      price: primaryItem.price,
-      total: totalSum,
-    },
-  });
-
-  revalidatePath(`/pazienti/${patientId}`);
-  return { savedAt: Date.now() };
-}
-
-async function revokeConsent(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const consentId = (formData.get("consentId") as string) ?? "";
-
-  if (!consentId) {
-    throw new Error("Dati consenso non validi");
-  }
-
-  const existing = await prisma.patientConsent.findUnique({
-    where: { id: consentId },
-    select: { patientId: true },
-  });
-
-  if (!existing) {
-    throw new Error("Consenso non trovato");
-  }
-
-  await prisma.patientConsent.update({
-    where: { id: consentId },
-    data: {
-      status: ConsentStatus.REVOKED,
-      revokedAt: new Date(),
-    },
-  });
-
-  await logAudit(user, {
-    action: "consent.revoked",
-    entity: "Patient",
-    entityId: existing.patientId,
-    metadata: { consentId },
-  });
-
-  revalidatePath(`/pazienti/${existing.patientId}`);
-  redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso revocato.")}`);
-}
-
-async function sendPatientSms(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const patientId = (formData.get("patientId") as string) ?? "";
-  const templateId = (formData.get("templateId") as string) ?? "";
-
-  try {
-    if (!patientId || !templateId) {
-      throw new Error("Seleziona un template e un paziente");
-    }
-
-    const [template, patient, upcomingAppointment] = await Promise.all([
-      prisma.smsTemplate.findUnique({ where: { id: templateId } }),
-      prisma.patient.findUnique({
-        where: { id: patientId },
-        select: { phone: true, firstName: true, lastName: true },
-      }),
-      prisma.appointment.findFirst({
-        where: {
-          patientId,
-          startsAt: { gte: new Date() },
-        },
-        orderBy: { startsAt: "asc" },
-        include: { doctor: { select: { fullName: true } } },
-      }),
-    ]);
-
-    if (!template) {
-      throw new Error("Template non trovato");
-    }
-
-    if (!patient?.phone) {
-      redirect(
-        `/pazienti/${patientId}?smsError=${encodeURIComponent(
-          "Aggiungi un numero di telefono al profilo del paziente prima di inviare un SMS."
-        )}`
-      );
-    }
-
-    const appointmentDate = upcomingAppointment?.startsAt
-      ? new Intl.DateTimeFormat("it-IT", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(upcomingAppointment.startsAt)
-      : "";
-    const body = template.body
-      .replaceAll("{{nome}}", patient.firstName ?? "")
-      .replaceAll("{{cognome}}", patient.lastName ?? "")
-      .replaceAll("{{dottore}}", upcomingAppointment?.doctor?.fullName ?? "")
-      .replaceAll("{{data_appuntamento}}", appointmentDate)
-      .replaceAll("{{motivo_visita}}", upcomingAppointment?.serviceType ?? "")
-      .replaceAll("{{note}}", upcomingAppointment?.notes ?? "");
-
-    await sendSms({
-      to: patient.phone,
-      body,
-      templateId,
-      patientId,
-      userId: user.id,
-    });
-
-    await logAudit(user, {
-      action: "sms.sent",
-      entity: "Patient",
-      entityId: patientId,
-      metadata: { templateId },
-    });
-
-    revalidatePath(`/pazienti/${patientId}`);
-    redirect(`/pazienti/${patientId}?smsSuccess=${encodeURIComponent("SMS inviato con successo.")}`);
-  } catch (err: any) {
-    // Allow redirects to propagate.
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Impossibile inviare l'SMS.";
-    redirect(`/pazienti/${patientId || ""}?smsError=${encodeURIComponent(message)}`);
-  }
-}
-
-async function sendPatientAccessEmail(formData: FormData) {
-  "use server";
-
-  const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
-  const patientId = (formData.get("patientId") as string) ?? "";
-
-  try {
-    if (!patientId) {
-      throw new Error("Paziente non valido");
-    }
-
-    const patient = await prisma.patient.findUnique({
-      where: { id: patientId },
-      select: { email: true, firstName: true, lastName: true },
-    });
-
-    if (!patient?.email) {
-      redirect(
-        `/pazienti/${patientId}?accessError=${encodeURIComponent(
-          "Aggiungi un indirizzo email al profilo del paziente prima di inviare l'accesso."
-        )}`
-      );
-    }
-
-    const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
-    const patientSignInUrl = withParam(signInUrl, "audience", "patient");
-    const siteOrigin = resolveSiteOrigin();
-    const loginUrl = /^https?:\/\//.test(patientSignInUrl)
-      ? patientSignInUrl
-      : siteOrigin
-        ? `${siteOrigin}${patientSignInUrl}`
-        : patientSignInUrl;
-    const subject = "Accesso area pazienti";
-    const body = `Gentile Sig. ${patient.lastName ?? ""},
-
-La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.
-
-Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:
-${loginUrl}
-
-Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.
-
-Cordiali saluti,
-
-
-Telefono: 081 8654557
-Email: studio.agovino.agrisano@gmail.com`;
-
-    const baseOrigin = siteOrigin || "http://localhost:3000";
-    const logoUrl = `${baseOrigin}/logo/studio_agovinoangrisano_logo.png`;
-    const html = `
-      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0fdf4; padding: 24px;">
-        <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #d1fae5; border-radius: 16px; padding: 24px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 1px solid #d1fae5; border-radius: 14px; background: #f8fffb;">
-            <tr>
-              <td style="padding: 12px 14px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-                  <tr>
-                    <td style="padding-right: 12px;">
-                      <img src="${logoUrl}" alt="Studio Agovino & Angrisano" width="48" height="48" style="display:block; border-radius:12px; border:1px solid #d1fae5; padding:4px; background:#ffffff; object-fit: contain;" />
-                    </td>
-                    <td>
-                      <div style="font-size: 12px; letter-spacing: 0.2em; font-weight: 700; text-transform: uppercase; color: #064e3b;">
-                        Studio Agovino &amp; Angrisano
-                      </div>
-                      <div style="font-size: 11px; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; color: #047857;">
-                        by NoMore Caries
-                      </div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <div style="margin-top: 18px; color: #0f172a; font-size: 14px; line-height: 1.6;">
-            <p style="margin: 0 0 12px;">Gentile Sig. ${patient.lastName ?? ""},</p>
-            <p style="margin: 0 0 12px;">La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.</p>
-            <p style="margin: 0 0 12px;">Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:</p>
-            <p style="margin: 0 0 16px;">
-              <a href="${loginUrl}" style="display: inline-block; background: #047857; color: #ffffff; padding: 12px 18px; border-radius: 999px; font-weight: 700; text-decoration: none;">
-                Accedi all&apos;area paziente
-              </a>
-            </p>
-            <p style="margin: 0 0 12px;">Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.</p>
-            <p style="margin: 0 0 16px;">Cordiali saluti,</p>
-            <p style="margin: 0;">Telefono: 081 8654557<br/>Email: studio.agovino.agrisano@gmail.com</p>
-          </div>
-        </div>
-      </div>
-    `;
-
-    await sendEmailWithHtml(patient.email, subject, body, html);
-
-    await logAudit(user, {
-      action: "patient.access_email_sent",
-      entity: "Patient",
-      entityId: patientId,
-      metadata: { email: patient.email },
-    });
-
-    revalidatePath(`/pazienti/${patientId}`);
-    redirect(`/pazienti/${patientId}?accessSuccess=${encodeURIComponent("Email inviata con successo.")}`);
-  } catch (err: any) {
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
-      throw err;
-    }
-    const message = err?.message ?? "Impossibile inviare l'email.";
-    redirect(`/pazienti/${patientId || ""}?accessError=${encodeURIComponent(message)}`);
-  }
-}
 
 export default async function PatientDetailPage({
   params,
@@ -770,35 +96,33 @@ export default async function PatientDetailPage({
     typeof resolvedSearchParams.openContact === "string" &&
     resolvedSearchParams.openContact === "1";
 
-  const [doctors, patient, consentModules, whatsappTemplate] = await Promise.all([
-    prisma.doctor.findMany({
-      orderBy: { fullName: "asc" },
-      select: { id: true, fullName: true },
-    }),
-    prisma.patient.findUnique({
-      where: { id: patientId },
-      include: {
-        consents: {
-          include: { module: true },
-          orderBy: { givenAt: "desc" },
-        },
-        appointments: {
-          orderBy: { startsAt: "desc" },
-          take: 5,
-          include: {
-            doctor: { select: { fullName: true, specialty: true } },
-          },
-        },
-      },
-    }),
-    prisma.consentModule.findMany({
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    }),
-    prisma.smsTemplate.findUnique({
-      where: { name: WHATSAPP_TEMPLATE_NAME },
-    }),
-  ]);
-  const conditionsList = await getAnamnesisConditions();
+  const {
+    doctors,
+    patient,
+    consentModules,
+    conditionsList,
+    patientPin,
+    patientPhone,
+    whatsappHref,
+    hasConsents,
+    parsedAddress,
+    parsedCity,
+    parsedTaxId,
+    parsedConditions,
+    parsedMedications,
+    parsedExtra,
+    products,
+    implants,
+    dentalRecordsSerialized,
+    services,
+    parsedQuote,
+    pastAppointments,
+    missingRequired,
+    visibleSmsTemplates,
+    smsLogs,
+    lastAccessEmailLog,
+    lastWhatsappLog,
+  } = await getPatientDetailPageData(patientId);
 
   if (!patient) {
     return (
@@ -813,190 +137,6 @@ export default async function PatientDetailPage({
       </div>
     );
   }
-
-  const patientUser = patient.email
-    ? await prisma.user.findFirst({
-        where: { email: patient.email, role: Role.PATIENT },
-        select: { personalPin: true },
-      })
-    : null;
-  const patientPin = patientUser?.personalPin ?? "—";
-  const patientPhone = normalizeItalianPhone(patient.phone);
-  const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
-  const upcomingAppointment =
-    patient.appointments.find((appt) => appt.startsAt > new Date()) ?? patient.appointments[0];
-  const appointmentDate = upcomingAppointment
-    ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(upcomingAppointment.startsAt)
-    : "da definire";
-  const appointmentTime = upcomingAppointment
-    ? new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(upcomingAppointment.startsAt)
-    : "da definire";
-  const appointmentDoctor = upcomingAppointment?.doctor?.fullName ?? "da definire";
-  const whatsappAppointmentDate = upcomingAppointment
-    ? new Intl.DateTimeFormat("it-IT", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }).format(upcomingAppointment.startsAt)
-    : "da definire";
-  const whatsappMessage = renderWhatsappTemplate(
-    whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE,
-    {
-      firstName: patient.firstName ?? "",
-      lastName: patient.lastName ?? "",
-      doctorName: appointmentDoctor,
-      appointmentDate: whatsappAppointmentDate,
-      serviceType: upcomingAppointment?.serviceType ?? "",
-      notes: upcomingAppointment?.notes ?? "",
-    }
-  );
-  const whatsappHref = whatsappPhone
-    ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
-    : null;
-  const hasConsents = patient.consents.length > 0;
-
-  const notesLines = (patient.notes ?? "").split("\n").map((line) => line.trim());
-  const addressLine = notesLines.find((line) => line.startsWith("Indirizzo:"));
-  const addressPayload = addressLine?.replace("Indirizzo:", "").trim() ?? "";
-  const addressSeparatorIndex = addressPayload.lastIndexOf(",");
-  const parsedAddressRaw =
-    addressSeparatorIndex >= 0 ? addressPayload.slice(0, addressSeparatorIndex).trim() : addressPayload;
-  const parsedCityRaw =
-    addressSeparatorIndex >= 0 ? addressPayload.slice(addressSeparatorIndex + 1).trim() : "";
-  const parsedAddress = parsedAddressRaw === "—" ? "" : parsedAddressRaw;
-  const parsedCity = parsedCityRaw === "—" ? "" : parsedCityRaw;
-  const taxIdLine = notesLines.find((line) => line.startsWith("Codice Fiscale:"));
-  const parsedTaxId = taxIdLine?.replace("Codice Fiscale:", "").trim() ?? "";
-  const anamnesisLine = notesLines.find((line) => line.startsWith("Anamnesi:"));
-  const parsedConditions = anamnesisLine
-    ? anamnesisLine
-        .replace("Anamnesi:", "")
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean)
-    : [];
-  const medicationsLine = notesLines.find((line) => line.startsWith("Farmaci:"));
-  const parsedMedications = medicationsLine?.replace("Farmaci:", "").trim() ?? "";
-  const extraLine = notesLines.find(
-    (line) => line.startsWith("Note aggiuntive:") || line.startsWith("Note:")
-  );
-  const parsedExtra = extraLine
-    ? extraLine.replace("Note aggiuntive:", "").replace("Note:", "").trim()
-    : "";
-  let parsedQuote: {
-    id?: string;
-    serviceId?: string;
-    serviceName?: string;
-    quantity?: number;
-    price?: number;
-    total?: number;
-    signatureUrl?: string;
-    signedAt?: string;
-    items?: Array<{
-      id?: string;
-      serviceId?: string;
-      serviceName?: string;
-      quantity?: number;
-      price?: number;
-      total?: number;
-      saldato?: boolean;
-      createdAt?: string | null;
-    }>;
-  } | null = null;
-
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const serviceClient = prismaModels["service"] as
-    | { findMany?: (args?: { orderBy?: { createdAt?: "asc" | "desc" } }) => Promise<any[]> }
-    | undefined;
-  const quoteClient = prismaModels["quote"] as
-    | {
-        findFirst?: (args: {
-          where: { patientId: string };
-          orderBy: { createdAt: "desc" };
-          include?: { items?: boolean };
-        }) => Promise<any | null>;
-      }
-    | undefined;
-  const [products, implants, dentalRecords, services, latestQuote, lastAccessEmailLog, lastWhatsappLog] = await Promise.all([
-    prisma.product.findMany({
-      orderBy: { name: "asc" },
-      include: { supplier: true },
-    }),
-    prisma.stockMovement.findMany({
-      where: { patientId },
-      orderBy: { createdAt: "desc" },
-      include: { product: { include: { supplier: true } } },
-      take: 50,
-    }),
-    prisma.dentalRecord.findMany({
-      where: { patientId },
-      orderBy: { performedAt: "desc" },
-      include: { updatedBy: { select: { name: true, email: true } } },
-    }),
-    serviceClient?.findMany ? serviceClient.findMany({ orderBy: { createdAt: "desc" } }) : Promise.resolve([]),
-    quoteClient?.findFirst
-      ? quoteClient.findFirst({ where: { patientId }, orderBy: { createdAt: "desc" }, include: { items: true } })
-      : Promise.resolve(null),
-    prisma.auditLog.findFirst({
-      where: { action: "patient.access_email_sent", entity: "Patient", entityId: patientId },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.auditLog.findFirst({
-      where: { action: "patient.whatsapp_reminder_sent", entity: "Patient", entityId: patientId },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-  if (latestQuote) {
-    parsedQuote = {
-      id: latestQuote.id,
-      serviceId: latestQuote.serviceId,
-      serviceName: latestQuote.serviceName,
-      quantity: latestQuote.quantity,
-      price: Number(latestQuote.price?.toString?.() ?? latestQuote.price ?? 0),
-      total: Number(latestQuote.total?.toString?.() ?? latestQuote.total ?? 0),
-      signatureUrl: latestQuote.signatureUrl,
-      signedAt: latestQuote.signedAt?.toISOString?.() ?? null,
-      items: Array.isArray(latestQuote.items)
-        ? latestQuote.items.map((item: any) => ({
-            id: item.id,
-            serviceId: item.serviceId,
-            serviceName: item.serviceName,
-            quantity: item.quantity,
-            price: Number(item.price?.toString?.() ?? item.price ?? 0),
-            total: Number(item.total?.toString?.() ?? item.total ?? 0),
-            saldato: Boolean(item.saldato),
-            createdAt: item.createdAt?.toISOString?.() ?? null,
-          }))
-        : undefined,
-    };
-  }
-  const pastAppointments = patient.appointments
-    .filter((appt) => appt.startsAt < new Date())
-    .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
-  const dentalRecordsSerialized = dentalRecords.map((record) => ({
-    ...record,
-    performedAt: record.performedAt.toISOString(),
-    updatedAt: record.updatedAt?.toISOString?.() ?? null,
-    updatedByName: record.updatedBy?.name ?? record.updatedBy?.email ?? null,
-    treated: record.treated ?? false,
-  }));
-  const requiredModules = consentModules.filter((module) => module.active && module.required);
-  const missingRequired = requiredModules.filter(
-    (module) => !patient.consents.some((consent) => consent.moduleId === module.id),
-  );
-  const [smsTemplates, smsLogs] = await Promise.all([
-    prisma.smsTemplate.findMany({ orderBy: { createdAt: "desc" } }),
-    prisma.smsLog.findMany({
-      where: { patientId },
-      orderBy: { createdAt: "desc" },
-      take: 15,
-      include: { template: true },
-    }),
-  ]);
-  const visibleSmsTemplates = smsTemplates.filter((template) => template.name !== WHATSAPP_TEMPLATE_NAME);
 
   return (
     <>
@@ -1214,8 +354,8 @@ export default async function PatientDetailPage({
                       fullName={`${patient.lastName} ${patient.firstName}`}
                       photoUrl={patient.photoUrl}
                       gender={patient.gender}
-                      uploadPhoto={uploadPhoto}
-                      resetPhoto={resetPhoto}
+                      uploadPhoto={uploadPhotoAction}
+                      resetPhoto={resetPhotoAction}
                     />
                   </div>
                 </div>
@@ -1223,7 +363,7 @@ export default async function PatientDetailPage({
                 <div className="space-y-6" id="contact-info">
                   <UnsavedChangesGuard formId="patient-update-form" />
                   <form
-                    action={updatePatient}
+                    action={updatePatientAction}
                     className="space-y-6"
                     id="patient-update-form"
                   >
@@ -1519,7 +659,7 @@ export default async function PatientDetailPage({
                             signatureUrl: (consent as { signatureUrl?: string | null }).signatureUrl ?? null,
                             module: consent.module ? { name: consent.module.name } : null,
                           }))}
-                          revokeAction={revokeConsent}
+                          revokeAction={revokeConsentAction}
                         />
                         {canExport ? (
                           <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
@@ -1558,7 +698,7 @@ export default async function PatientDetailPage({
               initialQuote={parsedQuote}
               printHref={parsedQuote?.id ? `/pazienti/${patient.id}/preventivo/${parsedQuote.id}` : null}
               className="bg-white"
-              onSave={savePreventivo}
+              onSave={savePreventivoAction}
             />
           ) : null}
 
@@ -1605,7 +745,7 @@ export default async function PatientDetailPage({
             </summary>
             <div className="space-y-4 p-6">
               <div className="grid gap-3 lg:grid-cols-3">
-                <form action={sendPatientSms} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                <form action={sendPatientSmsAction} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
                   <input type="hidden" name="patientId" value={patient.id} />
                   <label className="flex flex-col gap-1">
                     Template
@@ -1631,7 +771,7 @@ export default async function PatientDetailPage({
                 </form>
 
                 <form
-                  action={sendPatientAccessEmail}
+                  action={sendPatientAccessEmailAction}
                   className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
@@ -1825,7 +965,7 @@ export default async function PatientDetailPage({
                         <td className="px-3 py-2">
                           <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm">
                             <summary className="cursor-pointer font-semibold text-emerald-800">Modifica</summary>
-                            <form action={updateImplantAssociation} className="mt-2 grid grid-cols-1 gap-2">
+                            <form action={updateImplantAssociationAction} className="mt-2 grid grid-cols-1 gap-2">
                               <input type="hidden" name="implantId" value={imp.id} />
                               <input type="hidden" name="patientId" value={patient.id} />
                               <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
@@ -1940,7 +1080,7 @@ export default async function PatientDetailPage({
                 />
               </svg>
             </summary>
-            <form action={addImplantAssociation} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <form action={addImplantAssociationAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input type="hidden" name="patientId" value={patient.id} />
               <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
                 Prodotto / Tipo di DM

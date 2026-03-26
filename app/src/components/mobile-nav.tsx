@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type NavLink = {
   href: string;
@@ -16,10 +16,6 @@ type Props = {
 export function MobileNav({ links }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <>
@@ -57,6 +53,7 @@ export function MobileNav({ links }: Props) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => setOpen(false)}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 transition ${
                     pathname === item.href
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800"

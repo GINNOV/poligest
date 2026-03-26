@@ -58,7 +58,7 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
   let markdown: string;
   try {
     markdown = await fs.readFile(filePath, "utf8");
-  } catch (error) {
+  } catch {
     notFound();
   }
 
