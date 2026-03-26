@@ -43,21 +43,21 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
         });
       }}
     >
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Data
         <input
           type="date"
           name="date"
           defaultValue={dateValue ?? ""}
-          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Stato
         <select
           name="status"
           defaultValue={statusValue ?? ""}
-          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
         >
           <option value="">Tutti</option>
           {APPOINTMENT_STATUSES.map((status) => (
@@ -67,14 +67,14 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-1">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-1">
         Cerca
         <input
           type="text"
           name="q"
           defaultValue={searchValue ?? ""}
           placeholder="Titolo, paziente, medico"
-          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
         />
       </label>
       <div className="col-span-full flex justify-center gap-2">
@@ -93,7 +93,7 @@ export function AgendaFilters({ statusLabels, statusValue, dateValue, searchValu
               router.push(basePath);
             })
           }
-          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
         >
           Mostra tutto
         </button>

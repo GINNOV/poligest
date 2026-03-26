@@ -3,6 +3,8 @@ import Link from "next/link";
 import { StackHandler, StackProvider, StackTheme } from "@stackframe/stack";
 import { headers } from "next/headers";
 import { getStackServerApp } from "@/lib/stack-app";
+import { SiteFooter } from "@/components/site-footer";
+import { getAppVersion, getDeployDate } from "@/lib/version";
 
 // Optional catch-all so /handler and /handler/* both work for Stack OAuth callbacks.
 export default async function StackAuthHandlerPage(props: {
@@ -19,6 +21,8 @@ export default async function StackAuthHandlerPage(props: {
 
   const audienceRaw = (searchParams?.audience ?? searchParams?.role ?? "").toLowerCase();
   const isStaff = audienceRaw === "staff";
+  const version = getAppVersion();
+  const deployedAt = getDeployDate();
 
   const theme = isStaff
     ? {
@@ -62,7 +66,8 @@ export default async function StackAuthHandlerPage(props: {
   return (
     <StackTheme>
       <StackProvider app={stackServerApp} lang="it-IT">
-        <main className={`relative min-h-screen bg-gradient-to-br ${theme.bg} px-4 py-12 sm:px-6`}>
+        <div className={`relative min-h-screen bg-gradient-to-br ${theme.bg}`}>
+          <main className="px-4 py-12 sm:px-6">
           <div className="pointer-events-none absolute inset-0 opacity-60">
             <div className="absolute left-10 top-16 h-48 w-48 rounded-full bg-white/5 blur-3xl" />
             <div className="absolute right-6 bottom-6 h-56 w-56 rounded-full bg-white/5 blur-3xl" />
@@ -223,7 +228,9 @@ export default async function StackAuthHandlerPage(props: {
               }}
             />
           ) : null}
-        </main>
+          </main>
+          <SiteFooter version={version} deployedAt={deployedAt} />
+        </div>
       </StackProvider>
     </StackTheme>
   );

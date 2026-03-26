@@ -105,7 +105,7 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
         });
       }}
     >
-      <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Cerca
         <input
           type="text"
@@ -113,16 +113,16 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Nome, cognome, email, telefono"
-          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
         />
       </label>
-      <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 sm:max-w-xs">
+      <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:max-w-xs">
         Ordina per
         <select
           name="sort"
           value={sort}
           onChange={(event) => setSort(event.target.value)}
-          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
         >
           <option value="name_asc">Alfabetico (A-Z)</option>
           <option value="name_desc">Alfabetico (Z-A)</option>
@@ -153,7 +153,7 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
               router.push(nextQueryString ? `${basePath}?${nextQueryString}` : basePath);
             });
           }}
-          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
         >
           Mostra tutto
         </button>

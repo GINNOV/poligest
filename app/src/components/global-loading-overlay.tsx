@@ -19,6 +19,15 @@ export function GlobalLoadingOverlay() {
   const showDelayTimeoutRef = useRef<number | undefined>(undefined);
   const interactionCooldownRef = useRef<number | undefined>(undefined);
   const hasRecentInteraction = useRef(false);
+  const lastInteractionAtRef = useRef(0);
+
+  const markInteraction = useCallback(() => {
+    lastInteractionAtRef.current = Date.now();
+  }, []);
+
+  const hadFreshInteraction = useCallback((windowMs: number) => {
+    return Date.now() - lastInteractionAtRef.current <= windowMs;
+  }, []);
 
   const requestShow = useCallback(() => {
     window.clearTimeout(hideTimeoutRef.current);
@@ -46,6 +55,7 @@ export function GlobalLoadingOverlay() {
 
   const triggerNavigationLoading = useCallback(
     (duration = 1500) => {
+      markInteraction();
       hasRecentInteraction.current = true;
       requestShowImmediate();
       window.clearTimeout(interactionCooldownRef.current);
@@ -54,7 +64,7 @@ export function GlobalLoadingOverlay() {
         requestHide();
       }, duration);
     },
-    [requestHide, requestShowImmediate]
+    [markInteraction, requestHide, requestShowImmediate]
   );
 
   useEffect(() => {
@@ -63,6 +73,7 @@ export function GlobalLoadingOverlay() {
 
   useEffect(() => {
     const handleSubmit = () => {
+      markInteraction();
       triggerNavigationLoading(1200);
     };
 
@@ -71,7 +82,7 @@ export function GlobalLoadingOverlay() {
     return () => {
       document.removeEventListener("submit", handleSubmit, true);
     };
-  }, [triggerNavigationLoading]);
+  }, [markInteraction, triggerNavigationLoading]);
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -86,6 +97,7 @@ export function GlobalLoadingOverlay() {
       if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) return;
       const resolved = new URL(href, window.location.href);
       if (resolved.origin !== window.location.origin) return;
+      markInteraction();
       triggerNavigationLoading(1500);
     };
 
@@ -93,14 +105,14 @@ export function GlobalLoadingOverlay() {
     return () => {
       document.removeEventListener("click", handleClick, true);
     };
-  }, [triggerNavigationLoading]);
+  }, [markInteraction, triggerNavigationLoading]);
 
   useEffect(() => {
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
 
     const scheduleNavLoading = (duration: number) => {
-      if (!hasRecentInteraction.current) {
+      if (!hadFreshInteraction(600)) {
         return;
       }
       window.setTimeout(() => {
@@ -128,19 +140,31 @@ export function GlobalLoadingOverlay() {
       window.history.replaceState = originalReplaceState;
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [triggerNavigationLoading]);
+  }, [hadFreshInteraction, triggerNavigationLoading]);
 
   useEffect(() => {
     const originalFetch = window.fetch;
 
     window.fetch = (async (...args: Parameters<typeof originalFetch>) => {
       const [input, init] = args;
+      const requestUrl =
+        typeof input === "string"
+          ? input
+          : typeof input === "object" && "url" in input
+            ? input.url
+            : "";
       const method =
         (typeof init === "object" && init?.method) ||
         (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
         "GET";
       const methodUpper = method.toUpperCase();
-      const shouldTrackRequest = methodUpper !== "GET" || hasRecentInteraction.current;
+      const isErrorReport = requestUrl.includes("/api/errors/report");
+      const shouldTrackRequest =
+        !isErrorReport &&
+        (
+          (methodUpper !== "GET" && hadFreshInteraction(2000)) ||
+          (methodUpper === "GET" && hadFreshInteraction(350))
+        );
 
       if (shouldTrackRequest) {
         pendingRequests.current += 1;
@@ -149,7 +173,7 @@ export function GlobalLoadingOverlay() {
 
       try {
         const response = await originalFetch(...args);
-        const shouldNotify = hasRecentInteraction.current;
+        const shouldNotify = hadFreshInteraction(5000);
         if (methodUpper !== "GET" && response.ok && shouldNotify) {
           emitToast("Salvato con successo", "success");
         }
@@ -174,12 +198,7 @@ export function GlobalLoadingOverlay() {
                 body: JSON.stringify({
                   message: "Errore richiesta",
                   source: "fetch",
-                  path:
-                    typeof input === "string"
-                      ? input
-                      : typeof input === "object" && "url" in input
-                        ? input.url
-                        : undefined,
+                  path: requestUrl || undefined,
                   context: {
                     status: response.status,
                     statusText: response.statusText,
@@ -200,7 +219,7 @@ export function GlobalLoadingOverlay() {
         }
         return response;
       } catch (error) {
-        if (hasRecentInteraction.current) {
+        if (hadFreshInteraction(5000)) {
           emitToast("Errore di rete. Controlla la connessione.", "error");
         }
         throw error;
@@ -215,7 +234,7 @@ export function GlobalLoadingOverlay() {
     return () => {
       window.fetch = originalFetch;
     };
-  }, [requestHide, requestShow]);
+  }, [hadFreshInteraction, requestHide, requestShow]);
 
   useEffect(() => {
     requestHide();

@@ -156,29 +156,29 @@ const sections: { title: string; content: ReactNode }[] = [
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <main className="mx-auto max-w-4xl px-4 py-12 text-zinc-900 dark:text-zinc-50 sm:px-6">
       <div className="space-y-3 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Termini e Condizioni</p>
-        <h1 className="text-3xl font-semibold text-zinc-900 sm:text-4xl">Condizioni d&apos;uso e servizi dello Studio</h1>
-        <p className="text-sm text-zinc-600">Regole per l&apos;uso del sito e per l&apos;erogazione dei servizi odontoiatrici.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Termini e Condizioni</p>
+        <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 sm:text-4xl">Condizioni d&apos;uso e servizi dello Studio</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Regole per l&apos;uso del sito e per l&apos;erogazione dei servizi odontoiatrici.</p>
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8">
-        <div className="space-y-1 text-sm leading-6 text-zinc-700">
-          <p className="text-base font-semibold text-zinc-900">{studio.name}</p>
+      <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:grid-cols-2 sm:p-8">
+        <div className="space-y-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{studio.name}</p>
           <p>{studio.address}</p>
           <p>{studio.city}</p>
           <p>Telefono: {studio.phone}</p>
           <p>Email: {studio.email}</p>
         </div>
-        <div className="space-y-3 text-sm leading-6 text-zinc-700">
+        <div className="space-y-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
           {introParagraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
         </div>
       </div>
 
-      <div className="mt-8 space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mt-8 space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
         {sections.map((section) => (
           <section key={section.title} className="space-y-2">
             <h2 className="text-lg font-semibold text-zinc-900">{section.title}</h2>
@@ -187,15 +187,15 @@ export default function TermsPage() {
         ))}
       </div>
 
-      <p className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
+      <p className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
         Grazie per la fiducia accordataci.
       </p>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-emerald-800">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm text-emerald-800 dark:text-emerald-300">
         <Link href="/" className="font-semibold hover:underline">
           Torna alla home
         </Link>
-        <p className="text-emerald-700">Ultimo aggiornamento: 14 dicembre 2025</p>
+        <p className="text-emerald-700 dark:text-emerald-400">Ultimo aggiornamento: 14 dicembre 2025</p>
       </div>
     </main>
   );

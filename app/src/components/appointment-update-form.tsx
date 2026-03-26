@@ -197,16 +197,16 @@ export function AppointmentUpdateForm({
     >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Titolo
         <input
           name="title"
           defaultValue={appointment.title}
-          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
           required
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Servizio
         <div className="grid grid-cols-[2fr,1fr] gap-2">
           <select
@@ -216,7 +216,7 @@ export function AppointmentUpdateForm({
               sortedServices[0]?.name ??
               ""
             }
-            className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
           >
             {sortedServices.map((s) => (
               <option key={s.id} value={s.name}>
@@ -232,37 +232,37 @@ export function AppointmentUpdateForm({
                 ? ""
                 : appointment.serviceType
             }
-            className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
             placeholder="Altro..."
           />
         </div>
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Inizio
         <input
           type="datetime-local"
           name="startsAt"
           defaultValue={appointment.startsAt}
-          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
           required
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Fine
         <input
           type="datetime-local"
           name="endsAt"
           defaultValue={appointment.endsAt}
-          className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
           required
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Paziente
         <select
           name="patientId"
           defaultValue={appointment.patientId}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
         >
           {patients.map((p) => (
             <option key={p.id} value={p.id}>
@@ -272,12 +272,12 @@ export function AppointmentUpdateForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Medico
         <select
           name="doctorId"
           defaultValue={appointment.doctorId ?? ""}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
         >
           <option value="">—</option>
           {doctors.map((d) => (
@@ -288,17 +288,17 @@ export function AppointmentUpdateForm({
         </select>
       </label>
       <input type="hidden" name="status" value={appointment.status} />
-      <label className="col-span-full flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+      <label className="col-span-full flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
         Note
         <textarea
           name="notes"
           defaultValue={appointment.notes ?? ""}
-          className="min-h-[80px] rounded-lg border border-zinc-200 px-2 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-[80px] rounded-lg border border-zinc-200 bg-white px-2 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
           placeholder="Note per il team o dettagli sul paziente/servizio"
         />
       </label>
       {error ? (
-        <p className="col-span-full rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">{error}</p>
+        <p className="col-span-full rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{error}</p>
       ) : null}
       <div className="col-span-full">
         <button

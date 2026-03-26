@@ -193,29 +193,29 @@ const sections: { title: string; content: ReactNode }[] = [
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <main className="mx-auto max-w-4xl px-4 py-12 text-zinc-900 dark:text-zinc-50 sm:px-6">
       <div className="space-y-3 text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">Informativa Privacy</p>
-        <h1 className="text-3xl font-semibold text-zinc-900 sm:text-4xl">Tutela e trattamento dei dati personali</h1>
-        <p className="text-sm text-zinc-600">Informativa completa sul trattamento dei dati da parte dello Studio.</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">Informativa Privacy</p>
+        <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50 sm:text-4xl">Tutela e trattamento dei dati personali</h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Informativa completa sul trattamento dei dati da parte dello Studio.</p>
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:grid-cols-2 sm:p-8">
-        <div className="space-y-1 text-sm leading-6 text-zinc-700">
-          <p className="text-base font-semibold text-zinc-900">{studio.name}</p>
+      <div className="mt-6 grid gap-4 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:grid-cols-2 sm:p-8">
+        <div className="space-y-1 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{studio.name}</p>
           <p>{studio.address}</p>
           <p>Partita IVA: {studio.partitaIva}</p>
           <p>Email: {studio.email}</p>
           <p>Telefono: {studio.phone}</p>
         </div>
-        <div className="space-y-3 text-sm leading-6 text-zinc-700">
+        <div className="space-y-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
           {introParagraphs.map((paragraph) => (
             <p key={paragraph}>{paragraph}</p>
           ))}
         </div>
       </div>
 
-      <div className="mt-8 space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mt-8 space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
         {sections.map((section) => (
           <section key={section.title} className="space-y-2">
             <h2 className="text-lg font-semibold text-zinc-900">{section.title}</h2>

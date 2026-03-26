@@ -30,11 +30,11 @@ export function CalendarDoctorFilter({ doctors, selectedDoctorId, showAll }: Pro
 
   return (
     <div className="flex w-full items-center gap-2 sm:w-auto">
-      <label className="text-xs font-semibold uppercase text-zinc-500">Medico</label>
+      <label className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Medico</label>
       <select
         onChange={(e) => handleChange(e.target.value)}
         value={showAll ? "all" : selectedDoctorId ?? ""}
-        className="h-10 w-full rounded-full border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 sm:w-64"
+        className="h-10 w-full rounded-full border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900 sm:w-64"
       >
         {doctors.length === 0 ? (
           <option value="">Nessun medico disponibile</option>

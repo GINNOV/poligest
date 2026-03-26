@@ -119,7 +119,7 @@ export function UserMenu({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-3 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-emerald-200 hover:text-emerald-800"
+        className="flex items-center gap-3 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm font-semibold text-zinc-800 shadow-sm transition hover:border-emerald-200 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
         aria-expanded={open}
       >
         {avatarUrl ? (
@@ -127,17 +127,17 @@ export function UserMenu({
           <img
             src={avatarUrl}
             alt="Avatar"
-            className="h-9 w-9 rounded-full border border-zinc-200 object-cover"
+            className="h-9 w-9 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
           />
         ) : (
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-[11px] font-semibold text-zinc-700">
+          <span className="grid h-9 w-9 place-items-center rounded-full border border-zinc-200 bg-zinc-100 text-[11px] font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
             {initials}
           </span>
         )}
         <span className="flex flex-col items-start leading-tight">
           <span className="text-sm font-semibold">{name || email}</span>
           {roleLabel ? (
-            <span className="text-[11px] uppercase tracking-[0.08em] text-emerald-700">{roleLabel}</span>
+            <span className="text-[11px] uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-300">{roleLabel}</span>
           ) : null}
         </span>
         <span className={`text-xs transition ${open ? "rotate-180" : ""}`} aria-hidden>
@@ -146,11 +146,11 @@ export function UserMenu({
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg">
-          <div className="flex flex-col divide-y divide-zinc-100 text-sm font-semibold text-zinc-800">
+        <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex flex-col divide-y divide-zinc-100 text-sm font-semibold text-zinc-800 dark:divide-zinc-800 dark:text-zinc-100">
             <Link
               href={profileHref}
-              className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
+              className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
               onClick={() => setOpen(false)}
             >
               <span aria-hidden>👤</span>
@@ -158,7 +158,7 @@ export function UserMenu({
             </Link>
             <button
               type="button"
-              className="flex items-center gap-2 px-4 py-3 text-left hover:bg-emerald-50 hover:text-emerald-800"
+              className="flex items-center gap-2 px-4 py-3 text-left hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
               onClick={() => {
                 setOpen(false);
                 setShowSettings(true);
@@ -170,7 +170,7 @@ export function UserMenu({
             {adminHref && adminLabel ? (
               <Link
                 href={adminHref}
-                className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800"
+                className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
                 onClick={() => setOpen(false)}
               >
                 <span aria-hidden>🛠️</span>
@@ -189,21 +189,21 @@ export function UserMenu({
             <div className="fixed inset-0 z-[100000] flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10">
               <div
                 ref={settingsRef}
-                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950"
               >
-                <div className="mb-3 text-center text-lg font-semibold text-emerald-900">
+                <div className="mb-3 text-center text-lg font-semibold text-emerald-900 dark:text-emerald-300">
                   Personalizza
                 </div>
-                <p className="text-sm text-zinc-600">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Impostazioni generali dell&apos;app.
                 </p>
                 <div className="mt-5 space-y-4">
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     Schermata iniziale
                     <select
                       value={selectedHomeScreen}
                       onChange={(event) => setHomeScreen(event.target.value)}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                     >
                       {homeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -212,24 +212,24 @@ export function UserMenu({
                       ))}
                     </select>
                   </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     Dopo registrazione paziente
                     <select
                       value={patientPostCreate}
                       onChange={(event) => setPatientPostCreate(event.target.value)}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                     >
                       <option value="dashboard">Giornata</option>
                       <option value="patients">Lista pazienti</option>
                       <option value="patient_detail">Scheda paziente</option>
                     </select>
                   </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                     Filtro automatico lista pazienti
                     <select
                       value={patientAutoFilter ? "on" : "off"}
                       onChange={(event) => setPatientAutoFilter(event.target.value === "on")}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                     >
                       <option value="on">Attivo</option>
                       <option value="off">Disattivo</option>
@@ -240,7 +240,7 @@ export function UserMenu({
                   <button
                     type="button"
                     onClick={() => setShowSettings(false)}
-                    className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                    className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
                   >
                     Annulla
                   </button>
