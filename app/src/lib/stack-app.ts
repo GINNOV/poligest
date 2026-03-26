@@ -46,6 +46,12 @@ export function getStackServerApp(explicitOrigin?: string) {
     publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
     secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
     tokenStore: "nextjs-cookie",
+    noAutomaticPrefetch: true,
+    analytics: {
+      replays: {
+        enabled: false,
+      },
+    },
     baseUrl: {
       // Force browser requests through our Next.js proxy to keep keys server-side.
       // Must be absolute for OAuth helpers; fallback to relative in dev.

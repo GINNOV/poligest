@@ -8,6 +8,7 @@ import { GlobalToasts } from "@/components/global-toasts";
 import { ConfirmBeforeSubmit } from "@/components/confirm-before-submit";
 import { CookieBanner } from "@/components/cookie-banner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { StackConsoleNoiseFilter } from "@/components/stack-console-noise-filter";
 
 const stackTheme = {
   light: {
@@ -74,6 +75,7 @@ export default async function RootLayout({
             <PreventDoubleSubmit />
             <ConfirmBeforeSubmit />
             <CookieBanner />
+            <StackConsoleNoiseFilter />
           </StackProvider>
         </NextIntlClientProvider>
       </TooltipProvider>
