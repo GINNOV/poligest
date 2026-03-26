@@ -40,21 +40,23 @@ export default async function StackAuthHandlerPage(props: {
         homeButton: "border-slate-700 bg-slate-800/80 hover:border-slate-500 hover:bg-slate-700 text-slate-50",
       }
     : {
-        bg: "from-emerald-50 via-white to-emerald-100",
-        cardBorder: "border-emerald-100",
-        cardBg: "bg-white",
+        bg: "from-emerald-50 via-white to-emerald-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950",
+        headerBg: "bg-white/85 dark:bg-slate-900/85",
+        cardBorder: "border-emerald-100 dark:border-slate-800",
+        cardBg: "bg-white dark:bg-slate-900/85",
         pill: "bg-emerald-500",
-        textPrimary: "text-zinc-900",
-        textSecondary: "text-zinc-600",
-        tag: "text-emerald-700",
-        badgeBg: "bg-emerald-50/80",
-        accentBg: "bg-emerald-50/80",
-        adviceBg: "bg-emerald-50/80",
+        textPrimary: "text-zinc-900 dark:text-white",
+        textSecondary: "text-zinc-600 dark:text-slate-200",
+        tag: "text-emerald-700 dark:text-emerald-200",
+        badgeBg: "bg-emerald-50/80 dark:bg-slate-800/80",
+        accentBg: "bg-emerald-50/80 dark:bg-slate-950/60",
+        adviceBg: "bg-emerald-50/80 dark:bg-slate-900/70",
         title: "Area pazienti",
         subtitle: "Prenota visite, ricevi documenti e comunica con lo studio.",
         help: "Rimani su sorrisosplendente.com durante l'accesso per evitare errori.",
-        linkText: "text-emerald-800",
-        homeButton: "border-white/50 bg-white/80 hover:border-emerald-300 hover:bg-white text-emerald-800",
+        linkText: "text-emerald-800 dark:text-slate-100",
+        homeButton:
+          "border-white/50 bg-white/80 hover:border-emerald-300 hover:bg-white text-emerald-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-50 dark:hover:border-slate-500 dark:hover:bg-slate-700",
       };
 
   return (
