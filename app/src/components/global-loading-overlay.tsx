@@ -100,6 +100,9 @@ export function GlobalLoadingOverlay() {
     const originalReplaceState = window.history.replaceState;
 
     const scheduleNavLoading = (duration: number) => {
+      if (!hasRecentInteraction.current) {
+        return;
+      }
       window.setTimeout(() => {
         triggerNavigationLoading(duration);
       }, 0);
@@ -136,14 +139,18 @@ export function GlobalLoadingOverlay() {
         (typeof init === "object" && init?.method) ||
         (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
         "GET";
+      const methodUpper = method.toUpperCase();
+      const shouldTrackRequest = methodUpper !== "GET" || hasRecentInteraction.current;
 
-      pendingRequests.current += 1;
-      requestShow();
+      if (shouldTrackRequest) {
+        pendingRequests.current += 1;
+        requestShow();
+      }
 
       try {
         const response = await originalFetch(...args);
         const shouldNotify = hasRecentInteraction.current;
-        if (method.toUpperCase() !== "GET" && response.ok && shouldNotify) {
+        if (methodUpper !== "GET" && response.ok && shouldNotify) {
           emitToast("Salvato con successo", "success");
         }
         const isRedirectAfterPost = response.status === 303 && response.headers.has("location");
@@ -198,8 +205,10 @@ export function GlobalLoadingOverlay() {
         }
         throw error;
       } finally {
-        pendingRequests.current = Math.max(0, pendingRequests.current - 1);
-        requestHide();
+        if (shouldTrackRequest) {
+          pendingRequests.current = Math.max(0, pendingRequests.current - 1);
+          requestHide();
+        }
       }
     }) as typeof fetch;
 
