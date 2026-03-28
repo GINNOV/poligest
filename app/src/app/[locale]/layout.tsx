@@ -9,6 +9,7 @@ import { ConfirmBeforeSubmit } from "@/components/confirm-before-submit";
 import { CookieBanner } from "@/components/cookie-banner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StackConsoleNoiseFilter } from "@/components/stack-console-noise-filter";
+import { CrashContextTracker } from "@/components/crash-context-tracker";
 
 const stackTheme = {
   light: {
@@ -76,6 +77,7 @@ export default async function RootLayout({
             <ConfirmBeforeSubmit />
             <CookieBanner />
             <StackConsoleNoiseFilter />
+            <CrashContextTracker />
           </StackProvider>
         </NextIntlClientProvider>
       </TooltipProvider>

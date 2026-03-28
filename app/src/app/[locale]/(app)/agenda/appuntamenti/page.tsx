@@ -11,9 +11,11 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
 import {
   deleteAppointmentAction,
-  getAgendaPageData,
   updateAppointmentAction,
   updateAppointmentStatusAction,
+} from "@/lib/appointments/agenda-actions";
+import {
+  getAgendaPageData,
 } from "@/lib/appointments/agenda";
 
 export const dynamic = "force-dynamic";
