@@ -27,10 +27,13 @@ async function resetSystem(formData: FormData) {
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
+    prisma.quoteItem.deleteMany(),
+    prisma.quote.deleteMany(),
     prisma.stockMovement.deleteMany(),
     prisma.financeEntry.deleteMany(),
     prisma.cashAdvance.deleteMany(),
     prisma.dentalRecord.deleteMany(),
+    prisma.appointmentReminder.deleteMany(),
     prisma.appointment.deleteMany(),
     prisma.clinicalNote.deleteMany(),
     prisma.patientConsent.deleteMany(),
@@ -283,10 +286,13 @@ async function importData(formData: FormData) {
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
     await tx.auditLog.deleteMany();
+    await tx.quoteItem.deleteMany();
+    await tx.quote.deleteMany();
     await tx.stockMovement.deleteMany();
     await tx.financeEntry.deleteMany();
     await tx.cashAdvance.deleteMany();
     await tx.dentalRecord.deleteMany();
+    await tx.appointmentReminder.deleteMany();
     await tx.appointment.deleteMany();
     await tx.clinicalNote.deleteMany();
     await tx.patientConsent.deleteMany();

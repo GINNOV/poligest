@@ -220,10 +220,11 @@ export default async function PazientiListaPage({
             <p className="px-4 py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
           ) : (
             paginatedPatients.map((patient) => {
+              const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
               const missingEmail = !patient.email;
               const missingPhone = !patient.phone;
               const hasMissingRequired = requiredModules.some(
-                (module) => !patient.consents?.some((c) => c.moduleId === module.id),
+                (module) => !activeConsents.some((consent) => consent.moduleId === module.id),
               );
               const indicators: Array<{ title: string; className: string; icon: string }> = [];
               if (hasMissingRequired) {
@@ -286,7 +287,7 @@ export default async function PazientiListaPage({
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                    {patient.consents.map((consent) => (
+                    {activeConsents.map((consent) => (
                       <span
                         key={consent.moduleId}
                         className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"

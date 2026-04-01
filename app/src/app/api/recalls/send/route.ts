@@ -149,7 +149,8 @@ async function enqueueAppointmentReminders(now: Date) {
 
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("x-cron-secret") !== secret) {
+  const providedSecret = req.headers.get("x-cron-secret");
+  if (!secret || providedSecret !== secret) {
     return errorResponse({
       message: "Unauthorized",
       status: 401,

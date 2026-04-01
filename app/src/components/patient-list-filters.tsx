@@ -73,12 +73,21 @@ export function PatientListFilters({ initialQuery, sortValue, basePath = "/pazie
     }
 
     const handle = window.setTimeout(() => {
+      const currentQuery = searchParams.get("q") ?? "";
+      const currentSort = searchParams.get("sort") ?? "";
+      const nextQuery = query.trim();
+      const nextSort = sort ?? "";
+
+      if (nextQuery === currentQuery && nextSort === currentSort) {
+        return;
+      }
+
       const nextParams = new URLSearchParams(searchParams.toString());
 
-      if (query.trim()) nextParams.set("q", query.trim());
+      if (nextQuery) nextParams.set("q", nextQuery);
       else nextParams.delete("q");
 
-      if (sort) nextParams.set("sort", sort);
+      if (nextSort) nextParams.set("sort", nextSort);
       else nextParams.delete("sort");
 
       nextParams.delete("page");

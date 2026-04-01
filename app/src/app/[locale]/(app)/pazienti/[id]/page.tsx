@@ -530,6 +530,10 @@ async function revokeConsent(formData: FormData) {
   });
 
   revalidatePath(`/pazienti/${existing.patientId}`);
+  revalidatePath(`/pazienti/${existing.patientId}/consensi`);
+  revalidatePath(`/pazienti/lista`);
+  revalidatePath(`/pazienti`);
+  revalidatePath(`/dashboard`);
   redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso revocato.")}`);
 }
 
@@ -983,9 +987,10 @@ export default async function PatientDetailPage({
     updatedByName: record.updatedBy?.name ?? record.updatedBy?.email ?? null,
     treated: record.treated ?? false,
   }));
+  const activeConsents = patient.consents.filter((consent) => consent.status === ConsentStatus.GRANTED);
   const requiredModules = consentModules.filter((module) => module.active && module.required);
   const missingRequired = requiredModules.filter(
-    (module) => !patient.consents.some((consent) => consent.moduleId === module.id),
+    (module) => !activeConsents.some((consent) => consent.moduleId === module.id),
   );
   const [smsTemplates, smsLogs] = await Promise.all([
     prisma.smsTemplate.findMany({ orderBy: { createdAt: "desc" } }),
@@ -1510,7 +1515,7 @@ export default async function PatientDetailPage({
                           patientId={patient.id}
                           modules={consentModules}
                           doctors={doctors}
-                          consents={patient.consents.map((consent) => ({
+                          consents={activeConsents.map((consent) => ({
                             id: consent.id,
                             moduleId: consent.moduleId,
                             status: consent.status,

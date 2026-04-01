@@ -20,7 +20,14 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ patient
   }
 
   try {
+    const patientQuotes = await prisma.quote.findMany({
+      where: { patientId },
+      select: { id: true },
+    });
+    const quoteIds = patientQuotes.map((quote) => quote.id);
+
     await prisma.$transaction([
+      prisma.appointmentReminder.deleteMany({ where: { patientId } }),
       prisma.dentalRecord.deleteMany({ where: { patientId } }),
       prisma.clinicalNote.deleteMany({ where: { patientId } }),
       prisma.recall.deleteMany({ where: { patientId } }),
@@ -30,6 +37,8 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ patient
       prisma.patientConsent.deleteMany({ where: { patientId } }),
       prisma.smsLog.deleteMany({ where: { patientId } }),
       prisma.cashAdvance.deleteMany({ where: { patientId } }),
+      prisma.quoteItem.deleteMany({ where: { quoteId: { in: quoteIds } } }),
+      prisma.quote.deleteMany({ where: { patientId } }),
       prisma.patient.delete({ where: { id: patientId } }),
     ]);
 

@@ -120,6 +120,10 @@ export async function addConsentAction(formData: FormData) {
     });
 
     revalidatePath(`/pazienti/${patientId}`);
+    revalidatePath(`/pazienti/${patientId}/consensi`);
+    revalidatePath(`/pazienti/lista`);
+    revalidatePath(`/pazienti`);
+    revalidatePath(`/dashboard`);
     redirect(`/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`);
   } catch (err: any) {
     if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
