@@ -131,7 +131,7 @@ export async function getPatientDetailPageData(patientId: string) {
     }) => Promise<QuoteRecord | null>;
   }>("quote");
 
-  const [products, implants, dentalRecords, services, latestQuote, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs] =
+  const [products, implants, dentalRecords, services, latestQuote, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs, createdLog, updatedLog] =
     await Promise.all([
       prisma.product.findMany({
         orderBy: { name: "asc" },
@@ -166,6 +166,16 @@ export async function getPatientDetailPageData(patientId: string) {
         orderBy: { createdAt: "desc" },
         take: 15,
         include: { template: true },
+      }),
+      prisma.auditLog.findFirst({
+        where: { action: "patient.created", entity: "Patient", entityId: patientId },
+        orderBy: { createdAt: "asc" },
+        include: { user: { select: { name: true, email: true } } },
+      }),
+      prisma.auditLog.findFirst({
+        where: { action: "patient.updated", entity: "Patient", entityId: patientId },
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { name: true, email: true } } },
       }),
     ]);
 
@@ -215,5 +225,7 @@ export async function getPatientDetailPageData(patientId: string) {
     visibleSmsTemplates,
     lastAccessEmailLog,
     lastWhatsappLog,
+    createdLog,
+    updatedLog,
   };
 }

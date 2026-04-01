@@ -54,6 +54,16 @@ const statusClasses: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700 shadow-sm",
 };
 
+const formatDateTime = (value: Date | string | null | undefined) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+};
+
+const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
+  actor?.name ?? actor?.email ?? "—";
 
 export default async function PatientDetailPage({
   params,
@@ -122,6 +132,8 @@ export default async function PatientDetailPage({
     smsLogs,
     lastAccessEmailLog,
     lastWhatsappLog,
+    createdLog,
+    updatedLog,
   } = await getPatientDetailPageData(patientId);
 
   if (!patient) {
@@ -139,6 +151,10 @@ export default async function PatientDetailPage({
   }
 
   const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
+  const createdBy = formatAuditActor(createdLog?.user);
+  const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
+  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt);
+  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt);
 
   return (
     <>
@@ -876,6 +892,30 @@ export default async function PatientDetailPage({
               </div>
             </div>
           </details>
+
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+                Storico scheda
+              </h2>
+            </div>
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Creata il
+                </p>
+                <p className="mt-2 font-medium text-zinc-900">{createdAtLabel}</p>
+                <p className="mt-1">Da: {createdBy}</p>
+              </div>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  Ultimo aggiornamento
+                </p>
+                <p className="mt-2 font-medium text-zinc-900">{updatedAtLabel}</p>
+                <p className="mt-1">Da: {updatedBy}</p>
+              </div>
+            </div>
+          </section>
         </div>
 
       <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
