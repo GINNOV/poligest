@@ -27,6 +27,17 @@ const formatGender = (gender: Gender | null) => {
   }
 };
 
+const formatDateTime = (value: Date | string | null | undefined) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+};
+
+const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
+  actor?.name ?? actor?.email ?? "—";
+
 export default async function PatientPrintPage({
   params,
 }: {
@@ -40,7 +51,7 @@ export default async function PatientPrintPage({
     return notFound();
   }
 
-  const [patient, dentalRecords, implants, pastAppointments] = await Promise.all([
+  const [patient, dentalRecords, implants, pastAppointments, createdLog, updatedLog] = await Promise.all([
     prisma.patient.findUnique({
       where: { id: patientId },
       select: {
@@ -51,6 +62,8 @@ export default async function PatientPrintPage({
         birthDate: true,
         gender: true,
         notes: true,
+        createdAt: true,
+        updatedAt: true,
       },
     }),
     prisma.dentalRecord.findMany({
@@ -67,6 +80,24 @@ export default async function PatientPrintPage({
       where: { patientId, startsAt: { lt: new Date() } },
       orderBy: { startsAt: "desc" },
       include: { doctor: { select: { fullName: true } } },
+    }),
+    prisma.auditLog.findFirst({
+      where: {
+        entity: "Patient",
+        entityId: patientId,
+        action: "patient.created",
+      },
+      orderBy: { createdAt: "asc" },
+      include: { user: { select: { name: true, email: true } } },
+    }),
+    prisma.auditLog.findFirst({
+      where: {
+        entity: "Patient",
+        entityId: patientId,
+        action: "patient.updated",
+      },
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { name: true, email: true } } },
     }),
   ]);
 
@@ -102,6 +133,10 @@ export default async function PatientPrintPage({
   const parsedExtra = extraLine
     ? extraLine.replace("Note aggiuntive:", "").replace("Note:", "").trim()
     : "";
+  const createdBy = formatAuditActor(createdLog?.user);
+  const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
+  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt);
+  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt);
 
   return (
     <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
@@ -296,6 +331,27 @@ export default async function PatientPrintPage({
               </table>
             </div>
           )}
+        </div>
+        <div className="border-t border-zinc-200 pt-6">
+          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+            Storico scheda
+          </h2>
+          <div className="mt-4 grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Creata il
+              </p>
+              <p className="mt-2 text-sm text-zinc-800">{createdAtLabel}</p>
+              <p className="text-sm text-zinc-800">Da: {createdBy}</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Ultimo aggiornamento
+              </p>
+              <p className="mt-2 text-sm text-zinc-800">{updatedAtLabel}</p>
+              <p className="text-sm text-zinc-800">Da: {updatedBy}</p>
+            </div>
+          </div>
         </div>
         <div className="border-t border-zinc-200 pt-4 text-xs text-zinc-500">
           Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })} · Operatore:{" "}

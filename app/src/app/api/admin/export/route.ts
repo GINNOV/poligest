@@ -12,6 +12,8 @@ const tableQueries = {
   consentModules: () => prisma.consentModule.findMany(),
   patientConsents: () => prisma.patientConsent.findMany(),
   appointments: () => prisma.appointment.findMany(),
+  appointmentReminderRules: () => prisma.appointmentReminderRule.findMany(),
+  appointmentReminders: () => prisma.appointmentReminder.findMany(),
   clinicalNotes: () => prisma.clinicalNote.findMany(),
   smsTemplates: () => prisma.smsTemplate.findMany(),
   smsLogs: () => prisma.smsLog.findMany(),
@@ -19,11 +21,14 @@ const tableQueries = {
   auditLogs: () => prisma.auditLog.findMany(),
   suppliers: () => prisma.supplier.findMany(),
   products: () => prisma.product.findMany(),
+  services: () => prisma.service.findMany(),
   stockMovements: () => prisma.stockMovement.findMany(),
   financeEntries: () => prisma.financeEntry.findMany(),
   cashAdvances: () => prisma.cashAdvance.findMany(),
   recallRules: () => prisma.recallRule.findMany(),
   recalls: () => prisma.recall.findMany(),
+  quotes: () => prisma.quote.findMany(),
+  quoteItems: () => prisma.quoteItem.findMany(),
 } as const;
 
 type TableKey = keyof typeof tableQueries;

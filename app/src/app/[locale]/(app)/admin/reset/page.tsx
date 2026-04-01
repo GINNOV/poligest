@@ -57,10 +57,12 @@ async function resetSystem(formData: FormData) {
     prisma.quoteItem.deleteMany(),
     prisma.quote.deleteMany(),
     prisma.stockMovement.deleteMany(),
+    prisma.service.deleteMany(),
     prisma.financeEntry.deleteMany(),
     prisma.cashAdvance.deleteMany(),
     prisma.dentalRecord.deleteMany(),
     prisma.appointmentReminder.deleteMany(),
+    prisma.appointmentReminderRule.deleteMany(),
     prisma.appointment.deleteMany(),
     prisma.clinicalNote.deleteMany(),
     prisma.patientConsent.deleteMany(),
@@ -251,6 +253,8 @@ const exportTables = [
   { key: "consentModules", label: "Moduli consenso" },
   { key: "patientConsents", label: "Consensi pazienti" },
   { key: "appointments", label: "Appuntamenti" },
+  { key: "appointmentReminderRules", label: "Regole promemoria appuntamenti" },
+  { key: "appointmentReminders", label: "Promemoria appuntamenti" },
   { key: "clinicalNotes", label: "Note cliniche" },
   { key: "smsTemplates", label: "Template SMS" },
   { key: "smsLogs", label: "Log SMS" },
@@ -258,11 +262,14 @@ const exportTables = [
   { key: "auditLogs", label: "Audit log" },
   { key: "suppliers", label: "Fornitori" },
   { key: "products", label: "Prodotti" },
+  { key: "services", label: "Prestazioni" },
   { key: "stockMovements", label: "Movimenti magazzino" },
   { key: "financeEntries", label: "Finanza" },
   { key: "cashAdvances", label: "Anticipi" },
   { key: "recallRules", label: "Regole richiami" },
   { key: "recalls", label: "Richiami" },
+  { key: "quotes", label: "Preventivi" },
+  { key: "quoteItems", label: "Righe preventivo" },
 ] as const;
 
 type ExportTableKey = (typeof exportTables)[number]["key"];
@@ -314,10 +321,12 @@ async function importData(formData: FormData) {
     await tx.quoteItem.deleteMany();
     await tx.quote.deleteMany();
     await tx.stockMovement.deleteMany();
+    await tx.service.deleteMany();
     await tx.financeEntry.deleteMany();
     await tx.cashAdvance.deleteMany();
     await tx.dentalRecord.deleteMany();
     await tx.appointmentReminder.deleteMany();
+    await tx.appointmentReminderRule.deleteMany();
     await tx.appointment.deleteMany();
     await tx.clinicalNote.deleteMany();
     await tx.patientConsent.deleteMany();
@@ -372,10 +381,27 @@ async function importData(formData: FormData) {
       }
     }
 
+    if (selected.includes("services")) {
+      const entries = (tableData("services") as Prisma.ServiceCreateManyInput[]).map((service) => ({
+        ...service,
+        costBasis: toDecimal(service.costBasis),
+      }));
+      if (entries.length) {
+        await tx.service.createMany({ data: entries });
+      }
+    }
+
     if (selected.includes("recallRules")) {
       const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
       if (entries.length) {
         await tx.recallRule.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("appointmentReminderRules")) {
+      const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
+      if (entries.length) {
+        await tx.appointmentReminderRule.createMany({ data: entries });
       }
     }
 
@@ -397,6 +423,13 @@ async function importData(formData: FormData) {
       const entries = tableData("appointments") as Prisma.AppointmentCreateManyInput[];
       if (entries.length) {
         await tx.appointment.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("appointmentReminders")) {
+      const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
+      if (entries.length) {
+        await tx.appointmentReminder.createMany({ data: entries });
       }
     }
 
@@ -446,6 +479,28 @@ async function importData(formData: FormData) {
       const entries = tableData("recalls") as Prisma.RecallCreateManyInput[];
       if (entries.length) {
         await tx.recall.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("quotes")) {
+      const entries = (tableData("quotes") as Prisma.QuoteCreateManyInput[]).map((quote) => ({
+        ...quote,
+        price: toDecimal(quote.price),
+        total: toDecimal(quote.total),
+      }));
+      if (entries.length) {
+        await tx.quote.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("quoteItems")) {
+      const entries = (tableData("quoteItems") as Prisma.QuoteItemCreateManyInput[]).map((item) => ({
+        ...item,
+        price: toDecimal(item.price),
+        total: toDecimal(item.total),
+      }));
+      if (entries.length) {
+        await tx.quoteItem.createMany({ data: entries });
       }
     }
 
