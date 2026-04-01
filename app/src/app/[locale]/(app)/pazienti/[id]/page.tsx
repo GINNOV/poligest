@@ -893,29 +893,6 @@ export default async function PatientDetailPage({
             </div>
           </details>
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
-                Storico scheda
-              </h2>
-            </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Creata il
-                </p>
-                <p className="mt-2 font-medium text-zinc-900">{createdAtLabel}</p>
-                <p className="mt-1">Da: {createdBy}</p>
-              </div>
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                  Ultimo aggiornamento
-                </p>
-                <p className="mt-2 font-medium text-zinc-900">{updatedAtLabel}</p>
-                <p className="mt-1">Da: {updatedBy}</p>
-              </div>
-            </div>
-          </section>
         </div>
 
       <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
@@ -1285,6 +1262,30 @@ export default async function PatientDetailPage({
         )}
       </div>
     </div>
+
+    <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+          Storico scheda
+        </h2>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Creata il
+          </p>
+          <p className="mt-2 font-medium text-zinc-900">{createdAtLabel}</p>
+          <p className="mt-1">Da: {createdBy}</p>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Ultimo aggiornamento
+          </p>
+          <p className="mt-2 font-medium text-zinc-900">{updatedAtLabel}</p>
+          <p className="mt-1">Da: {updatedBy}</p>
+        </div>
+      </div>
+    </section>
   </>
-);
+  );
 }
