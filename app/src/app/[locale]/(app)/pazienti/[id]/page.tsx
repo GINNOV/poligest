@@ -1187,9 +1187,27 @@ export default async function PatientDetailPage({
     </div>
 
     <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Storico appuntamenti</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <svg
+            className="h-8 w-8 text-emerald-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M8 2v4" />
+            <path d="M16 2v4" />
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M3 10h18" />
+            <path d="M8 14h4" />
+          </svg>
+          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+            Storico appuntamenti
+          </h2>
         </div>
         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
           {pastAppointments.length}
@@ -1264,7 +1282,22 @@ export default async function PatientDetailPage({
     </div>
 
     <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <svg
+          className="h-8 w-8 text-emerald-600"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M9 3h6l3 3v11a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+          <path d="M15 3v4h4" />
+          <path d="M9 13h6" />
+          <path d="M9 17h4" />
+        </svg>
         <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
           Storico scheda
         </h2>
