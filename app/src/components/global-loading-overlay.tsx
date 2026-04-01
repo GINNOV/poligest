@@ -147,6 +147,10 @@ export function GlobalLoadingOverlay() {
 
     window.fetch = (async (...args: Parameters<typeof originalFetch>) => {
       const [input, init] = args;
+      const requestHeaders = new Headers(
+        init?.headers ||
+          (typeof input === "object" && "headers" in input ? input.headers : undefined)
+      );
       const requestUrl =
         typeof input === "string"
           ? input
@@ -155,9 +159,10 @@ export function GlobalLoadingOverlay() {
             : "";
       const method =
         (typeof init === "object" && init?.method) ||
-        (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
+          (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
         "GET";
       const methodUpper = method.toUpperCase();
+      const isServerActionRequest = requestHeaders.has("next-action");
       const isErrorReport = requestUrl.includes("/api/errors/report");
       const shouldTrackRequest =
         !isErrorReport &&
@@ -174,7 +179,7 @@ export function GlobalLoadingOverlay() {
       try {
         const response = await originalFetch(...args);
         const shouldNotify = hadFreshInteraction(5000);
-        if (methodUpper !== "GET" && response.ok && shouldNotify) {
+        if (isServerActionRequest && response.ok && shouldNotify) {
           emitToast("Salvato con successo", "success");
         }
         const isRedirectAfterPost = response.status === 303 && response.headers.has("location");
