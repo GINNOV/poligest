@@ -35,11 +35,11 @@ export async function addConsentAction(formData: FormData) {
       throw new Error("Acquisisci la firma digitale del paziente.");
     }
 
-    const module = await prisma.consentModule.findFirst({
+    const consentModule = await prisma.consentModule.findFirst({
       where: { id: moduleId, active: true },
       select: { id: true, name: true },
     });
-    if (!module) {
+    if (!consentModule) {
       throw new Error("Modulo consenso non valido o disattivato.");
     }
 
@@ -55,13 +55,12 @@ export async function addConsentAction(formData: FormData) {
     const signatureBase64 = consentSignatureData.startsWith("data:image/")
       ? consentSignatureData.replace(/^data:image\/png;base64,/, "")
       : consentSignatureData;
-    const signatureBuffer = Buffer.from(signatureBase64, "base64");
     signatureUrl = consentSignatureData.startsWith("data:image/")
       ? consentSignatureData
       : `data:image/png;base64,${signatureBase64}`;
 
     const existing = await prisma.patientConsent.findUnique({
-      where: { patientId_moduleId: { patientId, moduleId: module.id } },
+      where: { patientId_moduleId: { patientId, moduleId: consentModule.id } },
     });
 
     if (existing && existing.status !== ConsentStatus.REVOKED) {
@@ -88,7 +87,7 @@ export async function addConsentAction(formData: FormData) {
       await prisma.patientConsent.create({
         data: {
           patientId,
-          moduleId: module.id,
+          moduleId: consentModule.id,
           status: ConsentStatus.GRANTED,
           channel,
           givenAt,
@@ -98,7 +97,7 @@ export async function addConsentAction(formData: FormData) {
           place: consentPlace || null,
           patientName: patientSignature || null,
           doctorName: doctorSignature || null,
-        } as any,
+        },
       });
     }
 
@@ -108,7 +107,7 @@ export async function addConsentAction(formData: FormData) {
       entityId: patientId,
       metadata: {
         moduleId: module.id,
-        moduleName: module.name,
+        moduleName: consentModule.name,
         status: ConsentStatus.GRANTED,
         channel,
         consentPlace,
@@ -125,14 +124,26 @@ export async function addConsentAction(formData: FormData) {
     revalidatePath(`/pazienti`);
     revalidatePath(`/dashboard`);
     redirect(`/pazienti/${patientId}?consentSuccess=${encodeURIComponent("Consenso aggiunto correttamente.")}`);
-  } catch (err: any) {
-    if (typeof err?.digest === "string" && err.digest.startsWith("NEXT_REDIRECT")) {
+  } catch (err: unknown) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "digest" in err &&
+      typeof (err as { digest?: unknown }).digest === "string" &&
+      (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
       throw err;
     }
-    const isUnique = err?.code === "P2002";
+    const isUnique =
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code?: unknown }).code === "P2002";
     const message = isUnique
       ? "Esiste già un consenso per questo modulo per questo paziente."
-      : err?.message ?? "Impossibile aggiungere il consenso.";
+      : err instanceof Error
+        ? err.message
+        : "Impossibile aggiungere il consenso.";
     redirect(`/pazienti/${patientId || ""}?consentError=${encodeURIComponent(message)}`);
   }
 }

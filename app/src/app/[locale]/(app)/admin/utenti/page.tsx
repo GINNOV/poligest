@@ -239,7 +239,16 @@ async function startImpersonation(formData: FormData) {
   const stackUserId = await resolveStackUserIdByEmail(target.email, target.name);
 
   // Create a short-lived session flagged as impersonation.
-  const { accessToken, refreshToken } = await (stackServerApp as any)._interface.createServerUserSession(
+  const stackServerAppWithInterface = stackServerApp as typeof stackServerApp & {
+    _interface: {
+      createServerUserSession: (
+        userId: string,
+        expiresInMs: number,
+        isImpersonation: boolean
+      ) => Promise<{ accessToken: string; refreshToken: string }>;
+    };
+  };
+  const { accessToken, refreshToken } = await stackServerAppWithInterface._interface.createServerUserSession(
     stackUserId,
     1000 * 60 * 60 * 6, // 6 hours
     true,

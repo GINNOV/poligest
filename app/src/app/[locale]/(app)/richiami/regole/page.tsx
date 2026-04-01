@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { NotificationChannel, Role } from "@prisma/client";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
@@ -11,10 +12,9 @@ export default async function RichiamiRegolePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "agenda");
 
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const serviceClient = prismaModels["service"] as
-    | { findMany?: (args: unknown) => Promise<unknown[]> }
-    | undefined;
+  const serviceClient = getOptionalPrismaModel<{
+    findMany?: (args: { orderBy: { name: "asc" } }) => Promise<Array<{ id: string; name: string }>>;
+  }>("service");
 
   const [rules, servicesRaw, appointmentReminderRule, emailTemplates] = await Promise.all([
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
@@ -23,7 +23,7 @@ export default async function RichiamiRegolePage() {
     getAllEmailTemplates(),
   ]);
 
-  const services = servicesRaw as Array<{ id: string; name: string }>;
+  const services = servicesRaw;
   const reminderRuleExtras = appointmentReminderRule as unknown as {
     templateName?: string | null;
     timingType?: string | null;
@@ -354,7 +354,7 @@ export default async function RichiamiRegolePage() {
                 defaultValue={formatTime(appointmentReminderDefaults.timeOfDayMinutes)}
                 className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
-              <span className="text-[11px] text-emerald-700">Default 09:00, usato con "Stesso giorno".</span>
+              <span className="text-[11px] text-emerald-700">Default 09:00, usato con &quot;Stesso giorno&quot;.</span>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
               <span className="text-xs font-semibold uppercase text-emerald-700">Canale</span>

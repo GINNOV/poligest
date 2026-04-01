@@ -1,6 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
@@ -34,6 +35,27 @@ type Props = {
 };
 
 type Page = string[];
+type LoadedWacomSdk = NonNullable<Awaited<ReturnType<typeof loadWacomSignatureSdk>>>;
+type WacomSigObject = InstanceType<LoadedWacomSdk["SigObj"]>;
+type WacomStuDeviceInstance = { delete?: () => void };
+type WacomStuDeviceFactory = LoadedWacomSdk["STUDevice"] & {
+  new (device: unknown): WacomStuDeviceInstance;
+};
+type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]> & {
+  sigCaptDialog?: {
+    getButton: () => number;
+    onDown: () => void;
+    onMove: () => void;
+    onUp: () => void;
+    clickButton: () => void;
+    clear: () => void;
+    cancel: () => void;
+    accept: () => void;
+    clearTimeOnSurface: () => void;
+    startCapture: () => void;
+    stopCapture: () => void;
+  };
+};
 
 const renderInline = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {
@@ -208,7 +230,7 @@ export function PatientConsentSection({
     lastPoint.current = null;
   };
 
-  const drawSignatureToCanvas = (dataUrl: string) => {
+  const drawSignatureToCanvas = useCallback((dataUrl: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -228,7 +250,7 @@ export function PatientConsentSection({
       setHasStroke(true);
     };
     img.src = dataUrl;
-  };
+  }, []);
 
   const resizeCanvas = () => {
     [canvasRef, inlineCanvasRef].forEach((ref) => {
@@ -279,7 +301,7 @@ export function PatientConsentSection({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, signatureData, useTabletSignature]);
+  }, [drawSignatureToCanvas, isOpen, signatureData, useTabletSignature]);
 
   useEffect(() => {
     if (fiscalCodeProp) {
@@ -393,7 +415,7 @@ export function PatientConsentSection({
     setIsOpen(false);
   };
 
-  const renderWacomSignature = async (sigSDK: Awaited<ReturnType<typeof loadWacomSignatureSdk>>, sigObj: any) => {
+  const renderWacomSignature = async (sigSDK: LoadedWacomSdk, sigObj: WacomSigObject) => {
     if (!sigSDK) throw new Error("SDK Wacom non disponibile.");
     const width = Math.trunc((96 * sigObj.getWidth(false) * 0.01) / 25.4);
     const height = Math.trunc((96 * sigObj.getHeight(false) * 0.01) / 25.4);
@@ -445,14 +467,14 @@ export function PatientConsentSection({
         throw new Error("Nessun dispositivo STU selezionato.");
       }
 
-      const stuDevice = new (sigSDK as any).STUDevice(devices[0]);
+      const stuDevice = new (sigSDK.STUDevice as WacomStuDeviceFactory)(devices[0]);
       const config = new sigSDK.Config();
       config.source.mouse = false;
       config.source.touch = false;
       config.source.pen = false;
       config.source.stu = true;
 
-      const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as any;
+      const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as WacomDialogInstance;
       if (!dialog.sigCaptDialog) {
         dialog.sigCaptDialog = {
           getButton: () => -1,
@@ -490,11 +512,10 @@ export function PatientConsentSection({
     }
   };
 
-  const currentPage = pages[pageIndex] ?? [];
   const totalPages = pages.length;
   const renderedMarkdown = useMemo(
-    () => renderMarkdown(currentPage.join("\n\n")),
-    [currentPage],
+    () => renderMarkdown((pages[pageIndex] ?? []).join("\n\n")),
+    [pageIndex, pages],
   );
 
   useEffect(() => {

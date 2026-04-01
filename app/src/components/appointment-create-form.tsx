@@ -278,7 +278,7 @@ export function AppointmentCreateForm({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 sm:col-span-3">
-            Email (facoltativa, consigliata per l'accesso)
+            Email (facoltativa, consigliata per l&apos;accesso)
             <input
               name="newEmail"
               type="email"

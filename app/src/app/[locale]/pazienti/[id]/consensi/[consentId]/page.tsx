@@ -195,7 +195,14 @@ export default async function ConsentPrintPage({
           {signatureUrl ? (
             <div className="rounded-lg border border-zinc-200 bg-white p-3">
               <p className="text-xs font-semibold text-zinc-500">Firma</p>
-              <img src={signatureUrl} alt="Firma digitale" className="mt-2 max-h-40 w-auto" />
+              <Image
+                src={signatureUrl}
+                alt="Firma digitale"
+                width={320}
+                height={160}
+                unoptimized
+                className="mt-2 max-h-40 w-auto"
+              />
             </div>
           ) : (
             <p className="text-sm text-zinc-500">Firma non disponibile.</p>

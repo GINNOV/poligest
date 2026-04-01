@@ -93,7 +93,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
   try {
     const body = await req.json();
     recordId = (body?.recordId as string | undefined) ?? "";
-  } catch (err) {
+  } catch {
     // Allow DELETE without body (some proxies strip it) and fallback to querystring
     const url = new URL(req.url);
     recordId = url.searchParams.get("recordId") ?? "";

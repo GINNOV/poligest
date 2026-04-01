@@ -2,14 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DELETE_CONFIRMATION_TEXT } from "@/lib/destructive-action-guard";
 import { emitToast } from "./global-toasts";
 
 export function PatientDeleteButton({ patientId }: { patientId: string }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
 
-  const close = () => setShowConfirm(false);
+  const close = () => {
+    setShowConfirm(false);
+    setConfirmation("");
+  };
 
   const onDelete = async () => {
     if (isSubmitting) return;
@@ -20,7 +25,12 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
     try {
       const res = await fetch(`/api/patients/${patientId}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-destructive-intent": "delete",
+          "x-confirm-resource-id": patientId,
+          "x-delete-confirmation": confirmation.trim(),
+        },
       });
 
       if (!res.ok) {
@@ -29,7 +39,7 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
       }
 
       emitToast("Paziente eliminato", "success");
-      router.refresh();
+      router.replace("/pazienti");
     } catch (error) {
       console.error("[patient-delete] failed", error);
       emitToast("Impossibile eliminare il paziente", "error");
@@ -68,6 +78,16 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
           <p className="text-sm text-zinc-700">
             Confermi l&apos;eliminazione definitiva del paziente e di tutti i dati collegati?
           </p>
+          <label className="mt-4 flex flex-col gap-2 text-left text-sm font-medium text-zinc-800">
+            Digita <span className="font-semibold">{DELETE_CONFIRMATION_TEXT}</span> per continuare
+            <input
+              value={confirmation}
+              onChange={(event) => setConfirmation(event.target.value)}
+              placeholder={DELETE_CONFIRMATION_TEXT}
+              autoComplete="off"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+            />
+          </label>
           <div className="mt-5 flex items-center justify-center gap-3">
             <button
               type="button"
@@ -80,7 +100,7 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
             <button
               type="button"
               onClick={onDelete}
-              disabled={isSubmitting}
+              disabled={isSubmitting || confirmation.trim() !== DELETE_CONFIRMATION_TEXT}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-80"
             >
               {isSubmitting ? (

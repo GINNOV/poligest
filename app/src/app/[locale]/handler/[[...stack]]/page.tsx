@@ -3,6 +3,8 @@ import Link from "next/link";
 import { StackHandler } from "@stackframe/stack";
 import { getStackServerApp } from "@/lib/stack-app";
 import { headers } from "next/headers";
+import { SiteFooter } from "@/components/site-footer";
+import { getAppVersion, getDeployDate } from "@/lib/version";
 
 // Optional catch-all so /it/handler and /it/handler/* both work.
 export default async function StackAuthHandlerPage(props: {
@@ -18,6 +20,8 @@ export default async function StackAuthHandlerPage(props: {
 
   const audienceRaw = (searchParams?.audience ?? searchParams?.role ?? "").toLowerCase();
   const isStaff = audienceRaw === "staff";
+  const version = getAppVersion();
+  const deployedAt = getDeployDate();
 
   const theme = isStaff
     ? {
@@ -39,25 +43,28 @@ export default async function StackAuthHandlerPage(props: {
         homeButton: "border-slate-700 bg-slate-800/80 hover:border-slate-500 hover:bg-slate-700 text-slate-50",
       }
     : {
-        bg: "from-emerald-50 via-white to-emerald-100",
-        cardBorder: "border-emerald-100",
-        cardBg: "bg-white",
+        bg: "from-emerald-50 via-white to-emerald-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950",
+        headerBg: "bg-white/85 dark:bg-slate-900/85",
+        cardBorder: "border-emerald-100 dark:border-slate-800",
+        cardBg: "bg-white dark:bg-slate-900/85",
         pill: "bg-emerald-500",
-        textPrimary: "text-zinc-900",
-        textSecondary: "text-zinc-600",
-        tag: "text-emerald-700",
-        badgeBg: "bg-emerald-50/80",
-        accentBg: "bg-emerald-50/80",
-        adviceBg: "bg-emerald-50/80",
+        textPrimary: "text-zinc-900 dark:text-white",
+        textSecondary: "text-zinc-600 dark:text-slate-200",
+        tag: "text-emerald-700 dark:text-emerald-200",
+        badgeBg: "bg-emerald-50/80 dark:bg-slate-800/80",
+        accentBg: "bg-emerald-50/80 dark:bg-slate-950/60",
+        adviceBg: "bg-emerald-50/80 dark:bg-slate-900/70",
         title: "Area pazienti",
         subtitle: "Prenota visite, ricevi documenti e comunica con lo studio.",
         help: "Rimani su sorrisosplendente.com durante l'accesso per evitare errori.",
-        linkText: "text-emerald-800",
-        homeButton: "border-white/50 bg-white/80 hover:border-emerald-300 hover:bg-white text-emerald-800",
+        linkText: "text-emerald-800 dark:text-slate-100",
+        homeButton:
+          "border-white/50 bg-white/80 hover:border-emerald-300 hover:bg-white text-emerald-800 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-50 dark:hover:border-slate-500 dark:hover:bg-slate-700",
       };
 
   return (
-    <main className={`relative min-h-screen bg-gradient-to-br ${theme.bg} px-4 py-12 sm:px-6`}>
+    <div className={`relative min-h-screen bg-gradient-to-br ${theme.bg}`}>
+      <main className="px-4 py-12 sm:px-6">
       <div className="pointer-events-none absolute inset-0 opacity-60">
         <div className="absolute left-10 top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute right-6 bottom-6 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
@@ -65,7 +72,7 @@ export default async function StackAuthHandlerPage(props: {
 
       <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-8">
         <header
-          className={`flex flex-col justify-between gap-5 rounded-2xl border ${theme.cardBorder} bg-white/85 px-5 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-center`}
+          className={`flex flex-col justify-between gap-5 rounded-2xl border ${theme.cardBorder} ${theme.headerBg ?? "bg-white/85"} px-5 py-4 shadow-sm backdrop-blur sm:flex-row sm:items-center`}
         >
           <div className="flex items-center gap-3">
             <div className={`relative h-12 w-12 overflow-hidden rounded-xl border ${theme.cardBorder} bg-slate-800`}>
@@ -218,6 +225,8 @@ export default async function StackAuthHandlerPage(props: {
           }}
         />
       ) : null}
-    </main>
+      </main>
+      <SiteFooter version={version} deployedAt={deployedAt} />
+    </div>
   );
 }

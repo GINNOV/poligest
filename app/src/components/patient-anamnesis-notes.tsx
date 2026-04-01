@@ -34,13 +34,19 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
   const [extraNotes, setExtraNotes] = useState(extraNotesDefault ?? "");
   const [activeField, setActiveField] = useState<ActiveField>("medications");
   const activeFieldRef = useRef<ActiveField>("medications");
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState(() => !!getSpeechRecognition());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const stopDictation = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsListening(false);
+  };
+
   useEffect(() => {
-    setIsSupported(!!getSpeechRecognition());
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.onresult = null;
@@ -117,13 +123,6 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
     } catch {
       setIsListening(false);
     }
-  };
-
-  const stopDictation = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    setIsListening(false);
   };
 
   const toggleDictation = () => {

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       { code },
       { headers: { "x-error-code": code } }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json({ code: null }, { status: 500 });
   }
 }

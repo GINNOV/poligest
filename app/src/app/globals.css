@@ -27,15 +27,15 @@ body {
 
 /* Stack auth overrides for better contrast */
 .stack-scope {
-  color: #0f172a;
+  color: hsl(var(--foreground));
 }
 
 .stack-scope a {
-  color: #0f172a;
+  color: hsl(var(--primary));
 }
 
 .stack-scope input::placeholder {
-  color: #6b7280;
+  color: hsl(var(--muted-foreground));
 }
 
 .markdown-body {

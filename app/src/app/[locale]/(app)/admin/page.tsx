@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 
 type AdminShortcut = {
@@ -19,17 +20,12 @@ export default async function AdminPage() {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
 
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const serviceClient = prismaModels["service"] as { count?: () => Promise<number> } | undefined;
-  const anamnesisClient = prismaModels["anamnesisCondition"] as
-    | { count?: () => Promise<number> }
-    | undefined;
-  const closureClient = prismaModels["practiceClosure"] as
-    | { count?: () => Promise<number> }
-    | undefined;
-  const featureUpdateClient = prismaModels["featureUpdate"] as { count?: () => Promise<number> } | undefined;
-  const consentModuleClient = prismaModels["consentModule"] as { count?: () => Promise<number> } | undefined;
-  const emailTemplateClient = prismaModels["emailTemplate"] as { count?: () => Promise<number> } | undefined;
+  const serviceClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("service");
+  const anamnesisClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("anamnesisCondition");
+  const closureClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("practiceClosure");
+  const featureUpdateClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("featureUpdate");
+  const consentModuleClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("consentModule");
+  const emailTemplateClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("emailTemplate");
 
   const [
     usersCount,

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 import { AdminDoctorAvailabilityEditor } from "@/components/admin-doctor-availability-editor";
 
@@ -40,10 +41,9 @@ type CrudClient = {
   findMany?: (args: unknown) => Promise<unknown[]>;
 };
 
-const prismaModels = prisma as unknown as Record<string, unknown>;
-const availabilityClient = prismaModels["doctorAvailabilityWindow"] as CrudClient | undefined;
-const closureClient = prismaModels["practiceClosure"] as CrudClient | undefined;
-const weeklyClosureClient = prismaModels["practiceWeeklyClosure"] as CrudClient | undefined;
+const availabilityClient = getOptionalPrismaModel<CrudClient>("doctorAvailabilityWindow");
+const closureClient = getOptionalPrismaModel<CrudClient>("practiceClosure");
+const weeklyClosureClient = getOptionalPrismaModel<CrudClient>("practiceWeeklyClosure");
 
 const WEEKDAYS: Array<{ value: number; label: string }> = [
   { value: 1, label: "Lunedì" },

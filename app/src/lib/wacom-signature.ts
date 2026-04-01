@@ -66,8 +66,8 @@ const loadModuleWithFallback = async (sources: string[]) => {
   for (const src of sources) {
     try {
       const url = new URL(src, window.location.origin).toString();
-      const module = await import(/* webpackIgnore: true */ url);
-      return module;
+      const sdkModule = await import(/* webpackIgnore: true */ url);
+      return sdkModule;
     } catch {
       // Try the next candidate.
     }
@@ -92,8 +92,8 @@ export async function loadWacomSignatureSdk(): Promise<WacomSigSDK | null> {
   if (window.__WACOM_SIG_SDK__) return window.__WACOM_SIG_SDK__;
 
   try {
-    const module = await loadModuleWithFallback(["/wacom/signature-sdk.js", "/wacom/signature_sdk.js"]);
-    const SigSDK = module?.default as undefined | ((overrides?: unknown) => Promise<WacomSigSDK>);
+    const sdkModule = await loadModuleWithFallback(["/wacom/signature-sdk.js", "/wacom/signature_sdk.js"]);
+    const SigSDK = sdkModule?.default as undefined | ((overrides?: unknown) => Promise<WacomSigSDK>);
     if (SigSDK) {
       const sdk = await SigSDK();
       window.__WACOM_SIG_SDK__ = sdk;

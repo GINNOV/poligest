@@ -20,11 +20,6 @@ export function emitToast(message: string, variant: Toast["variant"] = "info") {
 
 export function GlobalToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -47,7 +42,6 @@ export function GlobalToasts() {
   }, [toasts]);
 
   if (typeof document === "undefined") return null;
-  if (!isMounted) return null;
 
   return createPortal(
     <div className="fixed inset-x-0 top-4 z-[99999] flex flex-col items-center space-y-2 px-4 sm:items-end sm:space-y-3 sm:px-6">

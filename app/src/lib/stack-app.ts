@@ -34,20 +34,19 @@ function resolveDefaultSiteOrigin() {
   return normalizeSiteOrigin(process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_SITE_URL);
 }
 
-function buildBrowserBaseUrl(siteOrigin: string) {
-  return siteOrigin ? `${siteOrigin}/api/stack` : "/api/stack";
-}
-
 export function getStackServerApp(explicitOrigin?: string) {
   const siteOrigin = normalizeSiteOrigin(explicitOrigin) || resolveDefaultSiteOrigin();
   const browserBaseUrl = process.env.NEXT_PUBLIC_STACK_BROWSER_URL
     ? normalizeSiteOrigin(process.env.NEXT_PUBLIC_STACK_BROWSER_URL)
-    : STACK_API_BASE;
+    : siteOrigin
+      ? `${siteOrigin}/api/stack`
+      : STACK_API_BASE;
   return new StackServerApp({
     projectId: requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"),
     publishableClientKey: requireEnv("NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY"),
     secretServerKey: requireEnv("STACK_SECRET_SERVER_KEY"),
     tokenStore: "nextjs-cookie",
+    noAutomaticPrefetch: true,
     baseUrl: {
       // Force browser requests through our Next.js proxy to keep keys server-side.
       // Must be absolute for OAuth helpers; fallback to relative in dev.

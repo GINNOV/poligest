@@ -4,9 +4,14 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import {
+  DELETE_CONFIRMATION_TEXT,
+  assertBulkDestructiveActionEnabled,
+  isConfirmedDeleteRequest,
+} from "@/lib/destructive-action-guard";
 import { errorResponse } from "@/lib/error-response";
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ patientId: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = await params;
   const user = await requireUser([Role.ADMIN]);
 
@@ -19,7 +24,33 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ patient
     });
   }
 
+  if (!isConfirmedDeleteRequest(req.headers, patientId, DELETE_CONFIRMATION_TEXT)) {
+    return errorResponse({
+      message: `Conferma eliminazione mancante. Digita '${DELETE_CONFIRMATION_TEXT}' per procedere.`,
+      status: 400,
+      source: "patient_delete",
+      context: { patientId },
+      actor: user,
+    });
+  }
+
   try {
+    assertBulkDestructiveActionEnabled();
+
+    const existing = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return errorResponse({
+        message: "Paziente non trovato",
+        status: 404,
+        source: "patient_delete",
+        context: { patientId },
+        actor: user,
+      });
+    }
+
     const patientQuotes = await prisma.quote.findMany({
       where: { patientId },
       select: { id: true },

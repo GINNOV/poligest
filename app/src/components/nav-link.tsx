@@ -53,8 +53,8 @@ export function NavLink({ href, label }: { href: string; label: string }) {
       href={href}
       onClick={handleClick}
       aria-busy={isLocked}
-      className={`relative pb-1 transition hover:text-emerald-700 ${
-        isActive ? "text-emerald-800" : ""
+      className={`relative pb-1 transition hover:text-emerald-700 dark:hover:text-emerald-300 ${
+        isActive ? "text-emerald-800 dark:text-emerald-300" : ""
       } ${isLocked ? "pointer-events-none opacity-70" : ""}`}
     >
       <span>{label}</span>

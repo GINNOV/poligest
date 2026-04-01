@@ -125,7 +125,7 @@ export default async function FinanzaPage({
   let advances: {
     id: string;
     patientId: string;
-    amount: any;
+    amount: Prisma.Decimal;
     issuedAt: Date;
     note: string | null;
     patient: { firstName: string; lastName: string };

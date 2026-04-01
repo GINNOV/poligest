@@ -5,8 +5,18 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { logAudit } from "@/lib/audit";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
+import {
+  appendCalendarQueryParam,
+  dateEndExclusive,
+  dateStart,
+  ensureCalendarReturnTo,
+  formatCalendarLocalInput,
+  parseCalendarDateParam,
+  weekdayIso,
+} from "@/lib/calendar/domain";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
@@ -79,33 +89,6 @@ type ClientWeeklyClosure = {
   title?: string | null;
 };
 
-function weekdayIso(date: Date) {
-  const jsDay = date.getDay(); // 0=Sun ... 6=Sat
-  return jsDay === 0 ? 7 : jsDay;
-}
-
-function dateStart(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-}
-
-function dateEndExclusive(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1, 0, 0, 0, 0);
-}
-
-function parseDateParam(value: string | undefined) {
-  if (!value) return null;
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return null;
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-}
-
-const formatLocalInput = (date: Date) => {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}`;
-};
-
 function isNextRedirectError(err: unknown): err is { digest: string } {
   return (
     typeof err === "object" &&
@@ -134,16 +117,6 @@ async function hasDoctorConflict(params: {
     },
   });
   return conflicts > 0;
-}
-
-function ensureCalendarReturnTo(value: string | null) {
-  if (!value || !value.startsWith("/calendar")) return "/calendar";
-  return value;
-}
-
-function appendQueryParam(url: string, key: string, value: string) {
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}${key}=${encodeURIComponent(value)}`;
 }
 
 async function resolvePatientIdForAppointment(params: {
@@ -300,7 +273,7 @@ async function createAppointment(formData: FormData) {
         : "Errore durante la creazione dell'appuntamento.";
     console.error("Create appointment failed:", err);
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
-    redirect(appendQueryParam(returnTo, "error", message));
+    redirect(appendCalendarQueryParam(returnTo, "error", message));
   }
 }
 
@@ -402,7 +375,7 @@ async function updateAppointment(formData: FormData) {
         : "Errore durante l'aggiornamento dell'appuntamento.";
     console.error("Update appointment failed:", err);
     const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
-    redirect(appendQueryParam(returnTo, "error", message));
+    redirect(appendCalendarQueryParam(returnTo, "error", message));
   }
 }
 
@@ -465,7 +438,7 @@ export default async function CalendarPage({
   let baseMonth = monthMatch
     ? new Date(Number(monthMatch[1]), Number(monthMatch[2]) - 1, 1)
     : new Date();
-  const weekBase = parseDateParam(weekParam) ?? new Date();
+  const weekBase = parseCalendarDateParam(weekParam) ?? new Date();
   const weekStart = startOfWeek(weekBase, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
   if (!monthMatch && view === "week") {
@@ -499,19 +472,18 @@ export default async function CalendarPage({
   const closureRangeStart = view === "week" ? weekStart : calendarStart;
   const closureRangeEnd = view === "week" ? weekEnd : calendarEnd;
 
-  const prismaModels = prisma as unknown as Record<string, unknown>;
-  const serviceClient = prismaModels["service"] as
-    | { findMany?: (args: unknown) => Promise<unknown[]> }
-    | undefined;
-  const availabilityClient = prismaModels["doctorAvailabilityWindow"] as
-    | { findMany?: (args: unknown) => Promise<unknown[]> }
-    | undefined;
-  const closureClient = prismaModels["practiceClosure"] as
-    | { findMany?: (args: unknown) => Promise<unknown[]> }
-    | undefined;
-  const weeklyClosureClient = prismaModels["practiceWeeklyClosure"] as
-    | { findMany?: (args: unknown) => Promise<unknown[]> }
-    | undefined;
+  const serviceClient = getOptionalPrismaModel<{
+    findMany?: (args: { orderBy: { name: "asc" } }) => Promise<ServiceRow[]>;
+  }>("service");
+  const availabilityClient = getOptionalPrismaModel<{
+    findMany?: (args: { where: { doctorId: { in: string[] } } }) => Promise<AvailabilityWindow[]>;
+  }>("doctorAvailabilityWindow");
+  const closureClient = getOptionalPrismaModel<{
+    findMany?: (args: { where: { startsAt: { lt: Date }; endsAt: { gt: Date } } }) => Promise<PracticeClosure[]>;
+  }>("practiceClosure");
+  const weeklyClosureClient = getOptionalPrismaModel<{
+    findMany?: (args: { where: { isActive: true }; orderBy: Array<{ dayOfWeek: "asc" }> }) => Promise<PracticeWeeklyClosure[]>;
+  }>("practiceWeeklyClosure");
 
   type ServiceRow = { name: string };
 
@@ -592,10 +564,10 @@ export default async function CalendarPage({
       : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
-  const services = servicesRaw as ServiceRow[];
-  const windows = availabilityWindowsRaw as AvailabilityWindow[];
-  const closures = practiceClosuresRaw as PracticeClosure[];
-  const weeklyClosures = practiceWeeklyClosuresRaw as PracticeWeeklyClosure[];
+  const services = servicesRaw;
+  const windows = availabilityWindowsRaw;
+  const closures = practiceClosuresRaw;
+  const weeklyClosures = practiceWeeklyClosuresRaw;
   const clientClosures: ClientPracticeClosure[] = closures.map((closure) => ({
     startsAt: closure.startsAt.toISOString(),
     endsAt: closure.endsAt.toISOString(),
@@ -709,8 +681,8 @@ export default async function CalendarPage({
       appointments: dayAppointments.map((appt) => ({
         id: appt.id,
         title: appt.title,
-        startsAt: formatLocalInput(appt.startsAt),
-        endsAt: formatLocalInput(appt.endsAt),
+        startsAt: formatCalendarLocalInput(appt.startsAt),
+        endsAt: formatCalendarLocalInput(appt.endsAt),
         serviceType: appt.serviceType,
         patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
         patientId: appt.patientId,
@@ -751,8 +723,8 @@ export default async function CalendarPage({
       appointments: dayAppointments.map((appt) => ({
         id: appt.id,
         title: appt.title,
-        startsAt: formatLocalInput(appt.startsAt),
-        endsAt: formatLocalInput(appt.endsAt),
+        startsAt: formatCalendarLocalInput(appt.startsAt),
+        endsAt: formatCalendarLocalInput(appt.endsAt),
         serviceType: appt.serviceType,
         patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
         patientId: appt.patientId,
