@@ -449,30 +449,30 @@ export function QuoteAccordion({
   const initialItems = useMemo(() => {
     if (initialQuote?.items && initialQuote.items.length) {
       return initialQuote.items.map((item) => ({
+        id: item.id ?? "",
         serviceId: item.serviceId ?? "",
         quantity: item.quantity ? String(item.quantity) : "1",
         price: item.price != null ? String(item.price) : "",
-        saldato: Boolean(item.saldato),
         createdAt: item.createdAt ?? null,
       }));
     }
     if (initialQuote?.serviceId) {
       return [
         {
+          id: "",
           serviceId: initialQuote.serviceId,
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
-          saldato: false,
           createdAt: null,
         },
       ];
     }
     return [
       {
+        id: "",
         serviceId: sortedServices[0]?.id ?? "",
         quantity: "1",
         price: sortedServices[0]?.costBasis != null ? String(sortedServices[0].costBasis) : "",
-        saldato: false,
         createdAt: null,
       },
     ];
@@ -506,12 +506,12 @@ export function QuoteAccordion({
     setItems((prev) => [
       ...prev,
       {
+        id: "",
         serviceId: fallbackService,
         quantity: "1",
         price: fallbackService
           ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
           : "",
-        saldato: false,
         createdAt: null,
       },
     ]);
@@ -534,14 +534,13 @@ export function QuoteAccordion({
         quantityValue,
         priceValue,
         totalValue: quantityValue * priceValue,
-        saldato: Boolean(item.saldato),
         createdAt: item.createdAt ?? null,
       };
     });
   }, [items]);
 
   const totalSum = useMemo(
-    () => itemsWithTotals.reduce((sum, item) => sum + (item.saldato ? 0 : item.totalValue), 0),
+    () => itemsWithTotals.reduce((sum, item) => sum + item.totalValue, 0),
     [itemsWithTotals]
   );
 
@@ -549,10 +548,10 @@ export function QuoteAccordion({
     () =>
       JSON.stringify(
         itemsWithTotals.map((item) => ({
+          id: item.id || undefined,
           serviceId: item.serviceId,
           quantity: item.quantityValue,
           price: item.priceValue,
-          saldato: item.saldato,
         }))
       ),
     [itemsWithTotals]
@@ -662,6 +661,7 @@ export function QuoteAccordion({
       </summary>
       <form action={handleFormAction} className="space-y-6 p-6">
         <input type="hidden" name="patientId" value={patientId} />
+        <input type="hidden" name="quoteId" value={initialQuote?.id ?? ""} />
         <input type="hidden" name="itemsJson" value={itemsJson} readOnly />
         <div className="space-y-4">
           {itemsWithTotals.map((item, index) => (
@@ -751,15 +751,6 @@ export function QuoteAccordion({
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 sm:col-span-2 lg:col-span-5">
                 <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
-                <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
-                  <input
-                    type="checkbox"
-                    checked={item.saldato}
-                    onChange={(event) => updateItem(index, { saldato: event.target.checked })}
-                    className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-200"
-                  />
-                  Saldato
-                </label>
               </div>
             </div>
           ))}
@@ -767,7 +758,7 @@ export function QuoteAccordion({
 
         <div className="flex justify-end">
           <div className="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900">
-            Totale da saldare: € {totalSum.toFixed(2)}
+            Totale preventivo: € {totalSum.toFixed(2)}
           </div>
         </div>
 

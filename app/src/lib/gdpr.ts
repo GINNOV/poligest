@@ -27,6 +27,7 @@ export async function buildPatientExport(patientId: string) {
     smsLogs,
     cashAdvances,
     quotes,
+    patientPayments,
   ] = await Promise.all([
     prisma.patient.findUnique({ where: { id: patientId } }),
     prisma.patientConsent.findMany({
@@ -82,6 +83,11 @@ export async function buildPatientExport(patientId: string) {
       include: { items: true, service: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.patientPayment.findMany({
+      where: { patientId },
+      include: { quote: true, quoteItem: true },
+      orderBy: { paidAt: "desc" },
+    }),
   ]);
 
   return {
@@ -97,6 +103,7 @@ export async function buildPatientExport(patientId: string) {
     smsLogs,
     cashAdvances,
     quotes,
+    patientPayments,
   };
 }
 

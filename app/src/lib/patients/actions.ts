@@ -284,6 +284,7 @@ export async function updatePatientAction(formData: FormData) {
 export async function savePreventivoAction(_: { savedAt: number }, formData: FormData) {
   const user = await requireUser([...STAFF_ROLES]);
   const patientId = (formData.get("patientId") as string) || "";
+  const quoteId = (formData.get("quoteId") as string)?.trim() || null;
   const itemsRaw = (formData.get("itemsJson") as string) || "";
   const signatureData = (formData.get("quoteSignatureData") as string)?.trim();
   const existingSignatureUrl = (formData.get("existingQuoteSignatureUrl") as string)?.trim() || null;
@@ -292,7 +293,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     throw new Error("Preventivo non valido");
   }
 
-  let itemsPayload: Array<{ serviceId: string; quantity: number; price: number; saldato?: boolean }> = [];
+  let itemsPayload: Array<{ id?: string; serviceId: string; quantity: number; price: number }> = [];
   try {
     itemsPayload = JSON.parse(itemsRaw);
   } catch {
@@ -327,12 +328,13 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     const serviceName = serviceNameMap.get(item.serviceId) ?? "Prestazione";
     const total = Number((priceParsed * quantity).toFixed(2));
     return {
+      id: item.id?.trim() || null,
       serviceId: item.serviceId,
       serviceName,
       quantity,
       price: priceParsed,
       total,
-      saldato: Boolean(item.saldato),
+      saldato: false,
     };
   });
 
@@ -344,30 +346,134 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     signatureUrl = signatureBlob.url;
   }
 
-  const totalSum = normalizedItems.reduce((sum, item) => sum + (item.saldato ? 0 : item.total), 0);
+  const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
   const primaryItem = normalizedItems[0];
 
-  const quote = await prisma.quote.create({
-    data: {
-      patientId,
-      serviceId: primaryItem.serviceId,
-      serviceName: primaryItem.serviceName,
-      quantity: primaryItem.quantity,
-      price: new Prisma.Decimal(primaryItem.price),
-      total: new Prisma.Decimal(totalSum),
-      signatureUrl: signatureUrl ?? "",
-      signedAt: new Date(),
-      items: {
-        create: normalizedItems.map((item) => ({
+  const quote = await prisma.$transaction(async (tx) => {
+    if (!quoteId) {
+      return tx.quote.create({
+        data: {
+          patientId,
+          serviceId: primaryItem.serviceId,
+          serviceName: primaryItem.serviceName,
+          quantity: primaryItem.quantity,
+          price: new Prisma.Decimal(primaryItem.price),
+          total: new Prisma.Decimal(totalSum),
+          signatureUrl: signatureUrl ?? "",
+          signedAt: new Date(),
+          items: {
+            create: normalizedItems.map((item) => ({
+              serviceId: item.serviceId,
+              serviceName: item.serviceName,
+              quantity: item.quantity,
+              price: new Prisma.Decimal(item.price),
+              total: new Prisma.Decimal(item.total),
+              saldato: item.saldato,
+            })),
+          },
+        },
+      });
+    }
+
+    const existingQuote = await tx.quote.findFirst({
+      where: { id: quoteId, patientId },
+      include: {
+        items: {
+          include: {
+            payments: {
+              select: { amount: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!existingQuote) {
+      throw new Error("Preventivo non trovato");
+    }
+
+    const existingItemMap = new Map(existingQuote.items.map((item) => [item.id, item]));
+    const incomingIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
+    const removableItems = existingQuote.items.filter((item) => !incomingIds.has(item.id));
+    const lockedRemovedItem = removableItems.find((item) => item.payments.length > 0);
+
+    if (lockedRemovedItem) {
+      throw new Error("Non puoi rimuovere una prestazione con pagamenti già registrati");
+    }
+
+    for (const item of normalizedItems) {
+      if (!item.id) continue;
+      const existingItem = existingItemMap.get(item.id);
+      if (!existingItem) {
+        throw new Error("Una riga del preventivo non è valida");
+      }
+
+      const paidAmount = existingItem.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount.toString()),
+        0
+      );
+      if (paidAmount - item.total > 0.009) {
+        throw new Error("Una prestazione ha pagamenti superiori al nuovo totale");
+      }
+    }
+
+    await tx.quote.update({
+      where: { id: existingQuote.id },
+      data: {
+        serviceId: primaryItem.serviceId,
+        serviceName: primaryItem.serviceName,
+        quantity: primaryItem.quantity,
+        price: new Prisma.Decimal(primaryItem.price),
+        total: new Prisma.Decimal(totalSum),
+        signatureUrl: signatureUrl ?? "",
+        signedAt: new Date(),
+      },
+    });
+
+    for (const item of removableItems) {
+      await tx.quoteItem.delete({ where: { id: item.id } });
+    }
+
+    for (const item of normalizedItems) {
+      if (!item.id) {
+        await tx.quoteItem.create({
+          data: {
+            quoteId: existingQuote.id,
+            serviceId: item.serviceId,
+            serviceName: item.serviceName,
+            quantity: item.quantity,
+            price: new Prisma.Decimal(item.price),
+            total: new Prisma.Decimal(item.total),
+            saldato: false,
+          },
+        });
+        continue;
+      }
+
+      const existingItem = existingItemMap.get(item.id);
+      if (!existingItem) continue;
+      const paidAmount = existingItem.payments.reduce(
+        (sum, payment) => sum + Number(payment.amount.toString()),
+        0
+      );
+      const legacySettledWithoutPayments = existingItem.saldato && existingItem.payments.length === 0;
+
+      await tx.quoteItem.update({
+        where: { id: item.id },
+        data: {
           serviceId: item.serviceId,
           serviceName: item.serviceName,
           quantity: item.quantity,
           price: new Prisma.Decimal(item.price),
           total: new Prisma.Decimal(item.total),
-          saldato: item.saldato,
-        })),
-      },
-    },
+          saldato: legacySettledWithoutPayments || paidAmount >= item.total - 0.009,
+        },
+      });
+    }
+
+    return tx.quote.findUniqueOrThrow({
+      where: { id: existingQuote.id },
+    });
   });
 
   await logAudit(user, {
@@ -385,6 +491,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
   });
 
   revalidatePath(`/pazienti/${patientId}`);
+  revalidatePath("/finanza/pagamenti");
   return { savedAt: Date.now() };
 }
 

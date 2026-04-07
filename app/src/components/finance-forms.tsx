@@ -6,6 +6,13 @@ type PatientOption = { id: string; fullName: string };
 type DiaryOption = { id: string; patientId: string; label: string; performedAt: string };
 type SupplierOption = { id: string; name: string };
 type ProductOption = { id: string; name: string };
+type QuoteItemOption = {
+  id: string;
+  label: string;
+  total: number;
+  paid: number;
+  remaining: number;
+};
 
 type IncomeProps = {
   patients: PatientOption[];
@@ -104,6 +111,113 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           className="h-4 w-4 rounded border-zinc-300"
         />
         Pagamento parziale
+      </label>
+    </div>
+  );
+}
+
+type PatientPaymentFieldsProps = {
+  patientId: string;
+  quoteId: string;
+  quoteItems: QuoteItemOption[];
+};
+
+export function PatientPaymentFields({
+  patientId,
+  quoteId,
+  quoteItems,
+}: PatientPaymentFieldsProps) {
+  const defaultItemId = quoteItems.find((item) => item.remaining > 0)?.id ?? quoteItems[0]?.id ?? "";
+  const [quoteItemId, setQuoteItemId] = useState<string>(defaultItemId);
+
+  const selectedItem = useMemo(
+    () => quoteItems.find((item) => item.id === quoteItemId) ?? null,
+    [quoteItemId, quoteItems]
+  );
+
+  return (
+    <div className="space-y-3">
+      <input type="hidden" name="patientId" value={patientId} />
+      <input type="hidden" name="quoteId" value={quoteId} />
+
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+        Prestazione del preventivo
+        <select
+          name="quoteItemId"
+          value={quoteItemId}
+          onChange={(event) => setQuoteItemId(event.target.value)}
+          required
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        >
+          <option value="" disabled>
+            Seleziona una prestazione
+          </option>
+          {quoteItems.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {selectedItem ? (
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900">
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <span>Totale: € {selectedItem.total.toFixed(2)}</span>
+            <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
+            <span>Residuo: € {selectedItem.remaining.toFixed(2)}</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          Data pagamento
+          <input
+            type="date"
+            name="paidAt"
+            required
+            defaultValue={new Date().toISOString().slice(0, 10)}
+            className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          Metodo
+          <select
+            name="paymentMethod"
+            defaultValue="ELECTRONIC"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          >
+            <option value="CASH">Contanti</option>
+            <option value="ELECTRONIC">Elettronico</option>
+            <option value="BANK_TRANSFER">Bonifico</option>
+            <option value="OTHER">Altro</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+        Importo
+        <input
+          name="amount"
+          type="number"
+          min="0.01"
+          step="0.01"
+          required
+          max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
+          className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+        Nota
+        <textarea
+          name="note"
+          rows={3}
+          className="rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          placeholder="Es. acconto, saldo finale, riferimento POS"
+        />
       </label>
     </div>
   );

@@ -54,6 +54,7 @@ async function resetSystem(formData: FormData) {
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
+    prisma.patientPayment.deleteMany(),
     prisma.quoteItem.deleteMany(),
     prisma.quote.deleteMany(),
     prisma.stockMovement.deleteMany(),
@@ -184,6 +185,18 @@ async function resetSystem(formData: FormData) {
         }
       }
 
+      if (selected.includes("patientPayments")) {
+        const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map(
+          (payment) => ({
+            ...payment,
+            amount: toDecimal(payment.amount),
+          })
+        );
+        if (entries.length) {
+          await tx.patientPayment.createMany({ data: entries });
+        }
+      }
+
       if (selected.includes("cashAdvances")) {
         const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
           (c) => {
@@ -265,6 +278,7 @@ const exportTables = [
   { key: "services", label: "Prestazioni" },
   { key: "stockMovements", label: "Movimenti magazzino" },
   { key: "financeEntries", label: "Finanza" },
+  { key: "patientPayments", label: "Pagamenti pazienti" },
   { key: "cashAdvances", label: "Anticipi" },
   { key: "recallRules", label: "Regole richiami" },
   { key: "recalls", label: "Richiami" },
@@ -318,6 +332,7 @@ async function importData(formData: FormData) {
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
     await tx.auditLog.deleteMany();
+    await tx.patientPayment.deleteMany();
     await tx.quoteItem.deleteMany();
     await tx.quote.deleteMany();
     await tx.stockMovement.deleteMany();
@@ -456,6 +471,18 @@ async function importData(formData: FormData) {
       );
       if (entries.length) {
         await tx.financeEntry.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("patientPayments")) {
+      const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map(
+        (payment) => ({
+          ...payment,
+          amount: toDecimal(payment.amount),
+        })
+      );
+      if (entries.length) {
+        await tx.patientPayment.createMany({ data: entries });
       }
     }
 

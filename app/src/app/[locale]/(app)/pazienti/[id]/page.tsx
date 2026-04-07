@@ -10,7 +10,6 @@ import { DentalChart } from "@/components/dental-chart";
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 import { ConsentForm } from "@/components/consent-form";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
-import { QuoteAccordion } from "@/components/quote-accordion";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -19,7 +18,6 @@ import {
   addImplantAssociationAction,
   resetPhotoAction,
   revokeConsentAction,
-  savePreventivoAction,
   sendPatientAccessEmailAction,
   sendPatientSmsAction,
   updateImplantAssociationAction,
@@ -125,7 +123,6 @@ export default async function PatientDetailPage({
     implants,
     dentalRecordsSerialized,
     services,
-    parsedQuote,
     pastAppointments,
     missingRequired,
     visibleSmsTemplates,
@@ -705,19 +702,26 @@ export default async function PatientDetailPage({
           </details>
 
           {canViewQuotes ? (
-            <QuoteAccordion
-              patientId={patient.id}
-              patientName={`${patient.lastName} ${patient.firstName}`.trim() || "Paziente"}
-              services={services.map((service) => ({
-                id: service.id,
-                name: service.name,
-                costBasis: Number(service.costBasis?.toString?.() ?? service.costBasis ?? 0),
-              }))}
-              initialQuote={parsedQuote}
-              printHref={parsedQuote?.id ? `/pazienti/${patient.id}/preventivo/${parsedQuote.id}` : null}
-              className="bg-white"
-              onSave={savePreventivoAction}
-            />
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Preventivi e pagamenti
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-zinc-900">Area finanza paziente</h2>
+                  <p className="mt-2 text-sm text-zinc-600">
+                    La gestione del preventivo e lo storico degli incassi sono stati spostati nel
+                    modulo finanza.
+                  </p>
+                </div>
+                <Link
+                  href={`/finanza/pagamenti?patientId=${patient.id}`}
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                >
+                  Apri finanza paziente
+                </Link>
+              </div>
+            </div>
           ) : null}
 
           {canViewClinicalRecords ? (

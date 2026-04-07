@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -19,6 +19,11 @@ export function emitToast(message: string, variant: Toast["variant"] = "info") {
 }
 
 export function GlobalToasts() {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
@@ -41,7 +46,7 @@ export function GlobalToasts() {
     return () => timers.forEach((t) => window.clearTimeout(t));
   }, [toasts]);
 
-  if (typeof document === "undefined") return null;
+  if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
     <div className="fixed inset-x-0 top-4 z-[99999] flex flex-col items-center space-y-2 px-4 sm:items-end sm:space-y-3 sm:px-6">

@@ -1,45 +1,152 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { PatientPaymentMethod, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Role } from "@prisma/client";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 
-export async function recordIncome(formData: FormData) {
+export async function recordPatientPayment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const patientId = (formData.get("patientId") as string) || "";
-  const deliveredAt = formData.get("deliveredAt") as string;
-  const deliveredItemId = (formData.get("deliveredItemId") as string) || "";
-  const amount = (formData.get("amount") as string)?.trim();
-  const isPartial = formData.get("partialPayment") === "1";
+  const quoteId = (formData.get("quoteId") as string) || "";
+  const quoteItemId = (formData.get("quoteItemId") as string) || "";
+  const amountRaw = (formData.get("amount") as string)?.trim();
+  const paidAt = (formData.get("paidAt") as string) || "";
+  const note = ((formData.get("note") as string) || "").trim() || null;
+  const methodRaw = ((formData.get("paymentMethod") as string) || PatientPaymentMethod.ELECTRONIC).toUpperCase();
+  const method = Object.values(PatientPaymentMethod).includes(methodRaw as PatientPaymentMethod)
+    ? (methodRaw as PatientPaymentMethod)
+    : PatientPaymentMethod.ELECTRONIC;
 
-  if (!patientId || !deliveredAt || !deliveredItemId || !amount) throw new Error("Dati mancanti");
+  if (!patientId || !quoteId || !quoteItemId || !amountRaw || !paidAt) {
+    throw new Error("Dati mancanti");
+  }
 
-  const [patient, diaryEntry] = await Promise.all([
-    prisma.patient.findUnique({ where: { id: patientId }, select: { firstName: true, lastName: true } }),
-    prisma.dentalRecord.findUnique({ where: { id: deliveredItemId }, select: { procedure: true, notes: true, performedAt: true, patientId: true } }),
-  ]);
+  const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
+  if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+    throw new Error("Importo non valido");
+  }
 
-  if (!patient || !diaryEntry || diaryEntry.patientId !== patientId) throw new Error("Dati non validi");
+  const patientPaymentClient = getOptionalPrismaModel<{
+    create?: unknown;
+    findMany?: (args: {
+      where: { quoteItemId: string };
+      select: { amount: true };
+    }) => Promise<Array<{ amount: { toString(): string } }>>;
+  }>("patientPayment");
 
-  const descriptionParts = [
-    `Pagamento paziente ${patient.lastName} ${patient.firstName}`,
-    diaryEntry.procedure,
-  ];
-  if (diaryEntry.notes) descriptionParts.push(diaryEntry.notes);
-  if (isPartial) descriptionParts.push("[Parziale]");
+  if (!patientPaymentClient?.create) {
+    throw new Error("Il modulo pagamenti non è ancora disponibile nel server attivo. Aggiorna la pagina o riavvia il server.");
+  }
 
-  await prisma.financeEntry.create({
-    data: {
-      type: "INCOME",
-      description: descriptionParts.join(" · "),
-      amount,
-      occurredAt: new Date(deliveredAt),
-      userId: user.id,
+  const quoteItem = await prisma.quoteItem.findFirst({
+    where: {
+      id: quoteItemId,
+      quoteId,
+      quote: { patientId },
+    },
+    include: {
+      quote: {
+        select: {
+          patient: { select: { firstName: true, lastName: true } },
+        },
+      },
     },
   });
 
+  if (!quoteItem) {
+    throw new Error("Prestazione del preventivo non trovata");
+  }
+
+  const existingPayments = patientPaymentClient.findMany
+    ? await patientPaymentClient.findMany({
+        where: { quoteItemId },
+        select: { amount: true },
+      })
+    : [];
+
+  const totalAmount = Number(quoteItem.total.toString());
+  const existingPaid = existingPayments.length
+    ? existingPayments.reduce((sum, payment) => sum + Number(payment.amount.toString()), 0)
+    : quoteItem.saldato
+      ? totalAmount
+      : 0;
+  const nextPaid = existingPaid + amountNumber;
+
+  if (nextPaid - totalAmount > 0.009) {
+    throw new Error("L'importo supera il residuo della prestazione selezionata");
+  }
+
+  const patientName =
+    `${quoteItem.quote.patient.lastName ?? ""} ${quoteItem.quote.patient.firstName ?? ""}`.trim() || "Paziente";
+  const methodLabel =
+    method === PatientPaymentMethod.CASH
+      ? "contanti"
+      : method === PatientPaymentMethod.BANK_TRANSFER
+        ? "bonifico"
+        : method === PatientPaymentMethod.OTHER
+          ? "altro"
+          : "elettronico";
+
+  await prisma.$transaction(async (tx) => {
+    const txWithPayments = tx as typeof tx & {
+      patientPayment: {
+        create: (args: {
+          data: {
+            patientId: string;
+            quoteId: string;
+            quoteItemId: string;
+            amount: Prisma.Decimal;
+            paidAt: Date;
+            method: PatientPaymentMethod;
+            note: string | null;
+            userId: string;
+          };
+        }) => Promise<unknown>;
+      };
+    };
+
+    await txWithPayments.patientPayment.create({
+      data: {
+        patientId,
+        quoteId,
+        quoteItemId,
+        amount: new Prisma.Decimal(amountNumber),
+        paidAt: new Date(paidAt),
+        method,
+        note,
+        userId: user.id,
+      },
+    });
+
+    await tx.quoteItem.update({
+      where: { id: quoteItemId },
+      data: {
+        saldato: Math.abs(nextPaid - totalAmount) < 0.01 || nextPaid > totalAmount,
+      },
+    });
+
+    await tx.financeEntry.create({
+      data: {
+        type: "INCOME",
+        description: [
+          `Pagamento paziente ${patientName}`,
+          quoteItem.serviceName,
+          `Metodo: ${methodLabel}`,
+          note,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        amount: new Prisma.Decimal(amountNumber),
+        occurredAt: new Date(paidAt),
+        userId: user.id,
+      },
+    });
+  });
+
   revalidatePath("/finanza");
+  revalidatePath("/finanza/pagamenti");
 }
 
 export async function recordExpense(formData: FormData) {

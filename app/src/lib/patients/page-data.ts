@@ -1,42 +1,14 @@
 import { Prisma, Role } from "@prisma/client";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
-import {
-  parsePatientStructuredNotes,
-  serializePatientQuoteDraft,
-} from "@/lib/patients/page-data-domain";
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { prisma } from "@/lib/prisma";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { DEFAULT_WHATSAPP_TEMPLATE, WHATSAPP_TEMPLATE_NAME, renderWhatsappTemplate } from "@/lib/whatsapp-template";
-export type { PatientQuoteDraft } from "@/lib/patients/page-data-domain";
-
 type ServiceOptionRecord = {
   id: string;
   name: string;
   costBasis: Prisma.Decimal | number;
-};
-
-type QuoteItemRecord = {
-  id: string;
-  serviceId: string | null;
-  serviceName: string | null;
-  quantity: number | null;
-  price: Prisma.Decimal | number | null;
-  total: Prisma.Decimal | number | null;
-  saldato: boolean | null;
-  createdAt: Date | null;
-};
-
-type QuoteRecord = {
-  id: string;
-  serviceId: string | null;
-  serviceName: string | null;
-  quantity: number | null;
-  price: Prisma.Decimal | number | null;
-  total: Prisma.Decimal | number | null;
-  signatureUrl: string | null;
-  signedAt: Date | null;
-  items?: QuoteItemRecord[];
 };
 
 export async function getPatientDetailPageData(patientId: string) {
@@ -123,15 +95,7 @@ export async function getPatientDetailPageData(patientId: string) {
   const serviceClient = getOptionalPrismaModel<{
     findMany?: (args?: { orderBy?: { createdAt?: "asc" | "desc" } }) => Promise<ServiceOptionRecord[]>;
   }>("service");
-  const quoteClient = getOptionalPrismaModel<{
-    findFirst?: (args: {
-      where: { patientId: string };
-      orderBy: { createdAt: "desc" };
-      include?: { items?: boolean };
-    }) => Promise<QuoteRecord | null>;
-  }>("quote");
-
-  const [products, implants, dentalRecords, services, latestQuote, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs, createdLog, updatedLog] =
+  const [products, implants, dentalRecords, services, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs, createdLog, updatedLog] =
     await Promise.all([
       prisma.product.findMany({
         orderBy: { name: "asc" },
@@ -149,9 +113,6 @@ export async function getPatientDetailPageData(patientId: string) {
         include: { updatedBy: { select: { name: true, email: true } } },
       }),
       serviceClient?.findMany ? serviceClient.findMany({ orderBy: { createdAt: "desc" } }) : Promise.resolve([]),
-      quoteClient?.findFirst
-        ? quoteClient.findFirst({ where: { patientId }, orderBy: { createdAt: "desc" }, include: { items: true } })
-        : Promise.resolve(null),
       prisma.auditLog.findFirst({
         where: { action: "patient.access_email_sent", entity: "Patient", entityId: patientId },
         orderBy: { createdAt: "desc" },
@@ -178,8 +139,6 @@ export async function getPatientDetailPageData(patientId: string) {
         include: { user: { select: { name: true, email: true } } },
       }),
     ]);
-
-  const parsedQuote = serializePatientQuoteDraft(latestQuote);
 
   const pastAppointments = patient.appointments
     .filter((appt) => appt.startsAt < new Date())
@@ -217,7 +176,6 @@ export async function getPatientDetailPageData(patientId: string) {
     implants,
     dentalRecordsSerialized,
     services,
-    parsedQuote,
     pastAppointments,
     missingRequired,
     smsTemplates,

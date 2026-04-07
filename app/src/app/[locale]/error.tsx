@@ -30,11 +30,25 @@ export default function GlobalError({
   );
   const errorId = error.digest || fallbackId;
   const reportedRef = useRef(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [contextSummary] = useState<CrashContextSnapshot | null>(() =>
     typeof window === "undefined"
       ? null
       : parseCrashContext(window.sessionStorage.getItem(CRASH_CONTEXT_STORAGE_KEY)),
   );
+  const recentBreadcrumbs = useMemo(
+    () => contextSummary?.breadcrumbs.slice(-5) ?? [],
+    [contextSummary],
+  );
+  const breadcrumbExport = useMemo(() => {
+    if (recentBreadcrumbs.length === 0) return "";
+    return [
+      `Codice errore: ${errorId}`,
+      "",
+      "Ultimi passaggi rilevati:",
+      ...recentBreadcrumbs.map((entry) => `${entry.at} · ${entry.type} · ${entry.detail}`),
+    ].join("\n");
+  }, [errorId, recentBreadcrumbs]);
   const supportHref = useMemo(
     () =>
       typeof window === "undefined"
@@ -82,6 +96,22 @@ export default function GlobalError({
     }).catch(() => undefined);
   }, [contextSummary, error, errorId]);
 
+  useEffect(() => {
+    if (copyState !== "copied") return;
+    const timeout = window.setTimeout(() => setCopyState("idle"), 2000);
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
+
+  const handleCopyBreadcrumbs = async () => {
+    if (!breadcrumbExport) return;
+    try {
+      await navigator.clipboard.writeText(breadcrumbExport);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-emerald-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
       <main className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-14 text-center sm:px-6">
@@ -108,13 +138,26 @@ export default function GlobalError({
             Codice errore
           </p>
           <p className="mt-2 select-all text-lg font-mono font-semibold text-zinc-900 dark:text-zinc-50">{errorId}</p>
-          {contextSummary?.breadcrumbs.length ? (
+          {recentBreadcrumbs.length ? (
             <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-left text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300">
-              <p className="font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
-                Ultimi passaggi rilevati
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+                  Ultimi passaggi rilevati
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyBreadcrumbs}
+                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+                >
+                  {copyState === "copied"
+                    ? "Copiato"
+                    : copyState === "error"
+                      ? "Copia non riuscita"
+                      : "Copia"}
+                </button>
+              </div>
               <ul className="mt-2 space-y-1">
-                {contextSummary.breadcrumbs.slice(-5).map((entry) => (
+                {recentBreadcrumbs.map((entry) => (
                   <li key={`${entry.at}-${entry.detail}`}>
                     {entry.at} · {entry.type} · {entry.detail}
                   </li>
