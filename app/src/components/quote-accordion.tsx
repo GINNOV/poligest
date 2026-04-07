@@ -3,6 +3,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
+import { useRouter } from "next/navigation";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 import { PrintLinkButton } from "@/components/print-link-button";
@@ -438,6 +439,7 @@ export function QuoteAccordion({
   className,
   printHref,
 }: Props) {
+  const router = useRouter();
   const sortedServices = useMemo(
     () =>
       [...services].sort((a, b) =>
@@ -494,6 +496,7 @@ export function QuoteAccordion({
   const handleFormAction = async (formData: FormData) => {
     await formAction(formData);
     setSavedVersion(dirtyVersionRef.current);
+    router.refresh();
   };
 
   const updateItem = (index: number, next: Partial<(typeof items)[number]>) => {

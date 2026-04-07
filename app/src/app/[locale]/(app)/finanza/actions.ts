@@ -85,6 +85,8 @@ export async function recordPatientPayment(formData: FormData) {
       ? "contanti"
       : method === PatientPaymentMethod.BANK_TRANSFER
         ? "bonifico"
+        : method === PatientPaymentMethod.PAY_LATER
+          ? "pagherò"
         : method === PatientPaymentMethod.OTHER
           ? "altro"
           : "elettronico";
@@ -210,4 +212,5 @@ export async function createCashAdvance(formData: FormData) {
   });
 
   revalidatePath("/finanza");
+  revalidatePath("/finanza/anticipi");
 }

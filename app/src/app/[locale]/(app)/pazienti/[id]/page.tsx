@@ -73,7 +73,6 @@ export default async function PatientDetailPage({
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
   const featureAccess = await getRoleFeatureAccess(user.role);
-  const canViewQuotes = featureAccess.isAllowed("quotes");
   const canViewClinicalRecords = featureAccess.isAllowed("clinical-records");
   const isAdmin = user.role === Role.ADMIN;
   const canExport = isAdmin || user.role === Role.MANAGER;
@@ -700,29 +699,6 @@ export default async function PatientDetailPage({
                       </div>
                     </div>
           </details>
-
-          {canViewQuotes ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Preventivi e pagamenti
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-zinc-900">Area finanza paziente</h2>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    La gestione del preventivo e lo storico degli incassi sono stati spostati nel
-                    modulo finanza.
-                  </p>
-                </div>
-                <Link
-                  href={`/finanza/pagamenti?patientId=${patient.id}`}
-                  className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
-                >
-                  Apri finanza paziente
-                </Link>
-              </div>
-            </div>
-          ) : null}
 
           {canViewClinicalRecords ? (
             <DentalChart

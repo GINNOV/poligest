@@ -192,6 +192,9 @@ export function PatientPaymentFields({
             <option value="CASH">Contanti</option>
             <option value="ELECTRONIC">Elettronico</option>
             <option value="BANK_TRANSFER">Bonifico</option>
+            <option value="PAY_LATER" className="text-rose-600">
+              Pagherò
+            </option>
             <option value="OTHER">Altro</option>
           </select>
         </label>

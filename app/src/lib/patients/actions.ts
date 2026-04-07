@@ -311,6 +311,12 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
   const serviceClient = getOptionalPrismaModel<{
     findMany?: (args?: { where?: { id: { in: string[] } } }) => Promise<{ id: string; name: string }[]>;
   }>("service");
+  const patientPaymentClient = getOptionalPrismaModel<{
+    findMany?: (args: {
+      where: { quoteItemId: { in: string[] } };
+      select: { quoteItemId: true; amount: true };
+    }) => Promise<Array<{ quoteItemId: string | null; amount: { toString(): string } }>>;
+  }>("patientPayment");
   const serviceIds = itemsPayload.map((item) => item.serviceId).filter(Boolean);
   const services =
     serviceClient?.findMany && serviceIds.length
@@ -377,25 +383,32 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
 
     const existingQuote = await tx.quote.findFirst({
       where: { id: quoteId, patientId },
-      include: {
-        items: {
-          include: {
-            payments: {
-              select: { amount: true },
-            },
-          },
-        },
-      },
+      include: { items: true },
     });
 
     if (!existingQuote) {
       throw new Error("Preventivo non trovato");
     }
 
+    const existingPayments = patientPaymentClient?.findMany
+      ? await patientPaymentClient.findMany({
+          where: { quoteItemId: { in: existingQuote.items.map((item) => item.id) } },
+          select: { quoteItemId: true, amount: true },
+        })
+      : [];
+    const paidByQuoteItemId = new Map<string, number>();
+    for (const payment of existingPayments) {
+      if (!payment.quoteItemId) continue;
+      paidByQuoteItemId.set(
+        payment.quoteItemId,
+        (paidByQuoteItemId.get(payment.quoteItemId) ?? 0) + Number(payment.amount.toString())
+      );
+    }
+
     const existingItemMap = new Map(existingQuote.items.map((item) => [item.id, item]));
     const incomingIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
     const removableItems = existingQuote.items.filter((item) => !incomingIds.has(item.id));
-    const lockedRemovedItem = removableItems.find((item) => item.payments.length > 0);
+    const lockedRemovedItem = removableItems.find((item) => (paidByQuoteItemId.get(item.id) ?? 0) > 0);
 
     if (lockedRemovedItem) {
       throw new Error("Non puoi rimuovere una prestazione con pagamenti già registrati");
@@ -408,10 +421,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
         throw new Error("Una riga del preventivo non è valida");
       }
 
-      const paidAmount = existingItem.payments.reduce(
-        (sum, payment) => sum + Number(payment.amount.toString()),
-        0
-      );
+      const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
       if (paidAmount - item.total > 0.009) {
         throw new Error("Una prestazione ha pagamenti superiori al nuovo totale");
       }
@@ -452,11 +462,8 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
 
       const existingItem = existingItemMap.get(item.id);
       if (!existingItem) continue;
-      const paidAmount = existingItem.payments.reduce(
-        (sum, payment) => sum + Number(payment.amount.toString()),
-        0
-      );
-      const legacySettledWithoutPayments = existingItem.saldato && existingItem.payments.length === 0;
+      const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
+      const legacySettledWithoutPayments = existingItem.saldato && paidAmount === 0;
 
       await tx.quoteItem.update({
         where: { id: item.id },

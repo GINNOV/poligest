@@ -1,0 +1,1 @@
+ALTER TYPE "PatientPaymentMethod" ADD VALUE IF NOT EXISTS 'PAY_LATER';

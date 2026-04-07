@@ -6,6 +6,7 @@ import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { QuoteAccordion } from "@/components/quote-accordion";
 import { PatientPaymentFields } from "@/components/finance-forms";
+import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { savePreventivoAction } from "@/lib/patients/actions";
 import { recordPatientPayment } from "../actions";
@@ -20,6 +21,7 @@ const paymentMethodLabels: Record<PatientPaymentMethod, string> = {
   CASH: "Contanti",
   ELECTRONIC: "Elettronico",
   BANK_TRANSFER: "Bonifico",
+  PAY_LATER: "Pagherò",
   OTHER: "Altro",
 };
 
@@ -180,6 +182,10 @@ export default async function PagamentiPage({
     },
     { total: 0, paid: 0, remaining: 0 }
   );
+  const patientOptions = patients.map((patient) => ({
+    id: patient.id,
+    fullName: `${patient.lastName} ${patient.firstName}`,
+  }));
 
   return (
     <div className="space-y-6">
@@ -192,17 +198,14 @@ export default async function PagamentiPage({
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
           Paziente
           <div className="flex flex-col gap-3 sm:flex-row">
-            <select
+            <PatientSearchCombobox
+              key={selectedPatientId || "empty"}
               name="patientId"
+              patients={patientOptions}
               defaultValue={selectedPatientId}
+              placeholder="Cerca per cognome e nome"
               className="h-11 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            >
-              {patients.map((patient) => (
-                <option key={patient.id} value={patient.id}>
-                  {patient.lastName} {patient.firstName}
-                </option>
-              ))}
-            </select>
+            />
             <button
               type="submit"
               className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600"
@@ -257,6 +260,7 @@ export default async function PagamentiPage({
           </div>
 
           <QuoteAccordion
+            key={`${selectedPatient.id}:${parsedQuote?.id ?? "new"}:${parsedQuote?.signedAt ?? "unsigned"}`}
             patientId={selectedPatient.id}
             patientName={`${selectedPatient.lastName} ${selectedPatient.firstName}`.trim() || "Paziente"}
             services={services.map((service) => ({

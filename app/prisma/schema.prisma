@@ -82,6 +82,7 @@ enum PatientPaymentMethod {
   CASH
   ELECTRONIC
   BANK_TRANSFER
+  PAY_LATER
   OTHER
 }
 
