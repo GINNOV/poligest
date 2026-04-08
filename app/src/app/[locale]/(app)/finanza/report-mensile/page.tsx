@@ -156,7 +156,6 @@ export default async function ReportMensilePage({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm text-zinc-600">Finanza</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Report Mensile</h1>
           <p className="mt-2 text-sm text-zinc-600">
             Riepilogo giornaliero delle entrate del mese selezionato.

@@ -54,6 +54,8 @@ export default async function AnticipiPage({
   const advanceQuery = (resolvedSearchParams.aq ?? "").trim();
   const advanceFromValue = resolvedSearchParams.afrom ?? defaultFrom;
   const advanceToValue = resolvedSearchParams.ato ?? defaultTo;
+  const hasAdvancedFilters =
+    advanceQuery.length > 0 || advanceFromValue !== defaultFrom || advanceToValue !== defaultTo;
   const advanceFromDate = advanceFromValue
     ? new Date(`${advanceFromValue}T00:00:00`)
     : null;
@@ -110,7 +112,6 @@ export default async function AnticipiPage({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-zinc-600">Finanza</p>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti medici</h1>
       </div>
 
@@ -198,43 +199,69 @@ export default async function AnticipiPage({
           </button>
         </form>
 
-        <form className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm lg:grid-cols-[2fr,1fr,2fr,auto] lg:items-end">
-          <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Cerca</span>
-            <input
-              name="aq"
-              defaultValue={advanceQuery}
-              placeholder="Nota o medico"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
+        <details
+          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+          open={hasAdvancedFilters}
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-zinc-900 marker:content-none">
+            <span className="inline-flex items-center gap-2">
+              <svg
+                className="h-4 w-4 text-zinc-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              Cerca e filtra
+            </span>
+            <span className="text-xs font-medium text-zinc-500 group-open:hidden">Mostra</span>
+            <span className="hidden text-xs font-medium text-zinc-500 group-open:inline">Nascondi</span>
+          </summary>
+
+          <form className="mt-4 grid gap-3 text-sm lg:grid-cols-[2fr,1fr,2fr,auto] lg:items-end">
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase text-zinc-500">Dal</span>
+              <span className="text-[11px] font-semibold uppercase text-zinc-500">Cerca</span>
               <input
-                type="date"
-                name="afrom"
-                defaultValue={advanceFromValue}
+                name="aq"
+                defaultValue={advanceQuery}
+                placeholder="Nota o medico"
                 className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase text-zinc-500">Al</span>
-              <input
-                type="date"
-                name="ato"
-                defaultValue={advanceToValue}
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              />
-            </label>
-          </div>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
-          >
-            Applica
-          </button>
-        </form>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold uppercase text-zinc-500">Dal</span>
+                <input
+                  type="date"
+                  name="afrom"
+                  defaultValue={advanceFromValue}
+                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold uppercase text-zinc-500">Al</span>
+                <input
+                  type="date"
+                  name="ato"
+                  defaultValue={advanceToValue}
+                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
+            </div>
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+            >
+              Applica
+            </button>
+          </form>
+        </details>
 
         {doctorPayments.length === 0 ? (
           <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
