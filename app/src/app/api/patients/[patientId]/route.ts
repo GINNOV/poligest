@@ -6,7 +6,6 @@ import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   DELETE_CONFIRMATION_TEXT,
-  assertBulkDestructiveActionEnabled,
   isConfirmedDeleteRequest,
 } from "@/lib/destructive-action-guard";
 import { errorResponse } from "@/lib/error-response";
@@ -35,8 +34,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ patie
   }
 
   try {
-    assertBulkDestructiveActionEnabled();
-
     const existing = await prisma.patient.findUnique({
       where: { id: patientId },
       select: { id: true },
