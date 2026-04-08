@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { REPORT_CONFIG_ID, getCompletedPracticeWeekPeriod, parseRecipientEmails, sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
@@ -19,15 +19,26 @@ async function saveWeeklyReportConfig(formData: FormData) {
   "use server";
 
   const admin = await requireUser([Role.ADMIN]);
+  const configClient = getOptionalPrismaModel<{
+    upsert?: (args: {
+      where: { id: string };
+      update: { enabled: boolean; recipientEmails: string };
+      create: { id: string; enabled: boolean; recipientEmails: string };
+    }) => Promise<unknown>;
+  }>("practiceWeeklyReportConfig");
   const enabled = formData.get("enabled") === "on";
   const recipientEmails = (formData.get("recipientEmails") as string | null)?.trim() ?? "";
   const recipients = parseRecipientEmails(recipientEmails);
+
+  if (!configClient?.upsert) {
+    throw new Error("Il modulo report settimanale non è disponibile nel server attivo.");
+  }
 
   if (enabled && recipients.length === 0) {
     throw new Error("Inserisci almeno un'email valida per attivare il report.");
   }
 
-  await prisma.practiceWeeklyReportConfig.upsert({
+  await configClient.upsert({
     where: { id: REPORT_CONFIG_ID },
     update: {
       enabled,
@@ -77,13 +88,38 @@ async function sendWeeklyReportNow() {
 
 export default async function AdminWeeklyReportPage() {
   await requireUser([Role.ADMIN]);
+  const configClient = getOptionalPrismaModel<{
+    findUnique?: (args: { where: { id: string } }) => Promise<{
+      enabled: boolean;
+      recipientEmails: string;
+    } | null>;
+  }>("practiceWeeklyReportConfig");
+  const logClient = getOptionalPrismaModel<{
+    findMany?: (args: {
+      orderBy: { createdAt: "asc" | "desc" };
+      take: number;
+    }) => Promise<Array<{
+      id: string;
+      periodStart: Date;
+      periodEnd: Date;
+      status: string;
+      trigger: string;
+      recipientCount: number;
+      sentAt: Date | null;
+      error: string | null;
+      createdAt: Date;
+    }>>;
+  }>("practiceWeeklyReportLog");
+  const weeklyReportAvailable = Boolean(configClient?.findUnique && logClient?.findMany);
 
   const [config, recentLogs] = await Promise.all([
-    prisma.practiceWeeklyReportConfig.findUnique({ where: { id: REPORT_CONFIG_ID } }),
-    prisma.practiceWeeklyReportLog.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 8,
-    }),
+    configClient?.findUnique ? configClient.findUnique({ where: { id: REPORT_CONFIG_ID } }) : Promise.resolve(null),
+    logClient?.findMany
+      ? logClient.findMany({
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        })
+      : Promise.resolve([]),
   ]);
 
   const recipients = parseRecipientEmails(config?.recipientEmails ?? "");
@@ -146,10 +182,18 @@ export default async function AdminWeeklyReportPage() {
               Destinatari validi rilevati: <span className="font-semibold text-zinc-900">{recipients.length}</span>
             </div>
 
-            <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
+            <FormSubmitButton
+              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={!weeklyReportAvailable}
+            >
               Salva configurazione
             </FormSubmitButton>
           </form>
+          {!weeklyReportAvailable ? (
+            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Il modulo report settimanale non è disponibile nel server attivo.
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-4">
@@ -159,7 +203,10 @@ export default async function AdminWeeklyReportPage() {
               Il prossimo invio copre il periodo <span className="font-semibold text-zinc-900">{nextPeriod.label}</span>.
             </p>
             <form action={sendWeeklyReportNow} className="mt-4">
-              <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800">
+              <FormSubmitButton
+                className="inline-flex h-10 items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!weeklyReportAvailable}
+              >
                 Invia adesso il report
               </FormSubmitButton>
             </form>
