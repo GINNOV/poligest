@@ -70,7 +70,7 @@ export default async function AdminUpdatesPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Aggiornamenti
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Popup nuove funzionalità</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Popup nuove funzionalità</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Imposta un messaggio in Markdown che verrà mostrato allo staff (non ai pazienti) una sola
           volta per utente.
@@ -85,7 +85,7 @@ export default async function AdminUpdatesPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr,0.8fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">Contenuto</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Contenuto</h2>
           <p className="text-sm text-zinc-600">
             Supportati: titoli <code className="rounded bg-zinc-100 px-1">#</code>, sottotitoli{" "}
             <code className="rounded bg-zinc-100 px-1">##</code>, liste{" "}
@@ -138,7 +138,7 @@ export default async function AdminUpdatesPage() {
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">Anteprima</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Anteprima</h2>
           {latest ? (
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-700">
               <div className="flex items-center gap-2">
@@ -167,7 +167,7 @@ export default async function AdminUpdatesPage() {
           )}
           {latest ? (
             <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-zinc-900">Anteprima messaggio</h3>
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anteprima messaggio</h3>
               <div className="mt-3">
                 <FeatureUpdateMarkdownPreview markdown={latest.bodyMarkdown} />
               </div>

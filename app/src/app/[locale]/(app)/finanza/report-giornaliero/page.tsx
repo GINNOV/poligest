@@ -68,7 +68,7 @@ export default async function ReportGiornalieroPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-zinc-600">Finanza</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Report Giornaliero</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Report Giornaliero</h1>
           <p className="mt-2 text-sm text-zinc-600">
             Flusso in entrata del giorno selezionato nella settimana corrente.
           </p>
@@ -89,7 +89,7 @@ export default async function ReportGiornalieroPage({
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold text-zinc-900">Seleziona il giorno</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Seleziona il giorno</h2>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
             {format(weekStart, "d MMM", { locale: it })} - {format(weekEnd, "d MMM", { locale: it })}
           </span>
@@ -125,7 +125,7 @@ export default async function ReportGiornalieroPage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Entrate del {format(safeParsedDay, "EEEE d MMMM yyyy", { locale: it })}
             </h2>
             <p className="mt-1 text-sm text-zinc-600">

@@ -66,7 +66,7 @@ function ColorSwatches({
       {palette.map((color) => (
         <label
           key={color}
-          className="group relative inline-flex h-10 w-12 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:border-emerald-200 hover:shadow-sm"
+          className="group relative inline-flex h-10 w-12 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white transition hover:border-emerald-200 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-emerald-700"
         >
           <input
             type="radio"
@@ -80,7 +80,7 @@ function ColorSwatches({
             style={{ backgroundColor: color }}
             aria-hidden
           />
-          <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-lg font-bold text-emerald-900 peer-checked:flex">
+          <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-lg font-bold text-emerald-900 peer-checked:flex dark:text-emerald-300">
             ✓
           </span>
         </label>
@@ -139,12 +139,12 @@ export function AdminDoctorAvailabilityEditor({
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Seleziona un giorno</h3>
-          <p className="text-xs text-zinc-600">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Seleziona un giorno</h3>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">
             Le fasce sono modificabili in-place. I giorni senza fasce sono segnati come OFF.
           </p>
         </div>
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
           {windows.length} fasce totali
         </span>
       </div>
@@ -160,31 +160,31 @@ export function AdminDoctorAvailabilityEditor({
               onClick={() => setSelectedDay(day.value)}
               className={`group relative grid h-14 w-14 place-items-center rounded-full text-sm font-semibold transition ${
                 active
-                  ? "ring-2 ring-emerald-300 ring-offset-2 ring-offset-white"
-                  : "hover:ring-2 hover:ring-zinc-200 hover:ring-offset-2 hover:ring-offset-white"
-              } ${available ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-700"}`}
+                  ? "ring-2 ring-emerald-300 ring-offset-2 ring-offset-white dark:ring-offset-zinc-950"
+                  : "hover:ring-2 hover:ring-zinc-200 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-zinc-700 dark:hover:ring-offset-zinc-950"
+              } ${available ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"}`}
               aria-pressed={active}
               aria-label={day.label}
               title={day.label}
             >
               {day.short}
               {available ? (
-                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-200" />
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-200 dark:border-zinc-950" />
               ) : null}
             </button>
           );
         })}
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h4 className="text-base font-semibold text-zinc-900">{selectedDayMeta.label}</h4>
-            <p className="text-xs text-zinc-600">
+            <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{selectedDayMeta.label}</h4>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
               {selectedWindows.length ? `${selectedWindows.length} fasce` : "OFF: nessuna disponibilità"}
             </p>
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
             {minutesToTime(9 * 60)} - {minutesToTime(13 * 60)}
           </span>
         </div>
@@ -195,27 +195,27 @@ export function AdminDoctorAvailabilityEditor({
         >
           <input type="hidden" name="doctorId" value={doctorId} />
           <input type="hidden" name="dayOfWeek" value={selectedDay} />
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Inizio
             <input
               name="startTime"
               type="time"
               required
               defaultValue="09:00"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
           </label>
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Fine
             <input
               name="endTime"
               type="time"
               required
               defaultValue="13:00"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
           </label>
-          <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Colore
             <ColorSwatches
               name="color"
@@ -235,14 +235,14 @@ export function AdminDoctorAvailabilityEditor({
 
         <div className="mt-5 space-y-3">
           {selectedWindows.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600">
+            <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
               Nessuna fascia impostata per {selectedDayMeta.label}. Aggiungine una sopra.
             </div>
           ) : (
             selectedWindows.map((win, index) => (
               <div
                 key={win.id}
-                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <form
@@ -250,34 +250,34 @@ export function AdminDoctorAvailabilityEditor({
                     className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[auto,1fr,1fr,1fr]"
                   >
                     <div className="flex items-center">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-800">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-50 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
                         {index + 1}
                       </span>
                     </div>
                     <input type="hidden" name="windowId" value={win.id} />
                     <input type="hidden" name="doctorId" value={doctorId} />
                     <input type="hidden" name="dayOfWeek" value={selectedDay} />
-                    <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                    <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                       Inizio
                       <input
                         name="startTime"
                         type="time"
                         required
                         defaultValue={minutesToTime(win.startMinute)}
-                        className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       />
                     </label>
-                    <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                    <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                       Fine
                       <input
                         name="endTime"
                         type="time"
                         required
                         defaultValue={minutesToTime(win.endMinute)}
-                        className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       />
                     </label>
-                    <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                    <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                       Colore
                       <ColorSwatches
                         name="color"

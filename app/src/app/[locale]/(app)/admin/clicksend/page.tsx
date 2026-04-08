@@ -74,7 +74,7 @@ export default async function ClickSendSettingsPage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
           Integrazione SMS
         </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-900">ClickSend</h1>
+        <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">ClickSend</h1>
         <p className="mt-3 text-sm text-zinc-600">
           Gestisci le credenziali per l&apos;invio di SMS. Le credenziali vengono salvate nel database e
           usate per tutti gli invii.
@@ -85,7 +85,7 @@ export default async function ClickSendSettingsPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-zinc-900">Stato configurazione</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Stato configurazione</p>
               <p className="text-xs text-zinc-600">Verifica se username e API key sono presenti.</p>
             </div>
             <span
@@ -116,7 +116,7 @@ export default async function ClickSendSettingsPage() {
         </div>
 
         <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-900">Aggiorna credenziali</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Aggiorna credenziali</p>
           <form className="space-y-3" action={saveClickSendConfig}>
             <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
               Username ClickSend
@@ -162,7 +162,7 @@ export default async function ClickSendSettingsPage() {
         </div>
 
         <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-zinc-900">Invio di test</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Invio di test</p>
           <form action={sendTestSms} className="space-y-3">
             <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
               Numero di destinazione

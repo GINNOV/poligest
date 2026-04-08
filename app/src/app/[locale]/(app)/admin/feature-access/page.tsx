@@ -67,7 +67,7 @@ export default async function FeatureAccessPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             {t("featureAccess")}
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">{t("featureAccessHeading")}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("featureAccessHeading")}</h1>
           <p className="mt-1 text-sm text-zinc-600">{t("featureAccessSubtitle")}</p>
         </div>
         <div className="rounded-full bg-emerald-50 px-4 py-1 text-xs font-semibold text-emerald-800">
@@ -85,7 +85,7 @@ export default async function FeatureAccessPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-zinc-500">{t("featureAccessRoleLabel")}</p>
-                  <h2 className="text-lg font-semibold text-zinc-900">{roleLabels[role]}</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{roleLabels[role]}</h2>
                 </div>
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase text-emerald-800">
                   {FALLBACK_PERMISSIONS[role]?.size ?? 0} predefiniti

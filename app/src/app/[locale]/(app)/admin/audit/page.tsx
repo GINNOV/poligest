@@ -120,7 +120,7 @@ export default async function AuditPage({
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             {t("audit")}
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">{t("auditTitle")}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("auditTitle")}</h1>
           <p className="text-sm text-zinc-600">{t("auditSubtitle")}</p>
         </div>
         <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">

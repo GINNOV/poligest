@@ -8,7 +8,7 @@ export default function NotFound() {
         <div className="inline-flex items-center justify-center self-center rounded-full bg-emerald-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">
           404 <span className="text-emerald-700">Pagina non trovata</span>
         </div>
-        <h1 className="text-3xl font-semibold text-zinc-900">Non troviamo questa pagina</h1>
+        <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50">Non troviamo questa pagina</h1>
         <div className="flex justify-center">
           <Image
             src="/errors/404_it.png"

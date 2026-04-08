@@ -236,7 +236,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
       {showRevokeConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-zinc-900">Conferma revoca</h3>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Conferma revoca</h3>
             <p className="mt-2 text-sm text-zinc-600">
               Vuoi revocare questo consenso? L&apos;azione può essere annullata creando un nuovo consenso.
             </p>
@@ -270,7 +270,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
       {showSwitchConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
-            <h3 className="text-base font-semibold text-zinc-900">Modifiche non salvate</h3>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Modifiche non salvate</h3>
             <p className="mt-2 text-sm text-zinc-600">
               Hai modifiche non salvate per questo modulo. Se cambi modulo perderai i dati inseriti.
             </p>

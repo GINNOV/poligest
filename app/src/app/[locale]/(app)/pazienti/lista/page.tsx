@@ -166,7 +166,7 @@ export default async function PazientiListaPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Pazienti</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Lista pazienti</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Lista pazienti</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Cerca, filtra e apri le schede paziente esistenti.
           </p>

@@ -39,7 +39,7 @@ export function PatientPhotoDialog({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Foto paziente</p>
-                <h2 className="mt-1 text-lg font-semibold text-zinc-900">{fullName}</h2>
+                <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">{fullName}</h2>
               </div>
               <button
                 type="button"

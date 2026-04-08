@@ -111,7 +111,7 @@ export default async function AnticipiPage({
     <div className="space-y-6">
       <div>
         <p className="text-sm text-zinc-600">Finanza</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">Pagamenti medici</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti medici</h1>
       </div>
 
       <div className="space-y-3">
@@ -132,7 +132,7 @@ export default async function AnticipiPage({
               <path d="M12 6.5v11" />
             </svg>
             <div>
-              <h2 className="text-base font-semibold text-zinc-900">Anticipi ai medici</h2>
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Anticipi ai medici</h2>
             </div>
           </div>
         </div>

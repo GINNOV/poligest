@@ -378,7 +378,7 @@ export default async function AdminCalendarSettingsPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Aggiungi appuntamenti
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Disponibilità e chiusure</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Disponibilità e chiusure</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Imposta le fasce di disponibilità per ogni medico e i periodi di chiusura/ferie dello studio.
         </p>
@@ -393,7 +393,7 @@ export default async function AdminCalendarSettingsPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
         <aside className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900">Medici</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Medici</h2>
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
               {doctors.length}
             </span>
@@ -428,7 +428,7 @@ export default async function AdminCalendarSettingsPage({
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-900">Disponibilità medico</h2>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Disponibilità medico</h2>
                 <p className="text-sm text-zinc-600">
                   {selectedDoctor ? `Gestisci le fasce orarie per ${selectedDoctor.fullName}.` : "Seleziona un medico."}
                 </p>
@@ -457,7 +457,7 @@ export default async function AdminCalendarSettingsPage({
           <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 className="text-lg font-semibold text-zinc-900">Chiusure studio</h2>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Chiusure studio</h2>
                 <p className="text-sm text-zinc-600">
                   Festività, ferie e periodi di indisponibilità della struttura.
                 </p>
@@ -470,7 +470,7 @@ export default async function AdminCalendarSettingsPage({
             <details className="group mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-4 py-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-zinc-900">Regole automatiche</h3>
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Regole automatiche</h3>
                   <p className="mt-1 text-sm text-zinc-600">
                     Chiusure ricorrenti tutto il giorno (es. ogni Giovedì).
                   </p>

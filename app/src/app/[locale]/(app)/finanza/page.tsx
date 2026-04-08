@@ -9,7 +9,7 @@ export default async function FinanzaPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-zinc-900">Movimenti</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h1>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -26,7 +26,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Pagamenti Pazienti</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti Pazienti</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Traccia appuntamento per appuntamento il flusso di cassa.
             Gestisci preventivi, incassi e residui del paziente.
@@ -45,7 +45,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Materiali e Spese ufficio</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Materiali e Spese ufficio</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Registra acquisti, fornitori e costi operativi dello studio.
             Tieni ordinate le uscite per materiale e servizio.
@@ -64,7 +64,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Pagamenti medici</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti medici</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Monitora anticipi e liquidazioni legate ai medici.
             Consulta i movimenti e archivia quelli chiusi.
@@ -83,7 +83,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Report Giornaliero</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Giornaliero</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Leggi le entrate di un singolo giorno della settimana corrente.
             Controlla i movimenti in cassa e il totale incassato.
@@ -102,7 +102,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Report Mensile</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Mensile</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Riepiloga il mese per giornata con le somme principali.
             Separa anticipo, pagherò, dovuto e totale incassato.
@@ -121,7 +121,7 @@ export default async function FinanzaPage() {
               className="h-44 w-full object-cover"
             />
           </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900">Report Uscite</h2>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Uscite</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             Analizza le uscite mensili per fornitore e tipologia.
             Verifica dove si concentrano materiali e spese ufficio.

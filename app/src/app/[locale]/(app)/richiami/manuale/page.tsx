@@ -40,7 +40,7 @@ export default async function RichiamiManualePage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Promemoria manuali</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Promemoria manuali</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Invia notifiche per appuntamenti imminenti o eventi speciali.
           </p>
@@ -66,7 +66,7 @@ export default async function RichiamiManualePage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Promemoria appuntamento</h3>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Promemoria appuntamento</h3>
           <form action={sendManualNotification} className="mt-3 space-y-3 text-sm">
             <input type="hidden" name="notificationType" value="appointment" />
             <input type="hidden" name="returnTo" value="/richiami/manuale" />
@@ -124,7 +124,7 @@ export default async function RichiamiManualePage({
         </div>
 
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Notifica evento</h3>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Notifica evento</h3>
           <form action={sendManualNotification} className="mt-3 space-y-3 text-sm">
             <input type="hidden" name="notificationType" value="event" />
             <input type="hidden" name="returnTo" value="/richiami/manuale" />

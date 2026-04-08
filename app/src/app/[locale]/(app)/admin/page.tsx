@@ -98,6 +98,15 @@ export default async function AdminPage() {
       icon: "📧",
     },
     {
+      key: "weekly-report",
+      title: "Report settimanale",
+      description: "Invio automatico ai responsabili con visite, promemoria e risultati della settimana.",
+      href: "/admin/report-settimanale",
+      badge: "Direzione",
+      tone: "primary",
+      icon: "📈",
+    },
+    {
       key: "users",
       title: t("users"),
       description: "Ruoli, accessi e attivazione degli account di sistema.",
@@ -208,7 +217,7 @@ export default async function AdminPage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
           {t("title")}
         </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-900">
+        <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           {t("subtitle")}
         </h1>
         <p className="mt-3 text-sm text-zinc-600">
@@ -228,7 +237,7 @@ export default async function AdminPage() {
                   <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-lg">
                     {item.icon ?? "🧭"}
                   </div>
-                  <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{item.title}</h2>
                 </div>
                 {item.badge ? (
                   <span
@@ -290,7 +299,7 @@ export default async function AdminPage() {
                       <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-lg">
                         {item.icon ?? "🧭"}
                       </div>
-                      <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{item.title}</h2>
                     </div>
                     {item.badge ? (
                       <span
@@ -354,7 +363,7 @@ export default async function AdminPage() {
                       <div className="grid h-9 w-9 place-items-center rounded-2xl border border-zinc-200 bg-zinc-50 text-lg">
                         {item.icon ?? "🧭"}
                       </div>
-                      <h2 className="text-lg font-semibold text-zinc-900">{item.title}</h2>
+                      <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{item.title}</h2>
                     </div>
                     {item.badge ? (
                       <span

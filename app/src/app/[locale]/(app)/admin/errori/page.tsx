@@ -137,7 +137,7 @@ export default async function AdminErrorsPage({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Errori</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Registro errori</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Registro errori</h1>
           <p className="text-sm text-zinc-600">
             Elenco degli errori applicativi con codice per il supporto.
           </p>

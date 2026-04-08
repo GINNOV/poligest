@@ -66,7 +66,7 @@ export default async function RichiamiProgrammatiPage({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Richiami in scadenza</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Richiami in scadenza</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Elenco dei richiami programmati nei prossimi 30 giorni.
           </p>
@@ -183,7 +183,7 @@ export default async function RichiamiProgrammatiPage({
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900">Programma richiamo manuale</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Programma richiamo manuale</h2>
           <p className="mt-1 text-sm text-zinc-600">
             Crea un singolo richiamo con data di invio. Non avvia una sequenza ricorrente.
           </p>

@@ -103,6 +103,74 @@ body {
   margin: 1rem 0;
 }
 
+@media (prefers-color-scheme: dark) {
+  .markdown-body {
+    color: #e4e4e7;
+  }
+
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 {
+    color: #fafafa;
+  }
+
+  .markdown-body a {
+    color: #6ee7b7;
+    text-decoration-color: #065f46;
+  }
+
+  .markdown-body code {
+    background: #18181b;
+    color: #f4f4f5;
+  }
+
+  .markdown-body pre {
+    background: #09090b;
+    color: #e4e4e7;
+  }
+
+  h1.text-zinc-900,
+  h2.text-zinc-900,
+  h3.text-zinc-900,
+  h4.text-zinc-900,
+  h5.text-zinc-900,
+  h6.text-zinc-900,
+  summary.text-zinc-900 {
+    color: #fafafa;
+  }
+
+  h1.text-zinc-800,
+  h2.text-zinc-800,
+  h3.text-zinc-800,
+  h4.text-zinc-800,
+  h5.text-zinc-800,
+  h6.text-zinc-800,
+  summary.text-zinc-800 {
+    color: #f4f4f5;
+  }
+
+  h1.text-emerald-900,
+  h2.text-emerald-900,
+  h3.text-emerald-900,
+  h4.text-emerald-900,
+  h5.text-emerald-900,
+  h6.text-emerald-900,
+  summary.text-emerald-900 {
+    color: #a7f3d0;
+  }
+
+  h1.text-rose-900,
+  h2.text-rose-900,
+  h3.text-rose-900,
+  h4.text-rose-900,
+  h5.text-rose-900,
+  h6.text-rose-900,
+  summary.text-rose-900 {
+    color: #fecdd3;
+  }
+}
+
 /* Default localization for file inputs */
 input[type="file"]::file-selector-button {
   content: "Scegli file";

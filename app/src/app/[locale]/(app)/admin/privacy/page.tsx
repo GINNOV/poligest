@@ -49,13 +49,13 @@ export default async function AdminPrivacyPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           {t("privacy")}
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">{t("privacyTitle")}</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("privacyTitle")}</h1>
         <p className="mt-2 text-sm text-zinc-600">{t("privacySubtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-zinc-900">{t("dsarTitle")}</h2>
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{t("dsarTitle")}</h2>
           <p className="mt-2 text-sm text-zinc-600">{t("dsarDescription")}</p>
           <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs text-emerald-900">
             {t("dsarHint")}
@@ -63,7 +63,7 @@ export default async function AdminPrivacyPage({
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-zinc-900">{t("retentionTitle")}</h2>
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{t("retentionTitle")}</h2>
           <p className="mt-2 text-sm text-zinc-600">{t("retentionDescription")}</p>
           <ul className="mt-3 space-y-1 text-xs text-zinc-600">
             <li>Audit log: {GDPR_RETENTION_DAYS.auditLogs} giorni</li>

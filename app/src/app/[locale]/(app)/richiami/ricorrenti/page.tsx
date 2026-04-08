@@ -27,7 +27,7 @@ export default async function RichiamiRicorrentiPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Comunicazioni ricorrenti</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Comunicazioni ricorrenti</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Email automatiche per festivita, chiusure studio e compleanni.
           </p>
@@ -68,7 +68,7 @@ export default async function RichiamiRicorrentiPage() {
               >
                 <input type="hidden" name="kind" value={config.kind} />
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-zinc-900">{label}</h3>
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{label}</h3>
                   <label className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600">
                     <input
                       type="checkbox"

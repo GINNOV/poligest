@@ -177,7 +177,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
 
   return (
     <div className="mt-4 space-y-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="text-sm font-semibold text-emerald-900">Scatta un avatar con la webcam</div>
+      <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Scatta un avatar con la webcam</div>
       <div className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

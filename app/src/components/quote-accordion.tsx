@@ -289,7 +289,7 @@ function SignaturePad({
     <div className="space-y-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-zinc-900">Firma digitale cliente</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Firma digitale cliente</p>
           <p className="text-xs text-zinc-500">Acquisisci la firma per confermare il preventivo.</p>
         </div>
         <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
@@ -578,7 +578,7 @@ export function QuoteAccordion({
         className
       )}
     >
-      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
         <span className="flex items-center gap-3">
           <svg
             className="h-8 w-8 text-emerald-600"

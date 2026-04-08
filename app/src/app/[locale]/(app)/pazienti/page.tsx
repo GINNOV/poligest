@@ -27,7 +27,7 @@ export default async function PazientiPage() {
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Nuovo paziente</h2>
+              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Nuovo paziente</h2>
               <p className="text-sm text-emerald-800">
                 Crea una nuova scheda paziente con consensi e dati clinici iniziali.
               </p>
@@ -50,7 +50,7 @@ export default async function PazientiPage() {
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900">Lista pazienti</h2>
+              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Lista pazienti</h2>
               <p className="text-sm text-emerald-800">
                 Cerca pazienti esistenti. Aggiorna il diario clinico e altre informazioni.
               </p>

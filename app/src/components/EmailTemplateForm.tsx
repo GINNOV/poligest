@@ -98,7 +98,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Editor</p>
-            <h2 className="text-lg font-semibold text-zinc-900">{template.title ?? template.name}</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{template.title ?? template.name}</h2>
           </div>
           <button
             type="submit"
@@ -176,7 +176,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
 
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-200 px-5 py-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Anteprima live</h3>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anteprima live</h3>
         </div>
         <div className="p-4">
           <iframe title="Preview" className="h-[520px] w-full rounded-xl border border-zinc-200" srcDoc={previewHtml} />

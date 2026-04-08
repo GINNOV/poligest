@@ -98,7 +98,7 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">Guida utente</p>
-            <h1 className="text-2xl font-semibold text-zinc-900">{currentTitle}</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{currentTitle}</h1>
           </div>
           <Link
             href="/docs"

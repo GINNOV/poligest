@@ -53,6 +53,8 @@ async function resetSystem(formData: FormData) {
     prisma.smsLog.deleteMany(),
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
+    prisma.practiceWeeklyReportLog.deleteMany(),
+    prisma.practiceWeeklyReportConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
     prisma.patientPayment.deleteMany(),
     prisma.quoteItem.deleteMany(),
@@ -227,6 +229,20 @@ async function resetSystem(formData: FormData) {
         }
       }
 
+      if (selected.includes("practiceWeeklyReportConfig")) {
+        const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];
+        if (entries.length) {
+          await tx.practiceWeeklyReportConfig.createMany({ data: entries });
+        }
+      }
+
+      if (selected.includes("practiceWeeklyReportLogs")) {
+        const entries = tableData("practiceWeeklyReportLogs") as Prisma.PracticeWeeklyReportLogCreateManyInput[];
+        if (entries.length) {
+          await tx.practiceWeeklyReportLog.createMany({ data: entries });
+        }
+      }
+
       if (selected.includes("smsTemplates")) {
         const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
         if (entries.length) {
@@ -272,6 +288,8 @@ const exportTables = [
   { key: "smsTemplates", label: "Template SMS" },
   { key: "smsLogs", label: "Log SMS" },
   { key: "smsProviderConfig", label: "Config ClickSend" },
+  { key: "practiceWeeklyReportConfig", label: "Config report settimanale" },
+  { key: "practiceWeeklyReportLogs", label: "Log report settimanale" },
   { key: "auditLogs", label: "Audit log" },
   { key: "suppliers", label: "Fornitori" },
   { key: "products", label: "Prodotti" },
@@ -331,6 +349,8 @@ async function importData(formData: FormData) {
     await tx.smsLog.deleteMany();
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
+    await tx.practiceWeeklyReportLog.deleteMany();
+    await tx.practiceWeeklyReportConfig.deleteMany();
     await tx.auditLog.deleteMany();
     await tx.patientPayment.deleteMany();
     await tx.quoteItem.deleteMany();
@@ -545,6 +565,20 @@ async function importData(formData: FormData) {
       }
     }
 
+    if (selected.includes("practiceWeeklyReportConfig")) {
+      const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];
+      if (entries.length) {
+        await tx.practiceWeeklyReportConfig.createMany({ data: entries });
+      }
+    }
+
+    if (selected.includes("practiceWeeklyReportLogs")) {
+      const entries = tableData("practiceWeeklyReportLogs") as Prisma.PracticeWeeklyReportLogCreateManyInput[];
+      if (entries.length) {
+        await tx.practiceWeeklyReportLog.createMany({ data: entries });
+      }
+    }
+
     if (selected.includes("smsTemplates")) {
       const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
       if (entries.length) {
@@ -583,7 +617,7 @@ export default async function ResetPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
                 {t("reset")}
               </p>
-              <h1 className="text-xl font-semibold text-rose-900">
+              <h1 className="text-xl font-semibold text-rose-900 dark:text-rose-300">
                 {t("resetTitle")}
               </h1>
             </div>
@@ -638,7 +672,7 @@ export default async function ResetPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
                   {t("export")}
                 </p>
-                <h2 className="text-xl font-semibold text-zinc-900">
+                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {t("exportTitle")}
                 </h2>
               </div>
@@ -684,7 +718,7 @@ export default async function ResetPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
                   {t("import")}
                 </p>
-                <h3 className="text-lg font-semibold text-zinc-900">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {t("importTitle")}
                 </h3>
               </div>
@@ -732,7 +766,7 @@ export default async function ResetPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
                   Magazzino
                 </p>
-                <h3 className="text-lg font-semibold text-zinc-900">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   Import/Export magazzino
                 </h3>
               </div>

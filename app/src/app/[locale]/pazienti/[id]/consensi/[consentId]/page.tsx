@@ -45,7 +45,7 @@ const renderMarkdown = (markdown: string) => {
     if (line.startsWith("# ")) {
       flushList();
       nodes.push(
-        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900">
+        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^#\s+/, "")}
         </h3>,
       );
@@ -55,7 +55,7 @@ const renderMarkdown = (markdown: string) => {
     if (line.startsWith("## ")) {
       flushList();
       nodes.push(
-        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900">
+        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^##\s+/, "")}
         </h4>,
       );
@@ -138,7 +138,7 @@ export default async function ConsentPrintPage({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Consenso
               </p>
-              <h1 className="text-2xl font-semibold text-zinc-900">Studio Agovino & Angrisano</h1>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
             </div>
           </div>
           <PrintButton

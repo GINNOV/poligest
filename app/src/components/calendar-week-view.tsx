@@ -499,7 +499,7 @@ export function CalendarWeekView({
           <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-lg font-semibold text-zinc-900">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {selectedAppointment ? "Aggiorna appuntamento" : "Nuovo appuntamento"}
                 </h3>
                 <p className="text-xs text-zinc-500">

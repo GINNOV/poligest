@@ -45,22 +45,22 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40 px-4 py-8">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 bg-white p-5">
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 px-4 py-8">
+      <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-950">
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
               Novità
             </div>
-            <h2 className="mt-1 truncate text-lg font-semibold text-zinc-900">{update.title}</h2>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h2 className="mt-1 truncate text-lg font-semibold text-zinc-900 dark:text-zinc-50">{update.title}</h2>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Questo messaggio verrà mostrato una sola volta.
             </p>
           </div>
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
           >
             Chiudi
           </button>
@@ -68,7 +68,7 @@ export function StaffFeatureUpdateDialog({ update }: Props) {
 
         <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">{content}</div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 bg-zinc-50 p-4">
+        <div className="flex items-center justify-end gap-2 border-t border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <button
             type="button"
             onClick={dismiss}

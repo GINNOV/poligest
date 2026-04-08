@@ -181,7 +181,7 @@ export default function TermsPage() {
       <div className="mt-8 space-y-6 rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
         {sections.map((section) => (
           <section key={section.title} className="space-y-2">
-            <h2 className="text-lg font-semibold text-zinc-900">{section.title}</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{section.title}</h2>
             {section.content}
           </section>
         ))}

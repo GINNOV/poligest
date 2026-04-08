@@ -141,7 +141,7 @@ export default async function ServicesPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             {t("services")}
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">{t("servicesTitle")}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesTitle")}</h1>
           <p className="text-sm text-zinc-600">{t("servicesSubtitle")}</p>
         </div>
         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
@@ -151,7 +151,7 @@ export default async function ServicesPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">{t("servicesCreate")}</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesCreate")}</h2>
           <p className="text-sm text-zinc-600">{t("servicesCreateHint")}</p>
           <form action={createService} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
@@ -197,7 +197,7 @@ export default async function ServicesPage() {
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900">{t("servicesList")}</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesList")}</h2>
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
               {services.length}
             </span>

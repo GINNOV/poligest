@@ -88,7 +88,7 @@ export default async function DashboardPrintPage({ searchParams }: DashboardPrin
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Agenda del giorno
               </p>
-              <h1 className="text-2xl font-semibold capitalize text-zinc-900">{printableDate}</h1>
+              <h1 className="text-2xl font-semibold capitalize text-zinc-900 dark:text-zinc-50">{printableDate}</h1>
               {selectedDoctor && selectedDoctor !== "all" ? (
                 <p className="text-xs text-zinc-500">Medico: {selectedDoctor}</p>
               ) : null}

@@ -463,7 +463,7 @@ export default async function AdminUsersPage({
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             {t("users")}
           </p>
-          <h1 className="text-2xl font-semibold text-zinc-900">{t("usersHeading")}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("usersHeading")}</h1>
           <p className="mt-1 text-sm text-zinc-600">{t("usersSubtitle")}</p>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
@@ -541,7 +541,7 @@ export default async function AdminUsersPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.15fr,0.85fr]">
         <details className="group rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden" open>
           <summary className="flex cursor-pointer items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900">{t("usersList")}</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("usersList")}</h2>
             <svg
               className="h-5 w-5 text-zinc-500 transition-transform duration-200 group-open:rotate-180"
               viewBox="0 0 24 24"
@@ -714,7 +714,7 @@ export default async function AdminUsersPage({
         </details>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-zinc-900">{t("createUser")}</h2>
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{t("createUser")}</h2>
           <p className="mt-1 text-sm text-zinc-600">{t("usersFormHelper")}</p>
           <form action={upsertUser} className="mt-3 space-y-3 text-sm">
             <input

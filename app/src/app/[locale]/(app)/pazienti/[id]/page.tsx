@@ -304,7 +304,7 @@ export default async function PatientDetailPage({
                 <div className="min-w-0">
                   <p className="text-sm uppercase tracking-wide text-zinc-600">Scheda paziente</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-semibold text-zinc-900">
+                    <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                       {patient.lastName} {patient.firstName}
                     </h1>
                     <p className="text-sm text-zinc-700">
@@ -354,7 +354,7 @@ export default async function PatientDetailPage({
             </summary>
             <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
                   <div className="flex items-center justify-between gap-4">
                     <PatientAvatar
                       src={patient.photoUrl}
@@ -382,10 +382,10 @@ export default async function PatientDetailPage({
                     id="patient-update-form"
                   >
                     <input type="hidden" name="patientId" value={patient.id} />
-                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
-                        <p className="text-xs text-zinc-500">Informazioni personali del paziente.</p>
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Dati Personali</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Informazioni personali del paziente.</p>
                       </div>
                       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <label className="flex flex-col gap-2 text-sm font-medium text-rose-600">
@@ -406,30 +406,30 @@ export default async function PatientDetailPage({
                             required
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Indirizzo
                           <input
                             name="address"
                             defaultValue={parsedAddress}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             placeholder="Via, Numero Civico"
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Città
                           <input
                             name="city"
                             defaultValue={parsedCity}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             placeholder="Città"
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Genere
                           <select
                             name="gender"
                             defaultValue={patient.gender ?? Gender.NOT_SPECIFIED}
-                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           >
                             <option value={Gender.NOT_SPECIFIED}>Non specificato</option>
                             <option value={Gender.FEMALE}>Femmina</option>
@@ -447,27 +447,27 @@ export default async function PatientDetailPage({
                             required
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Email
                           <input
                             name="email"
                             type="email"
                             defaultValue={patient.email ?? ""}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             placeholder="email@esempio.it"
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Codice Fiscale
                           <input
                             name="taxId"
                             defaultValue={parsedTaxId}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 uppercase outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 uppercase outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             placeholder="Codice Fiscale"
                             maxLength={16}
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Data di Nascita
                           <input
                             type="date"
@@ -477,16 +477,16 @@ export default async function PatientDetailPage({
                                 ? new Date(patient.birthDate).toISOString().split("T")[0]
                                 : ""
                             }
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
                       </div>
                     </section>
 
-                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+                    <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900">
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anamnesi Generale</p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
                           Seleziona eventuali condizioni mediche presenti o passate.
                         </p>
                       </div>
@@ -497,7 +497,7 @@ export default async function PatientDetailPage({
                         {conditionsList.map((condition, index) => (
                           <label
                             key={`${condition}-${index}`}
-                            className="inline-flex items-start gap-2 text-sm text-zinc-800"
+                            className="inline-flex items-start gap-2 text-sm text-zinc-800 dark:text-zinc-200"
                           >
                             <input
                               type="checkbox"
@@ -530,8 +530,8 @@ export default async function PatientDetailPage({
             </div>
           </details>
 
-          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm [&_summary::-webkit-details-marker]:hidden">
-            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               <span className="flex items-center gap-3">
                 <svg
                   className="h-8 w-8 text-emerald-600"
@@ -557,7 +557,7 @@ export default async function PatientDetailPage({
                     label="Stampa consensi"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
                   >
                     <svg
                       className="h-4 w-4"
@@ -578,7 +578,7 @@ export default async function PatientDetailPage({
                   </PrintLinkButton>
                 ) : null}
                 <svg
-                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-300"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -606,7 +606,7 @@ export default async function PatientDetailPage({
                           </div>
                         ) : null}
                         {patient.consents.length === 0 ? (
-                          <p className="text-sm text-zinc-600">Nessun consenso registrato.</p>
+                          <p className="text-sm text-zinc-600 dark:text-zinc-300">Nessun consenso registrato.</p>
                         ) : (
                           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                             {patient.consents.map((consent) => {
@@ -614,10 +614,10 @@ export default async function PatientDetailPage({
                               return (
                                 <div
                                   key={consent.id}
-                                  className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900"
+                                className="flex flex-col gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
                                 >
                                   <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold uppercase text-emerald-800">
-                                    <span className="rounded-full bg-white px-2 py-1">
+                                    <span className="rounded-full bg-white px-2 py-1 dark:bg-zinc-900">
                                       {consent.module?.name ?? "Modulo"}
                                     </span>
                                     <span className="rounded-full bg-emerald-700 px-3 py-1 text-white">
@@ -639,7 +639,7 @@ export default async function PatientDetailPage({
                                         Stampa
                                       </Link>
                                     ) : (
-                                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500">
+                                      <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
                                         Firma non disponibile
                                       </span>
                                     )}
@@ -676,18 +676,18 @@ export default async function PatientDetailPage({
                           revokeAction={revokeConsentAction}
                         />
                         {canExport ? (
-                          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
                             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
                               Strumenti GDPR
                             </p>
-                            <p className="mt-2 text-sm text-emerald-900">
+                              <p className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">
                               Esporta o elimina i dati personali per richieste dell&apos;interessato.
                             </p>
                             <div className="mt-3 flex flex-wrap items-center gap-2">
                               {canExport ? (
                                 <a
                                   href={`/api/patients/${patient.id}/export`}
-                                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-4 py-2 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 dark:border-emerald-800 dark:bg-zinc-900 dark:text-emerald-300"
                                 >
                                   Scarica dati
                                 </a>
@@ -710,8 +710,8 @@ export default async function PatientDetailPage({
             />
           ) : null}
 
-          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
-            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+          <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               <span className="flex items-center gap-3">
                 <svg
                   className="h-8 w-8 text-emerald-600"
@@ -729,7 +729,7 @@ export default async function PatientDetailPage({
                 <span className="uppercase tracking-wide">Comunicazioni</span>
               </span>
               <svg
-                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-300"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -743,14 +743,14 @@ export default async function PatientDetailPage({
             </summary>
             <div className="space-y-4 p-6">
               <div className="grid gap-3 lg:grid-cols-3">
-                <form action={sendPatientSmsAction} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+                <form action={sendPatientSmsAction} className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
                   <input type="hidden" name="patientId" value={patient.id} />
                   <label className="flex flex-col gap-1">
                     Template
                     <select
                       name="templateId"
                       required
-                      className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       defaultValue={visibleSmsTemplates[0]?.id ?? ""}
                     >
                       <option value="" disabled>
@@ -770,12 +770,12 @@ export default async function PatientDetailPage({
 
                 <form
                   action={sendPatientAccessEmailAction}
-                  className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
+                  className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
                 >
                   <input type="hidden" name="patientId" value={patient.id} />
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-zinc-900">Invia accesso area pazienti</p>
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Invia accesso area pazienti</p>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
                       Invia il link di accesso all&apos;email del paziente:{" "}
                       <span className="font-semibold">{patient.email ?? "—"}</span>
                     </p>
@@ -786,7 +786,7 @@ export default async function PatientDetailPage({
                   >
                     Invia email accesso
                   </FormSubmitButton>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Ultimo invio:{" "}
                     {lastAccessEmailLog
                       ? new Date(lastAccessEmailLog.createdAt).toLocaleString("it-IT", {
@@ -797,10 +797,10 @@ export default async function PatientDetailPage({
                   </p>
                 </form>
 
-                <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800">
+                <div className="space-y-2 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-zinc-900">Promemoria WhatsApp</p>
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Promemoria WhatsApp</p>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
                       Invia un promemoria al numero:{" "}
                       <span className="font-semibold">{patientPhone ?? "—"}</span>
                     </p>
@@ -817,7 +817,7 @@ export default async function PatientDetailPage({
                       Invia promemoria
                     </span>
                   )}
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Ultimo invio:{" "}
                     {lastWhatsappLog
                       ? new Date(lastWhatsappLog.createdAt).toLocaleString("it-IT", {
@@ -829,24 +829,24 @@ export default async function PatientDetailPage({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-zinc-200 bg-white p-4">
+              <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-zinc-900">Log invii</h3>
-                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-[11px] font-semibold text-zinc-700">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Log invii</h3>
+                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                     {smsLogs.length}
                   </span>
                 </div>
                 <div className="mt-3 space-y-2">
                   {smsLogs.length === 0 ? (
-                    <p className="text-sm text-zinc-600">Nessun SMS inviato.</p>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-300">Nessun SMS inviato.</p>
                   ) : (
                     smsLogs.map((log) => (
                       <div
                         key={log.id}
-                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800"
+                        className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-semibold text-zinc-900">{log.to}</span>
+                          <span className="font-semibold text-zinc-900 dark:text-zinc-50">{log.to}</span>
                           <span
                             className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
                               log.status === "SENT" || log.status === "SIMULATED"
@@ -857,11 +857,11 @@ export default async function PatientDetailPage({
                             {log.status}
                           </span>
                         </div>
-                        <p className="text-[11px] text-zinc-600">
+                        <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                           {log.template?.name ? `${log.template.name} · ` : ""}
                           {new Date(log.createdAt).toLocaleString("it-IT")}
                         </p>
-                        <p className="text-sm text-zinc-700 line-clamp-2">{log.body}</p>
+                        <p className="line-clamp-2 text-sm text-zinc-700 dark:text-zinc-300">{log.body}</p>
                         {log.error ? (
                           <p className="text-[11px] text-rose-600">Errore: {log.error}</p>
                         ) : null}
@@ -875,8 +875,8 @@ export default async function PatientDetailPage({
 
         </div>
 
-      <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm [&_summary::-webkit-details-marker]:hidden">
-        <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-base font-semibold text-zinc-900">
+      <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
           <span className="flex items-center gap-3">
             <svg
               className="h-8 w-8 text-emerald-600"
@@ -894,7 +894,7 @@ export default async function PatientDetailPage({
             <span className="uppercase tracking-wide">Associa impianti</span>
           </span>
           <svg
-            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-300"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -906,7 +906,7 @@ export default async function PatientDetailPage({
             <path d="m6 9 6 6 6-6" />
           </svg>
         </summary>
-        <p className="pt-4 text-sm text-zinc-600">
+        <p className="pt-4 text-sm text-zinc-600 dark:text-zinc-300">
           Registra impianti/protesi collegati al paziente utilizzando i dati di magazzino.
         </p>
 
@@ -1185,7 +1185,7 @@ export default async function PatientDetailPage({
             <path d="M3 10h18" />
             <path d="M8 14h4" />
           </svg>
-          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-50">
             Storico appuntamenti
           </h2>
         </div>
@@ -1278,7 +1278,7 @@ export default async function PatientDetailPage({
           <path d="M9 13h6" />
           <path d="M9 17h4" />
         </svg>
-        <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+        <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-50">
           Storico scheda
         </h2>
       </div>

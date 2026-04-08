@@ -69,7 +69,7 @@ export function renderUpdateMarkdown(markdown: string) {
     if (line.startsWith("# ")) {
       flushList();
       nodes.push(
-        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900">
+        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^#\s+/, "")}
         </h3>
       );
@@ -79,7 +79,7 @@ export function renderUpdateMarkdown(markdown: string) {
     if (line.startsWith("## ")) {
       flushList();
       nodes.push(
-        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900">
+        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^##\s+/, "")}
         </h4>
       );

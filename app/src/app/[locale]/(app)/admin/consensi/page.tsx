@@ -81,7 +81,7 @@ export default async function AdminConsentModulesPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Consensi
         </p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Moduli consenso dinamici</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Moduli consenso dinamici</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Gestisci i moduli che appaiono nella scheda paziente. Puoi attivare/disattivare e segnare quelli obbligatori.
         </p>
@@ -89,7 +89,7 @@ export default async function AdminConsentModulesPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr,1.1fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">Nuovo modulo</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Nuovo modulo</h2>
           <p className="mt-1 text-sm text-zinc-600">
             Il contenuto supporta titoli <code className="rounded bg-zinc-100 px-1">#</code>, sottotitoli{" "}
             <code className="rounded bg-zinc-100 px-1">##</code>, liste{" "}

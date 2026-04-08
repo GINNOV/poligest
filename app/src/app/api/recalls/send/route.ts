@@ -12,6 +12,7 @@ import {
   computeRecurringRecallCreates,
   shouldSkipAppointmentReminder,
 } from "@/lib/recalls/send-domain";
+import { sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
 
 const HORIZON_DAYS = 30;
 
@@ -115,6 +116,7 @@ export async function GET(req: Request) {
 
   try {
     const now = new Date();
+    let weeklyReport: Awaited<ReturnType<typeof sendPracticeWeeklyReport>> | null = null;
     await enqueueRecurringRecalls(now);
     await enqueueAppointmentReminders(now);
     const dueRecalls = await prisma.recall.findMany({
@@ -258,9 +260,16 @@ export async function GET(req: Request) {
       }
     }
 
+    try {
+      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON" });
+    } catch (err) {
+      console.error("[practice_weekly_report] failed during recalls cron", { err });
+    }
+
     return NextResponse.json({
       processed: dueRecalls.length,
       appointmentReminders: dueAppointmentReminders.length,
+      weeklyReport,
     });
   } catch (error) {
     return errorResponse({

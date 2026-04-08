@@ -156,7 +156,7 @@ export default async function PatientPrintPage({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Scheda paziente
               </p>
-              <h1 className="text-2xl font-semibold text-zinc-900">Studio Agovino & Angrisano</h1>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
             </div>
           </div>
           <PrintButton
@@ -217,7 +217,7 @@ export default async function PatientPrintPage({
         </div>
 
         <div className="border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Diario clinico</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Diario clinico</h2>
           {dentalRecords.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-600">Nessun record clinico disponibile.</p>
           ) : (
@@ -260,7 +260,7 @@ export default async function PatientPrintPage({
         </div>
 
         <div className="border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Impianti</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Impianti</h2>
           {implants.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-600">Nessun impianto associato.</p>
           ) : (
@@ -299,7 +299,7 @@ export default async function PatientPrintPage({
         </div>
 
         <div className="border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti passati</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Appuntamenti passati</h2>
           {pastAppointments.length === 0 ? (
             <p className="mt-2 text-sm text-zinc-600">Nessun appuntamento passato.</p>
           ) : (
@@ -333,7 +333,7 @@ export default async function PatientPrintPage({
           )}
         </div>
         <div className="border-t border-zinc-200 pt-6">
-          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900">
+          <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-50">
             Storico scheda
           </h2>
           <div className="mt-4 grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">

@@ -35,7 +35,7 @@ export default async function NuovoPazientePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Pazienti</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Registrazione paziente</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Registrazione paziente</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Compila per creare una nuova scheda paziente, includendo consenso e firma digitale.
           </p>
@@ -53,7 +53,7 @@ export default async function NuovoPazientePage() {
         <PatientCreateRedirectField />
         <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-zinc-900">Dati Personali</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Dati Personali</p>
             <p className="text-xs text-zinc-500">Informazioni personali del paziente.</p>
           </div>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -162,7 +162,7 @@ export default async function NuovoPazientePage() {
 
         <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-zinc-900">Anamnesi Generale</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anamnesi Generale</p>
             <p className="text-xs text-zinc-500">
               Seleziona eventuali condizioni mediche presenti o passate.
             </p>

@@ -89,11 +89,11 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
     <div className="space-y-6">
       <div>
         <p className="text-sm text-zinc-600">Magazzino</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">Movimenti</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h1>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
             +
           </span>

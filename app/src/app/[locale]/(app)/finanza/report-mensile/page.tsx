@@ -157,7 +157,7 @@ export default async function ReportMensilePage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm text-zinc-600">Finanza</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Report Mensile</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Report Mensile</h1>
           <p className="mt-2 text-sm text-zinc-600">
             Riepilogo giornaliero delle entrate del mese selezionato.
           </p>
@@ -189,7 +189,7 @@ export default async function ReportMensilePage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Seleziona il mese</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Seleziona il mese</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Per default viene mostrato il mese precedente.
             </p>
@@ -217,7 +217,7 @@ export default async function ReportMensilePage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:shadow-none">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               Riepilogo di {format(safeMonthDate, "MMMM yyyy", { locale: it })}
             </h2>
             <p className="mt-1 text-sm text-zinc-600">

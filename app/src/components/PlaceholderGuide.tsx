@@ -34,7 +34,7 @@ export function PlaceholderGuide({ placeholders }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
               Segnaposto
             </p>
-            <h2 className="text-lg font-semibold text-zinc-900">Guida placeholder</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Guida placeholder</h2>
             <p className="text-xs text-zinc-500">Usa Cmd/Ctrl + / per aprire o chiudere.</p>
           </div>
           <button

@@ -73,7 +73,7 @@ export default async function RichiamiPage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
           Richiami & notifiche
         </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-900">
+        <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Centro automazioni
         </h1>
         <p className="mt-3 text-sm text-zinc-600">
@@ -100,7 +100,7 @@ export default async function RichiamiPage() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-zinc-900">{tile.title}</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{tile.title}</h2>
                 </div>
                 {tile.badge ? (
                   <span

@@ -96,7 +96,7 @@ const renderMarkdown = (markdown: string) => {
     if (line.startsWith("# ")) {
       flushList();
       nodes.push(
-        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900">
+        <h3 key={`h1-${idx}`} className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^#\s+/, "")}
         </h3>,
       );
@@ -106,7 +106,7 @@ const renderMarkdown = (markdown: string) => {
     if (line.startsWith("## ")) {
       flushList();
       nodes.push(
-        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900">
+        <h4 key={`h2-${idx}`} className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           {line.replace(/^##\s+/, "")}
         </h4>,
       );
@@ -545,7 +545,7 @@ export function PatientConsentSection({
     >
       {!hideIntro ? (
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-zinc-900">Consenso Informato</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Consenso Informato</p>
           <p className="text-xs text-zinc-500 leading-relaxed">
             Leggi l&apos;informativa completa e raccogli la firma digitale del paziente.
             La firma è obbligatoria per completare la registrazione.
@@ -706,7 +706,7 @@ export function PatientConsentSection({
                   <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
                     Informativa {moduleLabel || "consenso"}
                   </p>
-                  <h2 className="text-xl font-semibold text-zinc-900">Lettura e firma digitale</h2>
+                  <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Lettura e firma digitale</h2>
                   <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
                 </div>
                 <button

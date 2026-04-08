@@ -428,7 +428,7 @@ export function DentalChart({
       )}
       open={!defaultCollapsed}
     >
-      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
         <span className="flex items-center gap-3">
           <svg
             className="h-8 w-8 text-emerald-600"
@@ -619,7 +619,7 @@ export function DentalChart({
                     ? "Tutta la bocca"
                     : `Dente ${selectedTooth}`}
               </p>
-              <h3 className="text-lg font-semibold text-zinc-900">Procedura</h3>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Procedura</h3>
               <p className="mt-1 text-xs text-zinc-500">
                 Seleziona un dente, poi una procedura che sara&apos; effettuata su quel dente. Aggiungi le note cliniche e poi clicca su Aggiungi al diario.
               </p>
@@ -722,7 +722,7 @@ export function DentalChart({
 
       <aside className="mx-6 mb-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between pb-2">
-          <h3 className="text-sm font-semibold text-zinc-900">Pianificazioni</h3>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Pianificazioni</h3>
           <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-zinc-700">
             {records.length}
           </span>

@@ -134,7 +134,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-900">Movimenti &amp; Prodotti</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Movimenti &amp; Prodotti</h1>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 className="h-44 w-full object-cover"
               />
             </div>
-            <h2 className="mt-3 text-base font-semibold text-zinc-900">Gestione fornitori</h2>
+            <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Gestione fornitori</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Aggiungi nuovi fornitori. Aggiorna fornitori esistenti.
             </p>
@@ -170,7 +170,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 className="h-44 w-full object-cover"
               />
             </div>
-            <h2 className="mt-3 text-base font-semibold text-zinc-900">
+            <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               Gestione Materiali &amp; Impianti
             </h2>
             <p className="mt-1 text-sm text-zinc-600">
@@ -190,7 +190,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 className="h-44 w-full object-cover"
               />
             </div>
-            <h2 className="mt-3 text-base font-semibold text-zinc-900">Movimenti</h2>
+            <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Entrate e uscite per il magazzino
             </p>
@@ -198,7 +198,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
         </div>
 
         <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(movementQuery)}>
-          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Lista prodotti
           </summary>
           <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
@@ -307,7 +307,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
       {/* Movements Section */}
       <div className="space-y-4">
         <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(query)}>
-          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Lista movimenti
           </summary>
           <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">

@@ -94,7 +94,7 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Lista movimenti
               </p>
-              <h1 className="text-2xl font-semibold text-zinc-900">Studio Agovino & Angrisano</h1>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
               {movementQuery || safeDateFrom || safeDateTo ? (
                 <p className="text-xs text-zinc-500">
                   Filtro:

@@ -739,7 +739,7 @@ export default async function CalendarPage({
       <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-900">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Aggiungi appuntamenti dei medici
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
@@ -786,7 +786,7 @@ export default async function CalendarPage({
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900 capitalize">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 capitalize">
                 {view === "month" ? (
                   monthLabel
                 ) : (

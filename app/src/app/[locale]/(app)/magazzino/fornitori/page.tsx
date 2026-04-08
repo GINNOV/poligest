@@ -14,11 +14,11 @@ export default async function FornitoriPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-zinc-600">Magazzino</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">Fornitori</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Fornitori</h1>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-semibold text-zinc-900">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
             +
           </span>
@@ -60,7 +60,7 @@ export default async function FornitoriPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-zinc-900">Fornitori</h2>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Fornitori</h2>
         {suppliers.length === 0 ? (
           <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
             Nessun fornitore presente.

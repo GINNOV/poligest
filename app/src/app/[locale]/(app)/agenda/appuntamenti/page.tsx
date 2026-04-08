@@ -163,7 +163,7 @@ export default async function AgendaPage({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-zinc-900">Appuntamenti</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Appuntamenti</h2>
         {successMessage ? (
           <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {successMessage}

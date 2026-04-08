@@ -135,12 +135,12 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
 
   return (
     <div className="contents" ref={containerRef}>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         <span
           className={
             activeField === "medications"
               ? "font-semibold text-emerald-700"
-              : "font-medium text-zinc-800"
+              : "font-medium text-zinc-800 dark:text-zinc-200"
           }
         >
           Specificare eventuali farmaci assunti regolarmente
@@ -150,16 +150,16 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
           value={medications}
           onChange={(event) => setMedications(event.target.value)}
           onFocus={() => handleFocus("medications")}
-          className="min-h-[90px] w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-[90px] w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
           placeholder="Elenca farmaci e dosaggi"
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         <span
           className={
             activeField === "extraNotes"
               ? "font-semibold text-emerald-700"
-              : "font-medium text-zinc-800"
+              : "font-medium text-zinc-800 dark:text-zinc-200"
           }
         >
           Note aggiuntive
@@ -169,7 +169,7 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
           value={extraNotes}
           onChange={(event) => setExtraNotes(event.target.value)}
           onFocus={() => handleFocus("extraNotes")}
-          className="min-h-[90px] w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-[90px] w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
           placeholder="Annotazioni utili per il medico"
         />
       </label>

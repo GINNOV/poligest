@@ -216,7 +216,7 @@ export default async function ProfilePage() {
     <div className="space-y-6">
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Profilo</p>
-        <h1 className="mt-2 text-2xl font-semibold text-zinc-900">Il tuo profilo</h1>
+        <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Il tuo profilo</h1>
         <p className="mt-2 text-sm text-zinc-600">
           Gestisci avatar, dati personali e visualizza eventuali premi assegnati.
         </p>
@@ -224,7 +224,7 @@ export default async function ProfilePage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr,1.1fr]">
         <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900">Avatar</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Avatar</h2>
           <div className="mt-4 flex items-center gap-4">
             {user.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -266,7 +266,7 @@ export default async function ProfilePage() {
 
         <section className="space-y-6">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-zinc-900">Dati personali</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Dati personali</h2>
             <form action={updateProfileBasics} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
                 Nome
@@ -324,7 +324,7 @@ export default async function ProfilePage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-zinc-900">PIN personale</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PIN personale</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Ogni paziente ha un codice un&apos;univoco (PIN) che e&apos; utilizzato per verificare l&apos;identita&apos;. Il PIN è generato dal sistema, unico e non può essere cambiato.
             </p>
@@ -344,7 +344,7 @@ export default async function ProfilePage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-zinc-900">Premi</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Premi</h2>
             <p className="mt-1 text-sm text-zinc-600">
               Premi assegnati dai medici.
             </p>
@@ -382,7 +382,7 @@ export default async function ProfilePage() {
 
           {isDoctorAccount && currentUser.role !== Role.PATIENT ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-zinc-900">Assegna premio (medico)</h2>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Assegna premio (medico)</h2>
               <p className="mt-1 text-sm text-zinc-600">
                 Seleziona un paziente e assegna un premio con emoji e descrizione.
               </p>

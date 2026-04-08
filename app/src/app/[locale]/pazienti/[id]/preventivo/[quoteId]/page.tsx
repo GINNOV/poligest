@@ -107,7 +107,7 @@ export default async function QuotePrintPage({
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
                 Preventivo
               </p>
-              <h1 className="text-2xl font-semibold text-zinc-900">Studio Agovino & Angrisano</h1>
+              <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
             </div>
           </div>
           <PrintButton

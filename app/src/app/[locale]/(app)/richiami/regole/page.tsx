@@ -53,7 +53,7 @@ export default async function RichiamiRegolePage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Regole automatiche</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Regole automatiche</h1>
           <p className="mt-1 text-sm text-zinc-600">
             Definisci intervalli per richiami ricorrenti e promemoria appuntamenti.
           </p>
@@ -306,7 +306,7 @@ export default async function RichiamiRegolePage() {
           <input type="hidden" name="ruleId" value={appointmentReminderDefaults.id} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-emerald-900">Promemoria appuntamenti</h3>
+              <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Promemoria appuntamenti</h3>
               <p className="text-xs text-emerald-700">
                 Invia un promemoria automatico prima di ogni appuntamento programmato.
               </p>

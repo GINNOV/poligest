@@ -87,7 +87,7 @@ export default async function MediciPage() {
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-semibold text-zinc-900">{t("title")}</h1>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
           <p className="mt-2 text-sm text-zinc-600">{t("subtitle")}</p>
 
           <form action={createDoctor} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -150,7 +150,7 @@ export default async function MediciPage() {
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900">Elenco</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Elenco</h2>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
               {doctors.length} medici
             </span>

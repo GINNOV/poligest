@@ -36,7 +36,7 @@ export default async function EmailTemplateEditPage({
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
             Gestione emails
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-zinc-900">{template.name}</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{template.name}</h1>
         </div>
         <Link
           href="/admin/emails"

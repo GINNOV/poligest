@@ -57,12 +57,12 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
     <div className="space-y-6">
       <div>
         <p className="text-sm text-zinc-600">Magazzino</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">Materiali &amp; Impianti</h1>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Materiali &amp; Impianti</h1>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-zinc-900">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
               +
             </span>
@@ -174,7 +174,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-zinc-900">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
               +
             </span>
@@ -258,7 +258,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
 
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-zinc-900">Elenco Materiali &amp; Impianti</h2>
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Elenco Materiali &amp; Impianti</h2>
           <div className="flex flex-wrap items-center gap-3">
             <form method="get" className="flex flex-wrap items-center gap-2">
               {showImplants ? <input type="hidden" name="impianti" value="1" /> : null}

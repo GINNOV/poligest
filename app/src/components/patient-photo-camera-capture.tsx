@@ -186,7 +186,7 @@ export function PatientPhotoCameraCapture({
 
   return (
     <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-xs">
-      <div className="text-[11px] font-semibold text-emerald-900">Scatta foto con la webcam</div>
+      <div className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">Scatta foto con la webcam</div>
       <div className="relative overflow-hidden rounded-lg border border-emerald-100 bg-zinc-50">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
