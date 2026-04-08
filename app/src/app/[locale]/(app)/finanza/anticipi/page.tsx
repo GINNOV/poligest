@@ -108,6 +108,32 @@ export default async function AnticipiPage({
     doctorId: entry.doctorId,
     doctorName: entry.doctor?.fullName ?? "Medico",
   }));
+  const paymentsByDoctor = doctorPayments.reduce<
+    Array<{
+      doctorId: string;
+      doctorName: string;
+      total: number;
+      payments: typeof doctorPayments;
+    }>
+  >((groups, payment) => {
+    const key = payment.doctorId ?? "unknown";
+    const existingGroup = groups.find((group) => group.doctorId === key);
+
+    if (existingGroup) {
+      existingGroup.total += Number(payment.amount);
+      existingGroup.payments.push(payment);
+      return groups;
+    }
+
+    groups.push({
+      doctorId: key,
+      doctorName: payment.doctorName,
+      total: Number(payment.amount),
+      payments: [payment],
+    });
+
+    return groups;
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -268,32 +294,69 @@ export default async function AnticipiPage({
             Nessun pagamento medico registrato.
           </div>
         ) : (
-          doctorPayments.map((payment) => (
-            <div key={payment.id} className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="text-sm font-semibold text-zinc-900">{payment.doctorName}</div>
-                  <div className="text-xs text-zinc-600">
-                    {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(payment.occurredAt)} ·{" "}
-                    {payment.description || "Liquidazione"}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <form action={archiveDoctorPayment}>
-                    <input type="hidden" name="entryId" value={payment.id} />
-                    <button
-                      type="submit"
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+          paymentsByDoctor.map((group) => (
+            <details
+              key={group.doctorId}
+              className="group rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm"
+              open
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 marker:content-none">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-90"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
                     >
-                      Archivia
-                    </button>
-                  </form>
-                  <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                    {Number(payment.amount).toFixed(2)} €
-                  </span>
+                      <path d="m7 4 6 6-6 6" />
+                    </svg>
+                    <h2 className="truncate text-sm font-semibold text-zinc-900">{group.doctorName}</h2>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {group.payments.length} {group.payments.length === 1 ? "pagamento" : "pagamenti"}
+                  </p>
                 </div>
+                <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                  {group.total.toFixed(2)} €
+                </span>
+              </summary>
+
+              <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
+                {group.payments.map((payment) => (
+                  <div key={payment.id} className="rounded-2xl border border-zinc-200 px-4 py-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <div className="text-xs text-zinc-600">
+                          {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(payment.occurredAt)}
+                        </div>
+                        <div className="text-sm font-medium text-zinc-900">
+                          {payment.description || "Liquidazione"}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <form action={archiveDoctorPayment}>
+                          <input type="hidden" name="entryId" value={payment.id} />
+                          <button
+                            type="submit"
+                            className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                          >
+                            Archivia
+                          </button>
+                        </form>
+                        <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                          {Number(payment.amount).toFixed(2)} €
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </details>
           ))
         )}
       </div>
