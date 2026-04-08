@@ -30,6 +30,14 @@ const formatCurrency = (value: number) =>
     currency: "EUR",
   }).format(value);
 
+type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid";
+
+function getQuoteItemPaymentStatus(paid: number, remaining: number): QuoteItemPaymentStatus {
+  if (remaining < 0.01) return "settled";
+  if (paid > 0.009) return "partial";
+  return "unpaid";
+}
+
 export default async function PagamentiPage({
   searchParams,
 }: {
@@ -106,6 +114,7 @@ export default async function PagamentiPage({
     );
     const paid = paidFromPayments > 0 ? paidFromPayments : item.saldato ? total : 0;
     const remaining = Math.max(total - paid, 0);
+    const status = getQuoteItemPaymentStatus(paid, remaining);
     return {
       id: item.id,
       serviceName: item.serviceName,
@@ -113,7 +122,8 @@ export default async function PagamentiPage({
       total,
       paid,
       remaining,
-      saldato: remaining < 0.01,
+      saldato: status === "settled",
+      status,
       label: `${item.serviceName} · residuo ${formatCurrency(remaining)}`,
     };
   });
@@ -245,12 +255,18 @@ export default async function PagamentiPage({
                         </div>
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                            item.saldato
+                            item.status === "settled"
                               ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
+                              : item.status === "partial"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {item.saldato ? "Saldato" : "Da incassare"}
+                          {item.status === "settled"
+                            ? "Saldato"
+                            : item.status === "partial"
+                              ? "Parzialmente incassato"
+                              : "Da incassare"}
                         </span>
                       </div>
                       <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-3">

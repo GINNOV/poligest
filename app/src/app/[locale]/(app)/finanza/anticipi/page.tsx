@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 const ARCHIVE_PREFIX = "ARCHIVIATO:";
 const DOCTOR_PAYMENT_PREFIX = "Pagamento medico";
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type MediciSearchParams = {
   aq?: string;
   afrom?: string;
@@ -46,16 +53,12 @@ export default async function AnticipiPage({
   await requireUser([Role.ADMIN, Role.MANAGER]);
 
   const resolvedSearchParams = (await searchParams) ?? {};
-  const now = new Date();
-  const defaultTo = now.toISOString().slice(0, 10);
-  const defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+  const today = toDateInputValue(new Date());
   const advanceQuery = (resolvedSearchParams.aq ?? "").trim();
-  const advanceFromValue = resolvedSearchParams.afrom ?? defaultFrom;
-  const advanceToValue = resolvedSearchParams.ato ?? defaultTo;
+  const advanceFromValue = (resolvedSearchParams.afrom ?? "").trim();
+  const advanceToValue = (resolvedSearchParams.ato ?? "").trim();
   const hasAdvancedFilters =
-    advanceQuery.length > 0 || advanceFromValue !== defaultFrom || advanceToValue !== defaultTo;
+    advanceQuery.length > 0 || advanceFromValue.length > 0 || advanceToValue.length > 0;
   const advanceFromDate = advanceFromValue
     ? new Date(`${advanceFromValue}T00:00:00`)
     : null;
@@ -205,7 +208,7 @@ export default async function AnticipiPage({
               type="date"
               name="occurredAt"
               required
-              defaultValue={defaultTo}
+              defaultValue={today}
               className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </label>
@@ -287,6 +290,7 @@ export default async function AnticipiPage({
               Applica
             </button>
           </form>
+          <p className="mt-3 text-xs text-zinc-500">Le date sono opzionali. Se le lasci vuote, lo storico mostra tutti i pagamenti registrati.</p>
         </details>
 
         {doctorPayments.length === 0 ? (

@@ -36,6 +36,18 @@ const EURO_FORMATTER = new Intl.NumberFormat("it-IT", {
   currency: "EUR",
 });
 
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) return "";
+  if (/^https?:\/\//.test(rawOrigin)) return rawOrigin.replace(/\/$/, "");
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
+}
+
+function resolveSiteOrigin() {
+  return normalizeSiteOrigin(
+    process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+  );
+}
+
 type AuditActor = {
   id: string;
   role: Role;
@@ -503,6 +515,8 @@ function buildKpiCard(label: string, value: string, detail: string) {
 }
 
 function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics) {
+  const siteOrigin = resolveSiteOrigin();
+  const logoUrl = siteOrigin ? `${siteOrigin}/logo/studio_agovinoangrisano_logo.png` : "";
   const completionRate =
     metrics.scheduledAppointments > 0
       ? (metrics.completedAppointments / metrics.scheduledAppointments) * 100
@@ -537,10 +551,32 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
   return `
     <div style="margin:0;padding:24px;background:#f4f4f5;font-family:Arial,sans-serif;color:#18181b;">
       <div style="max-width:880px;margin:0 auto;background:#ffffff;border:1px solid #e4e4e7;border-radius:24px;overflow:hidden;">
-        <div style="padding:28px 28px 20px;background:linear-gradient(135deg,#ecfdf5 0%,#ffffff 70%);border-bottom:1px solid #e4e4e7;">
-          <div style="font-size:12px;line-height:16px;color:#047857;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">SORRISO · report settimanale</div>
-          <h1 style="margin:10px 0 6px;font-size:30px;line-height:36px;color:#18181b;">${escapeHtml(period.label)}</h1>
-          <p style="margin:0;font-size:15px;line-height:22px;color:#52525b;">
+        <div style="padding:28px 28px 20px;background:#ffffff;border-bottom:1px solid #e4e4e7;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            <tr>
+              <td style="vertical-align:top;">
+                <table role="presentation" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+                  <tr>
+                    ${
+                      logoUrl
+                        ? `<td style="vertical-align:middle;padding-right:16px;">
+                            <div style="height:56px;width:160px;border-radius:12px;background:#ffffff;padding:8px;box-sizing:border-box;">
+                              <img src="${escapeHtml(logoUrl)}" alt="Logo Studio Agovino & Angrisano" width="144" height="40" style="display:block;height:40px;width:144px;object-fit:contain;" />
+                            </div>
+                          </td>`
+                        : ""
+                    }
+                    <td style="vertical-align:middle;">
+                      <div style="font-size:12px;line-height:16px;color:#047857;text-transform:uppercase;letter-spacing:0.2em;font-weight:700;">Report settimanale</div>
+                      <div style="margin-top:6px;font-size:30px;line-height:36px;color:#18181b;font-weight:700;">Studio Agovino &amp; Angrisano</div>
+                      <div style="margin-top:6px;font-size:13px;line-height:18px;color:#71717a;">Periodo: ${escapeHtml(period.label)}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:18px 0 0;font-size:15px;line-height:22px;color:#52525b;">
             Una fotografia semplice dell'attività clinica, dei contatti automatici ai pazienti e dei risultati economici registrati in settimana.
           </p>
         </div>
