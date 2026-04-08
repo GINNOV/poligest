@@ -301,9 +301,6 @@ export default async function DashboardPage({
       include: {
         patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true, phone: true } },
         doctor: { select: { fullName: true, specialty: true } },
-        appointmentReminders: {
-          select: { status: true, lastContactAt: true },
-        },
       },
     }),
     prisma.smsTemplate.findUnique({
@@ -311,6 +308,19 @@ export default async function DashboardPage({
     }),
   ]);
   const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
+  const reminderClickLogs = appointments.length
+    ? await prisma.auditLog.findMany({
+        where: {
+          action: "appointment.whatsapp_reminder_clicked",
+          entity: "Appointment",
+          entityId: { in: appointments.map((appt) => appt.id) },
+        },
+        select: { entityId: true },
+      })
+    : [];
+  const clickedReminderAppointmentIds = new Set(
+    reminderClickLogs.flatMap((log) => (log.entityId ? [log.entityId] : []))
+  );
 
   const perDay = days.map((day) => {
     const key = getDateKey(day);
@@ -376,9 +386,7 @@ export default async function DashboardPage({
       phone: appt.patient.phone,
     },
     doctor: appt.doctor?.fullName ? { fullName: appt.doctor.fullName } : null,
-    reminderSent: appt.appointmentReminders.some(
-      (reminder) => reminder.status === "CONTACTED" || Boolean(reminder.lastContactAt)
-    ),
+    reminderSent: clickedReminderAppointmentIds.has(appt.id),
   }));
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
@@ -656,7 +664,7 @@ export default async function DashboardPage({
           label="Stampa agenda del giorno"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-emerald-700 px-4 text-center text-sm font-semibold text-white transition hover:bg-emerald-600"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-600 sm:whitespace-nowrap sm:px-4"
         >
           <svg
             className="h-4 w-4"
@@ -688,7 +696,7 @@ export default async function DashboardPage({
             <path d="M8 2v4" />
             <path d="M3 10h18" />
           </svg>
-          <span className="text-center">Stampa agenda del giorno</span>
+          <span className="hidden text-center sm:inline">Stampa agenda del giorno</span>
         </PrintLinkButton>
       </div>
 
@@ -735,7 +743,7 @@ export default async function DashboardPage({
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold text-zinc-900">Filtra per...</h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
@@ -764,11 +772,43 @@ export default async function DashboardPage({
               <DoctorFilter doctors={doctors} selectedDoctor={selectedDoctor} />
             )}
           </div>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+          <span className="self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 sm:self-auto">
             {listAppointments.length} appuntamenti
           </span>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
+        <details className="group mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 sm:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold uppercase tracking-wide text-zinc-500">
+            <span>Legenda colori</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 transition group-open:rotate-180"
+            >
+              <path d="m5 7 5 6 5-6" />
+            </svg>
+          </summary>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {statusLegendItems.map(([status, label]) => (
+              <span
+                key={status}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold ${statusClasses[status]}`}
+              >
+                <span className="h-2 w-2 rounded-full bg-current" />
+                {label}
+              </span>
+            ))}
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800">
+              <span className="h-2 w-2 rounded-full bg-amber-600" />
+              Passato ✅
+            </span>
+          </div>
+        </details>
+        <div className="mt-3 hidden flex-wrap items-center gap-2 text-xs text-zinc-700 sm:flex">
           <span className="font-semibold uppercase tracking-wide text-zinc-500">Legenda colori</span>
           {statusLegendItems.map(([status, label]) => (
             <span

@@ -3,6 +3,7 @@ import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -130,15 +131,21 @@ export default async function ReportUscitePage({
             Riepilogo mensile delle uscite, organizzato per fornitore e tipologia materiale.
           </p>
         </div>
-        <div className="rounded-xl border border-dashed border-rose-300 bg-rose-50 px-4 py-3 text-right">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
-            Totale uscite
-          </p>
-          <p className="mt-1 text-xl font-semibold text-rose-900">{formatCurrency(totalExpenses)}</p>
+        <div className="flex flex-col gap-3 sm:items-end">
+          <PrintButton
+            label="Stampa report"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
+          />
+          <div className="rounded-xl border border-dashed border-rose-300 bg-rose-50 px-4 py-3 text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700">
+              Totale uscite
+            </p>
+            <p className="mt-1 text-xl font-semibold text-rose-900">{formatCurrency(totalExpenses)}</p>
+          </div>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Seleziona il mese</h2>

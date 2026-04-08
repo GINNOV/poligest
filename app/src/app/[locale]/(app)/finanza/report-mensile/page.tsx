@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { PatientPaymentMethod, Role } from "@prisma/client";
+import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +162,12 @@ export default async function ReportMensilePage({
             Riepilogo giornaliero delle entrate del mese selezionato.
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="flex flex-col gap-3 sm:items-end">
+          <PrintButton
+            label="Stampa report"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
+          />
+          <div className="grid gap-2 sm:grid-cols-2">
           <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
               Totale del mese
@@ -176,10 +182,11 @@ export default async function ReportMensilePage({
               {formatCurrency(monthAnticipo)} / {formatCurrency(monthPaghero)} / {formatCurrency(monthDue)}
             </p>
           </div>
+          </div>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">Seleziona il mese</h2>
@@ -207,7 +214,7 @@ export default async function ReportMensilePage({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:shadow-none">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900">

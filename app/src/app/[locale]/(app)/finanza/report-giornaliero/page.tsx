@@ -4,6 +4,7 @@ import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
+import { PrintButton } from "@/components/print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -72,15 +73,21 @@ export default async function ReportGiornalieroPage({
             Flusso in entrata del giorno selezionato nella settimana corrente.
           </p>
         </div>
-        <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-            Totale incassato
-          </p>
-          <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(totalIncome)}</p>
+        <div className="flex flex-col gap-3 sm:items-end">
+          <PrintButton
+            label="Stampa report"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
+          />
+          <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+              Totale incassato
+            </p>
+            <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(totalIncome)}</p>
+          </div>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-zinc-900">Seleziona il giorno</h2>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">

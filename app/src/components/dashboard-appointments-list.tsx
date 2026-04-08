@@ -68,6 +68,7 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [page, setPage] = useState(1);
+  const [clickedReminderIds, setClickedReminderIds] = useState<string[]>([]);
   const orderedAppointments = useMemo(() => {
     const isSameDay = (date: Date, target: Date) => getDateKey(date) === getDateKey(target);
     const parsed = appointments.map((appt) => ({
@@ -132,6 +133,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
         const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate) : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
+        const reminderSent = appt.reminderSent || clickedReminderIds.includes(appt.id);
         const outerCardClass = index % 2 === 0
           ? "border-zinc-200 bg-white/90"
           : "border-zinc-200 bg-zinc-50/80";
@@ -201,30 +203,38 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <div className="relative inline-flex w-full justify-end sm:w-auto">
-                      <button
-                        type="button"
-                        disabled={!whatsappHref}
-                        onClick={() => {
-                          if (whatsappHref) {
-                            window.location.href = whatsappHref;
-                          }
-                        }}
-                        className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold text-white transition sm:w-auto ${
-                          whatsappHref
+                    <button
+                      type="button"
+                      disabled={!whatsappHref}
+                      onClick={() => {
+                        if (!whatsappHref) return;
+                        setClickedReminderIds((prev) => (prev.includes(appt.id) ? prev : [...prev, appt.id]));
+                        const clickLogUrl = `/api/appointments/${appt.id}/whatsapp-reminder-click`;
+                        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+                          navigator.sendBeacon(clickLogUrl, new Blob(["{}"], { type: "application/json" }));
+                        } else {
+                          void fetch(clickLogUrl, {
+                            method: "POST",
+                            keepalive: true,
+                            headers: { "content-type": "application/json" },
+                            body: "{}",
+                          });
+                        }
+                        window.location.href = whatsappHref;
+                      }}
+                      className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold text-white transition sm:w-auto ${
+                        reminderSent
+                          ? whatsappHref
                             ? "bg-emerald-700 hover:bg-emerald-600"
                             : "bg-emerald-700/60 opacity-70"
-                        }`}
-                      >
-                          <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                          Promemoria
-                      </button>
-                      {appt.reminderSent ? (
-                        <span className="absolute -bottom-2 left-1/2 inline-flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-emerald-200 bg-white text-[11px] font-bold text-emerald-700 shadow-sm">
-                          ✓
-                        </span>
-                      ) : null}
-                    </div>
+                          : whatsappHref
+                            ? "bg-rose-600 hover:bg-rose-500"
+                            : "bg-rose-600/60 opacity-70"
+                      }`}
+                    >
+                      <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                      Promemoria
+                    </button>
                   </div>
                 </div>
               </div>

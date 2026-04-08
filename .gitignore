@@ -46,3 +46,4 @@ gha-creds-*.json
 app/.gemini-clipboard
 app/logs
 output
+.playwright-cli
