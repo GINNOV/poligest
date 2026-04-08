@@ -214,3 +214,43 @@ export async function createCashAdvance(formData: FormData) {
   revalidatePath("/finanza");
   revalidatePath("/finanza/anticipi");
 }
+
+export async function createDoctorPayment(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const doctorId = (formData.get("doctorId") as string) || "";
+  const amountRaw = (formData.get("amount") as string)?.trim() || "";
+  const occurredAt = (formData.get("occurredAt") as string) || "";
+  const note = ((formData.get("note") as string) || "").trim();
+
+  if (!doctorId || !amountRaw || !occurredAt) {
+    throw new Error("Dati mancanti");
+  }
+
+  const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
+  if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+    throw new Error("Importo non valido");
+  }
+
+  const doctor = await prisma.doctor.findUnique({
+    where: { id: doctorId },
+    select: { fullName: true },
+  });
+
+  if (!doctor) {
+    throw new Error("Medico non trovato");
+  }
+
+  await prisma.financeEntry.create({
+    data: {
+      type: "EXPENSE",
+      description: ["Pagamento medico", note || "Liquidazione"].join(" · "),
+      amount: new Prisma.Decimal(amountNumber),
+      occurredAt: new Date(occurredAt),
+      doctorId,
+      userId: user.id,
+    },
+  });
+
+  revalidatePath("/finanza");
+  revalidatePath("/finanza/anticipi");
+}
