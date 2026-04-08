@@ -68,6 +68,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ patie
       prisma.patientConsent.deleteMany({ where: { patientId } }),
       prisma.smsLog.deleteMany({ where: { patientId } }),
       prisma.cashAdvance.deleteMany({ where: { patientId } }),
+      prisma.patientPayment.deleteMany({ where: { patientId } }),
       prisma.quoteItem.deleteMany({ where: { quoteId: { in: quoteIds } } }),
       prisma.quote.deleteMany({ where: { patientId } }),
       prisma.patient.delete({ where: { id: patientId } }),
