@@ -20,10 +20,24 @@ const prodLogLevels: Prisma.LogDefinition[] = [
   { level: "error", emit: "stdout" },
 ];
 
-const connectionString =
+function normalizeConnectionString(rawConnectionString: string) {
+  try {
+    const parsed = new URL(rawConnectionString);
+    if (parsed.searchParams.get("sslmode") === "require" && !parsed.searchParams.has("uselibpqcompat")) {
+      parsed.searchParams.set("uselibpqcompat", "true");
+    }
+    return parsed.toString();
+  } catch {
+    return rawConnectionString;
+  }
+}
+
+const connectionString = normalizeConnectionString(
   process.env.POSTGRES_PRISMA_URL ??
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.DATABASE_URL;
+    process.env.DATABASE_URL_UNPOOLED ??
+    process.env.DATABASE_URL ??
+    ""
+);
 
 if (!connectionString) {
   throw new Error(

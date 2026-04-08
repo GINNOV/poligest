@@ -9,6 +9,18 @@ const getDbUrl = () =>
   process.env.DATABASE_URL_UNPOOLED ??
   process.env.DATABASE_URL;
 
+function normalizeConnectionString(rawConnectionString: string) {
+  try {
+    const parsed = new URL(rawConnectionString);
+    if (parsed.searchParams.get("sslmode") === "require" && !parsed.searchParams.has("uselibpqcompat")) {
+      parsed.searchParams.set("uselibpqcompat", "true");
+    }
+    return parsed.toString();
+  } catch {
+    return rawConnectionString;
+  }
+}
+
 const dbUrl = getDbUrl();
 
 if (!dbUrl) {
@@ -24,7 +36,7 @@ const config = {
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: dbUrl,
+    url: normalizeConnectionString(dbUrl),
   },
 };
 
