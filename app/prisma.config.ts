@@ -5,8 +5,8 @@ dotenv.config({ path: ".env.local" });
 dotenv.config();
 
 const getDbUrl = () =>
-  process.env.POSTGRES_PRISMA_URL ??
   process.env.DATABASE_URL_UNPOOLED ??
+  process.env.POSTGRES_PRISMA_URL ??
   process.env.DATABASE_URL;
 
 function normalizeConnectionString(rawConnectionString: string) {

@@ -9,6 +9,7 @@ import {
 import { sendEmailWithHtml } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
+import { autoCompletePastAppointments } from "@/lib/appointments/status-automation";
 
 const REPORT_TIME_ZONE = "Europe/Rome";
 const REPORT_CONFIG_ID = "default";
@@ -59,6 +60,8 @@ type WeeklyReportMetrics = {
   scheduledAppointments: number;
   uniquePatientsSeen: number;
   newPatients: number;
+  confirmedAppointments: number;
+  toConfirmAppointments: number;
   noShows: number;
   cancelledAppointments: number;
   upcomingAppointments: number;
@@ -365,6 +368,12 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
   const cancelledAppointments = appointments.filter(
     (appointment) => appointment.status === AppointmentStatus.CANCELLED,
   ).length;
+  const confirmedAppointments = appointments.filter(
+    (appointment) => appointment.status === AppointmentStatus.CONFIRMED,
+  ).length;
+  const toConfirmAppointments = appointments.filter(
+    (appointment) => appointment.status === AppointmentStatus.TO_CONFIRM,
+  ).length;
   const noShows = appointments.filter((appointment) => appointment.status === AppointmentStatus.NO_SHOW).length;
   const uniquePatientsSeen = new Set(completedAppointments.map((appointment) => appointment.patientId)).size;
 
@@ -419,6 +428,8 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
     scheduledAppointments: appointments.length,
     uniquePatientsSeen,
     newPatients,
+    confirmedAppointments,
+    toConfirmAppointments,
     noShows,
     cancelledAppointments,
     upcomingAppointments,
@@ -464,6 +475,8 @@ function buildTextBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
     `Pazienti visti: ${metrics.uniquePatientsSeen}`,
     `Nuovi pazienti: ${metrics.newPatients}`,
     `Tasso di completamento agenda: ${formatPercent(completionRate)}`,
+    `Confermati rimasti: ${metrics.confirmedAppointments}`,
+    `Da confermare rimasti: ${metrics.toConfirmAppointments}`,
     `No-show: ${metrics.noShows}`,
     `Annullamenti: ${metrics.cancelledAppointments}`,
     `Promemoria inviati (touch totali): ${totalReminderTouches}`,
@@ -585,6 +598,28 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
               </tr>
             </table>
           </div>
+
+          <div style="margin-top:18px;border:1px solid #e4e4e7;border-radius:20px;padding:18px;">
+            <h2 style="margin:0 0 14px;font-size:18px;line-height:24px;color:#18181b;">FYI · Stato appuntamenti nel periodo</h2>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="padding:10px 0;font-size:14px;line-height:20px;color:#52525b;">Confermati</td>
+                <td style="padding:10px 0;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">${metrics.confirmedAppointments}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;font-size:14px;line-height:20px;color:#52525b;">Da confermare</td>
+                <td style="padding:10px 0;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">${metrics.toConfirmAppointments}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#52525b;">Annullati</td>
+                <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">${metrics.cancelledAppointments}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#52525b;">No-show</td>
+                <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">${metrics.noShows}</td>
+              </tr>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -631,6 +666,7 @@ export async function sendPracticeWeeklyReport(params?: {
     }
   }
 
+  await autoCompletePastAppointments(now);
   const metrics = await collectWeeklyMetrics(period);
   const subject = buildSubject(period);
   const text = buildTextBody(period, metrics);

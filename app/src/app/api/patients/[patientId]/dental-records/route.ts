@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { syncDentalRecordIntoLatestQuote } from "@/lib/quote-sync";
 
 type RouteParams = { params: Promise<{ patientId: string }> };
 
@@ -43,16 +44,21 @@ export async function POST(req: Request, { params }: RouteParams) {
       select: { id: true },
     });
 
-    const record = existing
-      ? await prisma.dentalRecord.update({
-          where: { id: existing.id },
-          data: { procedure, notes, performedAt: new Date(), updatedById: user.id },
-          include: { updatedBy: { select: { name: true, email: true } } },
-        })
-      : await prisma.dentalRecord.create({
-          data: { patientId, tooth, procedure, notes, updatedById: user.id },
-          include: { updatedBy: { select: { name: true, email: true } } },
-        });
+    const record = await prisma.$transaction(async (tx) => {
+      const savedRecord = existing
+        ? await tx.dentalRecord.update({
+            where: { id: existing.id },
+            data: { procedure, notes, performedAt: new Date(), updatedById: user.id },
+            include: { updatedBy: { select: { name: true, email: true } } },
+          })
+        : await tx.dentalRecord.create({
+            data: { patientId, tooth, procedure, notes, updatedById: user.id },
+            include: { updatedBy: { select: { name: true, email: true } } },
+          });
+
+      await syncDentalRecordIntoLatestQuote(tx, patientId, savedRecord.id);
+      return savedRecord;
+    });
 
     await logAudit(user, {
       action: "patient.dental_record_saved",
@@ -62,6 +68,7 @@ export async function POST(req: Request, { params }: RouteParams) {
     });
 
     revalidatePath(`/pazienti/${patientId}`);
+    revalidatePath("/finanza/pagamenti");
 
     return NextResponse.json({ record });
   } catch (error) {
@@ -196,16 +203,24 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       });
     }
 
-    const updated = await prisma.dentalRecord.update({
-      where: { id: recordId },
-      data: {
-        notes: notes === undefined ? undefined : notes || null,
-        treated: treated === undefined ? undefined : treated,
-        updatedById: user.id,
-      },
-      include: {
-        updatedBy: { select: { name: true, email: true } },
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      const nextRecord = await tx.dentalRecord.update({
+        where: { id: recordId },
+        data: {
+          notes: notes === undefined ? undefined : notes || null,
+          treated: treated === undefined ? undefined : treated,
+          updatedById: user.id,
+        },
+        include: {
+          updatedBy: { select: { name: true, email: true } },
+        },
+      });
+
+      if (treated === true || nextRecord.treated) {
+        await syncDentalRecordIntoLatestQuote(tx, patientId, nextRecord.id);
+      }
+
+      return nextRecord;
     });
 
     await logAudit(user, {
@@ -216,6 +231,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     });
 
     revalidatePath(`/pazienti/${patientId}`);
+    revalidatePath("/finanza/pagamenti");
 
     return NextResponse.json({ record: updated });
   } catch (error) {

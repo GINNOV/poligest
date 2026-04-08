@@ -469,16 +469,8 @@ export function QuoteAccordion({
         },
       ];
     }
-    return [
-      {
-        id: "",
-        serviceId: sortedServices[0]?.id ?? "",
-        quantity: "1",
-        price: sortedServices[0]?.costBasis != null ? String(sortedServices[0].costBasis) : "",
-        createdAt: null,
-      },
-    ];
-  }, [initialQuote, sortedServices]);
+    return [];
+  }, [initialQuote]);
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
@@ -757,6 +749,20 @@ export function QuoteAccordion({
               </div>
             </div>
           ))}
+          {itemsWithTotals.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p>Nessuna prestazione nel preventivo.</p>
+                <button
+                  type="button"
+                  onClick={addItem}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-emerald-200 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                >
+                  Aggiungi prestazione
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex justify-end">
@@ -776,7 +782,7 @@ export function QuoteAccordion({
 
         <div className="flex flex-wrap items-center justify-end gap-3">
           <FormSubmitButton
-            disabled={!signatureReady}
+            disabled={!signatureReady || items.length === 0}
             className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
             Aggiorna preventivo

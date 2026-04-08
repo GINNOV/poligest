@@ -5,6 +5,7 @@ import { sendSms } from "@/lib/sms";
 import { sendEmail } from "@/lib/email";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { errorResponse } from "@/lib/error-response";
+import { autoCompletePastAppointments } from "@/lib/appointments/status-automation";
 import {
   buildAppointmentReminderDeliveryPlan,
   buildRecallDeliveryPlan,
@@ -117,6 +118,7 @@ export async function GET(req: Request) {
   try {
     const now = new Date();
     let weeklyReport: Awaited<ReturnType<typeof sendPracticeWeeklyReport>> | null = null;
+    const autoCompletedAppointments = await autoCompletePastAppointments(now);
     await enqueueRecurringRecalls(now);
     await enqueueAppointmentReminders(now);
     const dueRecalls = await prisma.recall.findMany({
@@ -267,6 +269,7 @@ export async function GET(req: Request) {
     }
 
     return NextResponse.json({
+      autoCompletedAppointments,
       processed: dueRecalls.length,
       appointmentReminders: dueAppointmentReminders.length,
       weeklyReport,

@@ -3,7 +3,6 @@ import { Role, type PatientPaymentMethod } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
-import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { QuoteAccordion } from "@/components/quote-accordion";
 import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
@@ -51,37 +50,7 @@ export default async function PagamentiPage({
         select: { id: true, firstName: true, lastName: true, email: true, phone: true },
       })
     : null;
-
-  const patientPaymentClient = getOptionalPrismaModel<{
-    findMany?: (args: {
-      where: { patientId?: string; quoteItemId?: { in: string[] } };
-      orderBy: Array<{ paidAt?: "desc" | "asc"; createdAt?: "desc" | "asc" }>;
-      select: {
-        id: true;
-        quoteItemId: true;
-        amount: true;
-        paidAt: true;
-        method: true;
-        note: true;
-        quoteItem: { select: { serviceName: true } };
-        user: { select: { name: true; email: true } };
-      };
-      take: number;
-    }) => Promise<
-      Array<{
-        id: string;
-        quoteItemId: string | null;
-        amount: { toString(): string };
-        paidAt: Date;
-        method: PatientPaymentMethod;
-        note: string | null;
-        quoteItem: { serviceName: string } | null;
-        user: { name: string | null; email: string | null } | null;
-      }>
-    >;
-  }>("patientPayment");
-
-  const [services, latestQuote, payments] =
+  const [services, latestQuote] =
     selectedPatientId && selectedPatient
       ? await Promise.all([
           prisma.service.findMany({
@@ -94,71 +63,47 @@ export default async function PagamentiPage({
             include: {
               items: {
                 orderBy: { createdAt: "asc" },
+                include: {
+                  payments: {
+                    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+                    select: {
+                      id: true,
+                      amount: true,
+                      paidAt: true,
+                      method: true,
+                      note: true,
+                      user: {
+                        select: { name: true, email: true },
+                      },
+                    },
+                  },
+                },
               },
             },
           }),
-          patientPaymentClient?.findMany
-            ? patientPaymentClient.findMany({
-                where: { patientId: selectedPatientId },
-                orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
-                select: {
-                  id: true,
-                  quoteItemId: true,
-                  amount: true,
-                  paidAt: true,
-                  method: true,
-                  note: true,
-                  quoteItem: {
-                    select: { serviceName: true },
-                  },
-                  user: {
-                    select: { name: true, email: true },
-                  },
-                },
-                take: 50,
-              })
-            : Promise.resolve([]),
         ])
-      : [[], null, []];
-
-  const quoteItemPayments =
-    latestQuote?.items?.length && patientPaymentClient?.findMany
-      ? await patientPaymentClient.findMany({
-          where: {
-            quoteItemId: { in: latestQuote.items.map((item) => item.id) },
-          },
-          orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
-          select: {
-            id: true,
-            quoteItemId: true,
-            amount: true,
-            paidAt: true,
-            method: true,
-            note: true,
-            quoteItem: {
-              select: { serviceName: true },
-            },
-            user: {
-              select: { name: true, email: true },
-            },
-          },
-          take: 500,
-        })
-      : [];
-
-  const paymentsByQuoteItemId = new Map<string, number>();
-  for (const payment of quoteItemPayments) {
-    if (!payment.quoteItemId) continue;
-    paymentsByQuoteItemId.set(
-      payment.quoteItemId,
-      (paymentsByQuoteItemId.get(payment.quoteItemId) ?? 0) + Number(payment.amount.toString())
-    );
-  }
+      : [[], null];
 
   const parsedQuote = serializePatientQuoteDraft(latestQuote);
+  const payments = (latestQuote?.items ?? [])
+    .flatMap((item) =>
+      item.payments.map((payment) => ({
+        ...payment,
+        quoteItem: { serviceName: item.serviceName },
+      }))
+    )
+    .sort((a, b) => {
+      const paidAtDiff = b.paidAt.getTime() - a.paidAt.getTime();
+      if (paidAtDiff !== 0) return paidAtDiff;
+      return b.id.localeCompare(a.id, "it");
+    });
+
   const quoteItemSummaries = (latestQuote?.items ?? []).map((item) => {
     const total = Number(item.total.toString());
-    const paidFromPayments = paymentsByQuoteItemId.get(item.id) ?? 0;
+    const paidFromPayments = item.payments.reduce(
+      (sum, payment) => sum + Number(payment.amount.toString()),
+      0
+    );
     const paid = paidFromPayments > 0 ? paidFromPayments : item.saldato ? total : 0;
     const remaining = Math.max(total - paid, 0);
     return {

@@ -444,6 +444,7 @@ model DentalRecord {
 
   patient Patient @relation(fields: [patientId], references: [id])
   updatedBy User?   @relation("DentalRecordUpdatedBy", fields: [updatedById], references: [id])
+  quoteItem QuoteItem?
 
   @@index([patientId])
   @@index([patientId, tooth])
@@ -678,6 +679,7 @@ model Quote {
 model QuoteItem {
   id          String   @id @default(cuid())
   quoteId     String
+  dentalRecordId String?  @unique
   serviceId   String
   serviceName String
   quantity    Int      @default(1)
@@ -687,8 +689,9 @@ model QuoteItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  quote   Quote   @relation(fields: [quoteId], references: [id])
-  service Service @relation(fields: [serviceId], references: [id])
+  quote        Quote         @relation(fields: [quoteId], references: [id])
+  dentalRecord DentalRecord? @relation(fields: [dentalRecordId], references: [id])
+  service      Service       @relation(fields: [serviceId], references: [id])
   payments PatientPayment[]
 
   @@index([quoteId])
