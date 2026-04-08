@@ -22,6 +22,7 @@ type AppointmentItem = {
     phone?: string | null;
   };
   doctor?: { fullName?: string | null } | null;
+  reminderSent?: boolean;
 };
 
 type Props = {
@@ -200,20 +201,30 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    {whatsappHref ? (
-                      <a
-                        href={whatsappHref}
-                        className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600 sm:w-auto"
+                    <div className="relative inline-flex w-full justify-end sm:w-auto">
+                      <button
+                        type="button"
+                        disabled={!whatsappHref}
+                        onClick={() => {
+                          if (whatsappHref) {
+                            window.location.href = whatsappHref;
+                          }
+                        }}
+                        className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold text-white transition sm:w-auto ${
+                          whatsappHref
+                            ? "bg-emerald-700 hover:bg-emerald-600"
+                            : "bg-emerald-700/60 opacity-70"
+                        }`}
                       >
-                        <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                        Promemoria
-                      </a>
-                    ) : (
-                      <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70 sm:w-auto">
-                        <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                        Promemoria
-                      </span>
-                    )}
+                          <Image src="/whatsapp.png" alt="" width={18} height={18} />
+                          Promemoria
+                      </button>
+                      {appt.reminderSent ? (
+                        <span className="absolute -bottom-2 left-1/2 inline-flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-emerald-200 bg-white text-[11px] font-bold text-emerald-700 shadow-sm">
+                          ✓
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>

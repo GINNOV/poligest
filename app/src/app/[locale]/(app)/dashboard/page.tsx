@@ -13,6 +13,7 @@ import { it } from "date-fns/locale";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { DoctorFilter } from "@/components/doctor-filter";
+import { PrintLinkButton } from "@/components/print-link-button";
 import {
   DEFAULT_WHATSAPP_TEMPLATE,
   WHATSAPP_TEMPLATE_NAME,
@@ -300,6 +301,9 @@ export default async function DashboardPage({
       include: {
         patient: { select: { firstName: true, lastName: true, id: true, photoUrl: true, phone: true } },
         doctor: { select: { fullName: true, specialty: true } },
+        appointmentReminders: {
+          select: { status: true, lastContactAt: true },
+        },
       },
     }),
     prisma.smsTemplate.findUnique({
@@ -372,6 +376,9 @@ export default async function DashboardPage({
       phone: appt.patient.phone,
     },
     doctor: appt.doctor?.fullName ? { fullName: appt.doctor.fullName } : null,
+    reminderSent: appt.appointmentReminders.some(
+      (reminder) => reminder.status === "CONTACTED" || Boolean(reminder.lastContactAt)
+    ),
   }));
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
@@ -385,6 +392,13 @@ export default async function DashboardPage({
         .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime())
     : [];
   const patientAwards = isPatient ? buildPatientAwards(appointments) : [];
+  const dashboardPrintHref = (() => {
+    const printParams = new URLSearchParams({ day: selectedDay });
+    if (selectedDoctor && selectedDoctor !== "all") {
+      printParams.set("doctor", selectedDoctor);
+    }
+    return `/dashboard/print?${printParams.toString()}`;
+  })();
   if (isPatient) {
     const quoteItems = latestQuote
       ? latestQuote.items.length
@@ -637,6 +651,45 @@ export default async function DashboardPage({
             </span>
           </p>
         </div>
+        <PrintLinkButton
+          href={dashboardPrintHref}
+          label="Stampa agenda del giorno"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-emerald-700 px-4 text-center text-sm font-semibold text-white transition hover:bg-emerald-600"
+        >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9V3h12v6" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <path d="M6 14h12v7H6z" />
+            <path d="M6 18h12" />
+          </svg>
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4" />
+            <path d="M8 2v4" />
+            <path d="M3 10h18" />
+          </svg>
+          <span className="text-center">Stampa agenda del giorno</span>
+        </PrintLinkButton>
       </div>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
