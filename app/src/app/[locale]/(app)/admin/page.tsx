@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getOptionalPrismaModel } from "@/lib/prisma-models";
+import { getOptionalPrismaModel, runOptionalPrismaQuery } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 
 type AdminShortcut = {
@@ -26,6 +26,16 @@ export default async function AdminPage() {
   const featureUpdateClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("featureUpdate");
   const consentModuleClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("consentModule");
   const emailTemplateClient = getOptionalPrismaModel<{ count?: () => Promise<number> }>("emailTemplate");
+  const weeklyReportConfigClient = getOptionalPrismaModel<{
+    findUnique?: (args: { where: { id: string } }) => Promise<{ id: string } | null>;
+  }>("practiceWeeklyReportConfig");
+
+  const weeklyReportAvailability = await runOptionalPrismaQuery(
+    weeklyReportConfigClient?.findUnique
+      ? () => weeklyReportConfigClient.findUnique!({ where: { id: "default" } })
+      : undefined,
+    null,
+  );
 
   const [
     usersCount,
@@ -101,9 +111,10 @@ export default async function AdminPage() {
       key: "weekly-report",
       title: "Report settimanale",
       description: "Invio automatico ai responsabili con visite, promemoria e risultati della settimana.",
-      href: "/admin/report-settimanale",
-      badge: "Direzione",
-      tone: "primary",
+      href: weeklyReportAvailability.available ? "/admin/report-settimanale" : undefined,
+      badge: weeklyReportAvailability.available ? "Direzione" : "Non disponibile",
+      tone: weeklyReportAvailability.available ? "primary" : "warning",
+      disabled: !weeklyReportAvailability.available,
       icon: "📈",
     },
     {

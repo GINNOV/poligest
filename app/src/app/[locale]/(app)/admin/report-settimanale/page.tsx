@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { getOptionalPrismaModel } from "@/lib/prisma-models";
+import { getOptionalPrismaModel, isMissingPrismaModelError, runOptionalPrismaQuery } from "@/lib/prisma-models";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { REPORT_CONFIG_ID, getCompletedPracticeWeekPeriod, parseRecipientEmails, sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
@@ -49,6 +49,12 @@ async function saveWeeklyReportConfig(formData: FormData) {
       enabled,
       recipientEmails,
     },
+  }).catch((error: unknown) => {
+    if (isMissingPrismaModelError(error)) {
+      throw new Error("Il modulo report settimanale non è disponibile nel server attivo.");
+    }
+
+    throw error;
   });
 
   await logAudit(admin, {
@@ -110,17 +116,26 @@ export default async function AdminWeeklyReportPage() {
       createdAt: Date;
     }>>;
   }>("practiceWeeklyReportLog");
-  const weeklyReportAvailable = Boolean(configClient?.findUnique && logClient?.findMany);
 
-  const [config, recentLogs] = await Promise.all([
-    configClient?.findUnique ? configClient.findUnique({ where: { id: REPORT_CONFIG_ID } }) : Promise.resolve(null),
-    logClient?.findMany
-      ? logClient.findMany({
-          orderBy: { createdAt: "desc" },
-          take: 8,
-        })
-      : Promise.resolve([]),
+  const [configResult, logResult] = await Promise.all([
+    runOptionalPrismaQuery(
+      configClient?.findUnique ? () => configClient.findUnique!({ where: { id: REPORT_CONFIG_ID } }) : undefined,
+      null,
+    ),
+    runOptionalPrismaQuery(
+      logClient?.findMany
+        ? () =>
+            logClient.findMany!({
+              orderBy: { createdAt: "desc" },
+              take: 8,
+            })
+        : undefined,
+      [],
+    ),
   ]);
+  const config = configResult.value;
+  const recentLogs = logResult.value;
+  const weeklyReportAvailable = configResult.available && logResult.available;
 
   const recipients = parseRecipientEmails(config?.recipientEmails ?? "");
   const nextPeriod = getCompletedPracticeWeekPeriod();
