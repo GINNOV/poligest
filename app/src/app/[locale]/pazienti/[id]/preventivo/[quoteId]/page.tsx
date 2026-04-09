@@ -57,6 +57,7 @@ export default async function QuotePrintPage({
     ? rawItems.map((item) => ({
         id: item.id,
         serviceName: item.serviceName,
+        serviceDate: new Date(item.serviceDate),
         quantity: item.quantity,
         price: Number(item.price.toString()),
         total: Number(item.total.toString()),
@@ -72,6 +73,7 @@ export default async function QuotePrintPage({
         {
           id: quote.id,
           serviceName: quote.serviceName,
+          serviceDate: new Date(quote.serviceDate),
           quantity: quote.quantity,
           price,
           total,
@@ -80,14 +82,6 @@ export default async function QuotePrintPage({
         },
       ];
   const itemsTotal = items.reduce((sum, item) => sum + Math.max(item.total - item.paid, 0), 0);
-  const formatItemDate = (value: Date | null) => {
-    if (!value) return "—";
-    return value.toLocaleString("it-IT", {
-      dateStyle: "short",
-      timeStyle: "short",
-      timeZone: "Europe/Rome",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
@@ -145,7 +139,7 @@ export default async function QuotePrintPage({
                 <th className="px-4 py-3 text-right">Quantità</th>
                 <th className="px-4 py-3 text-right">Prezzo (€)</th>
                 <th className="px-4 py-3 text-right">Totale (€)</th>
-                <th className="px-4 py-3 text-right">Inserito</th>
+                <th className="px-4 py-3 text-right">Data prestazione</th>
                 <th className="px-4 py-3 text-right">Incassato (€)</th>
                 <th className="px-4 py-3 text-right">Residuo (€)</th>
               </tr>
@@ -158,7 +152,7 @@ export default async function QuotePrintPage({
                   <td className="px-4 py-3 text-right text-zinc-700">{item.price.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-900">{item.total.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-600">
-                    {formatItemDate(item.createdAt)}
+                    {item.serviceDate.toLocaleDateString("it-IT", { dateStyle: "short", timeZone: "UTC" })}
                   </td>
                   <td className="px-4 py-3 text-right text-zinc-700">{item.paid.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-700">

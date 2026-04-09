@@ -14,6 +14,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { TaxIdBirthDateButton } from "@/components/taxid-birthdate-button";
 import { PatientCreateRedirectField } from "@/components/patient-create-redirect-field";
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
+import { PatientPaperConsentCheckbox } from "@/components/patient-paper-consent-checkbox";
 
 export default async function NuovoPazientePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -197,6 +198,9 @@ export default async function NuovoPazientePage() {
           </div>
           <div className="mt-4">
             <ConsentModulePicker modules={consentModules} doctors={doctors} />
+          </div>
+          <div className="mt-4 border-t border-zinc-100 pt-4">
+            <PatientPaperConsentCheckbox />
           </div>
         </section>
 

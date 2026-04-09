@@ -2,6 +2,7 @@ export type PatientQuoteDraft = {
   id?: string;
   serviceId?: string;
   serviceName?: string;
+  serviceDate?: string;
   quantity?: number;
   price?: number;
   total?: number;
@@ -11,6 +12,7 @@ export type PatientQuoteDraft = {
     id?: string;
     serviceId?: string;
     serviceName?: string;
+    serviceDate?: string;
     quantity?: number;
     price?: number;
     total?: number;
@@ -25,6 +27,7 @@ export type QuoteDraftItemInput = {
   id: string;
   serviceId: string | null;
   serviceName: string | null;
+  serviceDate: Date | null;
   quantity: number | null;
   price: QuoteDraftScalar;
   total: QuoteDraftScalar;
@@ -36,6 +39,7 @@ export type QuoteDraftInput = {
   id: string;
   serviceId: string | null;
   serviceName: string | null;
+  serviceDate: Date | null;
   quantity: number | null;
   price: QuoteDraftScalar;
   total: QuoteDraftScalar;
@@ -103,6 +107,7 @@ export function serializePatientQuoteDraft(latestQuote: QuoteDraftInput): Patien
     id: latestQuote.id,
     serviceId: latestQuote.serviceId ?? undefined,
     serviceName: latestQuote.serviceName ?? undefined,
+    serviceDate: latestQuote.serviceDate?.toISOString?.() ?? undefined,
     quantity: latestQuote.quantity ?? undefined,
     price: toNumericValue(latestQuote.price),
     total: toNumericValue(latestQuote.total),
@@ -113,6 +118,7 @@ export function serializePatientQuoteDraft(latestQuote: QuoteDraftInput): Patien
           id: item.id,
           serviceId: item.serviceId ?? undefined,
           serviceName: item.serviceName ?? undefined,
+          serviceDate: item.serviceDate?.toISOString?.() ?? undefined,
           quantity: item.quantity ?? undefined,
           price: toNumericValue(item.price),
           total: toNumericValue(item.total),

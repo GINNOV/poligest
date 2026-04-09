@@ -340,6 +340,7 @@ model Patient {
   birthDate DateTime?
   notes     String?
   photoUrl  String?
+  hasPaperConsentForRequired Boolean @default(false)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -660,6 +661,7 @@ model Quote {
   patientId    String
   serviceId    String
   serviceName  String
+  serviceDate  DateTime
   quantity     Int      @default(1)
   price        Decimal  @db.Decimal(12, 2)
   total        Decimal  @db.Decimal(12, 2)
@@ -682,6 +684,7 @@ model QuoteItem {
   dentalRecordId String?  @unique
   serviceId   String
   serviceName String
+  serviceDate DateTime
   quantity    Int      @default(1)
   price       Decimal  @db.Decimal(12, 2)
   total       Decimal  @db.Decimal(12, 2)
@@ -707,6 +710,7 @@ model PatientPayment {
   method        PatientPaymentMethod @default(ELECTRONIC)
   note          String?
   userId        String?
+  archivedAt    DateTime?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 

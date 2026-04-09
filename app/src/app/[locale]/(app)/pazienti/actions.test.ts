@@ -150,6 +150,7 @@ describe("createPatient", () => {
         phone: "+393331234567",
         gender: Gender.FEMALE,
         birthDate: new Date("1980-01-01"),
+        hasPaperConsentForRequired: false,
       }),
     });
     expect(mocks.prisma.patientConsent.create).toHaveBeenCalledWith({
@@ -194,5 +195,35 @@ describe("createPatient", () => {
     expect(mocks.prisma.patient.create).not.toHaveBeenCalled();
     expect(mocks.logAudit).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("allows creating the patient when required consents are marked as present on paper", async () => {
+    mocks.prisma.consentModule.findMany.mockResolvedValue([
+      { id: "consent-required", name: "Privacy" },
+    ]);
+
+    const formData = new FormData();
+    formData.set("firstName", "Mario");
+    formData.set("lastName", "Rossi");
+    formData.set("hasPaperConsentForRequired", "on");
+
+    await expect(createPatient(formData)).rejects.toThrow("NEXT_REDIRECT:/dashboard");
+
+    expect(mocks.prisma.patient.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        firstName: "Mario",
+        lastName: "Rossi",
+        hasPaperConsentForRequired: true,
+      }),
+    });
+    expect(mocks.prisma.patientConsent.create).not.toHaveBeenCalled();
+    expect(mocks.logAudit).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          hasPaperConsentForRequired: true,
+        }),
+      }),
+    );
   });
 });

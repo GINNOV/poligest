@@ -1,5 +1,5 @@
 import createMiddleware from "next-intl/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { defaultLocale, locales } from "./i18n/config";
 
 const intlMiddleware = createMiddleware({
@@ -9,6 +9,12 @@ const intlMiddleware = createMiddleware({
 });
 
 export function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV !== "production" && request.nextUrl.hostname === "127.0.0.1") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.hostname = "localhost";
+    return NextResponse.redirect(redirectUrl);
+  }
+
   return intlMiddleware(request);
 }
 

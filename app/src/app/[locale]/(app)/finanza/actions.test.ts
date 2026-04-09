@@ -6,9 +6,15 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   getOptionalPrismaModel: vi.fn(),
   prisma: {
+    patientPayment: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+    },
     quoteItem: {
       findFirst: vi.fn(),
       update: vi.fn(),
+      findUnique: vi.fn(),
     },
     financeEntry: {
       create: vi.fn(),
@@ -49,6 +55,7 @@ import {
   createCashAdvance,
   createDoctorPayment,
   recordExpense,
+  archivePatientPayment,
   recordPatientPayment,
 } from "@/app/[locale]/(app)/finanza/actions";
 
@@ -75,6 +82,19 @@ describe("finanza actions", () => {
     mocks.prisma.financeEntry.create.mockResolvedValue(undefined);
     mocks.prisma.cashAdvance.create.mockResolvedValue(undefined);
     mocks.prisma.quoteItem.update.mockResolvedValue(undefined);
+    mocks.prisma.quoteItem.findUnique.mockResolvedValue({
+      id: "quote-item-1",
+      total: new Prisma.Decimal(100),
+      saldato: true,
+    });
+    mocks.prisma.patientPayment.findUnique.mockResolvedValue({
+      id: "payment-1",
+      patientId: "patient-1",
+      quoteItemId: "quote-item-1",
+      archivedAt: null,
+    });
+    mocks.prisma.patientPayment.update.mockResolvedValue(undefined);
+    mocks.prisma.patientPayment.findMany.mockResolvedValue([{ amount: new Prisma.Decimal(20) }]);
 
     mocks.getOptionalPrismaModel.mockReturnValue({
       create: vi.fn(),
@@ -85,9 +105,16 @@ describe("finanza actions", () => {
       const tx = {
         patientPayment: {
           create: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
+          findMany: vi.fn().mockResolvedValue([{ amount: new Prisma.Decimal(20) }]),
         },
         quoteItem: {
           update: vi.fn().mockResolvedValue(undefined),
+          findUnique: vi.fn().mockResolvedValue({
+            id: "quote-item-1",
+            total: new Prisma.Decimal(100),
+            saldato: true,
+          }),
         },
         financeEntry: {
           create: vi.fn().mockResolvedValue(undefined),
@@ -162,6 +189,26 @@ describe("finanza actions", () => {
     await expect(recordPatientPayment(formData)).rejects.toThrow(
       "Prestazione del preventivo non trovata",
     );
+  });
+
+  it("archives a patient payment and refreshes the quote item settlement state", async () => {
+    const formData = new FormData();
+    formData.set("paymentId", "payment-1");
+
+    await archivePatientPayment(formData);
+
+    expect(mocks.prisma.patientPayment.findUnique).toHaveBeenCalledWith({
+      where: { id: "payment-1" },
+      select: {
+        id: true,
+        patientId: true,
+        quoteItemId: true,
+        archivedAt: true,
+      },
+    });
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/pagamenti");
   });
 
   it("records an expense with supplier and product context", async () => {

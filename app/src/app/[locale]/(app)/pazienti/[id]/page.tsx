@@ -598,9 +598,15 @@ export default async function PatientDetailPage({
                             {missingRequired.map((module) => (
                               <span
                                 key={module.id}
-                                className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700"
+                                className={`rounded-full px-3 py-1 ${
+                                  patient.hasPaperConsentForRequired
+                                    ? "border border-violet-200 bg-violet-50 text-violet-700"
+                                    : "border border-rose-200 bg-rose-50 text-rose-700"
+                                }`}
                               >
-                                {module.name} mancante
+                                {patient.hasPaperConsentForRequired
+                                  ? `${module.name} su scheda cartacea`
+                                  : `${module.name} mancante`}
                               </span>
                             ))}
                           </div>

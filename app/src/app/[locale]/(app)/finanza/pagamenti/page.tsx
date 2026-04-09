@@ -8,7 +8,7 @@ import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { savePreventivoAction } from "@/lib/patients/actions";
-import { recordPatientPayment } from "../actions";
+import { archivePatientPayment, recordPatientPayment } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,19 @@ const formatCurrency = (value: number) =>
     style: "currency",
     currency: "EUR",
   }).format(value);
+
+const formatDateInputValue = (value: Date, timeZone = "Europe/Rome") => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "01";
+  const day = parts.find((part) => part.type === "day")?.value ?? "01";
+  return `${year}-${month}-${day}`;
+};
 
 type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid";
 
@@ -73,6 +86,9 @@ export default async function PagamentiPage({
                 orderBy: { createdAt: "asc" },
                 include: {
                   payments: {
+                    where: {
+                      archivedAt: null,
+                    },
                     orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
                     select: {
                       id: true,
@@ -141,6 +157,7 @@ export default async function PagamentiPage({
     id: patient.id,
     fullName: `${patient.lastName} ${patient.firstName}`,
   }));
+  const defaultServiceDate = formatDateInputValue(new Date());
 
   return (
     <div className="space-y-6">
@@ -217,6 +234,7 @@ export default async function PagamentiPage({
             key={`${selectedPatient.id}:${parsedQuote?.id ?? "new"}:${parsedQuote?.signedAt ?? "unsigned"}`}
             patientId={selectedPatient.id}
             patientName={`${selectedPatient.lastName} ${selectedPatient.firstName}`.trim() || "Paziente"}
+            defaultServiceDate={defaultServiceDate}
             services={services.map((service) => ({
               id: service.id,
               name: service.name,
@@ -326,10 +344,10 @@ export default async function PagamentiPage({
             ) : (
               <div className="space-y-3">
                 {payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900"
-                  >
+                    <div
+                      key={payment.id}
+                      className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900"
+                    >
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                         {payment.quoteItem?.serviceName ?? "Pagamento paziente"}
@@ -347,9 +365,21 @@ export default async function PagamentiPage({
                       </div>
                       {payment.note ? <p className="text-sm text-zinc-700 dark:text-zinc-300">{payment.note}</p> : null}
                     </div>
-                    <span className="whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">
-                      {formatCurrency(Number(payment.amount.toString()))}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <form action={archivePatientPayment}>
+                        <input type="hidden" name="paymentId" value={payment.id} />
+                        <button
+                          type="submit"
+                          data-confirm="Archiviare questo pagamento registrato?"
+                          className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+                        >
+                          Archivia
+                        </button>
+                      </form>
+                      <span className="whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">
+                        {formatCurrency(Number(payment.amount.toString()))}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

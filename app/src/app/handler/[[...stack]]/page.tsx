@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { getStackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { getAppVersion, getDeployDate } from "@/lib/version";
+import { redirect } from "next/navigation";
 
 // Optional catch-all so /handler and /handler/* both work for Stack OAuth callbacks.
 export default async function StackAuthHandlerPage(props: {
@@ -16,6 +17,14 @@ export default async function StackAuthHandlerPage(props: {
   const headerList = await headers();
   const forwardedHost = headerList.get("x-forwarded-host") ?? headerList.get("host");
   const forwardedProto = headerList.get("x-forwarded-proto") ?? "https";
+  if (process.env.NODE_ENV !== "production" && forwardedHost?.split(",")[0].trim().startsWith("127.0.0.1")) {
+    const stackPath = (params.stack ?? []).join("/");
+    const pathname = stackPath ? `/handler/${stackPath}` : "/handler";
+    const query = new URLSearchParams(
+      Object.entries(searchParams).flatMap(([key, value]) => (typeof value === "string" ? [[key, value]] : [])),
+    ).toString();
+    redirect(`http://localhost:3000${pathname}${query ? `?${query}` : ""}`);
+  }
   const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost.split(",")[0].trim()}` : undefined;
   const stackServerApp = getStackServerApp(requestOrigin);
 

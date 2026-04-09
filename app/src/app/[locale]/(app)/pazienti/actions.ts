@@ -82,6 +82,7 @@ export async function createPatient(formData: FormData) {
   const consentExpiresAtList = formData.getAll("consentExpiresAt[]").map((value) => String(value).trim());
   const photo = formData.get("photo") as File | null;
   const postCreateRedirect = (formData.get("postCreateRedirect") as string)?.trim() || "dashboard";
+  const hasPaperConsentForRequired = formData.get("hasPaperConsentForRequired") === "on";
 
   const birthDate = parseOptionalDate(birthDateValue);
 
@@ -172,7 +173,7 @@ export async function createPatient(formData: FormData) {
   const missingRequired = requiredModules.filter(
     (module) => !consentsToCreate.some((entry) => entry.moduleId === module.id),
   );
-  if (missingRequired.length > 0) {
+  if (missingRequired.length > 0 && !hasPaperConsentForRequired) {
     throw new Error("Mancano consensi obbligatori.");
   }
 
@@ -203,6 +204,7 @@ export async function createPatient(formData: FormData) {
       birthDate,
       gender,
       notes: structuredNotesText || null,
+      hasPaperConsentForRequired,
     },
   });
 
@@ -275,6 +277,7 @@ export async function createPatient(formData: FormData) {
     metadata: {
       patientName: `${patient.lastName} ${patient.firstName}`,
       consentAgreement: consentsToCreate.length > 0,
+      hasPaperConsentForRequired,
       taxIdProvided: Boolean(taxId),
       conditionsCount: conditions.length,
       hasDigitalSignature: consentsToCreate.some((entry) => Boolean(entry.signatureBuffer)),

@@ -30,6 +30,7 @@ async function refreshQuoteSummary(tx: TransactionClient, quoteId: string) {
     data: {
       serviceId: primaryItem.serviceId,
       serviceName: primaryItem.serviceName,
+      serviceDate: primaryItem.serviceDate,
       quantity: primaryItem.quantity,
       price: primaryItem.price,
       total: new Prisma.Decimal(total),
@@ -48,6 +49,7 @@ export async function syncDentalRecordIntoLatestQuote(
       id: true,
       treated: true,
       procedure: true,
+      performedAt: true,
     },
   });
 
@@ -102,6 +104,7 @@ export async function syncDentalRecordIntoLatestQuote(
         dentalRecordId: record.id,
         serviceId: service.id,
         serviceName: service.name,
+        serviceDate: record.performedAt,
         quantity: 1,
         price: new Prisma.Decimal(defaultPrice),
         total: new Prisma.Decimal(defaultPrice),

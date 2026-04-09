@@ -31,7 +31,7 @@ export async function recordPatientPayment(formData: FormData) {
   const patientPaymentClient = getOptionalPrismaModel<{
     create?: unknown;
     findMany?: (args: {
-      where: { quoteItemId: string };
+      where: { quoteItemId: string; archivedAt?: null };
       select: { amount: true };
     }) => Promise<Array<{ amount: { toString(): string } }>>;
   }>("patientPayment");
@@ -61,7 +61,7 @@ export async function recordPatientPayment(formData: FormData) {
 
   const existingPayments = patientPaymentClient.findMany
     ? await patientPaymentClient.findMany({
-        where: { quoteItemId },
+        where: { quoteItemId, archivedAt: null },
         select: { amount: true },
       })
     : [];
@@ -145,6 +145,73 @@ export async function recordPatientPayment(formData: FormData) {
         userId: user.id,
       },
     });
+  });
+
+  revalidatePath("/finanza");
+  revalidatePath("/finanza/pagamenti");
+}
+
+export async function archivePatientPayment(formData: FormData) {
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const paymentId = (formData.get("paymentId") as string) || "";
+
+  if (!paymentId) {
+    throw new Error("Pagamento non valido");
+  }
+
+  const payment = await prisma.patientPayment.findUnique({
+    where: { id: paymentId },
+    select: {
+      id: true,
+      patientId: true,
+      quoteItemId: true,
+      archivedAt: true,
+    },
+  });
+
+  if (!payment) {
+    throw new Error("Pagamento non trovato");
+  }
+
+  if (payment.archivedAt) {
+    revalidatePath("/finanza");
+    revalidatePath("/finanza/pagamenti");
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.patientPayment.update({
+      where: { id: payment.id },
+      data: { archivedAt: new Date() },
+    });
+
+    if (payment.quoteItemId) {
+      const [quoteItem, activePayments] = await Promise.all([
+        tx.quoteItem.findUnique({
+          where: { id: payment.quoteItemId },
+          select: { id: true, total: true, saldato: true },
+        }),
+        tx.patientPayment.findMany({
+          where: {
+            quoteItemId: payment.quoteItemId,
+            archivedAt: null,
+          },
+          select: { amount: true },
+        }),
+      ]);
+
+      if (quoteItem) {
+        const paidAmount = activePayments.reduce((sum, entry) => sum + Number(entry.amount.toString()), 0);
+        const totalAmount = Number(quoteItem.total.toString());
+
+        await tx.quoteItem.update({
+          where: { id: quoteItem.id },
+          data: {
+            saldato: paidAmount >= totalAmount - 0.009,
+          },
+        });
+      }
+    }
   });
 
   revalidatePath("/finanza");

@@ -293,7 +293,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     throw new Error("Preventivo non valido");
   }
 
-  let itemsPayload: Array<{ id?: string; serviceId: string; quantity: number; price: number }> = [];
+  let itemsPayload: Array<{ id?: string; serviceId: string; serviceDate: string; quantity: number; price: number }> = [];
   try {
     itemsPayload = JSON.parse(itemsRaw);
   } catch {
@@ -337,6 +337,13 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
       id: item.id?.trim() || null,
       serviceId: item.serviceId,
       serviceName,
+      serviceDate: (() => {
+        const serviceDate = new Date(`${String(item.serviceDate).trim()}T12:00:00.000Z`);
+        if (Number.isNaN(serviceDate.getTime())) {
+          throw new Error("Data prestazione non valida");
+        }
+        return serviceDate;
+      })(),
       quantity,
       price: priceParsed,
       total,
@@ -362,6 +369,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
           patientId,
           serviceId: primaryItem.serviceId,
           serviceName: primaryItem.serviceName,
+          serviceDate: primaryItem.serviceDate,
           quantity: primaryItem.quantity,
           price: new Prisma.Decimal(primaryItem.price),
           total: new Prisma.Decimal(totalSum),
@@ -371,6 +379,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
             create: normalizedItems.map((item) => ({
               serviceId: item.serviceId,
               serviceName: item.serviceName,
+              serviceDate: item.serviceDate,
               quantity: item.quantity,
               price: new Prisma.Decimal(item.price),
               total: new Prisma.Decimal(item.total),
@@ -432,6 +441,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
       data: {
         serviceId: primaryItem.serviceId,
         serviceName: primaryItem.serviceName,
+        serviceDate: primaryItem.serviceDate,
         quantity: primaryItem.quantity,
         price: new Prisma.Decimal(primaryItem.price),
         total: new Prisma.Decimal(totalSum),
@@ -451,6 +461,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
             quoteId: existingQuote.id,
             serviceId: item.serviceId,
             serviceName: item.serviceName,
+            serviceDate: item.serviceDate,
             quantity: item.quantity,
             price: new Prisma.Decimal(item.price),
             total: new Prisma.Decimal(item.total),
@@ -470,6 +481,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
         data: {
           serviceId: item.serviceId,
           serviceName: item.serviceName,
+          serviceDate: item.serviceDate,
           quantity: item.quantity,
           price: new Prisma.Decimal(item.price),
           total: new Prisma.Decimal(item.total),

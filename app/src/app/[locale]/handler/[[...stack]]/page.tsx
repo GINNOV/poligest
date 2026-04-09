@@ -5,6 +5,7 @@ import { getStackServerApp } from "@/lib/stack-app";
 import { headers } from "next/headers";
 import { SiteFooter } from "@/components/site-footer";
 import { getAppVersion, getDeployDate } from "@/lib/version";
+import { redirect } from "next/navigation";
 
 // Optional catch-all so /it/handler and /it/handler/* both work.
 export default async function StackAuthHandlerPage(props: {
@@ -16,6 +17,14 @@ export default async function StackAuthHandlerPage(props: {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
   const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
+  if (process.env.NODE_ENV !== "production" && host?.split(",")[0].trim().startsWith("127.0.0.1")) {
+    const stackPath = (params.stack ?? []).join("/");
+    const pathname = stackPath ? `/handler/${stackPath}` : "/handler";
+    const query = new URLSearchParams(
+      Object.entries(searchParams).flatMap(([key, value]) => (typeof value === "string" ? [[key, value]] : [])),
+    ).toString();
+    redirect(`http://localhost:3000${pathname}${query ? `?${query}` : ""}`);
+  }
   const origin = host ? `${proto}://${host}` : undefined;
 
   const audienceRaw = (searchParams?.audience ?? searchParams?.role ?? "").toLowerCase();

@@ -58,6 +58,7 @@ export default async function PazientiListaPage({
         email: true,
         phone: true,
         photoUrl: true,
+        hasPaperConsentForRequired: true,
         consents: {
           select: {
             moduleId: true,
@@ -182,6 +183,10 @@ export default async function PazientiListaPage({
             Consensi obbligatori mancanti
           </span>
           <span className="inline-flex items-center gap-1">
+            <span className="text-violet-600">●</span>
+            Consensi obbligatori presenti su scheda cartacea
+          </span>
+          <span className="inline-flex items-center gap-1">
             <span className="text-zinc-500">📧</span>
             Email mancante
           </span>
@@ -229,9 +234,11 @@ export default async function PazientiListaPage({
               const indicators: Array<{ title: string; className: string; icon: string }> = [];
               if (hasMissingRequired) {
                 indicators.push({
-                  title: "Consensi obbligatori mancanti",
-                  className: "text-rose-600",
-                  icon: "▲",
+                  title: patient.hasPaperConsentForRequired
+                    ? "Consensi obbligatori presenti su scheda cartacea"
+                    : "Consensi obbligatori mancanti",
+                  className: patient.hasPaperConsentForRequired ? "text-violet-600" : "text-rose-600",
+                  icon: patient.hasPaperConsentForRequired ? "●" : "▲",
                 });
               }
               if (missingEmail) {

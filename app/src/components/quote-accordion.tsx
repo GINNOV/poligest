@@ -18,6 +18,7 @@ type QuoteDraft = {
   id?: string | null;
   serviceId?: string | null;
   serviceName?: string | null;
+  serviceDate?: string | null;
   quantity?: number | null;
   price?: number | null;
   total?: number | null;
@@ -27,6 +28,7 @@ type QuoteDraft = {
     id?: string | null;
     serviceId?: string | null;
     serviceName?: string | null;
+    serviceDate?: string | null;
     quantity?: number | null;
     price?: number | null;
     total?: number | null;
@@ -42,6 +44,7 @@ type Props = {
   patientName?: string;
   services: ServiceOption[];
   initialQuote: QuoteDraft | null;
+  defaultServiceDate: string;
   printHref?: string | null;
   className?: string;
   onSave: (prevState: SaveState, formData: FormData) => Promise<SaveState>;
@@ -69,6 +72,23 @@ type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]> & {
     stopCapture: () => void;
   };
 };
+
+function formatDateInputValue(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultServiceDate(value?: string | null) {
+  if (value) {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10);
+    }
+  }
+  return formatDateInputValue(new Date());
+}
 
 function SignaturePad({
   name,
@@ -435,6 +455,7 @@ export function QuoteAccordion({
   patientName,
   services,
   initialQuote,
+  defaultServiceDate,
   onSave,
   className,
   printHref,
@@ -453,6 +474,7 @@ export function QuoteAccordion({
       return initialQuote.items.map((item) => ({
         id: item.id ?? "",
         serviceId: item.serviceId ?? "",
+        serviceDate: getDefaultServiceDate(item.serviceDate ?? initialQuote.serviceDate ?? defaultServiceDate),
         quantity: item.quantity ? String(item.quantity) : "1",
         price: item.price != null ? String(item.price) : "",
         createdAt: item.createdAt ?? null,
@@ -463,6 +485,7 @@ export function QuoteAccordion({
         {
           id: "",
           serviceId: initialQuote.serviceId,
+          serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate),
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
           createdAt: null,
@@ -470,7 +493,7 @@ export function QuoteAccordion({
       ];
     }
     return [];
-  }, [initialQuote]);
+  }, [defaultServiceDate, initialQuote]);
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
@@ -503,6 +526,7 @@ export function QuoteAccordion({
       {
         id: "",
         serviceId: fallbackService,
+        serviceDate: defaultServiceDate,
         quantity: "1",
         price: fallbackService
           ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
@@ -529,6 +553,7 @@ export function QuoteAccordion({
         quantityValue,
         priceValue,
         totalValue: quantityValue * priceValue,
+        serviceDate: item.serviceDate,
         createdAt: item.createdAt ?? null,
       };
     });
@@ -545,6 +570,7 @@ export function QuoteAccordion({
         itemsWithTotals.map((item) => ({
           id: item.id || undefined,
           serviceId: item.serviceId,
+          serviceDate: item.serviceDate,
           quantity: item.quantityValue,
           price: item.priceValue,
         }))
@@ -662,7 +688,7 @@ export function QuoteAccordion({
           {itemsWithTotals.map((item, index) => (
             <div
               key={`quote-item-${index}`}
-              className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr,1fr,1fr,auto]"
+              className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr,1fr,1fr,1.2fr,auto]"
             >
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 lg:col-span-1">
                 Prestazione
@@ -725,6 +751,16 @@ export function QuoteAccordion({
                   className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none"
                 />
               </label>
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                Data prestazione
+                <input
+                  type="date"
+                  value={item.serviceDate}
+                  onChange={(event) => updateItem(index, { serviceDate: event.target.value })}
+                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  required
+                />
+              </label>
               <div className="flex items-end justify-start gap-2">
                 <button
                   type="button"
@@ -744,7 +780,7 @@ export function QuoteAccordion({
                   −
                 </button>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 sm:col-span-2 lg:col-span-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 sm:col-span-2 lg:col-span-6">
                 <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
               </div>
             </div>
