@@ -35,6 +35,7 @@ const EURO_FORMATTER = new Intl.NumberFormat("it-IT", {
   style: "currency",
   currency: "EUR",
 });
+const PUBLIC_SITE_ORIGIN = "https://sorrisosplendente.com";
 
 function normalizeSiteOrigin(rawOrigin: string | undefined) {
   if (!rawOrigin) return "";
@@ -42,10 +43,27 @@ function normalizeSiteOrigin(rawOrigin: string | undefined) {
   return `https://${rawOrigin.replace(/\/$/, "")}`;
 }
 
+function isPublicSiteOrigin(origin: string) {
+  if (!origin) return false;
+
+  try {
+    const parsed = new URL(origin);
+    return !["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function resolveSiteOrigin() {
-  return normalizeSiteOrigin(
+  const configuredOrigin = normalizeSiteOrigin(
     process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
   );
+
+  if (isPublicSiteOrigin(configuredOrigin)) {
+    return configuredOrigin;
+  }
+
+  return PUBLIC_SITE_ORIGIN;
 }
 
 type AuditActor = {
