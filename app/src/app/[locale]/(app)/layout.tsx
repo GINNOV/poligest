@@ -29,12 +29,40 @@ async function stopImpersonation() {
     ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, role: true } })
     : null;
   const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
+
+  const originalAccess = store.get("impersonateAdminAccess")?.value;
+  const originalRefresh = store.get("impersonateAdminRefresh")?.value;
+
   if (projectId) {
-    store.delete(`stack-access-${projectId}`);
-    store.delete(`stack-refresh-${projectId}`);
+    if (originalAccess) {
+      store.set(`stack-access-${projectId}`, originalAccess, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 6,
+      });
+    } else {
+      store.delete(`stack-access-${projectId}`);
+    }
+
+    if (originalRefresh) {
+      store.set(`stack-refresh-${projectId}`, originalRefresh, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 6,
+      });
+    } else {
+      store.delete(`stack-refresh-${projectId}`);
+    }
   }
+
   store.delete("impersonateUserId");
   store.delete("impersonateAdminId");
+  store.delete("impersonateAdminAccess");
+  store.delete("impersonateAdminRefresh");
 
   if (current) {
     await logAudit(admin?.role === Role.ADMIN ? admin : null, {

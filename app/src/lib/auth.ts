@@ -147,6 +147,16 @@ async function getUserFromStack(allowImpersonation = true): Promise<AppUser | nu
     impersonatedFrom: null,
   };
 
+  // Update lastLoginAt if null or older than 1 hour
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  if (!dbUser.lastLoginAt || dbUser.lastLoginAt < oneHourAgo) {
+    // Fire and forget update to not block request
+    prisma.user.update({
+      where: { id: dbUser.id },
+      data: { lastLoginAt: new Date() },
+    }).catch(err => console.error("Failed to update lastLoginAt:", err));
+  }
+
   const cookieStore = await cookies();
   const impersonateUserId = allowImpersonation ? cookieStore.get("impersonateUserId")?.value : undefined;
   const impersonateAdminId = allowImpersonation ? cookieStore.get("impersonateAdminId")?.value : undefined;
