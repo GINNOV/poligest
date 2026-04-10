@@ -41,23 +41,23 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
         OR: [
           {
             product: {
-              is: { name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+              name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive },
             },
           },
           {
             product: {
-              is: { udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+              udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive },
             },
           },
           { udiPi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
           {
             patient: {
-              is: { firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+              firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive },
             },
           },
           {
             patient: {
-              is: { lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
+              lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive },
             },
           },
         ],

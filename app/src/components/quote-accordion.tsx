@@ -612,7 +612,12 @@ export function QuoteAccordion({
             <path d="M6 9a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9Z" />
             <path d="M9 12h6" />
           </svg>
-          <span className="uppercase tracking-wide">Preventivo</span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              PREVENTIVI
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase">PREVENTIVO</h2>
+          </div>
         </span>
         <div className="flex items-center gap-2">
           {initialQuote?.id ? (

@@ -227,7 +227,7 @@ export function CalendarMonthView({
                 ? day.isPracticeClosed
                   ? "cursor-pointer border-zinc-200 bg-zinc-100 hover:border-zinc-300"
                   : day.availabilityColors?.length
-                    ? "cursor-pointer border-zinc-200 bg-white hover:border-emerald-200"
+                    ? "cursor-pointer border-emerald-200 bg-gradient-to-b from-white to-emerald-50/30 hover:border-emerald-300 hover:to-emerald-50/50"
                     : "cursor-pointer border-zinc-200 bg-zinc-50 hover:border-zinc-300"
                 : "cursor-default border-zinc-100 bg-zinc-50 text-zinc-400"
             }`}
@@ -289,7 +289,7 @@ export function CalendarMonthView({
                 ) : null}
               </div>
             </div>
-            <div className="mt-2 flex-1 space-y-1 overflow-y-auto">
+            <div className="mt-2 flex-1 space-y-1 overflow-y-auto pr-1">
               {day.appointments.length === 0 ? (
                 <p className="text-[10px] text-zinc-400">Nessun appuntamento</p>
               ) : (
@@ -302,16 +302,17 @@ export function CalendarMonthView({
                   }).format(new Date(appt.endsAt));
                   const styles = getServiceStyle(appt.serviceType);
                   return (
-                    <button
-                      type="button"
-                      key={appt.id}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSelectedDate(null);
-                        setSelectedAppointment(appt);
-                      }}
-                      className={`w-full rounded-lg border px-2 py-1 text-left text-[10px] transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text}`}
-                    >
+                    <div key={appt.id} className="relative group/appt flex items-center gap-1.5">
+                      <div className="w-1.5 h-6 rounded-full bg-emerald-400 opacity-0 group-hover/appt:opacity-100 transition-opacity shrink-0" />
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedDate(null);
+                          setSelectedAppointment(appt);
+                        }}
+                        className={`flex-1 rounded-lg border px-2 py-1 text-left text-[10px] transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text}`}
+                      >
                       <div className="flex flex-wrap items-center gap-1">
                         <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}>
                           {appt.serviceType}
@@ -322,6 +323,7 @@ export function CalendarMonthView({
                       </div>
                       <div className="mt-1 truncate text-[11px] font-semibold">{appt.patientName}</div>
                     </button>
+                  </div>
                   );
                 })
               )}

@@ -22,10 +22,15 @@ async function saveFeatureUpdate(formData: FormData) {
     throw new Error("Aggiornamenti non configurati. Esegui migrazioni Prisma e rigenera il client.");
   }
 
+  const dismissalClient = getOptionalPrismaModel<{
+    deleteMany?: (args: unknown) => Promise<unknown>;
+  }>("featureUpdateDismissal");
+
   const id = (formData.get("updateId") as string) || "";
   const title = (formData.get("title") as string)?.trim();
   const bodyMarkdown = (formData.get("bodyMarkdown") as string)?.trim();
   const isActive = formData.get("isActive") === "on";
+  const forceNew = formData.get("forceNew") === "on";
 
   if (!title || !bodyMarkdown) {
     throw new Error("Titolo e contenuto sono obbligatori.");
@@ -35,24 +40,32 @@ async function saveFeatureUpdate(formData: FormData) {
     await updateClient.updateMany({ where: { isActive: true }, data: { isActive: false } });
   }
 
+  // If forceNew is checked or no ID exists, we create a new record
+  const shouldCreateNew = forceNew || !id;
+
   const saved =
-    id
-      ? ((await updateClient.update({
-          where: { id },
+    shouldCreateNew
+      ? ((await updateClient.create({
           data: { title, bodyMarkdown, isActive },
         })) as { id: string })
-      : ((await updateClient.create({
+      : ((await updateClient.update({
+          where: { id },
           data: { title, bodyMarkdown, isActive },
         })) as { id: string });
 
+  // If we created a new one or forced a reset, we don't need to do anything else 
+  // because new ID = no existing dismissals for it.
+  // If we just UPDATED an existing one, and forceNew was checked (though redundant logic-wise above)
+  // we would clear. But our logic above creates a new ID which is better for tracking history.
+
   await logAudit(admin, {
-    action: "featureUpdate.saved",
+    action: shouldCreateNew ? "featureUpdate.created" : "featureUpdate.updated",
     entity: "FeatureUpdate",
     entityId: saved.id,
-    metadata: { isActive },
+    metadata: { isActive, forceNew },
   });
 
-  revalidatePath("/[locale]/admin/aggiornamenti", "page");
+  revalidatePath("/admin/aggiornamenti");
 }
 
 export default async function AdminUpdatesPage() {
@@ -60,7 +73,7 @@ export default async function AdminUpdatesPage() {
 
   const latest = updateClient?.findFirst
     ? ((await updateClient.findFirst({ orderBy: { createdAt: "desc" } })) as
-        | { id: string; title: string; bodyMarkdown: string; isActive: boolean; createdAt: Date }
+        | { id: string; title: string; bodyMarkdown: string; isActive: boolean; createdAt: Date; updatedAt: Date }
         | null)
     : null;
 
@@ -117,49 +130,70 @@ export default async function AdminUpdatesPage() {
                 required
               />
             </label>
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-4">
               <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
                 <input
                   type="checkbox"
                   name="isActive"
-                  className="h-4 w-4 rounded border-zinc-300"
+                  className="h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500"
                   defaultChecked={latest?.isActive ?? true}
                 />
                 Mostra popup allo staff
               </label>
-              <button
-                type="submit"
-                className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 sm:w-auto"
-              >
-                Aggiorna
-              </button>
+
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-800">
+                <input
+                  type="checkbox"
+                  name="forceNew"
+                  className="h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500"
+                />
+                Crea come nuovo popup (resetta le visualizzazioni dello staff)
+              </label>
+
+              <div className="flex items-center justify-end">
+                <button
+                  type="submit"
+                  className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 sm:w-auto"
+                >
+                  Salva configurazione
+                </button>
+              </div>
             </div>
           </form>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Anteprima</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Stato attuale</h2>
           {latest ? (
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-700">
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-500">Titolo</span>
-                <span className="font-semibold text-zinc-900">{latest.title}</span>
+            <div className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-700">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-500">Stato:</span>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      latest.isActive ? "bg-emerald-50 text-emerald-800" : "bg-zinc-100 text-zinc-700"
+                    }`}
+                  >
+                    {latest.isActive ? "Attivo" : "Disattivo"}
+                  </span>
+                </div>
+                <div className="text-xs text-zinc-500">
+                  Ultima modifica:{" "}
+                  <span className="font-medium text-zinc-900">
+                    {new Intl.DateTimeFormat("it-IT", { dateStyle: "short", timeStyle: "short" }).format(
+                      latest.updatedAt
+                    )}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-zinc-500">Attivo</span>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    latest.isActive ? "bg-emerald-50 text-emerald-800" : "bg-zinc-100 text-zinc-700"
-                  }`}
-                >
-                  {latest.isActive ? "Sì" : "No"}
-                </span>
-              </div>
-              <div className="text-xs text-zinc-500">
-                Ultimo aggiornamento:{" "}
-                {new Intl.DateTimeFormat("it-IT", { dateStyle: "short", timeStyle: "short" }).format(
-                  latest.createdAt
-                )}
+              
+              <div className="rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600 border border-zinc-100">
+                <p>
+                  <span className="font-semibold">Titolo:</span> {latest.title}
+                </p>
+                <p className="mt-1">
+                  <span className="font-semibold">ID unico:</span> <code className="text-[10px]">{latest.id}</code>
+                </p>
               </div>
             </div>
           ) : (
@@ -167,8 +201,8 @@ export default async function AdminUpdatesPage() {
           )}
           {latest ? (
             <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anteprima messaggio</h3>
-              <div className="mt-3">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 border-b border-zinc-100 pb-2 mb-3">Anteprima messaggio</h3>
+              <div>
                 <FeatureUpdateMarkdownPreview markdown={latest.bodyMarkdown} />
               </div>
             </div>

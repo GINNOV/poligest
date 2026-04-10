@@ -47,7 +47,11 @@ export function PatientSearchCombobox({
             setSelectedId(match?.id ?? "");
           }}
           placeholder={placeholder}
-          className={className ? `${className} pr-12` : "pr-12"}
+          className={
+            className
+              ? `${className} pr-12 font-semibold text-zinc-950 dark:text-white`
+              : "pr-12 font-semibold text-zinc-950 dark:text-white"
+          }
         />
         {query ? (
           <button

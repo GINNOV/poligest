@@ -134,7 +134,7 @@ function getServiceStyle(serviceType: string) {
   );
 }
 
-const HOUR_HEIGHT = 48;
+const HOUR_HEIGHT = 72;
 const DEFAULT_DURATION_MINUTES = 60;
 
 const padTime = (value: number) => value.toString().padStart(2, "0");
@@ -385,7 +385,7 @@ export function CalendarWeekView({
                     });
                   }}
                 >
-                  <div className="absolute inset-0 rounded-xl bg-zinc-50" />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white to-zinc-50/50" />
                   <div className="absolute inset-0">
                     {hourMarks.map((hour) => {
                       const minutes = hour * 60;
@@ -430,44 +430,53 @@ export function CalendarWeekView({
                       const clampedEnd = Math.min(endMinute, timeEndMinute);
                       const top = ((clampedStart - timeStartMinute) / 60) * HOUR_HEIGHT;
                       const slotHeight = ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT;
-                      const height = Math.max(15, slotHeight - 2);
+                      const height = Math.max(18, slotHeight - 1);
                       const styles = getServiceStyle(appt.serviceType);
-                      const isCompact = height < 34;
+                      const isCompact = height < 38;
                       const columnGap = 6;
                       const clickGutter = 8;
                       const columnWidth = 100 / appt.columnCount;
                       const left = `calc(${columnWidth * appt.columnIndex}% + ${columnGap / 2}px)`;
                       const width = `calc(${columnWidth}% - ${columnGap}px - ${clickGutter}px)`;
+                      const gutterWidth = 4;
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={appt.id}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedSlot(null);
-                            setSelectedAppointment(appt);
-                          }}
-                          className={`absolute z-10 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text} ${
-                            isCompact ? "px-1.5 py-0.5" : "px-2 py-1"
-                          }`}
-                          style={{ top, height, left, width }}
+                          className="absolute z-10 group/appt"
+                          style={{ top, height, left, width: `calc(${width} + ${clickGutter}px)` }}
                         >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span
-                              className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}
-                            >
-                              {appt.serviceType}
-                            </span>
-                            <span className="shrink-0 text-[9px] font-semibold text-zinc-600">
-                              {start.toLocaleTimeString("it-IT", { timeStyle: "short" })}
-                            </span>
-                          </div>
-                          {!isCompact ? (
-                            <div className="mt-1 truncate text-[10px] font-semibold">
-                              {appt.patientName}
+                          <div 
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[60%] min-h-[10px] rounded-full bg-emerald-400 opacity-0 group-hover/appt:opacity-100 transition-opacity"
+                          />
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedSlot(null);
+                              setSelectedAppointment(appt);
+                            }}
+                            className={`absolute right-0 top-0 bottom-0 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text} ${
+                              isCompact ? "px-1.5 py-0.5" : "px-2 py-1"
+                            }`}
+                            style={{ left: gutterWidth, width: `calc(100% - ${gutterWidth}px)` }}
+                          >
+                            <div className="flex w-full items-center justify-between gap-2">
+                              <span
+                                className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}
+                              >
+                                {appt.serviceType}
+                              </span>
+                              <span className="shrink-0 text-[9px] font-semibold text-zinc-600">
+                                {start.toLocaleTimeString("it-IT", { timeStyle: "short" })}
+                              </span>
                             </div>
-                          ) : null}
-                        </button>
+                            {!isCompact ? (
+                              <div className="mt-1 truncate text-[10px] font-semibold">
+                                {appt.patientName}
+                              </div>
+                            ) : null}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

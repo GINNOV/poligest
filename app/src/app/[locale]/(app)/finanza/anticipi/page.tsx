@@ -2,7 +2,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
-import { createDoctorPayment } from "../actions";
+import { createDoctorPayment, amendDoctorPayment, archiveDoctorPayment } from "../actions";
+import { AmendDoctorPaymentButton } from "@/components/amend-doctor-payment-button";
+import { ArchiveDoctorPaymentButton } from "@/components/archive-doctor-payment-button";
 
 export const dynamic = "force-dynamic";
 
@@ -21,29 +23,6 @@ type MediciSearchParams = {
   afrom?: string;
   ato?: string;
 };
-
-async function archiveDoctorPayment(formData: FormData) {
-  "use server";
-
-  await requireUser([Role.ADMIN, Role.MANAGER]);
-  const entryId = formData.get("entryId") as string;
-  if (!entryId) return;
-
-  const entry = await prisma.financeEntry.findUnique({
-    where: { id: entryId },
-    select: { description: true },
-  });
-
-  if (!entry || entry.description.startsWith(ARCHIVE_PREFIX)) return;
-
-  await prisma.financeEntry.update({
-    where: { id: entryId },
-    data: { description: `${ARCHIVE_PREFIX} ${entry.description}` },
-  });
-
-  revalidatePath("/finanza");
-  revalidatePath("/finanza/anticipi");
-}
 
 export default async function AnticipiPage({
   searchParams,
@@ -73,7 +52,7 @@ export default async function AnticipiPage({
         type: "EXPENSE",
         doctorId: { not: null },
         description: {
-          startsWith: DOCTOR_PAYMENT_PREFIX,
+          contains: DOCTOR_PAYMENT_PREFIX,
         },
         NOT: {
           description: { startsWith: `${ARCHIVE_PREFIX} ${DOCTOR_PAYMENT_PREFIX}` },
@@ -103,14 +82,24 @@ export default async function AnticipiPage({
     }),
   ]);
 
-  const doctorPayments = payments.map((entry) => ({
-    id: entry.id,
-    amount: entry.amount,
-    occurredAt: entry.occurredAt,
-    description: entry.description.replace(`${DOCTOR_PAYMENT_PREFIX} · `, ""),
-    doctorId: entry.doctorId,
-    doctorName: entry.doctor?.fullName ?? "Medico",
-  }));
+  const doctorPayments = payments.map((entry) => {
+    const description = entry.description || "";
+    const methodMatch = description.match(/Metodo: ([^·]+)/);
+    const methodLabel = methodMatch && methodMatch[1] ? methodMatch[1].trim() : null;
+    
+    return {
+      id: entry.id,
+      amount: entry.amount,
+      occurredAt: entry.occurredAt,
+      description: description
+        .replace(`${DOCTOR_PAYMENT_PREFIX} · `, "")
+        .replace(/Metodo: [^·]+ · /, "")
+        .replace(/Metodo: [^·]+/, ""),
+      methodLabel,
+      doctorId: entry.doctorId,
+      doctorName: entry.doctor?.fullName ?? "Medico",
+    };
+  });
   const paymentsByDoctor = doctorPayments.reduce<
     Array<{
       doctorId: string;
@@ -170,14 +159,14 @@ export default async function AnticipiPage({
 
         <form
           action={createDoctorPayment}
-          className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm lg:grid-cols-[1.5fr,1fr,1fr,2fr,auto] lg:items-end"
+          className="grid gap-3 rounded-2xl border border-zinc-200 bg-white p-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50 lg:grid-cols-[1.5fr,1fr,1fr,1.5fr,2fr,auto] lg:items-end"
         >
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Medico</span>
+            <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Medico</span>
             <select
               name="doctorId"
               required
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               defaultValue=""
             >
               <option value="" disabled>
@@ -191,7 +180,7 @@ export default async function AnticipiPage({
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Importo</span>
+            <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Importo</span>
             <input
               type="number"
               name="amount"
@@ -199,30 +188,45 @@ export default async function AnticipiPage({
               step="0.01"
               required
               placeholder="0,00"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Data</span>
+            <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Data</span>
             <input
               type="date"
               name="occurredAt"
               required
               defaultValue={today}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase text-zinc-500">Nota</span>
+            <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Metodo</span>
+            <select
+              name="paymentMethod"
+              required
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              defaultValue="ELECTRONIC"
+            >
+              <option value="ELECTRONIC">Elettronico</option>
+              <option value="CASH">Contanti</option>
+              <option value="BANK_TRANSFER">Bonifico</option>
+              <option value="PAY_LATER">Pagherò</option>
+              <option value="OTHER">Altro</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nota</span>
             <input
               name="note"
               placeholder="Liquidazione aprile, anticipo, bonus..."
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
           </label>
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           >
             Registra
           </button>
@@ -338,20 +342,35 @@ export default async function AnticipiPage({
                         <div className="text-xs text-zinc-600">
                           {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(payment.occurredAt)}
                         </div>
-                        <div className="text-sm font-medium text-zinc-900">
-                          {payment.description || "Liquidazione"}
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
+                          {payment.description.includes("(CORRETTO)") && (
+                            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                              CORRETTO
+                            </span>
+                          )}
+                          {payment.methodLabel && (
+                            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                              {payment.methodLabel.toUpperCase()}
+                            </span>
+                          )}
+                          {payment.description.replace("(CORRETTO) ", "") || "Liquidazione"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <form action={archiveDoctorPayment}>
-                          <input type="hidden" name="entryId" value={payment.id} />
-                          <button
-                            type="submit"
-                            className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
-                          >
-                            Archivia
-                          </button>
-                        </form>
+                        <AmendDoctorPaymentButton 
+                          payment={{ 
+                            id: payment.id, 
+                            amount: payment.amount.toString(), 
+                            description: payment.description.replace("(CORRETTO) ", ""),
+                            occurredAt: payment.occurredAt,
+                            methodLabel: payment.methodLabel
+                          }} 
+                          action={amendDoctorPayment} 
+                        />
+                        <ArchiveDoctorPaymentButton
+                          entryId={payment.id}
+                          action={archiveDoctorPayment}
+                        />
                         <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
                           {Number(payment.amount).toFixed(2)} €
                         </span>

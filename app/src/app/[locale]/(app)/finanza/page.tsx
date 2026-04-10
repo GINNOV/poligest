@@ -127,6 +127,25 @@ export default async function FinanzaPage() {
             Verifica dove si concentrano materiali e spese ufficio.
           </p>
         </Link>
+        <Link
+          href="/finanza/report-medici"
+          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="overflow-hidden rounded-2xl border border-zinc-100">
+            <Image
+              src="/tiles/report_medici.png"
+              alt="Report medici"
+              width={640}
+              height={360}
+              className="h-44 w-full object-cover"
+            />
+          </div>
+          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Medici</h2>
+          <p className="mt-2 text-sm leading-6 text-zinc-600">
+            Visualizza il riepilogo mensile dei compensi e dei pagamenti per ogni medico.
+            Monitora le spettanze e le liquidazioni effettuate.
+          </p>
+        </Link>
       </div>
     </div>
   );

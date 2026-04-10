@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
@@ -9,6 +8,7 @@ import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
+import { AgendaReminderButton } from "@/components/agenda-reminder-button";
 import {
   deleteAppointmentAction,
   updateAppointmentAction,
@@ -224,9 +224,11 @@ export default async function AgendaPage({
                 ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
                 : null;
               const isPast = appt.endsAt < now;
-              const cardClass = isPast
-                ? "border-amber-200 bg-amber-50"
-                : statusCardBackgrounds[appt.status];
+              const cardClass = (appt.status === AppointmentStatus.CANCELLED || appt.status === AppointmentStatus.NO_SHOW)
+                ? statusCardBackgrounds[appt.status]
+                : isPast
+                  ? "border-amber-200 bg-amber-50"
+                  : statusCardBackgrounds[appt.status];
               const dayKey = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
                 appt.startsAt
               );
@@ -305,20 +307,11 @@ export default async function AgendaPage({
                           </div>
                         </div>
                         <div className="grid w-full grid-cols-2 gap-2 text-xs sm:w-auto">
-                          {whatsappHref ? (
-                            <a
-                              href={whatsappHref}
-                              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                            >
-                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                              Promemoria
-                            </a>
-                          ) : (
-                            <span className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-emerald-700/60 px-3 text-xs font-semibold text-white opacity-70">
-                              <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                              Promemoria
-                            </span>
-                          )}
+                          <AgendaReminderButton
+                            appointmentId={appt.id}
+                            whatsappHref={whatsappHref}
+                            initialReminderSent={appt.reminderSent}
+                          />
                           <AppointmentStatusAutoSubmit
                             appointmentId={appt.id}
                             defaultValue={appt.status}

@@ -288,6 +288,10 @@ export async function createDoctorPayment(formData: FormData) {
   const amountRaw = (formData.get("amount") as string)?.trim() || "";
   const occurredAt = (formData.get("occurredAt") as string) || "";
   const note = ((formData.get("note") as string) || "").trim();
+  const methodRaw = ((formData.get("paymentMethod") as string) || PatientPaymentMethod.ELECTRONIC).toUpperCase();
+  const method = Object.values(PatientPaymentMethod).includes(methodRaw as PatientPaymentMethod)
+    ? (methodRaw as PatientPaymentMethod)
+    : PatientPaymentMethod.ELECTRONIC;
 
   if (!doctorId || !amountRaw || !occurredAt) {
     throw new Error("Dati mancanti");
@@ -307,15 +311,146 @@ export async function createDoctorPayment(formData: FormData) {
     throw new Error("Medico non trovato");
   }
 
+  const methodLabel =
+    method === PatientPaymentMethod.CASH
+      ? "contanti"
+      : method === PatientPaymentMethod.BANK_TRANSFER
+        ? "bonifico"
+        : method === PatientPaymentMethod.PAY_LATER
+          ? "pagherò"
+        : method === PatientPaymentMethod.OTHER
+          ? "altro"
+          : "elettronico";
+
   await prisma.financeEntry.create({
     data: {
       type: "EXPENSE",
-      description: ["Pagamento medico", note || "Liquidazione"].join(" · "),
+      description: ["Pagamento medico", `Metodo: ${methodLabel}`, note || "Liquidazione"].join(" · "),
       amount: new Prisma.Decimal(amountNumber),
       occurredAt: new Date(occurredAt),
       doctorId,
       userId: user.id,
     },
+  });
+
+  revalidatePath("/finanza");
+  revalidatePath("/finanza/anticipi");
+}
+
+export async function amendDoctorPayment(formData: FormData) {
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
+  const entryId = (formData.get("entryId") as string) || "";
+  const amountRaw = (formData.get("amount") as string)?.trim() || "";
+  const occurredAt = (formData.get("occurredAt") as string) || "";
+  const note = ((formData.get("note") as string) || "").trim();
+  const methodRaw = ((formData.get("paymentMethod") as string) || PatientPaymentMethod.ELECTRONIC).toUpperCase();
+  const method = Object.values(PatientPaymentMethod).includes(methodRaw as PatientPaymentMethod)
+    ? (methodRaw as PatientPaymentMethod)
+    : PatientPaymentMethod.ELECTRONIC;
+
+  if (!entryId || !amountRaw || !occurredAt) {
+    throw new Error("Dati mancanti");
+  }
+
+  const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
+  if (Number.isNaN(amountNumber) || amountNumber <= 0) {
+    throw new Error("Importo non valido");
+  }
+
+  const entry = await prisma.financeEntry.findUnique({
+    where: { id: entryId },
+  });
+
+  if (!entry) {
+    throw new Error("Record non trovato");
+  }
+
+  const methodLabel =
+    method === PatientPaymentMethod.CASH
+      ? "contanti"
+      : method === PatientPaymentMethod.BANK_TRANSFER
+        ? "bonifico"
+        : method === PatientPaymentMethod.PAY_LATER
+          ? "pagherò"
+        : method === PatientPaymentMethod.OTHER
+          ? "altro"
+          : "elettronico";
+
+  const CORRETTO_MARKER = "(CORRETTO)";
+  // If note is provided, we use it. If not, we try to extract the old note part from description
+  let cleanNote = note;
+  if (!cleanNote) {
+    const parts = entry.description.split(" · ");
+    cleanNote = parts.length > 2 ? parts.slice(2).join(" · ") : "";
+  }
+  
+  let newDescription = ["Pagamento medico", `Metodo: ${methodLabel}`, cleanNote || "Liquidazione"].join(" · ");
+  if (!newDescription.includes(CORRETTO_MARKER)) {
+    newDescription = `${CORRETTO_MARKER} ${newDescription}`;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.financeEntry.update({
+      where: { id: entryId },
+      data: {
+        amount: new Prisma.Decimal(amountNumber),
+        occurredAt: new Date(occurredAt),
+        description: newDescription,
+      },
+    });
+
+    const auditLogClient = getOptionalPrismaModel<{
+      create?: (args: {
+        data: {
+          action: string;
+          entity: string;
+          entityId: string;
+          userId: string;
+          metadata: Prisma.InputJsonValue;
+        };
+      }) => Promise<unknown>;
+    }>("auditLog");
+
+    if (auditLogClient?.create) {
+      await auditLogClient.create({
+        data: {
+          action: "finance.doctor_payment.amend",
+          entity: "FinanceEntry",
+          entityId: entryId,
+          userId: user.id,
+          metadata: {
+            oldAmount: entry.amount.toString(),
+            newAmount: amountNumber.toString(),
+            oldDate: entry.occurredAt.toISOString(),
+            newDate: new Date(occurredAt).toISOString(),
+            oldDescription: entry.description,
+            newDescription: newDescription,
+          },
+        },
+      });
+    }
+  });
+
+  revalidatePath("/finanza");
+  revalidatePath("/finanza/anticipi");
+}
+
+export async function archiveDoctorPayment(formData: FormData) {
+  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const entryId = formData.get("entryId") as string;
+  if (!entryId) return;
+
+  const entry = await prisma.financeEntry.findUnique({
+    where: { id: entryId },
+    select: { description: true },
+  });
+
+  const ARCHIVE_PREFIX = "ARCHIVIATO:";
+  if (!entry || entry.description.startsWith(ARCHIVE_PREFIX)) return;
+
+  await prisma.financeEntry.update({
+    where: { id: entryId },
+    data: { description: `${ARCHIVE_PREFIX} ${entry.description}` },
   });
 
   revalidatePath("/finanza");

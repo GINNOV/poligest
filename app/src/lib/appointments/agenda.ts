@@ -72,7 +72,7 @@ type AgendaAppointment = Prisma.AppointmentGetPayload<{
     patient: { select: { firstName: true; lastName: true; phone: true } };
     doctor: { select: { fullName: true; specialty: true } };
   };
-}>;
+}> & { reminderSent?: boolean };
 
 export async function getAgendaPageData({ statusValue, dateValue, searchValue, pageParam }: AgendaQueryInput) {
   const statusFilter =
@@ -158,10 +158,30 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
         : Promise.resolve([]),
     ]);
 
+  const appointmentIds = appointments.map((a) => a.id);
+  const reminderClickLogs = appointmentIds.length
+    ? await prisma.auditLog.findMany({
+        where: {
+          action: "appointment.whatsapp_reminder_clicked",
+          entity: "Appointment",
+          entityId: { in: appointmentIds },
+        },
+        select: { entityId: true },
+      })
+    : [];
+  const clickedReminderAppointmentIds = new Set(
+    reminderClickLogs.flatMap((log) => (log.entityId ? [log.entityId] : []))
+  );
+
+  const appointmentsWithStatus = appointments.map((appt) => ({
+    ...appt,
+    reminderSent: clickedReminderAppointmentIds.has(appt.id),
+  }));
+
   const serviceOptions = Array.from(new Set([...services.map((s) => s.name), ...FALLBACK_APPOINTMENT_SERVICES]).values());
 
   return {
-    appointments,
+    appointments: appointmentsWithStatus,
     patients,
     doctors,
     serviceOptionObjects: serviceOptions.map((name) => ({ id: name, name })),

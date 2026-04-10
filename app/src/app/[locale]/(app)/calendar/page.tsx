@@ -736,11 +736,12 @@ export default async function CalendarPage({
   });
 
   return (
-      <div className="space-y-6">
+    <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-6">
+      <div className="mx-auto max-w-screen-2xl space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Aggiungi appuntamenti dei medici
+            Calendario medici
           </h1>
           <p className="mt-1 text-sm text-zinc-600">
             Seleziona un medico o tutto lo staff per vedere la pianificazione del periodo selezionato.
@@ -905,6 +906,7 @@ export default async function CalendarPage({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

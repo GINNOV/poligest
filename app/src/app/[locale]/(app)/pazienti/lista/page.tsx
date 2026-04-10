@@ -82,6 +82,21 @@ export default async function PazientiListaPage({
     }),
   ]);
 
+  const getDisplayName = (p: { firstName?: string | null; lastName?: string | null }) =>
+    `${(p.lastName ?? "").trim()} ${(p.firstName ?? "").trim()}`.trim() || "Paziente senza nome";
+
+  const compareNames = (
+    a: { firstName?: string | null; lastName?: string | null; createdAt: Date },
+    b: { firstName?: string | null; lastName?: string | null; createdAt: Date },
+  ) => {
+    const nameA = getDisplayName(a).toLowerCase();
+    const nameB = getDisplayName(b).toLowerCase();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
+    }
+    return (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0);
+  };
+
   const staffEmails = new Set(
     staffUsers
       .map((user) => user.email?.trim().toLowerCase())
@@ -98,16 +113,6 @@ export default async function PazientiListaPage({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const page = Math.min(requestedPage, totalPages);
   const skip = (page - 1) * PAGE_SIZE;
-  const getDisplayName = (p: typeof patients[number]) =>
-    `${(p.lastName ?? "").trim()} ${(p.firstName ?? "").trim()}`.trim();
-  const compareNames = (a: typeof patients[number], b: typeof patients[number]) => {
-    const nameA = getDisplayName(a).toLowerCase();
-    const nameB = getDisplayName(b).toLowerCase();
-    if (nameA !== nameB) {
-      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
-    }
-    return (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0);
-  };
 
   const sortedPatients =
     sortOption === "name_desc" || sortOption === "name_asc"

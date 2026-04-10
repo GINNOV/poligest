@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { getOptionalPrismaModel, isMissingPrismaModelError, runOptionalPrismaQuery } from "@/lib/prisma-models";
 import { logAudit } from "@/lib/audit";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { REPORT_CONFIG_ID, getCompletedPracticeWeekPeriod, parseRecipientEmails, sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
 import { Role } from "@prisma/client";
 
@@ -88,6 +89,29 @@ async function sendWeeklyReportNow() {
       throw new Error("Attiva il report settimanale prima dell'invio manuale.");
     }
   }
+
+  revalidatePath("/admin/report-settimanale");
+}
+
+async function clearWeeklyReportHistory() {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN]);
+  const logClient = getOptionalPrismaModel<{
+    deleteMany?: (args: Record<string, unknown>) => Promise<unknown>;
+  }>("practiceWeeklyReportLog");
+
+  if (!logClient?.deleteMany) {
+    throw new Error("Il modulo report settimanale non è disponibile nel server attivo.");
+  }
+
+  await logClient.deleteMany({});
+
+  await logAudit(admin, {
+    action: "practice.weekly_report_history_cleared",
+    entity: "System",
+    entityId: REPORT_CONFIG_ID,
+  });
 
   revalidatePath("/admin/report-settimanale");
 }
@@ -229,14 +253,6 @@ export default async function AdminWeeklyReportPage() {
               L&apos;invio manuale forza un nuovo invio anche se il report della stessa settimana e gia stato spedito.
             </p>
           </div>
-
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-900">Cron tecnico</p>
-            <p className="mt-2 text-sm text-zinc-600">
-              Il report viene verificato anche dal cron esistente dei richiami, quindi non serve creare un
-              secondo job per far partire l&apos;invio settimanale.
-            </p>
-          </div>
         </div>
       </div>
 
@@ -246,6 +262,15 @@ export default async function AdminWeeklyReportPage() {
             <p className="text-sm font-semibold text-zinc-900">Storico invii</p>
             <p className="text-xs text-zinc-600">Ultimi tentativi registrati dal sistema.</p>
           </div>
+          {recentLogs.length > 0 && (
+            <ConfirmButton
+              action={clearWeeklyReportHistory}
+              confirmMessage="Sei sicuro di voler azzerare lo storico degli invii? Questa azione non può essere annullata."
+              className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-200 hover:bg-rose-50"
+            >
+              Azzera storico
+            </ConfirmButton>
+          )}
         </div>
 
         {recentLogs.length === 0 ? (

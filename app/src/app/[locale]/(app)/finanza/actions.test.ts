@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
     },
     financeEntry: {
       create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
     supplier: {
       findUnique: vi.fn(),
@@ -57,6 +59,8 @@ import {
   recordExpense,
   archivePatientPayment,
   recordPatientPayment,
+  amendDoctorPayment,
+  archiveDoctorPayment,
 } from "@/app/[locale]/(app)/finanza/actions";
 
 describe("finanza actions", () => {
@@ -78,7 +82,14 @@ describe("finanza actions", () => {
     });
     mocks.prisma.supplier.findUnique.mockResolvedValue({ name: "Dental Supply" });
     mocks.prisma.product.findUnique.mockResolvedValue({ name: "Impianto" });
-    mocks.prisma.doctor.findUnique.mockResolvedValue({ fullName: "Dr. Verdi" });
+    mocks.prisma.doctor.findUnique.mockResolvedValue({ id: "doctor-1", fullName: "Dr. Verdi" });
+    mocks.prisma.financeEntry.findUnique.mockResolvedValue({
+      id: "entry-1",
+      amount: new Prisma.Decimal(100),
+      description: "Pagamento medico · Metodo: elettronico · Test",
+      occurredAt: new Date("2026-04-08"),
+      doctorId: "doctor-1",
+    });
     mocks.prisma.financeEntry.create.mockResolvedValue(undefined);
     mocks.prisma.cashAdvance.create.mockResolvedValue(undefined);
     mocks.prisma.quoteItem.update.mockResolvedValue(undefined);
@@ -98,6 +109,7 @@ describe("finanza actions", () => {
 
     mocks.getOptionalPrismaModel.mockReturnValue({
       create: vi.fn(),
+      deleteMany: vi.fn(),
       findMany: vi.fn().mockResolvedValue([{ amount: new Prisma.Decimal(20) }]),
     });
 
@@ -118,6 +130,7 @@ describe("finanza actions", () => {
         },
         financeEntry: {
           create: vi.fn().mockResolvedValue(undefined),
+          update: vi.fn().mockResolvedValue(undefined),
         },
       };
       return callback(tx);
@@ -270,12 +283,48 @@ describe("finanza actions", () => {
     expect(mocks.prisma.financeEntry.create).toHaveBeenCalledWith({
       data: {
         type: "EXPENSE",
-        description: "Pagamento medico · Saldo aprile",
+        description: "Pagamento medico · Metodo: elettronico · Saldo aprile",
         amount: new Prisma.Decimal(120.75),
         occurredAt: new Date("2026-04-08"),
         doctorId: "doctor-1",
         userId: "user-1",
       },
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/anticipi");
+  });
+
+  it("amends a doctor payment and logs the change", async () => {
+    const formData = new FormData();
+    formData.set("entryId", "entry-1");
+    formData.set("amount", "150.00");
+    formData.set("occurredAt", "2026-04-09");
+    formData.set("paymentMethod", PatientPaymentMethod.CASH);
+    formData.set("note", "Correzione errore");
+
+    await amendDoctorPayment(formData);
+
+    expect(mocks.prisma.financeEntry.findUnique).toHaveBeenCalledWith({
+      where: { id: "entry-1" },
+    });
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/anticipi");
+  });
+
+  it("archives a doctor payment by prefixing the description", async () => {
+    const formData = new FormData();
+    formData.set("entryId", "entry-1");
+
+    await archiveDoctorPayment(formData);
+
+    expect(mocks.prisma.financeEntry.findUnique).toHaveBeenCalledWith({
+      where: { id: "entry-1" },
+      select: { description: true },
+    });
+    expect(mocks.prisma.financeEntry.update).toHaveBeenCalledWith({
+      where: { id: "entry-1" },
+      data: { description: "ARCHIVIATO: Pagamento medico · Metodo: elettronico · Test" },
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/anticipi");
