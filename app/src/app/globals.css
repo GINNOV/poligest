@@ -143,36 +143,32 @@ input[type="file"]::file-selector-button {
 
 /* Holistic Button Utilities */
 @layer components {
-  .btn-base {
-    @apply inline-flex items-center justify-center rounded-full font-semibold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-70;
-  }
-
   .btn-primary {
-    @apply btn-base bg-emerald-700 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-70 bg-emerald-700 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500;
   }
 
   .btn-secondary {
-    @apply btn-base border border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/40;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-70 border border-emerald-200 bg-emerald-50 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/40;
   }
 
   .btn-outline {
-    @apply btn-base border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 shadow-none;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800;
   }
 
   .btn-ghost {
-    @apply btn-base text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 shadow-none;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200;
   }
 
   .btn-black {
-    @apply btn-base bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-70 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200;
   }
 
   .btn-destructive {
-    @apply btn-base bg-rose-600 text-white hover:bg-rose-500 dark:bg-rose-700 dark:hover:bg-rose-600;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-70 bg-rose-600 text-white hover:bg-rose-500 dark:bg-rose-700 dark:hover:bg-rose-600;
   }
 
   .btn-destructive-outline {
-    @apply btn-base border border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:bg-zinc-950 dark:text-rose-400 dark:hover:border-rose-800 shadow-none;
+    @apply inline-flex items-center justify-center rounded-full font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 border border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:bg-zinc-950 dark:text-rose-400 dark:hover:border-rose-800;
   }
 
   /* Design System: Cards */

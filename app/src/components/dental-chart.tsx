@@ -551,17 +551,16 @@ export function DentalChart({
               {
                 label: "Trattato",
                 render: (
-                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
-                    <path d={TOOTH_PATHS.incisor} className="fill-cyan-50 dark:fill-cyan-900/20 stroke-emerald-500 dark:stroke-emerald-400" strokeWidth="2" />
+                  <svg width="16" height="16" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="#22c55e" strokeWidth="6" />
                   </svg>
                 ),
               },
               {
                 label: "Selezionato",
                 render: (
-                  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden>
-                    <circle cx="12" cy="12" r="10" fill="none" className="stroke-rose-500 dark:stroke-rose-400" strokeWidth="2.5" />
-                    <path d={TOOTH_PATHS.incisor} className="fill-white dark:fill-zinc-800 stroke-zinc-300 dark:stroke-zinc-600" strokeWidth="1.2" />
+                  <svg width="16" height="16" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="35" fill="none" stroke="#ef4444" strokeWidth="5" />
                   </svg>
                 ),
               },
@@ -597,8 +596,8 @@ export function DentalChart({
                     cy={TOOTH_POSITIONS[id].y}
                     r="3.5"
                     fill="none"
-                    className="stroke-emerald-500 dark:stroke-emerald-400"
-                    strokeWidth="0.8"
+                    stroke="#22c55e"
+                    strokeWidth="0.6"
                   />
                 ))}
               {selectedTooth !== null && selectedTooth !== 0 && TOOTH_POSITIONS[selectedTooth] ? (
@@ -607,8 +606,8 @@ export function DentalChart({
                   cy={TOOTH_POSITIONS[selectedTooth].y}
                   r="3.5"
                   fill="none"
-                  className="stroke-rose-500 dark:stroke-rose-400"
-                  strokeWidth="1.2"
+                  stroke="#ef4444"
+                  strokeWidth="0.5"
                 />
               ) : null}
             </svg>
