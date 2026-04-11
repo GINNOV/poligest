@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
 const ARCHIVE_PREFIX = "ARCHIVIATO:";
 
 type ReportMensilePageProps = {
-  searchParams?: Promise<{ month?: string }>;
+  searchParams?: Promise<{ from?: string; to?: string }>;
 };
 
 const formatCurrency = (value: number) =>
@@ -26,22 +27,27 @@ export default async function ReportMensilePage({
   await requireUser([Role.ADMIN, Role.MANAGER]);
 
   const resolvedParams = (await searchParams) ?? {};
-  const defaultMonthDate = startOfMonth(subMonths(new Date(), 1));
-  const requestedMonth =
-    typeof resolvedParams.month === "string" ? resolvedParams.month.trim() : "";
-  const parsedMonth = requestedMonth ? parse(requestedMonth, "yyyy-MM", new Date()) : null;
-  const safeMonthDate =
-    parsedMonth && isValid(parsedMonth) ? startOfMonth(parsedMonth) : defaultMonthDate;
-  const selectedMonthValue = format(safeMonthDate, "yyyy-MM");
-  const monthStart = startOfMonth(safeMonthDate);
-  const monthEnd = endOfMonth(safeMonthDate);
+  
+  // Date range logic
+  const now = new Date();
+  const defaultFrom = format(startOfMonth(now), "yyyy-MM-dd");
+  const defaultTo = format(now, "yyyy-MM-dd");
+
+  const fromParam = typeof resolvedParams.from === "string" ? resolvedParams.from : defaultFrom;
+  const toParam = typeof resolvedParams.to === "string" ? resolvedParams.to : defaultTo;
+
+  const startDate = new Date(`${fromParam}T00:00:00`);
+  const endDate = new Date(`${toParam}T23:59:59.999`);
+
+  const safeStartDate = isValid(startDate) ? startDate : startOfMonth(now);
+  const safeEndDate = isValid(endDate) ? endDate : now;
 
   const entries = await prisma.financeEntry.findMany({
     where: {
       type: "INCOME",
       occurredAt: {
-        gte: monthStart,
-        lte: monthEnd,
+        gte: safeStartDate,
+        lte: safeEndDate,
       },
       NOT: {
         description: { startsWith: ARCHIVE_PREFIX },
@@ -72,8 +78,8 @@ export default async function ReportMensilePage({
     ? await patientPaymentClient.findMany({
         where: {
           paidAt: {
-            gte: monthStart,
-            lte: monthEnd,
+            gte: safeStartDate,
+            lte: safeEndDate,
           },
         },
         select: {
@@ -147,95 +153,112 @@ export default async function ReportMensilePage({
   for (const day of dailySummaries) {
     day.due = Math.max(0, day.total - day.anticipo - day.paghero);
   }
-  const monthTotal = dailySummaries.reduce((sum, day) => sum + day.total, 0);
-  const monthAnticipo = dailySummaries.reduce((sum, day) => sum + day.anticipo, 0);
-  const monthPaghero = dailySummaries.reduce((sum, day) => sum + day.paghero, 0);
-  const monthDue = dailySummaries.reduce((sum, day) => sum + day.due, 0);
+  const periodTotal = dailySummaries.reduce((sum, day) => sum + day.total, 0);
+  const periodAnticipo = dailySummaries.reduce((sum, day) => sum + day.anticipo, 0);
+  const periodPaghero = dailySummaries.reduce((sum, day) => sum + day.paghero, 0);
+  const periodDue = dailySummaries.reduce((sum, day) => sum + day.due, 0);
+
+  const periodLabel = `${format(safeStartDate, "d MMM yyyy", { locale: it })} - ${format(safeEndDate, "d MMM yyyy", { locale: it })}`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Report Mensile</h1>
-          <p className="mt-2 text-sm text-zinc-600">
-            Riepilogo giornaliero delle entrate del mese selezionato.
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            Riepilogo giornaliero delle entrate per il periodo selezionato.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:items-end">
           <PrintButton
             label="Stampa report"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
+            variant="primary"
+            className="print:hidden"
           />
           <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-              Totale del mese
+          <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+              Totale del periodo
             </p>
-            <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(monthTotal)}</p>
+            <p className="mt-1 text-xl font-semibold text-emerald-900 dark:text-emerald-200">{formatCurrency(periodTotal)}</p>
           </div>
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-right dark:border-zinc-800 dark:bg-zinc-950">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Anticipo / Pagherò / Due
             </p>
-            <p className="mt-1 text-sm font-semibold text-zinc-900">
-              {formatCurrency(monthAnticipo)} / {formatCurrency(monthPaghero)} / {formatCurrency(monthDue)}
+            <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              {formatCurrency(periodAnticipo)} / {formatCurrency(periodPaghero)} / {formatCurrency(periodDue)}
             </p>
           </div>
           </div>
         </div>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:hidden dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Seleziona il mese</h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              Per default viene mostrato il mese precedente.
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Seleziona periodo</h2>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              Visualizza i movimenti aggregati per data.
             </p>
           </div>
-          <form className="flex flex-col gap-2 sm:min-w-56">
-            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Mese
-            </label>
-            <input
-              type="month"
-              name="month"
-              defaultValue={selectedMonthValue}
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-            />
-            <button
+          <form className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Dal
+              </label>
+              <input
+                type="date"
+                name="from"
+                defaultValue={fromParam}
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Al
+              </label>
+              <input
+                type="date"
+                name="to"
+                defaultValue={toParam}
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              />
+            </div>
+            <Button
               type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+              variant="primary"
+              size="sm"
             >
               Applica
-            </button>
+            </Button>
           </form>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:shadow-none">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm print:shadow-none dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Riepilogo di {format(safeMonthDate, "MMMM yyyy", { locale: it })}
+              Riepilogo giornaliero
             </h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              Ogni riga rappresenta il totale del report giornaliero per quella data.
+            <p className="mt-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Periodo: {periodLabel}
             </p>
           </div>
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
             {dailySummaries.length} giorni con entrate
           </span>
         </div>
 
         {dailySummaries.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-600">
-            Nessuna entrata registrata per il mese selezionato.
+          <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-400">
+            Nessuna entrata registrata per il periodo selezionato.
           </div>
         ) : (
-          <div className="mt-4 overflow-x-auto rounded-2xl border border-zinc-200">
-            <table className="min-w-full divide-y divide-zinc-100 text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          <div className="mt-4 overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+              <thead className="bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Giorno</th>
                   <th className="px-4 py-3 text-left">Movimenti</th>
@@ -245,23 +268,23 @@ export default async function ReportMensilePage({
                   <th className="px-4 py-3 text-right">Totale incassato</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {dailySummaries.map((day) => (
-                  <tr key={day.key}>
-                    <td className="px-4 py-3 font-medium text-zinc-900">
+                  <tr key={day.key} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                    <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50 capitalize">
                       {format(day.date, "EEEE d MMMM", { locale: it })}
                     </td>
-                    <td className="px-4 py-3 text-zinc-700">{day.count}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-700">
+                    <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{day.count}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-amber-700 dark:text-amber-400">
                       {formatCurrency(day.anticipo)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-rose-700">
+                    <td className="px-4 py-3 text-right font-semibold text-rose-700 dark:text-rose-400">
                       {formatCurrency(day.paghero)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-zinc-700">
+                    <td className="px-4 py-3 text-right font-semibold text-zinc-700 dark:text-zinc-300">
                       {formatCurrency(day.due)}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-800">
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-800 dark:text-emerald-400">
                       {formatCurrency(day.total)}
                     </td>
                   </tr>

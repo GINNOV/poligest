@@ -30,7 +30,7 @@ export function LocalizedFileInput({
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={inputId}
-          className="cursor-pointer rounded-lg border border-dashed border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 shadow-inner transition hover:border-emerald-300 hover:bg-emerald-100"
+          className="cursor-pointer rounded-lg border border-dashed border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 shadow-inner transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200 dark:hover:bg-emerald-950/40"
         >
           {buttonText}
           <input
@@ -46,9 +46,9 @@ export function LocalizedFileInput({
             }}
           />
         </label>
-        <span className="text-sm text-zinc-600">{fileLabel}</span>
+        <span className="text-sm text-zinc-600 dark:text-zinc-300">{fileLabel}</span>
       </div>
-      {helperText ? <p className="text-xs text-zinc-500">{helperText}</p> : null}
+      {helperText ? <p className="text-xs text-zinc-500 dark:text-zinc-400">{helperText}</p> : null}
     </div>
   );
 }

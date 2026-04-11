@@ -88,13 +88,13 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-zinc-600">Magazzino</p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Magazzino</p>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h1>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
+          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700 dark:border-emerald-900/50 dark:text-emerald-500">
             +
           </span>
           Movimenti
@@ -102,7 +102,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
         <form action={addStockMovement} className="mt-3 space-y-3 text-sm">
           <select
             name="productId"
-            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
             required
             defaultValue=""
           >
@@ -110,7 +110,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
               Seleziona prodotto
             </option>
             {products.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.id} value={p.id} className="dark:bg-zinc-950">
                 {p.name}
               </option>
             ))}
@@ -121,34 +121,34 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
               type="number"
               min="1"
               required
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
               placeholder="Quantità"
             />
             <select
               name="movement"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
               required
               defaultValue="IN"
             >
-              <option value="IN">Carico</option>
-              <option value="OUT">Scarico</option>
+              <option value="IN" className="dark:bg-zinc-950">Carico</option>
+              <option value="OUT" className="dark:bg-zinc-950">Scarico</option>
             </select>
           </div>
           <input
             name="note"
             placeholder="Nota"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
           />
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+            className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           >
             Registra movimento
           </button>
         </form>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <form className="flex flex-wrap items-center gap-3" method="get">
           <div className="flex-1 min-w-[220px]">
             <input
@@ -156,7 +156,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
               name="mq"
               placeholder="Cerca movimenti"
               defaultValue={movementQuery}
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
             />
           </div>
           <input
@@ -164,25 +164,25 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
             name="from"
             aria-label="Data da"
             defaultValue={fromParam}
-            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
           />
           <input
             type="date"
             name="to"
             aria-label="Data a"
             defaultValue={toParam}
-            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
           />
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+            className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
           >
             Cerca
           </button>
           {movementQuery ? (
             <Link
               href="/magazzino/movimenti"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
             >
               Annulla
             </Link>
@@ -192,7 +192,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
 
       <div className="grid gap-3 sm:grid-cols-2">
         {movements.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm sm:col-span-2">
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm sm:col-span-2 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
             Nessun movimento presente.
           </div>
         ) : (
@@ -200,13 +200,13 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
             <form
               key={movement.id}
               action={updateStockMovement}
-              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,1fr,1fr,2fr,auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,1fr,1fr,2fr,auto] sm:items-end dark:border-zinc-800 dark:bg-zinc-950"
             >
               <input type="hidden" name="movementId" value={movement.id} />
               <div className="flex flex-col gap-1">
                 <span className="text-[11px] font-semibold uppercase text-zinc-500">Prodotto</span>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-800">
-                  <div className="font-medium text-zinc-900">{movement.product.name}</div>
+                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-200">
+                  <div className="font-medium text-zinc-900 dark:text-zinc-50">{movement.product.name}</div>
                   <div className="text-xs text-zinc-500">
                     {format(movement.createdAt, "dd/MM/yyyy HH:mm")}
                   </div>
@@ -221,7 +221,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
                     min="1"
                     required
                     defaultValue={movement.quantity}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
@@ -229,11 +229,11 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
                   <select
                     name="movement"
                     defaultValue={movement.movement}
-                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
                     required
                   >
-                    <option value="IN">Carico</option>
-                    <option value="OUT">Scarico</option>
+                    <option value="IN" className="dark:bg-zinc-950">Carico</option>
+                    <option value="OUT" className="dark:bg-zinc-950">Scarico</option>
                   </select>
                 </label>
               </div>
@@ -242,13 +242,13 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
                 <input
                   name="note"
                   defaultValue={movement.note ?? ""}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-950/30"
                 />
               </label>
               <div className="flex items-center gap-2 pb-1 sm:pb-0">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/50 dark:text-emerald-500 dark:hover:bg-emerald-950/30"
                 >
                   Aggiorna
                 </button>
@@ -256,7 +256,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
                   type="submit"
                   formAction={deleteStockMovement}
                   data-confirm="Eliminare definitivamente questo movimento di magazzino?"
-                  className="inline-flex items-center justify-center gap-1 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="inline-flex items-center justify-center gap-1 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                 >
                   Elimina
                   <svg

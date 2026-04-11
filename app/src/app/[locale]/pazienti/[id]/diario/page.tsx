@@ -44,11 +44,11 @@ export default async function DiarioPrintPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
-      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm print:max-w-none print:border-none print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 print:pb-4">
+    <div className="min-h-screen bg-zinc-100 px-6 py-8 dark:bg-zinc-900 print:bg-white print:px-0 print:py-0">
+      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 print:max-w-none print:border-none print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 dark:border-zinc-800 print:pb-4">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-40 rounded-lg bg-white p-2">
+            <div className="h-14 w-40 rounded-lg bg-white p-2 dark:bg-white/90">
               <Image
                 src="/logo/studio_agovinoangrisano_logo.png"
                 alt="Logo Studio Agovino & Angrisano"
@@ -58,48 +58,49 @@ export default async function DiarioPrintPage({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
                 Diario clinico
               </p>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
             </div>
           </div>
           <PrintButton
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
             label="Stampa diario"
+            variant="primary"
+            className="print:hidden"
           />
         </div>
 
-        <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Paziente</p>
-            <p className="mt-2 text-base font-semibold text-zinc-900">
+        <div className="grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Paziente</p>
+            <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               {patient.lastName} {patient.firstName}
             </p>
-            <p className="text-xs text-zinc-600">{patient.email ?? "—"}</p>
-            <p className="text-xs text-zinc-600">{patient.phone ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.email ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.phone ?? "—"}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dettagli</p>
-            <p className="mt-2 text-sm text-zinc-800">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Dettagli</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               Record clinici: {records.length}
             </p>
-            <p className="text-sm text-zinc-800">
+            <p className="text-sm text-zinc-800 dark:text-zinc-200">
               Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })}
             </p>
           </div>
         </div>
 
         {records.length === 0 ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600">
+          <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
             Nessun record clinico disponibile.
           </div>
         ) : (
-          <div className="relative overflow-x-auto rounded-2xl border border-zinc-200">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-            <table className="min-w-full divide-y divide-zinc-100 text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+            <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+              <thead className="bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 <tr>
                   <th className="px-4 py-3 text-left">Data</th>
                   <th className="px-4 py-3 text-left">Dente</th>
@@ -109,22 +110,26 @@ export default async function DiarioPrintPage({
                   <th className="px-4 py-3 text-left">Aggiornato da</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
                 {records.map((record) => (
-                  <tr key={record.id}>
-                    <td className="px-4 py-3">
+                  <tr key={record.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                       {new Date(record.performedAt).toLocaleString("it-IT", {
                         dateStyle: "short",
                         timeStyle: "short",
                       })}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-zinc-900 dark:text-zinc-50">
                       {record.tooth === 0 ? "Tutta la bocca" : `Dente ${record.tooth}`}
                     </td>
-                    <td className="px-4 py-3">{record.procedure}</td>
-                    <td className="px-4 py-3">{record.notes ?? "—"}</td>
-                    <td className="px-4 py-3">{record.treated ? "Si" : "No"}</td>
-                    <td className="px-4 py-3">{record.updatedBy?.name ?? "—"}</td>
+                    <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200">{record.procedure}</td>
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">{record.notes ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${record.treated ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
+                        {record.treated ? "Si" : "No"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">{record.updatedBy?.name ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

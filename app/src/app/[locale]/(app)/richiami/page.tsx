@@ -69,14 +69,14 @@ export default async function RichiamiPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
           Richiami & notifiche
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Centro automazioni
         </h1>
-        <p className="mt-3 text-sm text-zinc-600">
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
           Scegli la sezione per configurare regole, invii manuali e comunicazioni ricorrenti.
         </p>
       </div>
@@ -86,10 +86,10 @@ export default async function RichiamiPage() {
           <Link
             key={tile.key}
             href={tile.href}
-            className="group relative flex h-full flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+            className="group relative flex h-full flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-800"
           >
             <div className="space-y-3">
-              <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition group-hover:border-emerald-200">
+              <div className="relative aspect-square overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 transition group-hover:border-emerald-200 dark:border-zinc-800 dark:bg-zinc-900 dark:group-hover:border-emerald-800">
                 <Image
                   src={`${tile.image}?v=${TILE_IMAGE_VERSION}`}
                   alt={`Anteprima ${tile.title}`}
@@ -106,15 +106,15 @@ export default async function RichiamiPage() {
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
                       tile.tone === "primary"
-                        ? "bg-emerald-50 text-emerald-800"
-                        : "bg-zinc-100 text-zinc-700"
+                        ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
                     }`}
                   >
                     {tile.badge}
                   </span>
                 ) : null}
               </div>
-              <p className="text-sm text-zinc-600">{tile.description}</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{tile.description}</p>
             </div>
           </Link>
         ))}

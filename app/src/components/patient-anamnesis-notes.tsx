@@ -34,7 +34,7 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
   const [extraNotes, setExtraNotes] = useState(extraNotesDefault ?? "");
   const [activeField, setActiveField] = useState<ActiveField>("medications");
   const activeFieldRef = useRef<ActiveField>("medications");
-  const [isSupported] = useState(() => !!getSpeechRecognition());
+  const [isSupported, setIsSupported] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -47,6 +47,7 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
   };
 
   useEffect(() => {
+    setIsSupported(!!getSpeechRecognition());
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.onresult = null;
@@ -183,10 +184,10 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
             isSupported ? undefined : "Dettatura non supportata dal browser"
           }
           className={[
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1 font-semibold transition disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400",
+            "inline-flex items-center gap-1 rounded-full border px-3 py-1 font-semibold transition disabled:cursor-not-allowed disabled:border-zinc-200 disabled:text-zinc-400 dark:disabled:border-zinc-800 dark:disabled:text-zinc-600",
             isListening
               ? "border-rose-700 bg-rose-600 text-white animate-pulse"
-              : "border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:text-emerald-600",
+              : "border-emerald-200 text-emerald-700 hover:border-emerald-300 hover:text-emerald-600 dark:border-emerald-900/40 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:text-emerald-300",
           ].join(" ")}
         >
           {isListening ? "Ferma dettatura" : "Dettatura"}

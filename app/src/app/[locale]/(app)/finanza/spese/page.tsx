@@ -21,7 +21,7 @@ export default async function SpesePage() {
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Nuova spesa</h1>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <form action={recordExpense} className="space-y-3 text-sm">
           <FinanceExpenseFields suppliers={suppliers} products={products} />
           <FormSubmitButton className="inline-flex w-full items-center justify-center rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-500">

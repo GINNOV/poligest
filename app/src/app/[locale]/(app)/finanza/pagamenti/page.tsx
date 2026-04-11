@@ -6,6 +6,7 @@ import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
 import { QuoteAccordion } from "@/components/quote-accordion";
 import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
+import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConfirmButton } from "@/components/confirm-button";
 import { savePreventivoAction } from "@/lib/patients/actions";
@@ -169,7 +170,7 @@ export default async function PagamentiPage({
       <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
         <form className="flex-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-center min-w-0">
           <div className="flex flex-col gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">PAZIENTE</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">PAZIENTE</p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <PatientSearchCombobox
@@ -178,33 +179,30 @@ export default async function PagamentiPage({
                   patients={patientOptions}
                   defaultValue={selectedPatientId}
                   placeholder="Cerca per cognome e nome"
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
                 />
               </div>
-              <button
-                type="submit"
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600 shadow-sm"
-              >
+              <Button type="submit" className="h-11 rounded-full px-5">
                 Mostra contabilità
-              </button>
+              </Button>
             </div>
           </div>
         </form>
 
         <div className="lg:w-3/5">
           {!selectedPatient ? (
-            <div className="h-full rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 flex items-center justify-center">
+            <div className="h-full rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 flex items-center justify-center">
               Nessun paziente selezionato.
             </div>
           ) : (
             <div className="h-full rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between h-full">
                 <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30">
+                  <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       PAZIENTE SELEZIONATO
                     </p>
                     <h2 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
@@ -215,12 +213,14 @@ export default async function PagamentiPage({
                     </p>
                   </div>
                 </div>
-                <Link
-                  href={`/pazienti/${selectedPatient.id}`}
-                  className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 shadow-sm whitespace-nowrap"
-                >
-                  Vai a scheda paziente
-                </Link>
+                <Button asChild variant="primary" className="rounded-full shadow-sm"><Link
+                    href={`/pazienti/${selectedPatient.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="whitespace-nowrap"
+                  >
+                    Vai a scheda paziente
+                  </Link></Button>
               </div>
             </div>
           )}
@@ -231,16 +231,16 @@ export default async function PagamentiPage({
         <>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">PREVENTIVI</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">CONTABILIZZAZIONE PRESTAZIONI</p>
               <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(totals.total)}</p>
             </div>
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Incassato</p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-700">{formatCurrency(totals.paid)}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Incassato</p>
+              <p className="mt-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-500">{formatCurrency(totals.paid)}</p>
             </div>
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Residuo</p>
-              <p className="mt-2 text-2xl font-semibold text-amber-700">{formatCurrency(totals.remaining)}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Residuo</p>
+              <p className="mt-2 text-2xl font-semibold text-amber-700 dark:text-amber-500">{formatCurrency(totals.remaining)}</p>
             </div>
           </div>
 
@@ -265,7 +265,7 @@ export default async function PagamentiPage({
               <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
                   <svg
-                    className="h-8 w-8 text-emerald-600"
+                    className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -278,14 +278,11 @@ export default async function PagamentiPage({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                      STATO PREVENTIVI
-                    </p>
-                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">PRESTAZIONI E RESIDUI</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PAGAMENTI EFFETTUATI</h2>
                   </div>
                 </div>
                 <svg
-                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                  className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -299,7 +296,7 @@ export default async function PagamentiPage({
               </summary>
               <div className="space-y-4 p-6">
                 {!quoteItemSummaries.length ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                     Salva un preventivo per iniziare a registrare gli incassi.
                   </div>
                 ) : (
@@ -307,7 +304,7 @@ export default async function PagamentiPage({
                     {quoteItemSummaries.map((item) => (
                       <div
                         key={item.id}
-                        className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900"
+                        className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
                       >
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
@@ -317,10 +314,10 @@ export default async function PagamentiPage({
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                               item.status === "settled"
-                                ? "bg-emerald-100 text-emerald-800"
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : item.status === "partial"
-                                  ? "bg-sky-100 text-sky-800"
-                                  : "bg-amber-100 text-amber-800"
+                                  ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
+                                  : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
                             }`}
                           >
                             {item.status === "settled"
@@ -346,7 +343,7 @@ export default async function PagamentiPage({
               <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
                   <svg
-                    className="h-8 w-8 text-emerald-600"
+                    className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -359,14 +356,14 @@ export default async function PagamentiPage({
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       REGISTRA PAGAMENTO
                     </p>
                     <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">NUOVO INCASSO</h2>
                   </div>
                 </div>
                 <svg
-                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                  className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -380,11 +377,11 @@ export default async function PagamentiPage({
               </summary>
               <div className="p-6">
                 {!latestQuote || !quoteItemSummaries.length ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                     Prima crea il preventivo del paziente.
                   </div>
                 ) : quoteItemSummaries.every((item) => item.remaining < 0.01) ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                     Tutte le prestazioni del preventivo risultano saldate.
                   </div>
                 ) : (
@@ -394,7 +391,7 @@ export default async function PagamentiPage({
                       quoteId={latestQuote.id}
                       quoteItems={quoteItemSummaries.filter((item) => item.remaining > 0)}
                     />
-                    <FormSubmitButton className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
+                    <FormSubmitButton variant="primary" className="w-full rounded-full shadow-sm">
                       Registra pagamento
                     </FormSubmitButton>
                   </form>
@@ -407,7 +404,7 @@ export default async function PagamentiPage({
             <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
               <div className="flex items-center gap-3">
                 <svg
-                  className="h-8 w-8 text-emerald-600"
+                  className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -424,14 +421,11 @@ export default async function PagamentiPage({
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    STORICO
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">PAGAMENTI REGISTRATI</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">STORICO PAGAMENTI</h2>
                 </div>
               </div>
               <svg
-                className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+                className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -445,7 +439,7 @@ export default async function PagamentiPage({
             </summary>
             <div className="space-y-4 p-6">
               {payments.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+                <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                   Nessun pagamento registrato per questo paziente.
                 </div>
               ) : (
@@ -453,7 +447,7 @@ export default async function PagamentiPage({
                   {payments.map((payment) => (
                       <div
                         key={payment.id}
-                        className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900"
+                        className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900/50"
                       >
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
@@ -465,9 +459,9 @@ export default async function PagamentiPage({
                               dateStyle: "medium",
                             }).format(payment.paidAt)}
                           </span>
-                          <span className="text-zinc-300">•</span>
+                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
                           <span>{paymentMethodLabels[payment.method]}</span>
-                          <span className="text-zinc-300">•</span>
+                          <span className="text-zinc-300 dark:text-zinc-700">•</span>
                           <span>{payment.user?.name ?? payment.user?.email ?? "Operatore"}</span>
                         </div>
                         {payment.note ? <p className="text-sm text-zinc-700 dark:text-zinc-300">{payment.note}</p> : null}
@@ -475,15 +469,17 @@ export default async function PagamentiPage({
                       <div className="flex items-center gap-2">
                         <form action={archivePatientPayment}>
                           <input type="hidden" name="paymentId" value={payment.id} />
-                          <button
+                          <Button
+                            variant="outline"
+                            size="xs"
                             type="submit"
+                            className="rounded-full"
                             data-confirm="Archiviare questo pagamento registrato?"
-                            className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
                           >
                             Archivia
-                          </button>
+                          </Button>
                         </form>
-                        <span className="whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">
+                        <span className="whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
                           {formatCurrency(Number(payment.amount.toString()))}
                         </span>
                       </div>

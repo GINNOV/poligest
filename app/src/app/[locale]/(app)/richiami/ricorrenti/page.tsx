@@ -26,30 +26,30 @@ export default async function RichiamiRicorrentiPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Richiami</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Comunicazioni ricorrenti</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Email automatiche per festivita, chiusure studio e compleanni.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/docs/richiami"
-            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+            className="inline-flex items-center gap-2 rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800 dark:border-emerald-900/40 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
           >
             Guida
           </Link>
           <Link
             href="/richiami"
-            className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+            className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
           >
             Torna alle sezioni
           </Link>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-xs text-zinc-500">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
           Le email vengono inviate a tutti i pazienti con email valida.
         </p>
         <div className="mt-4 space-y-4">
@@ -64,50 +64,50 @@ export default async function RichiamiRicorrentiPage() {
               <form
                 key={config.kind}
                 action={updateRecurringConfig}
-                className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-sm"
+                className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 text-sm dark:border-zinc-800 dark:bg-zinc-900/50"
               >
                 <input type="hidden" name="kind" value={config.kind} />
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{label}</h3>
-                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600">
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                     <input
                       type="checkbox"
                       name="enabled"
                       defaultChecked={config.enabled}
-                      className="h-4 w-4 rounded border-zinc-300 text-emerald-600"
+                      className="h-4 w-4 rounded border-zinc-300 text-emerald-600 dark:border-zinc-700 dark:bg-zinc-950"
                     />
                     Attivo
                   </label>
                 </div>
                 {config.kind === "CLOSURE" ? (
                   <label className="mt-3 flex flex-col gap-2">
-                    <span className="text-xs font-semibold uppercase text-zinc-500">Invia (giorni prima)</span>
+                    <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Invia (giorni prima)</span>
                     <input
                       name="daysBefore"
                       type="number"
                       min="1"
                       defaultValue={config.daysBefore ?? 7}
-                      className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                     />
                   </label>
                 ) : null}
                 <label className="mt-3 flex flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
+                  <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Oggetto email</span>
                   <input
                     name="subject"
                     defaultValue={config.subject}
                     required
-                    className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   />
                 </label>
                 <label className="mt-3 flex flex-col gap-2">
-                  <span className="text-xs font-semibold uppercase text-zinc-500">Messaggio</span>
+                  <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Messaggio</span>
                   <textarea
                     name="body"
                     defaultValue={config.body}
                     required
                     rows={3}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   />
                 </label>
                 <button

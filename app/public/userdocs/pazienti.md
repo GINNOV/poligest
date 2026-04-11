@@ -1,27 +1,124 @@
-# Gestione Pazienti e Diario Clinico Interattivo
+# Pazienti
 
-La sezione **Pazienti** rappresenta la memoria storica dello studio, dove ogni informazione anagrafica si fonde con il percorso terapeutico e clinico di chi si affida alle vostre cure. Il sistema è progettato per eliminare la carta, permettendo di gestire in modo digitale non solo i dati di contatto, ma anche il complesso diario delle prestazioni e l'odontogramma grafico, garantendo che ogni medico abbia sempre il quadro completo della situazione clinica del paziente.
+La sezione **Pazienti** serve per creare, cercare e aggiornare la scheda completa di ogni persona.
 
-## Anagrafica e Documentazione
+Le due voci principali sono:
 
-Per registrare un nuovo paziente, clicca sul pulsante **"Nuovo Paziente"** nella schermata principale della sezione. Il modulo ti chiederà di inserire i dati essenziali come Nome, Cognome, Data di Nascita e Codice Fiscale. È di fondamentale importanza inserire correttamente l'indirizzo email e il numero di cellulare, poiché il sistema li utilizzerà per l'invio automatico dei promemoria degli appuntamenti. All'interno della scheda paziente, troverai sezioni dedicate per caricare file esterni (come radiografie, referti o scansioni di documenti firmati) e per gestire i consensi privacy (GDPR), necessari per poter trattare i dati in conformità con la legge.
+- **Nuovo paziente**
+- **Lista pazienti**
 
-All'interno della sezione **Consensi & Privacy** puoi anche scaricare il pacchetto completo dei dati personali del paziente (diritto di accesso) e, se autorizzato, avviare la cancellazione definitiva dei dati (diritto all'oblio). Queste azioni sono riservate agli utenti con privilegi amministrativi o manageriali.
+## Creare un nuovo paziente
 
----
+Vai in `Pazienti` > `Nuovo paziente`.
 
-## Il Diario Clinico e l'Odontogramma
+Compila prima i dati essenziali:
 
-Il cuore della scheda clinica è rappresentato dal **Diario Clinico**, che combina un'interfaccia grafica intuitiva con un registro testuale dettagliato.
+- nome
+- cognome
+- telefono
+- email, se presente
+- data di nascita
+- codice fiscale, se disponibile
 
-### Utilizzo dell'Odontogramma Grafico
-Al centro della pagina clinica vedrai una rappresentazione grafica delle arcate dentarie (seguendo la numerazione FDI a 2 cifre). I denti sono interattivi: cliccando su un dente specifico, questo verrà evidenziato con un cerchio rosso, indicando che è il dente su cui stai per registrare un'operazione. Se la prestazione riguarda l'intera bocca (come un'ablazione del tartaro o una visita generale), puoi cliccare sul pulsante **"Tutta la bocca"** posto sopra il grafico. Il colore del dente cambierà in base allo stato: i denti "Sani" sono neutri, mentre quelli su cui è stata registrata almeno una procedura vengono evidenziati in verde per una rapida consultazione visiva.
+Più i dati sono completi, più diventano semplici richiami, consensi e contatti.
 
-### Registrazione di una Procedura
-Una volta selezionato il dente (o tutta la bocca), comparirà sulla destra il pannello delle procedure. Qui puoi scegliere tra le opzioni predefinite (come "Otturazione", "Devitalizzazione", "Estrazione", "Implantologia", ecc.) oppure selezionare "Altro" per inserire una descrizione libera. Sotto la scelta della procedura, troverai il campo **"Note cliniche"**: qui il medico può scrivere dettagli tecnici, materiali utilizzati, superfici trattate o eventuali complicanze. Cliccando su **"Aggiungi al diario"**, la prestazione verrà salvata cronologicamente nel registro sottostante, riportando automaticamente la data e l'autore del record.
+## Cercare un paziente esistente
 
----
+Vai in `Pazienti` > `Lista pazienti`.
 
-## Consultazione e Storico delle Cure
+Usa la ricerca per:
 
-Sulla sinistra del grafico clinico è presente il pannello delle **Pianificazioni**, che elenca in ordine cronologico decrescente tutte le prestazioni effettuate sul paziente. Ogni voce mostra l'icona del dente trattato, la data della prestazione e il tipo di intervento. Questo elenco non è solo informativo: cliccando su una voce del diario, il grafico si aggiornerà per mostrare quale dente è stato trattato e potrai leggerne le note complete. Se è stato commesso un errore, un utente autorizzato può cliccare sul pulsante **"Elimina"** all'interno del record per rimuoverlo dal diario, previa conferma. Ricorda che mantenere il diario aggiornato è essenziale per la sicurezza del paziente e per una corretta fatturazione dei servizi.
+- cognome
+- nome
+- telefono
+- email
+
+Apri la scheda giusta e controlla sempre di aver scelto la persona corretta prima di modificare qualcosa.
+
+## Cosa trovi nella scheda paziente
+
+Dentro la scheda paziente trovi in genere queste aree:
+
+- dati anagrafici e contatti
+- PIN paziente
+- foto paziente
+- consensi
+- anamnesi e note
+- diario clinico e odontogramma
+- storico appuntamenti
+- SMS ed email inviati
+- link rapidi per stampa e contatti
+
+## Gestire la foto
+
+Con il pulsante **Gestisci foto** puoi:
+
+- caricare una foto da file
+- scattare una foto con la fotocamera
+- ripristinare l'avatar
+
+La foto aiuta a riconoscere subito il paziente, soprattutto in segreteria.
+
+## Contatti rapidi
+
+Se email o telefono sono corretti, dalla scheda puoi inviare piu facilmente:
+
+- SMS
+- email
+- accesso o comunicazioni al paziente
+
+Se ricevi un errore di invio, di solito manca o e sbagliato il contatto.
+
+## Consensi
+
+Nella parte consensi puoi:
+
+1. scegliere il modulo corretto
+2. aprire l'informativa
+3. compilare luogo, data, nome paziente e medico
+4. raccogliere la firma
+5. salvare
+
+Puoi anche indicare come e stato ottenuto il consenso:
+
+- di persona
+- telefono
+- manuale
+- digitale
+
+Se un consenso va ritirato, usa **Revoca**.
+
+## Anamnesi e note
+
+Le note anamnestiche servono per registrare informazioni importanti sul paziente.
+
+Scrivi in modo chiaro e breve. Esempi utili:
+
+- allergie
+- terapie in corso
+- patologie riferite
+- indicazioni importanti per visite future
+
+## Diario clinico e odontogramma
+
+Questa parte e utile soprattutto al medico.
+
+Si usa per:
+
+- selezionare un dente o tutta la bocca
+- registrare la procedura eseguita
+- aggiungere note cliniche
+- vedere lo storico delle prestazioni
+
+Ogni registrazione resta nello storico del paziente.
+
+## Prima di uscire dalla scheda
+
+Controlla sempre:
+
+- numero di telefono corretto
+- email corretta
+- consenso presente se serve
+- note salvate
+
+Questo evita problemi quando devi inviare richiami o registrare i pagamenti.

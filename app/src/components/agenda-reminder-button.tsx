@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 
 type Props = {
@@ -10,13 +9,11 @@ type Props = {
 };
 
 export function AgendaReminderButton({ appointmentId, whatsappHref, initialReminderSent = false }: Props) {
-  const [clicked, setClicked] = useState(false);
-  const reminderSent = initialReminderSent || clicked;
+  const reminderSent = initialReminderSent;
 
   const handleClick = () => {
     if (!whatsappHref) return;
-    setClicked(true);
-    
+
     const clickLogUrl = `/api/appointments/${appointmentId}/whatsapp-reminder-click`;
     if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
       navigator.sendBeacon(clickLogUrl, new Blob(["{}"], { type: "application/json" }));
@@ -28,7 +25,7 @@ export function AgendaReminderButton({ appointmentId, whatsappHref, initialRemin
         body: "{}",
       });
     }
-    
+
     window.location.href = whatsappHref;
   };
 

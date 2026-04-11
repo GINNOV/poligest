@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { createDoctorPayment, amendDoctorPayment, archiveDoctorPayment } from "../actions";
 import { AmendDoctorPaymentButton } from "@/components/amend-doctor-payment-button";
 import { ArchiveDoctorPaymentButton } from "@/components/archive-doctor-payment-button";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -54,9 +55,18 @@ export default async function AnticipiPage({
         description: {
           contains: DOCTOR_PAYMENT_PREFIX,
         },
-        NOT: {
-          description: { startsWith: `${ARCHIVE_PREFIX} ${DOCTOR_PAYMENT_PREFIX}` },
-        },
+        AND: [
+          {
+            NOT: {
+              description: { startsWith: `${ARCHIVE_PREFIX} ${DOCTOR_PAYMENT_PREFIX}` },
+            },
+          },
+          {
+            NOT: {
+              description: { contains: "(CORRETTO)" },
+            },
+          },
+        ],
         ...(advanceFromDate || advanceToDate
           ? {
               occurredAt: {
@@ -134,7 +144,7 @@ export default async function AnticipiPage({
       </div>
 
       <div className="space-y-3">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center gap-3">
             <svg
               className="h-8 w-8 text-emerald-600"
@@ -152,7 +162,7 @@ export default async function AnticipiPage({
             </svg>
             <div>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Registra pagamento</h2>
-              <p className="mt-1 text-sm text-zinc-600">Inserisci una liquidazione o un anticipo legato a un medico.</p>
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Inserisci una liquidazione o un anticipo legato a un medico.</p>
             </div>
           </div>
         </div>
@@ -166,7 +176,7 @@ export default async function AnticipiPage({
             <select
               name="doctorId"
               required
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
               defaultValue=""
             >
               <option value="" disabled>
@@ -188,7 +198,7 @@ export default async function AnticipiPage({
               step="0.01"
               required
               placeholder="0,00"
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -198,7 +208,7 @@ export default async function AnticipiPage({
               name="occurredAt"
               required
               defaultValue={today}
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -206,7 +216,7 @@ export default async function AnticipiPage({
             <select
               name="paymentMethod"
               required
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
               defaultValue="ELECTRONIC"
             >
               <option value="ELECTRONIC">Elettronico</option>
@@ -221,25 +231,26 @@ export default async function AnticipiPage({
             <input
               name="note"
               placeholder="Liquidazione aprile, anticipo, bonus..."
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>
-          <button
+          <Button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+            size="xs"
+            className="lg:h-10 lg:px-4 lg:text-xs"
           >
             Registra
-          </button>
+          </Button>
         </form>
 
         <details
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
           open={hasAdvancedFilters}
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-zinc-900 marker:content-none">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50 marker:content-none">
             <span className="inline-flex items-center gap-2">
               <svg
-                className="h-4 w-4 text-zinc-500"
+                className="h-4 w-4 text-zinc-500 dark:text-zinc-400"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -253,66 +264,66 @@ export default async function AnticipiPage({
               </svg>
               Cerca e filtra
             </span>
-            <span className="text-xs font-medium text-zinc-500 group-open:hidden">Mostra</span>
-            <span className="hidden text-xs font-medium text-zinc-500 group-open:inline">Nascondi</span>
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 group-open:hidden">Mostra</span>
+            <span className="hidden text-xs font-medium text-zinc-500 dark:text-zinc-400 group-open:inline">Nascondi</span>
           </summary>
 
           <form className="mt-4 grid gap-3 text-sm lg:grid-cols-[2fr,1fr,2fr,auto] lg:items-end">
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase text-zinc-500">Cerca</span>
+              <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Cerca</span>
               <input
                 name="aq"
                 defaultValue={advanceQuery}
                 placeholder="Nota o medico"
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Dal</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Dal</span>
                 <input
                   type="date"
                   name="afrom"
                   defaultValue={advanceFromValue}
-                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Al</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Al</span>
                 <input
                   type="date"
                   name="ato"
                   defaultValue={advanceToValue}
-                  className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
                 />
               </label>
             </div>
-            <button
+            <Button
               type="submit"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+              size="sm"
             >
               Applica
-            </button>
+            </Button>
           </form>
-          <p className="mt-3 text-xs text-zinc-500">Le date sono opzionali. Se le lasci vuote, lo storico mostra tutti i pagamenti registrati.</p>
+          <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Le date sono opzionali. Se le lasci vuote, lo storico mostra tutti i pagamenti registrati.</p>
         </details>
 
         {doctorPayments.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
             Nessun pagamento medico registrato.
           </div>
         ) : (
           paymentsByDoctor.map((group) => (
             <details
               key={group.doctorId}
-              className="group rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm"
+              className="group rounded-2xl border border-zinc-200 bg-white px-4 py-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
               open
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 marker:content-none">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <svg
-                      className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-90"
+                      className="h-4 w-4 shrink-0 text-zinc-500 transition group-open:rotate-90 dark:text-zinc-400"
                       viewBox="0 0 20 20"
                       fill="none"
                       stroke="currentColor"
@@ -323,28 +334,28 @@ export default async function AnticipiPage({
                     >
                       <path d="m7 4 6 6-6 6" />
                     </svg>
-                    <h2 className="truncate text-sm font-semibold text-zinc-900">{group.doctorName}</h2>
+                    <h2 className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-50">{group.doctorName}</h2>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-600">
+                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
                     {group.payments.length} {group.payments.length === 1 ? "pagamento" : "pagamenti"}
                   </p>
                 </div>
-                <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                   {group.total.toFixed(2)} €
                 </span>
               </summary>
 
-              <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
+              <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                 {group.payments.map((payment) => (
-                  <div key={payment.id} className="rounded-2xl border border-zinc-200 px-4 py-4">
+                  <div key={payment.id} className="rounded-2xl border border-zinc-200 px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
-                        <div className="text-xs text-zinc-600">
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">
                           {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(payment.occurredAt)}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
+                        <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
                           {payment.description.includes("(CORRETTO)") && (
-                            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
                               CORRETTO
                             </span>
                           )}
@@ -371,7 +382,7 @@ export default async function AnticipiPage({
                           entryId={payment.id}
                           action={archiveDoctorPayment}
                         />
-                        <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                        <span className="whitespace-nowrap rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
                           {Number(payment.amount).toFixed(2)} €
                         </span>
                       </div>

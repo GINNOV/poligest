@@ -52,38 +52,38 @@ export default async function RichiamiRegolePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Richiami</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Regole automatiche</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Definisci intervalli per richiami ricorrenti e promemoria appuntamenti.
           </p>
         </div>
         <Link
           href="/richiami"
-          className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+          className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
         >
         Torna ai richiami
         </Link>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
           <form action={createRecallRule} className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Nome regola</span>
+              <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome regola</span>
               <input
                 name="name"
                 placeholder="Es. Igiene semestrale"
                 required
-                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Servizio</span>
+              <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Servizio</span>
               <select
                 name="serviceType"
                 required
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 defaultValue=""
               >
                 <option value="ANY">Qualunque servizio</option>
@@ -98,23 +98,23 @@ export default async function RichiamiRegolePage() {
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Intervallo (giorni)</span>
+              <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Intervallo (giorni)</span>
               <input
                 name="intervalDays"
                 type="number"
                 min="1"
                 placeholder="Es. 180"
                 required
-                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Canale</span>
+              <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Canale</span>
               <select
                 name="channel"
                 required
                 defaultValue="EMAIL"
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
                 <option value="EMAIL">Email</option>
                 <option value="SMS">SMS</option>
@@ -122,12 +122,12 @@ export default async function RichiamiRegolePage() {
               </select>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-zinc-500">Template</span>
+              <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Template</span>
               <select
                 name="templateName"
                 required
                 defaultValue=""
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
                 <option value="" disabled>
                   Seleziona template
@@ -147,13 +147,13 @@ export default async function RichiamiRegolePage() {
             </button>
           </form>
 
-          <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
+          <div className="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
               Regole esistenti
             </p>
             <div className="mt-3 space-y-2 text-sm">
               {rules.length === 0 ? (
-                <p className="text-xs text-zinc-500">Nessuna regola configurata.</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-500">Nessuna regola configurata.</p>
               ) : (
                 rules.map((rule) => {
                   const extras = rule as unknown as {
@@ -169,38 +169,38 @@ export default async function RichiamiRegolePage() {
                   return (
                     <details
                       key={rule.id}
-                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2"
+                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950"
                     >
                       <summary className="flex cursor-pointer items-center justify-between gap-4">
                         <div>
-                          <p className="font-semibold text-zinc-900">{rule.name}</p>
-                          <p className="text-xs text-zinc-600">
+                          <p className="font-semibold text-zinc-900 dark:text-zinc-50">{rule.name}</p>
+                          <p className="text-xs text-zinc-600 dark:text-zinc-400">
                             {formatServiceLabel(rule.serviceType)} · ogni {rule.intervalDays} giorni · {channel}
                           </p>
                           {emailSubject ? (
-                            <p className="text-[11px] text-zinc-500">Oggetto email: {emailSubject}</p>
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-500">Oggetto email: {emailSubject}</p>
                           ) : null}
                         </div>
-                        <span className="text-xs font-semibold text-emerald-700">Modifica</span>
+                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Modifica</span>
                       </summary>
                       <form action={updateRecallRule} className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                         <input type="hidden" name="ruleId" value={rule.id} />
                         <label className="flex flex-col gap-2 sm:col-span-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Nome regola</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome regola</span>
                           <input
                             name="name"
                             defaultValue={rule.name}
                             required
-                            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
                         <label className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Servizio</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Servizio</span>
                           <select
                             name="serviceType"
                             required
                             defaultValue={rule.serviceType}
-                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           >
                             <option value="ANY">Qualunque servizio</option>
                             {serviceOptionMissing ? (
@@ -214,23 +214,23 @@ export default async function RichiamiRegolePage() {
                           </select>
                         </label>
                         <label className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Intervallo (giorni)</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Intervallo (giorni)</span>
                           <input
                             name="intervalDays"
                             type="number"
                             min="1"
                             defaultValue={rule.intervalDays}
                             required
-                            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
                         <label className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Canale</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Canale</span>
                           <select
                             name="channel"
                             required
                             defaultValue={channel}
-                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           >
                             <option value="EMAIL">Email</option>
                             <option value="SMS">SMS</option>
@@ -238,11 +238,11 @@ export default async function RichiamiRegolePage() {
                           </select>
                         </label>
                         <label className="flex flex-col gap-2 sm:col-span-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Template</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Template</span>
                           <select
                             name="templateName"
                             defaultValue={templateName ?? ""}
-                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           >
                             {templateName && !emailTemplates.some((template) => template.name === templateName) ? (
                               <option value={templateName}>{templateName}</option>
@@ -255,19 +255,19 @@ export default async function RichiamiRegolePage() {
                           </select>
                         </label>
                         <label className="flex flex-col gap-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Oggetto email</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Oggetto email</span>
                           <input
                             name="emailSubject"
                             defaultValue={emailSubject ?? ""}
-                            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
                         <label className="flex flex-col gap-2 sm:col-span-2">
-                          <span className="text-xs font-semibold uppercase text-zinc-500">Messaggio</span>
+                          <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Messaggio</span>
                           <textarea
                             name="message"
                             defaultValue={rule.message ?? ""}
-                            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                             rows={3}
                           />
                         </label>
@@ -286,7 +286,7 @@ export default async function RichiamiRegolePage() {
                         <input type="hidden" name="ruleId" value={rule.id} />
                         <button
                           type="submit"
-                          className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                          className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 dark:border-rose-900/50 dark:text-rose-400 dark:hover:border-rose-800"
                         >
                           Elimina
                         </button>
@@ -301,68 +301,68 @@ export default async function RichiamiRegolePage() {
 
         <form
           action={updateAppointmentReminderRule}
-          className="mt-6 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm"
+          className="mt-6 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm dark:border-emerald-900/40 dark:bg-emerald-950/20"
         >
           <input type="hidden" name="ruleId" value={appointmentReminderDefaults.id} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Promemoria appuntamenti</h3>
-              <p className="text-xs text-emerald-700">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">
                 Invia un promemoria automatico prima di ogni appuntamento programmato.
               </p>
             </div>
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800">
+            <label className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
               <input
                 type="checkbox"
                 name="enabled"
                 defaultChecked={appointmentReminderDefaults.enabled}
-                className="h-4 w-4 rounded border-emerald-200 text-emerald-600"
+                className="h-4 w-4 rounded border-emerald-200 text-emerald-600 dark:border-emerald-900 dark:bg-zinc-950"
               />
               Attiva regola
             </label>
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Logica invio</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-400">Logica invio</span>
               <select
                 name="timingType"
                 defaultValue={appointmentReminderDefaults.timingType}
-                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
                 <option value="DAYS_BEFORE">Giorni prima</option>
                 <option value="SAME_DAY_TIME">Stesso giorno a orario fisso</option>
               </select>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Invia (giorni prima)</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-400">Invia (giorni prima)</span>
               <input
                 name="daysBefore"
                 type="number"
                 min="1"
                 defaultValue={appointmentReminderDefaults.daysBefore}
-                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
-              <span className="text-[11px] text-emerald-700">
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-500">
                 N giorni prima, inviato all&apos;orario configurato (es. 09:00).
               </span>
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Orario invio</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-400">Orario invio</span>
               <input
                 name="timeOfDay"
                 type="time"
                 defaultValue={formatTime(appointmentReminderDefaults.timeOfDayMinutes)}
-                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
-              <span className="text-[11px] text-emerald-700">Default 09:00, usato con &quot;Stesso giorno&quot;.</span>
+              <span className="text-[11px] text-emerald-700 dark:text-emerald-500">Default 09:00, usato con &quot;Stesso giorno&quot;.</span>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Canale</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-400">Canale</span>
               <select
                 name="channel"
                 required
                 defaultValue={appointmentReminderDefaults.channel}
-                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
                 <option value="EMAIL">Email</option>
                 <option value="SMS">SMS</option>
@@ -370,11 +370,11 @@ export default async function RichiamiRegolePage() {
               </select>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-xs font-semibold uppercase text-emerald-700">Template email</span>
+              <span className="text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-400">Template email</span>
               <select
                 name="templateName"
                 defaultValue={appointmentReminderDefaults.templateName}
-                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
                 {emailTemplates.map((template) => (
                   <option key={template.id} value={template.name}>

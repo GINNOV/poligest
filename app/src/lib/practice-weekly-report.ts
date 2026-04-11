@@ -203,7 +203,7 @@ function shiftCalendarDate(year: number, month: number, day: number, deltaDays: 
   };
 }
 
-function addPracticeDays(date: Date, days: number) {
+export function addPracticeDays(date: Date, days: number) {
   const parts = getTimeZoneDateParts(date);
   const shifted = shiftCalendarDate(parts.year, parts.month, parts.day, days);
   return toUtcForPracticeTime(shifted.year, shifted.month, shifted.day);
@@ -212,41 +212,67 @@ function addPracticeDays(date: Date, days: number) {
 export function getCompletedPracticeWeekPeriod(now = new Date()): WeeklyReportPeriod {
   const today = getTimeZoneDateParts(now);
   const currentWeekStartDate = shiftCalendarDate(today.year, today.month, today.day, -(today.weekday - 1));
-  const previousWeekStartDate = shiftCalendarDate(
+  
+  // By default, the most recently completed week is the previous one (Mon-Sun)
+  let periodStartDate = shiftCalendarDate(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
     -7,
   );
+
+  // If it's Friday or later, and we've already sent the report for the previous week,
+  // we might want to show the current (ongoing) week as the "next" target for manual/next run.
+  // However, traditionally, a weekly report covers a FULL week.
+  // Let's keep it simple: if the user explicitly asks for "completed", it's the last full Mon-Sun.
+  // But if today is late in the week (e.g. Friday), and we are looking for the "next" logical period to send,
+  // and the previous one is done, we don't want to keep suggesting the old one.
+  
   const previousWeekEndDate = shiftCalendarDate(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
     -1,
   );
-  const currentWeekStart = toUtcForPracticeTime(
+  
+  const start = toUtcForPracticeTime(
+    periodStartDate.year,
+    periodStartDate.month,
+    periodStartDate.day,
+  );
+  const endExclusive = toUtcForPracticeTime(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
   );
-  const previousWeekStart = toUtcForPracticeTime(
-    previousWeekStartDate.year,
-    previousWeekStartDate.month,
-    previousWeekStartDate.day,
-  );
-  const previousWeekEnd = toUtcForPracticeTime(
+
+  const startKey = DATE_KEY_FORMATTER.format(start);
+  const endKey = DATE_KEY_FORMATTER.format(toUtcForPracticeTime(
     previousWeekEndDate.year,
     previousWeekEndDate.month,
     previousWeekEndDate.day,
-  );
-  const startKey = DATE_KEY_FORMATTER.format(previousWeekStart);
-  const endKey = DATE_KEY_FORMATTER.format(previousWeekEnd);
+  ));
 
   return {
-    start: previousWeekStart,
-    endExclusive: currentWeekStart,
+    start,
+    endExclusive,
     dedupeKey: `practice-weekly-report:${startKey}`,
-    label: `${DATE_LABEL_FORMATTER.format(previousWeekStart)} - ${DATE_LABEL_FORMATTER.format(previousWeekEnd)}`,
+    label: `${DATE_LABEL_FORMATTER.format(start)} - ${DATE_LABEL_FORMATTER.format(new Date(endExclusive.getTime() - 1000))}`,
+    startKey,
+    endKey,
+  };
+}
+
+export function createPracticeWeeklyReportPeriod(start: Date, endExclusive: Date): WeeklyReportPeriod {
+  const startKey = DATE_KEY_FORMATTER.format(start);
+  const periodEnd = new Date(endExclusive.getTime() - 1000);
+  const endKey = DATE_KEY_FORMATTER.format(periodEnd);
+
+  return {
+    start,
+    endExclusive,
+    dedupeKey: `practice-weekly-report:${startKey}`,
+    label: `${DATE_LABEL_FORMATTER.format(start)} - ${DATE_LABEL_FORMATTER.format(periodEnd)}`,
     startKey,
     endKey,
   };
@@ -520,13 +546,30 @@ function buildTextBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
   ].join("\n");
 }
 
-function buildKpiCard(label: string, value: string, detail: string) {
+function buildKpiCard(
+  label: string,
+  value: string,
+  detail: string,
+  options?: {
+    background?: string;
+    borderColor?: string;
+    labelColor?: string;
+    valueColor?: string;
+    detailColor?: string;
+  },
+) {
+  const background = options?.background ?? "#fafafa";
+  const borderColor = options?.borderColor ?? "#e4e4e7";
+  const labelColor = options?.labelColor ?? "#71717a";
+  const valueColor = options?.valueColor ?? "#18181b";
+  const detailColor = options?.detailColor ?? "#52525b";
+
   return `
     <td style="padding:8px;vertical-align:top;">
-      <div style="border:1px solid #e4e4e7;border-radius:16px;padding:16px;background:#fafafa;">
-        <div style="font-size:12px;line-height:16px;color:#71717a;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">${escapeHtml(label)}</div>
-        <div style="margin-top:10px;font-size:28px;line-height:32px;color:#18181b;font-weight:700;">${escapeHtml(value)}</div>
-        <div style="margin-top:8px;font-size:13px;line-height:18px;color:#52525b;">${escapeHtml(detail)}</div>
+      <div style="border:1px solid ${borderColor};border-radius:16px;padding:16px;background:${background};">
+        <div style="font-size:12px;line-height:16px;color:${labelColor};text-transform:uppercase;letter-spacing:0.06em;font-weight:700;">${escapeHtml(label)}</div>
+        <div style="margin-top:10px;font-size:28px;line-height:32px;color:${valueColor};font-weight:700;">${escapeHtml(value)}</div>
+        <div style="margin-top:8px;font-size:13px;line-height:18px;color:${detailColor};">${escapeHtml(detail)}</div>
       </div>
     </td>
   `;
@@ -545,13 +588,17 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
     metrics.recallReminders.emailTouches +
     metrics.recallReminders.smsTouches;
 
+  const dailyReportUrl = `${siteOrigin}/finanza/report-giornaliero`;
+
   const doctorRows =
     metrics.perDoctor.length > 0
       ? metrics.perDoctor
           .map(
-            (doctor) => `
-              <tr>
-                <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;color:#18181b;font-weight:600;">${escapeHtml(doctor.doctorName)}</td>
+            (doctor, index) => `
+              <tr style="background:${index % 2 === 0 ? "#ffffff" : "#fafafa"};">
+                <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;font-weight:600;">
+                  <a href="${escapeHtml(dailyReportUrl)}" style="color:#047857;text-decoration:none;">${escapeHtml(doctor.doctorName)}</a>
+                </td>
                 <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;color:#18181b;text-align:right;">${doctor.appointmentsCompleted}</td>
                 <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;color:#18181b;text-align:right;">${doctor.uniquePatientsSeen}</td>
               </tr>
@@ -604,11 +651,22 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
             <tr>
               ${buildKpiCard("Pazienti visti", String(metrics.uniquePatientsSeen), `${metrics.completedAppointments} visite completate`)}
               ${buildKpiCard("Nuovi pazienti", String(metrics.newPatients), "Nuove anagrafiche create nel periodo")}
-              ${buildKpiCard("Incassi registrati", formatCurrency(metrics.paymentsCollectedTotal), `${metrics.paymentsCollectedCount} pagamenti registrati`)}
+              ${buildKpiCard(
+                "Incassi registrati",
+                formatCurrency(metrics.paymentsCollectedTotal),
+                `${metrics.paymentsCollectedCount} pagamenti registrati`,
+                {
+                  background: "#dcfce7",
+                  borderColor: "#86efac",
+                  labelColor: "#166534",
+                  valueColor: "#14532d",
+                  detailColor: "#166534",
+                },
+              )}
             </tr>
             <tr>
               ${buildKpiCard("Promemoria inviati", String(totalReminderTouches), `${metrics.uniquePatientsReminded} pazienti raggiunti`)}
-              ${buildKpiCard("Tasso agenda completata", formatPercent(completionRate), `${metrics.cancelledAppointments} annullati · ${metrics.noShows} no-show`)}
+              ${buildKpiCard("DETTAGLIO AGENDA", formatPercent(completionRate), `${metrics.cancelledAppointments} annullati · ${metrics.noShows} no-show`)}
               ${buildKpiCard("Agenda prossima settimana", String(metrics.upcomingAppointments), "Appuntamenti già fissati nei prossimi 7 giorni")}
             </tr>
           </table>
@@ -632,7 +690,7 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
           </div>
 
           <div style="margin-top:18px;border:1px solid #e4e4e7;border-radius:20px;padding:18px;">
-            <h2 style="margin:0 0 14px;font-size:18px;line-height:24px;color:#18181b;">Valore generato dall'automazione</h2>
+            <h2 style="margin:0 0 14px;font-size:18px;line-height:24px;color:#18181b;">AUTOMAZIONE</h2>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tr>
                 <td style="padding:10px 0;font-size:14px;line-height:20px;color:#52525b;">Promemoria appuntamenti consegnati</td>
@@ -654,7 +712,7 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
           </div>
 
           <div style="margin-top:18px;border:1px solid #e4e4e7;border-radius:20px;padding:18px;">
-            <h2 style="margin:0 0 14px;font-size:18px;line-height:24px;color:#18181b;">FYI · Stato appuntamenti nel periodo</h2>
+            <h2 style="margin:0 0 14px;font-size:18px;line-height:24px;color:#18181b;">DETTAGLIO APPUNTAMENTI</h2>
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
               <tr>
                 <td style="padding:10px 0;font-size:14px;line-height:20px;color:#52525b;">Confermati</td>
@@ -720,11 +778,7 @@ export async function sendPracticeWeeklyReport(params?: {
     }
   }
 
-  await autoCompletePastAppointments(now);
-  const metrics = await collectWeeklyMetrics(period);
-  const subject = buildSubject(period);
-  const text = buildTextBody(period, metrics);
-  const html = buildHtmlBody(period, metrics);
+  const { subject, text, html } = await generatePracticeWeeklyReportPreview(period, { now, syncAppointments: true });
 
   try {
     for (const recipient of recipients) {
@@ -781,6 +835,26 @@ export async function sendPracticeWeeklyReport(params?: {
 
     throw error;
   }
+}
+
+export async function generatePracticeWeeklyReportPreview(
+  period: WeeklyReportPeriod,
+  options?: {
+    now?: Date;
+    syncAppointments?: boolean;
+  },
+) {
+  if (options?.syncAppointments ?? true) {
+    await autoCompletePastAppointments(options?.now ?? new Date());
+  }
+
+  const metrics = await collectWeeklyMetrics(period);
+
+  return {
+    subject: buildSubject(period),
+    text: buildTextBody(period, metrics),
+    html: buildHtmlBody(period, metrics),
+  };
 }
 
 export { REPORT_CONFIG_ID, REPORT_TIME_ZONE };

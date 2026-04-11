@@ -77,11 +77,11 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
   });
 
   return (
-    <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
-      <div className="mx-auto max-w-5xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm print:max-w-none print:border-none print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 print:pb-4">
+    <div className="min-h-screen bg-zinc-100 px-6 py-8 dark:bg-zinc-900 print:bg-white print:px-0 print:py-0">
+      <div className="mx-auto max-w-5xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 print:max-w-none print:border-none print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 dark:border-zinc-800 print:pb-4">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-40 rounded-lg bg-white p-2">
+            <div className="h-14 w-40 rounded-lg bg-white p-2 dark:bg-zinc-950">
               <Image
                 src="/logo/studio_agovinoangrisano_logo.png"
                 alt="Logo Studio Agovino & Angrisano"
@@ -96,7 +96,7 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
               </p>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
               {movementQuery || safeDateFrom || safeDateTo ? (
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   Filtro:
                   {movementQuery ? ` ${movementQuery}` : null}
                   {safeDateFrom ? ` dal ${format(safeDateFrom, "dd/MM/yyyy")}` : null}
@@ -111,11 +111,11 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
           />
         </div>
 
-        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-          <table className="min-w-full divide-y divide-zinc-100 text-sm">
-            <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
+          <table className="min-w-full divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+            <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400">
               <tr>
                 <th className="px-4 py-3 text-left">Data</th>
                 <th className="px-4 py-3 text-left">Paziente</th>
@@ -125,37 +125,37 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
                 <th className="px-4 py-3 text-left">Sede</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {movements.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-4 text-zinc-600" colSpan={6}>
+                  <td className="px-4 py-4 text-zinc-600 dark:text-zinc-400" colSpan={6}>
                     Nessun movimento recente.
                   </td>
                 </tr>
               ) : (
                 movements.map((m) => (
-                  <tr key={m.id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 text-zinc-600">
+                  <tr key={m.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                       {m.interventionDate
                         ? format(m.interventionDate, "dd/MM/yyyy")
                         : format(m.createdAt, "dd/MM/yyyy HH:mm")}
                     </td>
-                    <td className="px-4 py-3 font-medium text-zinc-900">
+                    <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
                       {m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="text-zinc-900">{m.product.name}</span>
-                        <span className="text-xs font-mono text-zinc-500">
+                        <span className="text-zinc-900 dark:text-zinc-50">{m.product.name}</span>
+                        <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400">
                           {m.product.udiDi || "—"}
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-600">
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-600 dark:text-zinc-400">
                       {m.udiPi ?? "—"}
                     </td>
-                    <td className="px-4 py-3">{m.quantity}</td>
-                    <td className="px-4 py-3 text-zinc-600 text-xs">
+                    <td className="px-4 py-3 dark:text-zinc-300">{m.quantity}</td>
+                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400 text-xs">
                       {m.interventionSite ?? "—"}
                     </td>
                   </tr>

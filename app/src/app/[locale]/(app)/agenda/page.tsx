@@ -16,21 +16,21 @@ export default async function AgendaPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Link
           href="/agenda/appuntamenti"
-          className="group flex flex-col justify-between rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+          className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
         >
           <div className="space-y-3">
-            <div className="relative aspect-[2752/1536] overflow-hidden rounded-xl border border-emerald-100 bg-white">
+            <div className="relative aspect-[2752/1536] overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
               <Image
                 src="/tiles/appointments.png"
                 alt="Appuntamenti"
                 fill
                 sizes="(min-width: 1024px) 320px, 100vw"
-                className="object-contain"
+                className="h-44 w-full object-cover"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Apputamenti esistenti</h2>
-              <p className="text-sm text-emerald-800">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Apputamenti esistenti</h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-300">
                 Gestisci gli appuntamenti correnti e aggiorna le loro informazioni.
               </p>
             </div>
@@ -40,21 +40,21 @@ export default async function AgendaPage() {
         {showCalendar ? (
           <Link
             href="/calendar"
-            className="group flex flex-col justify-between rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+            className="group flex flex-col justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
           >
             <div className="space-y-3">
-              <div className="relative aspect-[2752/1536] overflow-hidden rounded-xl border border-emerald-100 bg-white">
+              <div className="relative aspect-[2752/1536] overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
                 <Image
                   src="/tiles/calendar.png"
                   alt="Aggiungi appuntamenti"
                   fill
                   sizes="(min-width: 1024px) 320px, 100vw"
-                  className="object-contain"
+                  className="h-44 w-full object-cover"
                 />
               </div>
               <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Aggiungi appuntamenti</h2>
-                <p className="text-sm text-emerald-800">
+                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Aggiungi appuntamenti</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
                 </p>
               </div>

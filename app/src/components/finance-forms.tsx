@@ -39,7 +39,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           value={patientId}
           onChange={(e) => setPatientId(e.target.value)}
           required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="" disabled>
             Seleziona paziente
@@ -58,7 +58,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           type="date"
           name="deliveredAt"
           required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         />
       </label>
 
@@ -67,7 +67,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
         <select
           name="deliveredItemId"
           required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           disabled={!patientId}
           defaultValue=""
         >
@@ -81,7 +81,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           ))}
         </select>
         {selectedPatient && patientDiaryEntries.length === 0 ? (
-          <span className="text-xs text-amber-600">
+          <span className="text-xs text-amber-600 dark:text-amber-500">
             Nessuna voce di diario per questo paziente: aggiungi una procedura prima di registrare il pagamento.
           </span>
         ) : (
@@ -99,7 +99,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           min="0"
           step="0.01"
           required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         />
       </label>
 
@@ -108,7 +108,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           type="checkbox"
           name="partialPayment"
           value="1"
-          className="h-4 w-4 rounded border-zinc-300"
+          className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
         />
         Pagamento parziale
       </label>
@@ -147,7 +147,7 @@ export function PatientPaymentFields({
           value={quoteItemId}
           onChange={(event) => setQuoteItemId(event.target.value)}
           required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="" disabled>
             Seleziona una prestazione
@@ -161,7 +161,7 @@ export function PatientPaymentFields({
       </label>
 
       {selectedItem ? (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             <span>Totale: € {selectedItem.total.toFixed(2)}</span>
             <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
@@ -170,7 +170,7 @@ export function PatientPaymentFields({
         </div>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Data pagamento
           <input
@@ -178,7 +178,7 @@ export function PatientPaymentFields({
             name="paidAt"
             required
             defaultValue={new Date().toISOString().slice(0, 10)}
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           />
         </label>
 
@@ -187,38 +187,38 @@ export function PatientPaymentFields({
           <select
             name="paymentMethod"
             defaultValue="ELECTRONIC"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           >
             <option value="CASH">Contanti</option>
             <option value="ELECTRONIC">Elettronico</option>
             <option value="BANK_TRANSFER">Bonifico</option>
-            <option value="PAY_LATER" className="text-rose-600">
+            <option value="PAY_LATER" className="text-rose-600 dark:text-rose-400">
               Pagherò
             </option>
             <option value="OTHER">Altro</option>
           </select>
         </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          Importo
+          <input
+            name="amount"
+            type="number"
+            min="0.01"
+            step="0.01"
+            required
+            max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+          />
+        </label>
       </div>
 
       <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Importo
-        <input
-          name="amount"
-          type="number"
-          min="0.01"
-          step="0.01"
-          required
-          max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
         Nota
         <textarea
           name="note"
           rows={3}
-          className="rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           placeholder="Es. acconto, saldo finale, riferimento POS"
         />
       </label>
@@ -237,22 +237,22 @@ export function FinanceExpenseFields({ suppliers, products }: ExpenseProps) {
 
   return (
     <div className="space-y-3">
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Descrizione
         <input
           name="expenseDescription"
           required
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           placeholder="Es. Acquisto materiali, manutenzione..."
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Fornitore
         <select
           name="supplierId"
           defaultValue=""
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="">—</option>
           {suppliers.map((s) => (
@@ -263,12 +263,12 @@ export function FinanceExpenseFields({ suppliers, products }: ExpenseProps) {
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Materiale
         <select
           name="productId"
           defaultValue=""
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="">—</option>
           {products.map((p) => (
@@ -279,30 +279,30 @@ export function FinanceExpenseFields({ suppliers, products }: ExpenseProps) {
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Tipo di spesa
         <select
           name="expenseKind"
           value={expenseKind}
           onChange={(e) => setExpenseKind(e.target.value)}
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="service">Servizio</option>
           <option value="material">Materiale</option>
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Data di acquisto
         <input
           type="date"
           name="purchaseDate"
           required
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Importo
         <input
           name="expenseAmount"
@@ -310,29 +310,29 @@ export function FinanceExpenseFields({ suppliers, products }: ExpenseProps) {
           min="0"
           step="0.01"
           required
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Tipo di pagamento
         <select
           name="paymentType"
           value={paymentType}
           onChange={(e) => setPaymentType(e.target.value)}
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
         >
           <option value="cash">Contanti</option>
           <option value="electronic">Elettronico</option>
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Note
         <textarea
           name="expenseNote"
           rows={3}
-          className="rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           placeholder="Dettagli su condizioni di pagamento o numeri documento"
         />
       </label>

@@ -121,32 +121,32 @@ export default async function AuditPage({
             {t("audit")}
           </p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("auditTitle")}</h1>
-          <p className="text-sm text-zinc-600">{t("auditSubtitle")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("auditSubtitle")}</p>
         </div>
-        <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+        <span className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
           {logs.length} eventi (max 200)
         </span>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
         <form className="grid grid-cols-1 gap-3 md:grid-cols-[2fr,1fr,auto]" method="get">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             {t("auditSearchLabel")}
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder={t("auditSearchPlaceholder")}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Data
             <input
               type="date"
               name="date"
               defaultValue={dateParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
             />
           </label>
           <div className="flex items-end gap-2">
@@ -160,7 +160,7 @@ export default async function AuditPage({
             <Link
               href="/admin/audit"
               aria-label={t("auditResetFilters")}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 px-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200 transition hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-500"
             >
               {t("resetFilters")}
             </Link>
@@ -169,21 +169,21 @@ export default async function AuditPage({
 
         <div className="mt-6 space-y-6">
           {logs.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">{t("auditEmpty")}</p>
+            <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">{t("auditEmpty")}</p>
           ) : (
             Object.entries(groupedByDay)
               .sort(([a], [b]) => (a > b ? -1 : 1))
               .map(([dayKey, dayLogs]) => (
                 <div key={dayKey} className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-zinc-200" />
-                    <div className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold uppercase text-zinc-700">
+                    <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                    <div className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                       {formatDay(new Date(dayKey))}
                     </div>
-                    <div className="h-px flex-1 bg-zinc-200" />
+                    <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
                   </div>
 
-                  <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
                     {dayLogs.map((log) => {
                       const actor =
                         log.user?.name ||
@@ -192,43 +192,43 @@ export default async function AuditPage({
                       return (
                         <div key={log.id} className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-[1.2fr,0.8fr]">
                           <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                            <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                                 <span>{actionEmoji(log.action)}</span>
                                 {log.action}
                               </span>
-                              <span className="text-xs font-semibold text-zinc-600">
+                              <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                                 by user: {actor} · {formatDate(log.createdAt)}
                               </span>
                             </div>
-                            <p className="text-sm text-zinc-800">&nbsp;</p>
+                            <p className="text-sm text-zinc-800 dark:text-zinc-200">&nbsp;</p>
                           </div>
-                          <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+                          <div className="rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300">
                             <div className="flex items-center justify-between">
-                              <span className="font-semibold text-zinc-900">Dettagli tecnici</span>
-                              <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
+                              <span className="font-semibold text-zinc-900 dark:text-zinc-50">Dettagli tecnici</span>
+                              <span className="rounded-full bg-zinc-200 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-semibold text-zinc-700 dark:text-zinc-300">
                                 {log.user?.role ?? "—"}
                               </span>
                             </div>
                             <div className="mt-1 space-y-1">
                               <div className="flex items-start gap-1">
-                                <span className="font-semibold text-zinc-800">Entità:</span>
-                                <span className="text-zinc-700">
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">Entità:</span>
+                                <span className="text-zinc-700 dark:text-zinc-300">
                                   {log.entity}
                                   {log.entityId ? ` · ${log.entityId}` : ""}
                                 </span>
                               </div>
                               <div className="flex items-start gap-1">
-                                <span className="font-semibold text-zinc-800">Utente:</span>
-                                <span className="text-zinc-700">{log.user?.email ?? "—"}</span>
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">Utente:</span>
+                                <span className="text-zinc-700 dark:text-zinc-300">{log.user?.email ?? "—"}</span>
                               </div>
                               <div className="flex items-start gap-1">
-                                <span className="font-semibold text-zinc-800">IP:</span>
-                                <span className="text-zinc-700">{log.ip ?? "—"}</span>
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">IP:</span>
+                                <span className="text-zinc-700 dark:text-zinc-300">{log.ip ?? "—"}</span>
                               </div>
                             </div>
                             {log.metadata ? (
-                              <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white px-3 py-2 text-[11px] text-zinc-700">
+                              <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-zinc-950 px-3 py-2 text-[11px] text-zinc-700 dark:text-zinc-300">
                                 {JSON.stringify(log.metadata, null, 2)}
                               </pre>
                             ) : null}
@@ -241,7 +241,7 @@ export default async function AuditPage({
               ))
           )}
         </div>
-        <p className="mt-4 text-xs text-zinc-500">{t("auditLimitHint")}</p>
+        <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{t("auditLimitHint")}</p>
       </div>
     </div>
   );

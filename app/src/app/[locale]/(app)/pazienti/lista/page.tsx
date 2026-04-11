@@ -171,45 +171,45 @@ export default async function PazientiListaPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Pazienti</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Pazienti</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Lista pazienti</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Cerca, filtra e apri le schede paziente esistenti.
           </p>
         </div>
       </div>
 
-      <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5">
+      <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
         <PatientListFilters initialQuery={qParam ?? ""} sortValue={sortRaw ?? sortOption} />
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
-          <span className="font-semibold text-zinc-700">Legenda:</span>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300">Legenda:</span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-rose-600">▲</span>
+            <span className="text-rose-600 dark:text-rose-400">▲</span>
             Consensi obbligatori mancanti
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-violet-600">●</span>
+            <span className="text-violet-600 dark:text-violet-400">●</span>
             Consensi obbligatori presenti su scheda cartacea
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-zinc-500">📧</span>
+            <span className="text-zinc-500 dark:text-zinc-400">📧</span>
             Email mancante
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-zinc-500">☎️</span>
+            <span className="text-zinc-500 dark:text-zinc-400">☎️</span>
             Telefono mancante
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="text-emerald-600">✓</span>
+            <span className="text-emerald-600 dark:text-emerald-400">✓</span>
             Dati completi
           </span>
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm font-semibold uppercase text-zinc-500">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">
           {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
             const target = letterTargets.get(letter);
             if (!target) {
               return (
-                <span key={letter} className="px-1 text-zinc-300">
+                <span key={letter} className="px-1 text-zinc-300 dark:text-zinc-700">
                   {letter}
                 </span>
               );
@@ -218,16 +218,16 @@ export default async function PazientiListaPage({
               <Link
                 key={letter}
                 href={`${buildPageHref(target.page)}#patient-${target.id}`}
-                className="rounded px-1 text-emerald-700 transition hover:text-emerald-600"
+                className="rounded px-1 text-emerald-700 transition hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
                 {letter}
               </Link>
             );
           })}
         </div>
-        <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white">
+        <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
           {paginatedPatients.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-zinc-600">Nessun paziente registrato.</p>
+            <p className="px-4 py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun paziente registrato.</p>
           ) : (
             paginatedPatients.map((patient) => {
               const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
@@ -242,28 +242,28 @@ export default async function PazientiListaPage({
                   title: patient.hasPaperConsentForRequired
                     ? "Consensi obbligatori presenti su scheda cartacea"
                     : "Consensi obbligatori mancanti",
-                  className: patient.hasPaperConsentForRequired ? "text-violet-600" : "text-rose-600",
+                  className: patient.hasPaperConsentForRequired ? "text-violet-600 dark:text-violet-400" : "text-rose-600 dark:text-rose-400",
                   icon: patient.hasPaperConsentForRequired ? "●" : "▲",
                 });
               }
               if (missingEmail) {
                 indicators.push({
                   title: "Email mancante",
-                  className: "text-zinc-500",
+                  className: "text-zinc-500 dark:text-zinc-400",
                   icon: "📧",
                 });
               }
               if (missingPhone) {
                 indicators.push({
                   title: "Telefono mancante",
-                  className: "text-zinc-500",
+                  className: "text-zinc-500 dark:text-zinc-400",
                   icon: "☎️",
                 });
               }
               if (indicators.length === 0) {
                 indicators.push({
                   title: "Dati completi",
-                  className: "text-emerald-600",
+                  className: "text-emerald-600 dark:text-emerald-400",
                   icon: "✓",
                 });
               }
@@ -289,12 +289,12 @@ export default async function PazientiListaPage({
                   <div className="flex flex-col">
                     <Link
                       href={`/pazienti/${patient.id}`}
-                      className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2"
+                      className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-900"
                     >
                       <span className="mr-2 inline-flex items-center gap-1 align-middle">{badge}</span>
                       {patient.lastName} {patient.firstName}
                     </Link>
-                    <span className="text-xs text-zinc-600">
+                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
                       {patient.email ?? "—"} · {patient.phone ?? "—"}
                     </span>
                   </div>
@@ -302,14 +302,14 @@ export default async function PazientiListaPage({
                     {activeConsents.map((consent) => (
                       <span
                         key={consent.moduleId}
-                        className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800"
+                        className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
                       >
                         {consent.module?.name ?? "Modulo"}
                       </span>
                     ))}
                     <Link
                       href={`/pazienti/${patient.id}`}
-                      className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                      className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
                     >
                       Scheda
                     </Link>
@@ -320,7 +320,7 @@ export default async function PazientiListaPage({
             })
           )}
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
           <p>
             Mostrati {totalCount === 0 ? "0" : `${showingFrom}-${Math.min(showingTo, totalCount)}`} di{" "}
             {totalCount}
@@ -329,27 +329,27 @@ export default async function PazientiListaPage({
             {page > 1 ? (
               <Link
                 href={buildPageHref(page - 1)}
-                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
               >
                 ← Precedente
               </Link>
             ) : (
-              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
                 ← Precedente
               </span>
             )}
-            <span className="text-xs font-semibold text-zinc-600">
+            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               Pagina {page} di {totalPages}
             </span>
             {page < totalPages ? (
               <Link
                 href={buildPageHref(page + 1)}
-                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
               >
                 Successiva →
               </Link>
             ) : (
-              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
                 Successiva →
               </span>
             )}

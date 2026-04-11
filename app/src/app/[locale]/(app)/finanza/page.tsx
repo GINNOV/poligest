@@ -3,6 +3,58 @@ import Image from "next/image";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 
+const TILES = [
+  {
+    href: "/finanza/pagamenti",
+    src: "/tiles/payer.png",
+    alt: "Pagamenti pazienti",
+    title: "Pagamenti Pazienti",
+    description: "Traccia appuntamento per appuntamento il flusso di cassa. Gestisci preventivi, incassi e residui del paziente.",
+  },
+  {
+    href: "/finanza/spese",
+    src: "/tiles/materiali_spese_ufficio.png",
+    alt: "Materiali e spese ufficio",
+    title: "Materiali e Spese ufficio",
+    description: "Registra acquisti, fornitori e costi operativi dello studio. Tieni ordinate le uscite per materiale e servizio.",
+  },
+  {
+    href: "/finanza/anticipi",
+    src: "/tiles/pagamenti_medici.png",
+    alt: "Pagamenti medici",
+    title: "Pagamenti medici",
+    description: "Monitora anticipi e liquidazioni legate ai medici. Consulta i movimenti e archivia quelli chiusi.",
+  },
+  {
+    href: "/finanza/report-giornaliero",
+    src: "/tiles/accounting.png",
+    alt: "Report giornaliero",
+    title: "Report Giornaliero",
+    description: "Leggi le entrate di un singolo giorno della settimana corrente. Controlla i movimenti in cassa e il totale incassato.",
+  },
+  {
+    href: "/finanza/report-mensile",
+    src: "/tiles/report_mensile.png",
+    alt: "Report mensile",
+    title: "Report Mensile",
+    description: "Riepiloga il mese per giornata con le somme principali. Separa anticipo, pagherò, dovuto e totale incassato.",
+  },
+  {
+    href: "/finanza/report-uscite",
+    src: "/tiles/report_uscite.png",
+    alt: "Report uscite",
+    title: "Report Uscite",
+    description: "Analizza le uscite mensili per fornitore e tipologia. Verifica dove si concentrano materiali e spese ufficio.",
+  },
+  {
+    href: "/finanza/report-medici",
+    src: "/tiles/report_medici.png",
+    alt: "Report medici",
+    title: "Report Medici",
+    description: "Visualizza il riepilogo mensile dei compensi e dei pagamenti per ogni medico. Monitora le spettanze e le liquidazioni effettuate.",
+  },
+];
+
 export default async function FinanzaPage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);
 
@@ -13,139 +65,27 @@ export default async function FinanzaPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Link
-          href="/finanza/pagamenti"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/payer.png"
-              alt="Pagamenti pazienti"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti Pazienti</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Traccia appuntamento per appuntamento il flusso di cassa.
-            Gestisci preventivi, incassi e residui del paziente.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/spese"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/materiali_spese_ufficio.png"
-              alt="Materiali e spese ufficio"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Materiali e Spese ufficio</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Registra acquisti, fornitori e costi operativi dello studio.
-            Tieni ordinate le uscite per materiale e servizio.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/anticipi"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/pagamenti_medici.png"
-              alt="Pagamenti medici"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti medici</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Monitora anticipi e liquidazioni legate ai medici.
-            Consulta i movimenti e archivia quelli chiusi.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/report-giornaliero"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/accounting.png"
-              alt="Report giornaliero"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Giornaliero</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Leggi le entrate di un singolo giorno della settimana corrente.
-            Controlla i movimenti in cassa e il totale incassato.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/report-mensile"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/report_mensile.png"
-              alt="Report mensile"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Mensile</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Riepiloga il mese per giornata con le somme principali.
-            Separa anticipo, pagherò, dovuto e totale incassato.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/report-uscite"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/report_uscite.png"
-              alt="Report uscite"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Uscite</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Analizza le uscite mensili per fornitore e tipologia.
-            Verifica dove si concentrano materiali e spese ufficio.
-          </p>
-        </Link>
-        <Link
-          href="/finanza/report-medici"
-          className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="overflow-hidden rounded-2xl border border-zinc-100">
-            <Image
-              src="/tiles/report_medici.png"
-              alt="Report medici"
-              width={640}
-              height={360}
-              className="h-44 w-full object-cover"
-            />
-          </div>
-          <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Report Medici</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
-            Visualizza il riepilogo mensile dei compensi e dei pagamenti per ogni medico.
-            Monitora le spettanze e le liquidazioni effettuate.
-          </p>
-        </Link>
+        {TILES.map((tile) => (
+          <Link
+            key={tile.href}
+            href={tile.href}
+            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
+          >
+            <div className="overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              <Image
+                src={tile.src}
+                alt={tile.alt}
+                width={640}
+                height={360}
+                className="h-44 w-full object-cover"
+              />
+            </div>
+            <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">{tile.title}</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              {tile.description}
+            </p>
+          </Link>
+        ))}
       </div>
     </div>
   );

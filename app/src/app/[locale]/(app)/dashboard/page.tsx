@@ -31,13 +31,13 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 const statusClasses: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800",
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800",
-  COMPLETED: "border-green-200 bg-green-50 text-green-800",
-  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800",
-  NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700",
+  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200",
+  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-200",
+  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800/60 dark:bg-zinc-900/20 dark:text-zinc-300",
+  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200",
+  COMPLETED: "border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-800/60 dark:bg-teal-900/20 dark:text-teal-200",
+  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200",
+  NO_SHOW: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300",
 };
 
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
@@ -308,20 +308,6 @@ export default async function DashboardPage({
     }),
   ]);
   const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
-  const reminderClickLogs = appointments.length
-    ? await prisma.auditLog.findMany({
-        where: {
-          action: "appointment.whatsapp_reminder_clicked",
-          entity: "Appointment",
-          entityId: { in: appointments.map((appt) => appt.id) },
-        },
-        select: { entityId: true },
-      })
-    : [];
-  const clickedReminderAppointmentIds = new Set(
-    reminderClickLogs.flatMap((log) => (log.entityId ? [log.entityId] : []))
-  );
-
   const perDay = days.map((day) => {
     const key = getDateKey(day);
     const dayAppointments = appointments.filter(
@@ -337,13 +323,14 @@ export default async function DashboardPage({
 
   const maxCount = Math.max(...perDay.map((d) => d.count), 1);
   const getDayBubbleClass = (count: number) => {
-    if (count < 10) return "bg-emerald-200";
+    if (count === 0) return "bg-zinc-100 dark:bg-zinc-800";
+    if (count < 5) return "bg-emerald-100 dark:bg-emerald-900/40";
     const ratio = count / maxCount;
-    if (ratio <= 0.2) return "bg-emerald-200";
-    if (ratio <= 0.4) return "bg-teal-200";
-    if (ratio <= 0.6) return "bg-amber-200";
-    if (ratio <= 0.8) return "bg-orange-200";
-    return "bg-rose-200";
+    if (ratio <= 0.2) return "bg-emerald-200 dark:bg-emerald-800/50";
+    if (ratio <= 0.4) return "bg-teal-200 dark:bg-teal-800/50";
+    if (ratio <= 0.6) return "bg-amber-200 dark:bg-amber-800/50";
+    if (ratio <= 0.8) return "bg-orange-200 dark:bg-orange-800/50";
+    return "bg-rose-200 dark:bg-rose-800/50";
   };
   const selectedAppointments = appointments.filter(
     (appt) => getDateKey(appt.startsAt) === selectedDay
@@ -386,7 +373,7 @@ export default async function DashboardPage({
       phone: appt.patient.phone,
     },
     doctor: appt.doctor?.fullName ? { fullName: appt.doctor.fullName } : null,
-    reminderSent: clickedReminderAppointmentIds.has(appt.id),
+    reminderSent: false,
   }));
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
@@ -433,15 +420,15 @@ export default async function DashboardPage({
     return (
       <div className="flex flex-col gap-6">
         <div>
-          <p className="text-sm text-zinc-600">{t("welcome")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">{t("welcome")}</p>
           <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
             {user.name ?? user.email}
           </h1>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">I tuoi appuntamenti</h2>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
               {appointments.length}
             </span>
           </div>
@@ -449,25 +436,25 @@ export default async function DashboardPage({
           <div className="mt-4 space-y-6">
             <section>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+                <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                   Prossimi appuntamenti
                 </p>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
                   {upcomingAppointments.length}
                 </span>
               </div>
               <div className="mt-3 space-y-3">
                 {upcomingAppointments.length === 0 ? (
-                  <p className="py-4 text-sm text-zinc-600">{t("empty")}</p>
+                  <p className="py-4 text-sm text-zinc-600 dark:text-zinc-300">{t("empty")}</p>
                 ) : (
                   upcomingAppointments.map((appt) => (
                     <div
                       key={appt.id}
-                      className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm"
+                      className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/25"
                     >
                       <div className="flex flex-col gap-3">
-                        <div className="space-y-1 text-sm text-zinc-800">
-                          <p className="font-semibold text-zinc-900">
+                        <div className="space-y-1 text-sm text-zinc-800 dark:text-zinc-200">
+                          <p className="font-semibold text-zinc-900 dark:text-zinc-50">
                             {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
                           </p>
                           <p>
@@ -481,7 +468,7 @@ export default async function DashboardPage({
                             }).format(appt.startsAt)}{" "}
                             alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                           </p>
-                          <p className="text-zinc-700">
+                          <p className="text-zinc-700 dark:text-zinc-300">
                             🕒 L&apos;appuntamento dovrebbe richiedere circa{" "}
                             {Math.max(
                               1,
@@ -492,7 +479,7 @@ export default async function DashboardPage({
                             minuti.
                           </p>
                           {appt.notes ? (
-                            <p className="text-zinc-700">
+                            <p className="text-zinc-700 dark:text-zinc-300">
                               📝 Note: {appt.notes}
                             </p>
                           ) : null}
@@ -506,25 +493,25 @@ export default async function DashboardPage({
 
             <section>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600">
+                <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                   Appuntamenti passati
                 </p>
-                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-700">
+                <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                   {pastAppointments.length}
                 </span>
               </div>
               <div className="mt-3 space-y-3">
                 {pastAppointments.length === 0 ? (
-                  <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
+                  <p className="py-4 text-sm text-zinc-600 dark:text-zinc-300">Nessun appuntamento passato.</p>
                 ) : (
                   pastAppointments.map((appt) => (
                     <div
                       key={appt.id}
-                      className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm"
+                      className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
                     >
                       <div className="flex flex-col gap-3">
-                        <div className="space-y-1 text-sm text-zinc-800">
-                          <p className="font-semibold text-zinc-900">
+                        <div className="space-y-1 text-sm text-zinc-800 dark:text-zinc-200">
+                          <p className="font-semibold text-zinc-900 dark:text-zinc-50">
                             {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
                           </p>
                           <p>
@@ -539,7 +526,7 @@ export default async function DashboardPage({
                             alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                           </p>
                           {appt.notes ? (
-                            <p className="text-zinc-700">
+                            <p className="text-zinc-700 dark:text-zinc-300">
                               📝 Note: {appt.notes}
                             </p>
                           ) : null}
@@ -552,24 +539,24 @@ export default async function DashboardPage({
             </section>
           </div>
         </div>
-        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Preventivo più recente</h2>
-              <p className="mt-1 text-sm text-zinc-600">
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
                 Qui trovi il preventivo firmato più aggiornato.
               </p>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
               {quoteSignedAt ?? "—"}
             </span>
           </div>
           {latestQuote ? (
             <div className="relative mt-4 overflow-x-auto rounded-2xl border border-zinc-200">
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
               <table className="min-w-full divide-y divide-zinc-100 text-sm">
-                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
                   <tr>
                     <th className="px-4 py-3 text-left">Prestazione</th>
                     <th className="px-4 py-3 text-right">Quantità</th>
@@ -581,29 +568,29 @@ export default async function DashboardPage({
                 <tbody className="divide-y divide-zinc-100">
                   {quoteItems.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-3 text-zinc-900">{item.serviceName}</td>
-                      <td className="px-4 py-3 text-right text-zinc-700">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right text-zinc-700">
+                      <td className="px-4 py-3 text-zinc-900 dark:text-zinc-100">{item.serviceName}</td>
+                      <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">
                         {Number(item.price?.toString?.() ?? item.price ?? 0).toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-right text-zinc-900">
+                      <td className="px-4 py-3 text-right text-zinc-900 dark:text-zinc-100">
                         {Number(item.total?.toString?.() ?? item.total ?? 0).toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-center text-zinc-700">
+                      <td className="px-4 py-3 text-center text-zinc-700 dark:text-zinc-300">
                         {item.saldato ? "Sì" : "No"}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-zinc-50">
+                <tfoot className="bg-zinc-50 dark:bg-zinc-900">
                   <tr>
                     <td
-                      className="px-4 py-3 text-right text-sm font-semibold text-zinc-700"
+                      className="px-4 py-3 text-right text-sm font-semibold text-zinc-700 dark:text-zinc-300"
                       colSpan={4}
                     >
                       Totale da saldare
                     </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900">
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       {quoteTotal.toFixed(2)}
                     </td>
                   </tr>
@@ -611,13 +598,13 @@ export default async function DashboardPage({
               </table>
             </div>
           ) : (
-            <p className="mt-4 text-sm text-zinc-600">Nessun preventivo disponibile al momento.</p>
+            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-300">Nessun preventivo disponibile al momento.</p>
           )}
         </section>
-        <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm">
+        <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/25">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Premi e motivazione</h2>
-            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-zinc-900/80 dark:text-emerald-200">
               {patientAwards.length}
             </span>
           </div>
@@ -625,15 +612,15 @@ export default async function DashboardPage({
             {patientAwards.map((award) => (
                 <div
                   key={award.key}
-                  className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm"
+                  className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm dark:border-emerald-900/40 dark:bg-zinc-900"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="grid h-12 w-12 flex-shrink-0 place-items-center overflow-hidden rounded-2xl bg-emerald-50 text-2xl leading-none text-center whitespace-nowrap">
+                    <div className="grid h-12 w-12 flex-shrink-0 place-items-center overflow-hidden rounded-2xl bg-emerald-50 text-2xl leading-none text-center whitespace-nowrap dark:bg-emerald-950/40">
                       {award.icon}
                     </div>
                   <div>
-                    <p className="text-sm font-semibold text-emerald-900">{award.title}</p>
-                    <p className="mt-1 text-sm text-emerald-800">{award.quote}</p>
+                    <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{award.title}</p>
+                    <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">{award.quote}</p>
                   </div>
                 </div>
               </div>
@@ -648,13 +635,13 @@ export default async function DashboardPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-zinc-600">{t("welcome")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">{t("welcome")}</p>
           <h1 className="text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
             {user.name ?? user.email}
           </h1>
-          <p className="mt-2 text-sm italic text-zinc-600">
+          <p className="mt-2 text-sm italic text-zinc-600 dark:text-zinc-300">
             “{getDailyQuote(today).text}”
-            <span className="ml-2 text-xs font-semibold text-zinc-500">
+              <span className="ml-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
               — {getDailyQuote(today).author}
             </span>
           </p>
@@ -664,7 +651,8 @@ export default async function DashboardPage({
           label="Stampa agenda del giorno"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-emerald-700 px-3 text-center text-sm font-semibold text-white transition hover:bg-emerald-600 sm:whitespace-nowrap sm:px-4"
+          variant="primary"
+          className="h-10 shrink-0 gap-2 sm:whitespace-nowrap"
         >
           <svg
             className="h-4 w-4"
@@ -696,21 +684,21 @@ export default async function DashboardPage({
             <path d="M8 2v4" />
             <path d="M3 10h18" />
           </svg>
-          <span className="hidden text-center sm:inline">Stampa agenda del giorno</span>
+          <span className="hidden sm:inline">Stampa agenda del giorno</span>
         </PrintLinkButton>
       </div>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             Appuntamenti di questa settimana
           </h2>
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
             {format(weekStart, "d MMM", { locale: it })} -{" "}
             {format(weekEnd, "d MMM", { locale: it })}
           </span>
         </div>
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           Clicca su un giorno per mostrare, nella lista sottostante, solo gli appuntamenti di quella data.
         </p>
         <div className="mt-4 grid grid-cols-7 items-end gap-2 sm:gap-3">
@@ -720,8 +708,8 @@ export default async function DashboardPage({
               href={`/dashboard?view=day&day=${day.key}`}
               className={`flex flex-col items-center gap-2 rounded-xl border px-2 py-2 transition ${
                 day.key === selectedDay
-                  ? "border-emerald-200 bg-emerald-50"
-                  : "border-zinc-100 bg-white hover:border-emerald-100"
+                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30"
+                  : "border-zinc-100 bg-white hover:border-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-900/40"
               }`}
             >
               <div
@@ -732,21 +720,21 @@ export default async function DashboardPage({
                   aria-hidden="true"
                   className="absolute inset-x-[12%] top-[14%] h-2.5 rounded-full bg-white/30"
                 />
-                <span className="relative inline-flex min-w-[2.4rem] items-center justify-center rounded-full bg-white/55 px-2.5 py-1 text-sm font-semibold text-zinc-800 backdrop-blur-[2px] sm:text-base">
+                <span className="relative inline-flex min-w-[2.4rem] items-center justify-center rounded-full bg-white/55 px-2.5 py-1 text-sm font-semibold text-zinc-800 backdrop-blur-[2px] sm:text-base dark:bg-zinc-800/60 dark:text-zinc-50">
                   {day.count}
                 </span>
               </div>
-              <span className="text-xs font-semibold text-zinc-800">{day.label}</span>
+              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">{day.label}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Filtra per...</h2>
-            <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800">
+            <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
               <Link
                 href="/dashboard"
                 className={`rounded-full px-2 py-1 ${
@@ -772,12 +760,12 @@ export default async function DashboardPage({
               <DoctorFilter doctors={doctors} selectedDoctor={selectedDoctor} />
             )}
           </div>
-          <span className="self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 sm:self-auto">
+          <span className="self-start rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200 sm:self-auto">
             {listAppointments.length} appuntamenti
           </span>
         </div>
-        <details className="group mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 sm:hidden">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold uppercase tracking-wide text-zinc-500">
+        <details className="group mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 sm:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             <span>Legenda colori</span>
             <svg
               aria-hidden="true"
@@ -802,14 +790,14 @@ export default async function DashboardPage({
                 {label}
               </span>
             ))}
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800">
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
               <span className="h-2 w-2 rounded-full bg-amber-600" />
               Passato ✅
             </span>
           </div>
         </details>
-        <div className="mt-3 hidden flex-wrap items-center gap-2 text-xs text-zinc-700 sm:flex">
-          <span className="font-semibold uppercase tracking-wide text-zinc-500">Legenda colori</span>
+        <div className="mt-3 hidden flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 sm:flex">
+          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Legenda colori</span>
           {statusLegendItems.map(([status, label]) => (
             <span
               key={status}
@@ -819,12 +807,11 @@ export default async function DashboardPage({
               {label}
             </span>
           ))}
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
             <span className="h-2 w-2 rounded-full bg-amber-600" />
             Passato ✅
-          </span>
-        </div>
-        <div className="mt-4 divide-y divide-zinc-100">
+          </span>        </div>
+        <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
           <DashboardAppointmentsList
             key={appointmentsForList.map((appt) => appt.id).join("|")}
             appointments={appointmentsForList}

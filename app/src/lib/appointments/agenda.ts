@@ -158,24 +158,9 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
         : Promise.resolve([]),
     ]);
 
-  const appointmentIds = appointments.map((a) => a.id);
-  const reminderClickLogs = appointmentIds.length
-    ? await prisma.auditLog.findMany({
-        where: {
-          action: "appointment.whatsapp_reminder_clicked",
-          entity: "Appointment",
-          entityId: { in: appointmentIds },
-        },
-        select: { entityId: true },
-      })
-    : [];
-  const clickedReminderAppointmentIds = new Set(
-    reminderClickLogs.flatMap((log) => (log.entityId ? [log.entityId] : []))
-  );
-
   const appointmentsWithStatus = appointments.map((appt) => ({
     ...appt,
-    reminderSent: clickedReminderAppointmentIds.has(appt.id),
+    reminderSent: false,
   }));
 
   const serviceOptions = Array.from(new Set([...services.map((s) => s.name), ...FALLBACK_APPOINTMENT_SERVICES]).values());

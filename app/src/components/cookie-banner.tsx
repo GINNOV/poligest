@@ -40,10 +40,10 @@ export function CookieBanner() {
       role="dialog"
       aria-live="polite"
       aria-label="Preferenze cookie"
-      className="fixed inset-x-4 bottom-4 z-[10000] rounded-2xl border border-emerald-100 bg-white p-4 shadow-xl sm:inset-x-auto sm:right-6 sm:w-[380px]"
+      className="fixed inset-x-4 bottom-4 z-[10000] rounded-2xl border border-emerald-100 bg-white p-4 shadow-xl dark:border-zinc-800 dark:bg-zinc-950 sm:inset-x-auto sm:right-6 sm:w-[380px]"
     >
-      <p className="text-sm font-semibold text-zinc-900">Cookie e privacy</p>
-      <p className="mt-2 text-sm text-zinc-600">
+      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Cookie e privacy</p>
+      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
         Usiamo cookie tecnici per il funzionamento del sito e, con il tuo consenso, cookie analitici anonimi.
         Consulta l&apos;
         <Link href="/privacy" className="font-semibold text-emerald-700 hover:underline">
@@ -55,7 +55,7 @@ export function CookieBanner() {
         <button
           type="button"
           onClick={() => saveChoice("necessary")}
-          className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300"
+          className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:text-zinc-200"
         >
           Solo necessari
         </button>

@@ -28,19 +28,19 @@ export function PlaceholderGuide({ placeholders }: Props) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+      <div className="w-full max-w-2xl rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
               Segnaposto
             </p>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Guida placeholder</h2>
-            <p className="text-xs text-zinc-500">Usa Cmd/Ctrl + / per aprire o chiudere.</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">Usa Cmd/Ctrl + / per aprire o chiudere.</p>
           </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+            className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
           >
             Chiudi
           </button>
@@ -48,15 +48,15 @@ export function PlaceholderGuide({ placeholders }: Props) {
         <div className="max-h-[60vh] overflow-y-auto p-5">
           <div className="space-y-3">
             {placeholders.map((item) => (
-              <div key={item.key} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <div key={item.key} className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-zinc-900">{`{{${item.key}}}`}</span>
-                  <span className="text-[11px] uppercase tracking-wide text-zinc-500">
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-50">{`{{${item.key}}}`}</span>
+                  <span className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     {item.label}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-zinc-600">{item.description}</p>
-                <p className="mt-1 text-xs text-zinc-500">Esempio: {item.example}</p>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{item.description}</p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Esempio: {item.example}</p>
               </div>
             ))}
           </div>

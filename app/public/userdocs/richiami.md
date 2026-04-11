@@ -1,58 +1,121 @@
-# Richiami e Comunicazioni Ricorrenti
+# Richiami e Comunicazioni
 
-La sezione **Richiami** ti permette di automatizzare i promemoria legati alle visite e di gestire comunicazioni periodiche verso tutti i pazienti.
+La sezione **Richiami** e il centro delle notifiche dello studio.
 
----
+Dentro trovi tre aree principali:
 
-## Richiami automatici (visite)
+- **Regole automatiche**
+- **Promemoria manuali**
+- **Comunicazioni ricorrenti**
 
-Le regole di richiamo si basano sull'**ultima visita completata** per il servizio scelto.  
-Quando l'intervallo impostato scatta, il richiamo entra nella lista “Richiami in scadenza”.
+In piu puoi usare la schermata dei **Richiami in scadenza** per vedere la coda dei richiami gia programmati.
 
-Esempio:  
-*Servizio “Igiene” ogni 180 giorni* → la lista si popola 180 giorni dopo l’ultima igiene completata.
+## Come scegliere la sezione giusta
 
----
+Usa:
 
-## Comunicazioni ricorrenti (email)
+- **Regole automatiche** se vuoi che il sistema lavori da solo
+- **Promemoria manuali** se devi inviare un messaggio subito
+- **Comunicazioni ricorrenti** per email periodiche a molti pazienti
+- **Richiami in scadenza** per controllare cosa sta per partire o e gia in ritardo
 
-Queste email sono inviate **a tutti i pazienti con email valida** e non dipendono dalle visite.
-Le comunicazioni partono alle **09:00** del giorno previsto.
+## Regole automatiche
 
-Sono previste tre tipologie:
-1. **Festività italiane**
-2. **Chiusure studio** (inviate X giorni prima della chiusura impostata; predefinito **7 giorni**)
-3. **Compleanni**
+Questa area serve per creare richiami basati sul servizio.
 
----
+Esempio semplice:
+
+- nome regola: `Igiene semestrale`
+- servizio: `Igiene`
+- intervallo: `180 giorni`
+- canale: `Email` oppure `Email + SMS`
+
+Quando il tempo impostato passa dall'ultima prestazione utile, il richiamo entra nella lista delle scadenze.
+
+### Come creare una regola
+
+1. Apri `Richiami` > `Regole automatiche`.
+2. Scrivi il nome della regola.
+3. Scegli il servizio.
+4. Inserisci l'intervallo in giorni.
+5. Scegli il canale.
+6. Scegli il template email.
+7. Se vuoi, personalizza oggetto e messaggio.
+8. Salva.
 
 ## Promemoria appuntamenti
 
-Per inviare promemoria automatici prima degli appuntamenti:
-1. Vai in **Richiami → Regole automatiche**.
-2. Nella sezione **Promemoria appuntamenti**, attiva **Attivo**.
-3. Imposta **Invia (giorni prima)** a `1`: il promemoria verrà inviato il giorno prima all’orario configurato (es. 09:00), non esattamente 24 ore prima dell’appuntamento.
-4. Seleziona il **Canale** (Email o Email + SMS).
-5. Salva con **Aggiorna regola**.
+Nella stessa pagina puoi attivare il promemoria automatico degli appuntamenti.
 
-Il promemoria viene inviato solo se l'appuntamento è programmato e l'indirizzo email del paziente è presente.
+Puoi scegliere:
 
----
+- se e attivo o no
+- quanti giorni prima inviare
+- il canale
+- il template
+- l'orario di invio, se configurato
 
-## Festività coperte
+Usalo per ricordare al paziente un appuntamento gia fissato.
 
-Le festività incluse nell'invio automatico sono:
-- Capodanno (1 gennaio)
-- Epifania (6 gennaio)
-- Pasqua (data variabile)
-- Pasquetta (lunedì dopo Pasqua)
-- Festa della Liberazione (25 aprile)
-- Festa del Lavoro (1 maggio)
-- Festa della Repubblica (2 giugno)
-- Ferragosto (15 agosto)
-- Ognissanti (1 novembre)
-- Immacolata Concezione (8 dicembre)
-- Natale (25 dicembre)
-- Santo Stefano (26 dicembre)
+## Promemoria manuali
 
-Pasqua e Pasquetta vengono calcolate automaticamente ogni anno.
+Questa area e utile quando non vuoi aspettare le automazioni.
+
+Hai due opzioni:
+
+## 1. Promemoria appuntamento
+
+Selezioni un appuntamento tra quelli vicini, scegli il canale e invii subito.
+
+## 2. Notifica evento
+
+Selezioni un paziente, scrivi il titolo dell'evento, scegli data e canale, poi invii.
+
+Questa seconda opzione e utile per:
+
+- controllo annuale
+- richiamo urgente
+- avviso personalizzato
+
+## Comunicazioni ricorrenti
+
+Qui imposti le email automatiche per:
+
+- festivita italiane
+- chiusure studio
+- compleanni
+
+Per ogni tipo puoi:
+
+- attivare o disattivare
+- cambiare oggetto email
+- cambiare il testo
+- scegliere quanti giorni prima inviare nel caso delle chiusure
+
+## Richiami in scadenza
+
+Questa schermata mostra i richiami dei prossimi 30 giorni.
+
+Ti aiuta a vedere:
+
+- chi deve essere contattato
+- quali richiami sono in ritardo
+- quali sono gia stati gestiti
+
+Puoi anche creare un richiamo singolo manuale con:
+
+- paziente
+- regola
+- data invio
+- note
+
+## Se un invio non parte
+
+Controlla prima:
+
+- email del paziente presente
+- telefono del paziente corretto
+- template selezionato
+- canale giusto
+
+Se il problema e su SMS, puo dipendere anche dalla configurazione Clicksend.

@@ -70,12 +70,12 @@ export default async function ClickSendSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
+      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
+        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
           Integrazione SMS
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">ClickSend</h1>
-        <p className="mt-3 text-sm text-zinc-600">
+        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
           Gestisci le credenziali per l&apos;invio di SMS. Le credenziali vengono salvate nel database e
           usate per tutti gli invii.
         </p>

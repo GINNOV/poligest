@@ -115,6 +115,13 @@ function SignaturePad({
   const [hasStroke, setHasStroke] = useState(false);
   const isSignatureReady = Boolean(signatureData || (existingSignatureUrl && useSavedSignature));
 
+  const getStrokeColor = () => {
+    if (typeof window !== "undefined" && document.documentElement.classList.contains("dark")) {
+      return "#f4f4f5"; // zinc-100
+    }
+    return "#0f172a"; // zinc-950
+  };
+
   const resizeCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -130,7 +137,7 @@ function SignaturePad({
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.lineWidth = 2.4;
       context.lineCap = "round";
-      context.strokeStyle = "#0f172a";
+      context.strokeStyle = getStrokeColor();
     }
   };
 
@@ -159,7 +166,7 @@ function SignaturePad({
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.lineWidth = 2.4;
     context.lineCap = "round";
-    context.strokeStyle = "#0f172a";
+    context.strokeStyle = getStrokeColor();
     lastPoint.current = null;
     setHasStroke(false);
   };
@@ -168,6 +175,12 @@ function SignaturePad({
     const canvas = canvasRef.current;
     const point = getPoint(event);
     if (!canvas || !point) return;
+
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.strokeStyle = getStrokeColor();
+    }
+
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     lastPoint.current = point;
@@ -221,8 +234,8 @@ function SignaturePad({
       renderHeight,
       "image/png",
       4,
-      "#0f172a",
-      "white",
+      getStrokeColor(),
+      "transparent",
       0,
       0,
       sigSDK.RenderFlags.RenderEncodeData.value
@@ -312,10 +325,10 @@ function SignaturePad({
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Firma digitale cliente</p>
           <p className="text-xs text-zinc-500">Acquisisci la firma per confermare il preventivo.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-400">
           <span
             className={`inline-flex h-2.5 w-2.5 rounded-full ${
-              isSignatureReady ? "bg-emerald-500" : "bg-zinc-300"
+              isSignatureReady ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"
             }`}
           />
           {isSignatureReady ? "Firma digitale acquisita" : "Firma digitale mancante"}
@@ -337,7 +350,7 @@ function SignaturePad({
           className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
             useTabletSignature
               ? "bg-emerald-700 text-white"
-              : "border border-emerald-200 text-emerald-800 hover:border-emerald-300"
+              : "border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-800"
           }`}
         >
           Tablet
@@ -346,7 +359,7 @@ function SignaturePad({
           type="button"
           onClick={captureWithWacom}
           disabled={wacomLoading}
-          className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-emerald-200 dark:border-emerald-900/50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-400 transition hover:border-emerald-300 dark:hover:border-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {wacomLoading ? "Collego Wacom..." : "Wacom"}
         </button>
@@ -360,7 +373,7 @@ function SignaturePad({
               setSignatureError(null);
               onDirty?.();
             }}
-            className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+            className="rounded-full border border-emerald-200 dark:border-emerald-900/50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-400 transition hover:border-emerald-300 dark:hover:border-emerald-800"
           >
             Cancella
           </button>
@@ -378,7 +391,7 @@ function SignaturePad({
       </div>
 
       {useTabletSignature ? (
-        <div className="h-44 overflow-hidden rounded-lg border border-emerald-200 bg-white">
+        <div className="h-44 overflow-hidden rounded-lg border border-emerald-200 dark:border-emerald-900/50 bg-white dark:bg-zinc-950">
           <canvas
             ref={canvasRef}
             className="h-full w-full touch-none"
@@ -390,10 +403,10 @@ function SignaturePad({
         </div>
       ) : null}
 
-      {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+      {signatureError ? <p className="text-xs font-semibold text-amber-700 dark:text-amber-500">{signatureError}</p> : null}
 
       {existingSignatureUrl ? (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900">
+        <div className="rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-950/20 p-3 text-xs text-emerald-900 dark:text-emerald-200">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span>Firma salvata in precedenza.</span>
             {!useSavedSignature ? (
@@ -405,12 +418,12 @@ function SignaturePad({
                   setSignatureError(null);
                   onDirty?.();
                 }}
-                className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-semibold text-emerald-800 transition hover:border-emerald-300 hover:text-emerald-900"
+                className="rounded-full border border-emerald-200 dark:border-emerald-800 px-3 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-400 transition hover:border-emerald-300 dark:hover:border-emerald-700 hover:text-emerald-900 dark:hover:text-emerald-300"
               >
                 Usa firma depositata
               </button>
             ) : (
-              <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-emerald-800">
+              <span className="rounded-full bg-white dark:bg-white/90 px-3 py-1 text-[11px] font-semibold text-emerald-800">
                 Firma salvata in uso
               </span>
             )}
@@ -419,19 +432,19 @@ function SignaturePad({
             <img
               src={existingSignatureUrl}
               alt="Firma salvata"
-              className="mt-2 h-16 rounded border border-emerald-100 bg-white object-contain px-2 py-1 shadow-sm"
+              className="mt-2 h-16 rounded border border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-white/90 object-contain px-2 py-1 shadow-sm"
             />
           ) : null}
         </div>
       ) : null}
 
       {signatureData ? (
-        <div className="rounded-lg border border-emerald-100 bg-white p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Firma acquisita</p>
+        <div className="rounded-lg border border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-zinc-950 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Firma acquisita</p>
           <img
             src={signatureData}
             alt="Firma digitale"
-            className="mt-2 h-16 rounded border border-emerald-100 bg-white object-contain px-2 py-1 shadow-sm"
+            className="mt-2 h-16 rounded border border-emerald-100 dark:border-emerald-900/30 bg-white dark:bg-white/90 object-contain px-2 py-1 shadow-sm"
           />
         </div>
       ) : null}
@@ -592,14 +605,14 @@ export function QuoteAccordion({
   return (
     <details
       className={clsx(
-        "group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden",
+        "group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm [&_summary::-webkit-details-marker]:hidden",
         className
       )}
     >
-      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
         <span className="flex items-center gap-3">
           <svg
-            className="h-8 w-8 text-emerald-600"
+            className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -613,17 +626,16 @@ export function QuoteAccordion({
             <path d="M9 12h6" />
           </svg>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              PREVENTIVI
-            </p>
-            <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase">PREVENTIVO</h2>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase">
+              CONTABILIZZAZIONE PRESTAZIONI
+            </h2>
           </div>
         </span>
         <div className="flex items-center gap-2">
           {initialQuote?.id ? (
             isDirty ? (
               <span
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-300"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
                 title="Salva prima di stampare"
                 aria-label="Salva prima di stampare"
               >
@@ -650,7 +662,7 @@ export function QuoteAccordion({
                 label="Stampa preventivo"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 transition hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-400"
               >
                 <svg
                   className="h-4 w-4"
@@ -672,7 +684,7 @@ export function QuoteAccordion({
             )
           ) : null}
           <svg
-            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
+            className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -693,9 +705,9 @@ export function QuoteAccordion({
           {itemsWithTotals.map((item, index) => (
             <div
               key={`quote-item-${index}`}
-              className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr,1fr,1fr,1.2fr,auto]"
+              className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr,1fr,1fr,1.2fr,auto]"
             >
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 lg:col-span-1">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
                 Prestazione
                 <select
                   value={item.serviceId}
@@ -707,7 +719,7 @@ export function QuoteAccordion({
                       price: item.priceValue === 0 ? String(nextService?.costBasis ?? "") : item.price,
                     });
                   }}
-                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                   required
                 >
                   <option value="" disabled>
@@ -720,7 +732,7 @@ export function QuoteAccordion({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Quantità
                 <input
                   type="number"
@@ -733,10 +745,10 @@ export function QuoteAccordion({
                     const nextValue = event.target.value.replace(/\D+/g, "");
                     updateItem(index, { quantity: nextValue });
                   }}
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Prezzo (€)
                 <input
                   type="number"
@@ -744,25 +756,25 @@ export function QuoteAccordion({
                   step="0.01"
                   value={item.price}
                   onChange={(event) => updateItem(index, { price: event.target.value })}
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Totale (€)
                 <input
                   type="text"
                   value={item.totalValue.toFixed(2)}
                   readOnly
-                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Data prestazione
                 <input
                   type="date"
                   value={item.serviceDate}
                   onChange={(event) => updateItem(index, { serviceDate: event.target.value })}
-                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                   required
                 />
               </label>
@@ -770,7 +782,7 @@ export function QuoteAccordion({
                 <button
                   type="button"
                   onClick={addItem}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 text-lg font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900 text-lg font-semibold text-emerald-700 dark:text-emerald-500 transition hover:border-emerald-300 dark:hover:border-emerald-800 hover:text-emerald-800 dark:hover:text-emerald-400"
                   aria-label="Aggiungi prestazione"
                 >
                   +
@@ -778,26 +790,26 @@ export function QuoteAccordion({
                 <button
                   type="button"
                   onClick={() => removeItem(index)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 text-lg font-semibold text-zinc-600 transition hover:border-rose-200 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-lg font-semibold text-zinc-600 dark:text-zinc-400 transition hover:border-rose-200 dark:hover:border-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Rimuovi prestazione"
                   disabled={items.length === 1}
                 >
                   −
                 </button>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 sm:col-span-2 lg:col-span-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
                 <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
               </div>
             </div>
           ))}
           {itemsWithTotals.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600">
+            <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm text-zinc-600 dark:text-zinc-400">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p>Nessuna prestazione nel preventivo.</p>
                 <button
                   type="button"
                   onClick={addItem}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-emerald-200 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:text-emerald-800"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900 px-4 text-sm font-semibold text-emerald-700 dark:text-emerald-500 transition hover:border-emerald-300 dark:hover:border-emerald-800 hover:text-emerald-800 dark:hover:text-emerald-400"
                 >
                   Aggiungi prestazione
                 </button>
@@ -807,7 +819,7 @@ export function QuoteAccordion({
         </div>
 
         <div className="flex justify-end">
-          <div className="rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900">
+          <div className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-200">
             Totale preventivo: € {totalSum.toFixed(2)}
           </div>
         </div>
@@ -826,7 +838,7 @@ export function QuoteAccordion({
             disabled={!signatureReady || items.length === 0}
             className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
           >
-            Aggiorna preventivo
+            Aggiorna contabilità
           </FormSubmitButton>
         </div>
       </form>

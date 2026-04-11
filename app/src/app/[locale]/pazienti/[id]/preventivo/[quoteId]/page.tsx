@@ -84,11 +84,11 @@ export default async function QuotePrintPage({
   const itemsTotal = items.reduce((sum, item) => sum + Math.max(item.total - item.paid, 0), 0);
 
   return (
-    <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
-      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm print:max-w-none print:border-none print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 print:pb-4">
+    <div className="min-h-screen bg-zinc-100 px-6 py-8 dark:bg-zinc-900 print:bg-white print:px-0 print:py-0">
+      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 print:max-w-none print:border-none print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 dark:border-zinc-800 print:pb-4">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-40 rounded-lg bg-white p-2">
+            <div className="h-14 w-40 rounded-lg bg-white p-2 dark:bg-white/90">
               <Image
                 src="/logo/studio_agovinoangrisano_logo.png"
                 alt="Logo Studio Agovino & Angrisano"
@@ -98,42 +98,43 @@ export default async function QuotePrintPage({
               />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
                 Preventivo
               </p>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
             </div>
           </div>
           <PrintButton
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
             label="Stampa preventivo"
+            variant="primary"
+            className="print:hidden"
           />
         </div>
 
-        <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Paziente</p>
-            <p className="mt-2 text-base font-semibold text-zinc-900">
+        <div className="grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Paziente</p>
+            <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               {patient.lastName} {patient.firstName}
             </p>
-            <p className="text-xs text-zinc-600">{patient.email ?? "—"}</p>
-            <p className="text-xs text-zinc-600">{patient.phone ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.email ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.phone ?? "—"}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dettagli</p>
-            <p className="mt-2 text-sm text-zinc-800">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Dettagli</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               Data accettazione:{" "}
               {signedAt.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}
             </p>
-            <p className="text-sm text-zinc-800">Preventivo ID: {quote.id}</p>
+            <p className="text-sm text-zinc-800 dark:text-zinc-200">Preventivo ID: {quote.id}</p>
           </div>
         </div>
 
-        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-          <table className="min-w-full divide-y divide-zinc-100 text-sm">
-            <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+          <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+            <thead className="bg-zinc-50 dark:bg-zinc-900 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               <tr>
                 <th className="px-4 py-3 text-left">Prestazione</th>
                 <th className="px-4 py-3 text-right">Quantità</th>
@@ -144,29 +145,29 @@ export default async function QuotePrintPage({
                 <th className="px-4 py-3 text-right">Residuo (€)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
               {items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3 text-zinc-900">{item.serviceName}</td>
-                  <td className="px-4 py-3 text-right text-zinc-700">{item.quantity}</td>
-                  <td className="px-4 py-3 text-right text-zinc-700">{item.price.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-900">{item.total.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-600">
+                <tr key={item.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                  <td className="px-4 py-3 text-zinc-900 dark:text-zinc-50">{item.serviceName}</td>
+                  <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.quantity}</td>
+                  <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.price.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-zinc-900 dark:text-zinc-50">{item.total.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400">
                     {item.serviceDate.toLocaleDateString("it-IT", { dateStyle: "short", timeZone: "UTC" })}
                   </td>
-                  <td className="px-4 py-3 text-right text-zinc-700">{item.paid.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-right text-zinc-700">
+                  <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.paid.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">
                     {Math.max(item.total - item.paid, 0).toFixed(2)}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-zinc-50">
+            <tfoot className="bg-zinc-50 dark:bg-zinc-900">
               <tr>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-700" colSpan={6}>
+                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-700 dark:text-zinc-300" colSpan={6}>
                   Totale da saldare
                 </td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900">
+                <td className="px-4 py-3 text-right text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                   {itemsTotal.toFixed(2)}
                 </td>
               </tr>
@@ -174,25 +175,25 @@ export default async function QuotePrintPage({
           </table>
         </div>
 
-        <div className="grid gap-6 border-t border-zinc-200 pt-6 sm:grid-cols-[1fr,240px]">
-          <div className="text-xs text-zinc-600">
+        <div className="grid gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800 sm:grid-cols-[1fr,240px]">
+          <div className="text-xs text-zinc-600 dark:text-zinc-400">
             Il presente preventivo è valido salvo variazioni concordate con lo studio. Eventuali
             modifiche saranno confermate con un nuovo documento firmato.
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center">
-            <p className="text-xs font-semibold text-zinc-700">Firma cliente</p>
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-center dark:border-zinc-800 dark:bg-zinc-900/50">
+            <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Firma cliente</p>
             <Image
               src={quote.signatureUrl}
               alt="Firma cliente"
               width={320}
               height={96}
               unoptimized
-              className="mt-2 h-24 w-full object-contain"
+              className="mt-2 h-24 w-full object-contain dark:bg-white/90 dark:rounded-lg"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-xs text-zinc-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
           <span>
             Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })}
           </span>

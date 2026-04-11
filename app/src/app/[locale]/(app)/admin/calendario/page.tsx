@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
 import { AdminDoctorAvailabilityEditor } from "@/components/admin-doctor-availability-editor";
+import { Button } from "@/components/ui/button";
 
 type PracticeClosureType = "HOLIDAY" | "TIME_OFF";
 const PRACTICE_CLOSURE_TYPES: PracticeClosureType[] = ["HOLIDAY", "TIME_OFF"];
@@ -374,12 +375,12 @@ export default async function AdminCalendarSettingsPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
           Aggiungi appuntamenti
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Disponibilità e chiusure</h1>
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           Imposta le fasce di disponibilità per ogni medico e i periodi di chiusura/ferie dello studio.
         </p>
       </div>
@@ -391,16 +392,16 @@ export default async function AdminCalendarSettingsPage({
       ) : null}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px,1fr]">
-        <aside className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <aside className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Medici</h2>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
               {doctors.length}
             </span>
           </div>
           <div className="mt-4 space-y-2">
             {doctors.length === 0 ? (
-              <p className="text-sm text-zinc-600">Nessun medico configurato.</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">Nessun medico configurato.</p>
             ) : (
               doctors.map((doctor) => (
                 <Link
@@ -408,13 +409,13 @@ export default async function AdminCalendarSettingsPage({
                   href={`/admin/calendario?doctorId=${encodeURIComponent(doctor.id)}`}
                   className={`block rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                     doctor.id === selectedDoctorId
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                      : "border-zinc-200 text-zinc-800 hover:border-emerald-200 hover:bg-emerald-50/40"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                      : "border-zinc-200 text-zinc-800 hover:border-emerald-200 hover:bg-emerald-50/40 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-900/40 dark:hover:bg-emerald-950/10"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate">{doctor.fullName}</span>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
                       {doctor.specialty}
                     </span>
                   </div>
@@ -425,15 +426,15 @@ export default async function AdminCalendarSettingsPage({
         </aside>
 
         <main className="space-y-6">
-          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Disponibilità medico</h2>
-                <p className="text-sm text-zinc-600">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {selectedDoctor ? `Gestisci le fasce orarie per ${selectedDoctor.fullName}.` : "Seleziona un medico."}
                 </p>
               </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
                 {windows.length} fasce
               </span>
             </div>
@@ -450,32 +451,32 @@ export default async function AdminCalendarSettingsPage({
 	                />
 	              </div>
 	            ) : (
-	              <p className="mt-4 text-sm text-zinc-600">Crea prima un medico per impostarne la disponibilità.</p>
+	              <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">Crea prima un medico per impostarne la disponibilità.</p>
 	            )}
 	          </section>
 
-          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Chiusure studio</h2>
-                <p className="text-sm text-zinc-600">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Festività, ferie e periodi di indisponibilità della struttura.
                 </p>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                 {closures.length} periodi
               </span>
             </div>
 
-            <details className="group mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm [&_summary::-webkit-details-marker]:hidden">
+            <details className="group mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50 [&_summary::-webkit-details-marker]:hidden">
               <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl px-4 py-4">
                 <div>
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Regole automatiche</h3>
-                  <p className="mt-1 text-sm text-zinc-600">
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Chiusure ricorrenti tutto il giorno (es. ogni Giovedì).
                   </p>
                 </div>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition group-open:bg-emerald-50 group-open:text-emerald-800">
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-700 transition group-open:bg-emerald-50 group-open:text-emerald-800 dark:bg-zinc-900 dark:text-zinc-300 dark:group-open:bg-emerald-950/40 dark:group-open:text-emerald-300">
                   Gestisci
                 </span>
               </summary>
@@ -488,21 +489,21 @@ export default async function AdminCalendarSettingsPage({
                     return (
                       <div
                         key={day.value}
-                        className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                        className="flex flex-col gap-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                          <label className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                             <input
                               type="checkbox"
                               name={`weeklyOff-${day.value}`}
                               defaultChecked={active}
-                              className="h-4 w-4 rounded border-zinc-300"
+                              className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
                             />
                             {day.label}
                           </label>
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              active ? "bg-zinc-200 text-zinc-700" : "bg-zinc-100 text-zinc-600"
+                              active ? "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-500"
                             }`}
                           >
                             {active ? "OFF" : "ON"}
@@ -512,18 +513,18 @@ export default async function AdminCalendarSettingsPage({
                           name={`weeklyTitle-${day.value}`}
                           defaultValue={existing?.title ?? ""}
                           placeholder="Titolo (opzionale) es. Chiuso"
-                          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                         />
                       </div>
                     );
                   })}
                 </div>
-                <button
+                <Button
                   type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                  variant="primary"
                 >
                   Aggiorna regole
-                </button>
+                </Button>
               </form>
             </details>
 
@@ -531,114 +532,115 @@ export default async function AdminCalendarSettingsPage({
               action={createPracticeClosure}
               className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[160px,1fr,1fr,1fr,auto]"
             >
-	              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+	              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
 	                Tipo
 	                <select
 	                  name="type"
 	                  defaultValue="HOLIDAY"
-	                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+	                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
 	                >
 	                  <option value="HOLIDAY">Festività</option>
 	                  <option value="TIME_OFF">Chiusura/Ferie</option>
 	                </select>
 	              </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Titolo (opzionale)
                 <input
                   name="title"
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="Es. Natale, ponte, ferie estive"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Inizio
                   <input
                   name="startsAt"
                   type="datetime-local"
                   required
                   defaultValue={formatLocalInput(now)}
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Fine
                 <input
                   name="endsAt"
                   type="datetime-local"
                   required
                   defaultValue={formatLocalInput(twoHoursLater)}
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </label>
               <div className="flex items-end">
-                <button
+                <Button
                   type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                  variant="primary"
                 >
                   Aggiungi periodo
-                </button>
+                </Button>
               </div>
             </form>
             
 
             <div className="mt-6 space-y-3">
               {closures.length === 0 ? (
-                <p className="text-sm text-zinc-600">Nessuna chiusura impostata.</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">Nessuna chiusura impostata.</p>
               ) : (
                 closures.map((closure) => (
-                  <div key={closure.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                  <div key={closure.id} className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                       <form
                         action={updatePracticeClosure}
                         className="grid flex-1 grid-cols-1 gap-3 lg:grid-cols-[160px,1fr,1fr,1fr,auto]"
                       >
                         <input type="hidden" name="closureId" value={closure.id} />
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Tipo
 	                          <select
 	                            name="type"
 	                            defaultValue={closure.type}
-	                            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+	                            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
 	                          >
 	                            <option value="HOLIDAY">Festività</option>
 	                            <option value="TIME_OFF">Chiusura/Ferie</option>
 	                          </select>
 	                        </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Titolo
                           <input
                             name="title"
                             defaultValue={closure.title ?? ""}
-                            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Inizio
                           <input
                             name="startsAt"
                             type="datetime-local"
                             required
                             defaultValue={formatLocalInput(new Date(closure.startsAt))}
-                            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
-                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+                        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                           Fine
                           <input
                             name="endsAt"
                             type="datetime-local"
                             required
                             defaultValue={formatLocalInput(new Date(closure.endsAt))}
-                            className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>
                         <div className="flex items-end">
-                          <button
+                          <Button
                             type="submit"
-                            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                            variant="primary"
+                            size="sm"
                           >
                             Aggiorna
-                          </button>
+                          </Button>
                         </div>
                       </form>
                       <form
@@ -647,12 +649,13 @@ export default async function AdminCalendarSettingsPage({
                         data-confirm="Eliminare definitivamente questa chiusura?"
                       >
                         <input type="hidden" name="closureId" value={closure.id} />
-                        <button
+                        <Button
                           type="submit"
-                          className="inline-flex h-10 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                          variant="destructive"
+                          size="sm"
                         >
                           Elimina
-                        </button>
+                        </Button>
                       </form>
                     </div>
                   </div>

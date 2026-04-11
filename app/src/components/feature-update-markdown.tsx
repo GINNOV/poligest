@@ -9,7 +9,7 @@ const renderInline = (text: string) =>
     .map((segment, idx) => {
       if (segment.startsWith("**") && segment.endsWith("**")) {
         return (
-          <strong key={idx} className="font-semibold text-zinc-900">
+          <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">
             {segment.slice(2, -2)}
           </strong>
         );
@@ -32,7 +32,10 @@ export function renderUpdateMarkdown(markdown: string) {
   const flushList = () => {
     if (list.length > 0) {
       nodes.push(
-        <ul key={`list-${nodes.length}`} className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-800">
+        <ul
+          key={`list-${nodes.length}`}
+          className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-800 dark:text-zinc-200"
+        >
           {list}
         </ul>
       );
@@ -53,11 +56,14 @@ export function renderUpdateMarkdown(markdown: string) {
       const alt = imageMatch[1] || "Aggiornamento";
       const src = normalizeUpdateImageSrc(imageMatch[2]);
       nodes.push(
-        <figure key={`img-${idx}`} className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
+        <figure
+          key={`img-${idx}`}
+          className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt={alt} className="mx-auto h-auto w-2/5 max-w-sm" />
           {alt ? (
-            <figcaption className="border-t border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+            <figcaption className="border-t border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
               {alt}
             </figcaption>
           ) : null}
@@ -88,7 +94,7 @@ export function renderUpdateMarkdown(markdown: string) {
 
     if (line.startsWith("* ")) {
       list.push(
-        <li key={`li-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+        <li key={`li-${idx}`} className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
           {renderInline(line.replace(/^\*\s+/, ""))}
         </li>
       );
@@ -97,7 +103,7 @@ export function renderUpdateMarkdown(markdown: string) {
 
     flushList();
     nodes.push(
-      <p key={`p-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+      <p key={`p-${idx}`} className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
         {renderInline(line)}
       </p>
     );

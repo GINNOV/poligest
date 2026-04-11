@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { Button } from "@/components/ui/button";
 
 type ServiceRecord = {
   id: string;
@@ -142,28 +143,28 @@ export default async function ServicesPage() {
             {t("services")}
           </p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesTitle")}</h1>
-          <p className="text-sm text-zinc-600">{t("servicesSubtitle")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("servicesSubtitle")}</p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+        <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/20 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
           {services.length} {services.length === 1 ? "servizio" : "servizi"}
         </span>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesCreate")}</h2>
-          <p className="text-sm text-zinc-600">{t("servicesCreateHint")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("servicesCreateHint")}</p>
           <form action={createService} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("servicesName")}
               <input
                 name="name"
                 required
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-base text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 placeholder={t("servicesNamePlaceholder")}
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("servicesCost")}
               <input
                 name="costBasis"
@@ -171,40 +172,40 @@ export default async function ServicesPage() {
                 step="0.01"
                 min="0"
                 required
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-base text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 placeholder="0.00"
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-2">
               {t("servicesDescription")}
               <textarea
                 name="description"
                 rows={3}
-                className="rounded-xl border border-zinc-200 px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-base text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 placeholder={t("servicesDescriptionPlaceholder")}
               />
             </label>
             <div className="sm:col-span-2">
-              <button
+              <Button
                 type="submit"
-                className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                variant="primary"
               >
                 {t("servicesCreateButton")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("servicesList")}</h2>
-            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+            <span className="rounded-full bg-zinc-100 dark:bg-zinc-900/50 px-3 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               {services.length}
             </span>
           </div>
-          <div className="mt-4 divide-y divide-zinc-100">
+          <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
             {services.length === 0 ? (
-              <p className="py-4 text-sm text-zinc-600">{t("servicesEmpty")}</p>
+              <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">{t("servicesEmpty")}</p>
             ) : (
               services.map((service) => (
                 <div
@@ -220,18 +221,18 @@ export default async function ServicesPage() {
                       <input
                         name="name"
                         defaultValue={service.name}
-                        className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                       />
                       <textarea
                         name="description"
                         defaultValue={service.description ?? ""}
                         rows={2}
-                        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                        className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                         placeholder={t("servicesDescriptionPlaceholder")}
                       />
                     </div>
                     <div className="flex items-center gap-3 sm:flex-col sm:items-start">
-                      <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-700">
+                      <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                         {t("servicesCost")}
                         <input
                           name="costBasis"
@@ -239,15 +240,16 @@ export default async function ServicesPage() {
                           step="0.01"
                           min="0"
                           defaultValue={service.costBasis.toString()}
-                          className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                          className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                         />
                       </label>
-                      <button
+                      <Button
                         type="submit"
-                        className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                        variant="primary"
+                        size="sm"
                       >
                         {t("servicesSave")}
-                      </button>
+                      </Button>
                     </div>
                   </form>
                   <form
@@ -256,12 +258,13 @@ export default async function ServicesPage() {
                     data-confirm="Eliminare definitivamente questo servizio?"
                   >
                     <input type="hidden" name="serviceId" value={service.id} />
-                    <button
+                    <Button
                       type="submit"
-                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                      variant="destructive"
+                      size="sm"
                     >
                       {t("servicesDelete")}
-                    </button>
+                    </Button>
                   </form>
                 </div>
               ))

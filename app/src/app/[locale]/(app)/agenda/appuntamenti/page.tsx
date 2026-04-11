@@ -37,23 +37,23 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 const statusClasses: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800",
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800",
-  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700",
-  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800",
-  COMPLETED: "border-green-200 bg-green-50 text-green-800",
-  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800",
-  NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700",
+  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200",
+  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-200",
+  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800/60 dark:bg-zinc-900/20 dark:text-zinc-300",
+  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200",
+  COMPLETED: "border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-800/60 dark:bg-teal-900/20 dark:text-teal-200",
+  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200",
+  NO_SHOW: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300",
 };
 
 const statusCardBackgrounds: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50",
-  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50",
-  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50",
-  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50",
-  COMPLETED: "border-green-200 bg-gradient-to-r from-green-50 via-white to-green-50",
-  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50",
-  NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
+  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:border-amber-800/60 dark:from-amber-900/20 dark:via-zinc-950 dark:to-amber-900/20",
+  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50 dark:border-emerald-800/60 dark:from-emerald-900/20 dark:via-zinc-950 dark:to-emerald-900/20",
+  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 dark:border-zinc-800/60 dark:from-zinc-900/20 dark:via-zinc-950 dark:to-zinc-900/20",
+  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50 dark:border-sky-800/60 dark:from-sky-900/20 dark:via-zinc-950 dark:to-sky-900/20",
+  COMPLETED: "border-teal-200 bg-gradient-to-r from-teal-50 via-white to-teal-50 dark:border-teal-800/60 dark:from-teal-900/20 dark:via-zinc-950 dark:to-teal-900/20",
+  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:border-rose-800/60 dark:from-rose-900/20 dark:via-zinc-950 dark:to-rose-900/20",
+  NO_SHOW: "border-violet-200 bg-gradient-to-r from-violet-50 via-white to-violet-50 dark:border-violet-800/60 dark:from-violet-900/20 dark:via-zinc-950 dark:to-violet-900/20",
 };
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
 
@@ -162,15 +162,15 @@ export default async function AgendaPage({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Appuntamenti</h2>
         {successMessage ? (
-          <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
             {successMessage}
           </div>
         ) : null}
         {errorMessage ? (
-          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
             {errorMessage}
           </div>
         ) : null}
@@ -180,8 +180,8 @@ export default async function AgendaPage({
           dateValue={dateValue}
           searchValue={searchValue}
         />
-        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-700">
-          <span className="font-semibold uppercase tracking-wide text-zinc-500">Legenda colori</span>
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Legenda colori</span>
           {statusLegendItems.map(([status, label]) => (
             <span
               key={status}
@@ -191,14 +191,14 @@ export default async function AgendaPage({
               {label}
             </span>
           ))}
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
             <span className="h-2 w-2 rounded-full bg-amber-600" />
             Passato ✅
           </span>
         </div>
-        <div className="mt-4 divide-y divide-zinc-100">
+        <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
           {orderedAppointments.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">Nessun appuntamento.</p>
+            <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun appuntamento.</p>
           ) : (
             orderedAppointments.map((appt, index) => {
               const patientPhone = normalizeItalianPhone(appt.patient.phone);
@@ -227,7 +227,7 @@ export default async function AgendaPage({
               const cardClass = (appt.status === AppointmentStatus.CANCELLED || appt.status === AppointmentStatus.NO_SHOW)
                 ? statusCardBackgrounds[appt.status]
                 : isPast
-                  ? "border-amber-200 bg-amber-50"
+                  ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
                   : statusCardBackgrounds[appt.status];
               const dayKey = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
                 appt.startsAt
@@ -239,50 +239,50 @@ export default async function AgendaPage({
               const showDivider = !prevDayKey || prevDayKey !== dayKey;
 
               const outerCardClass = index % 2 === 0
-                ? "border-zinc-200 bg-white/90"
-                : "border-zinc-200 bg-zinc-50/80";
+                ? "border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-950/90"
+                : "border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/80";
 
               return (
                 <div key={appt.id}>
                   {showDivider ? (
-                    <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500">
-                      <div className="h-px flex-1 bg-zinc-200" />
-                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1">
+                    <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
                         📅 {dayKey}
                       </span>
-                      <div className="h-px flex-1 bg-zinc-200" />
+                      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
                     </div>
                   ) : null}
                   <div className={`mb-4 rounded-2xl border p-4 shadow-sm ${outerCardClass}`}>
                     <div className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">
+                          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                             <span>
                               {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
                             </span>
                             {isPast ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
                                 ✅ Passato
                               </span>
                             ) : null}
                           </div>
-                          <div className="grid gap-2 text-sm text-zinc-800 sm:grid-cols-2">
+                          <div className="grid gap-2 text-sm text-zinc-800 dark:text-zinc-200 sm:grid-cols-2">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Paziente</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">Paziente</span>
                               <Link
                                 href={`/pazienti/${appt.patientId}`}
-                                className="font-semibold hover:text-emerald-700"
+                                className="font-semibold hover:text-emerald-700 dark:hover:text-emerald-300"
                               >
                                 {appt.patient.lastName} {appt.patient.firstName}
                               </Link>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Medico</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">Medico</span>
                               <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Quando</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                               <span>
                                 {new Intl.DateTimeFormat("it-IT", {
                                   weekday: "short",
@@ -293,7 +293,7 @@ export default async function AgendaPage({
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500">Durata</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">Durata</span>
                               <span>
                                 {Math.max(
                                   1,
@@ -323,8 +323,8 @@ export default async function AgendaPage({
                         </div>
                       </div>
                     </div>
-                    <details className="mt-4 rounded-xl border border-zinc-200 bg-white/70 p-3 text-xs text-zinc-700">
-                      <summary className="cursor-pointer font-semibold text-emerald-800">
+                    <details className="mt-4 rounded-xl border border-zinc-200 bg-white/70 p-3 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300">
+                      <summary className="cursor-pointer font-semibold text-emerald-800 dark:text-emerald-400">
                         Modifica appuntamento
                       </summary>
                       <AppointmentUpdateForm
@@ -366,7 +366,7 @@ export default async function AgendaPage({
             })
           )}
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
           <p>
             Mostrati{" "}
             {totalCount === 0 ? "0" : `${showingFrom}-${Math.min(showingTo, totalCount)}`} di{" "}
@@ -376,27 +376,27 @@ export default async function AgendaPage({
             {page > 1 ? (
               <Link
                 href={buildPageHref(page - 1)}
-                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
               >
                 ← Precedente
               </Link>
             ) : (
-              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
                 ← Precedente
               </span>
             )}
-            <span className="text-xs font-semibold text-zinc-600">
+            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               Pagina {page} di {totalPages}
             </span>
             {page < totalPages ? (
               <Link
                 href={buildPageHref(page + 1)}
-                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-emerald-800 dark:hover:text-emerald-300"
               >
                 Successiva →
               </Link>
             ) : (
-              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400">
+              <span className="rounded-full border border-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
                 Successiva →
               </span>
             )}

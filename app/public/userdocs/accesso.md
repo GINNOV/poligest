@@ -1,27 +1,85 @@
-# Accesso, Sicurezza e Gestione dei Ruoli
+# Accesso e Uso di Base
 
-L'accesso alla piattaforma SORRIDI è protetto da un sistema di autenticazione centralizzato che garantisce la massima riservatezza dei dati clinici e personali. Ogni utente dello studio possiede credenziali univoche che determinano, attraverso un sistema di Ruoli e Permessi, quali aree della piattaforma può visualizzare e quali azioni può compiere. Questa separazione è fondamentale non solo per l'organizzazione del lavoro, ma anche per rispondere ai rigorosi requisiti del GDPR sulla protezione dei dati sensibili.
+Questa pagina serve a chi sta iniziando a usare SORRIDI.
 
-## Procedura di Login e Gestione Account
+## Come entrare
 
-Per accedere al sistema, devi navigare sulla pagina principale e individuare il pulsante dedicato all'accesso. Una volta cliccato, verrai indirizzato a una schermata sicura dove dovrai inserire il tuo indirizzo email aziendale e la password che ti è stata assegnata. Al primo accesso, o in caso di reset, ti verrà chiesto di impostare una password sicura che rispetti i parametri di complessità richiesti. Se dovessi dimenticare le tue credenziali, non è possibile recuperarle autonomamente per motivi di sicurezza; dovrai contattare un utente con ruolo Admin che provvederà a resettare il tuo profilo fornendoti una password temporanea.
+1. Vai alla pagina di accesso.
+2. Inserisci email e password.
+3. Se ti viene chiesto di aggiornare la password, fallo subito.
+4. Quando entri, controlla che il tuo nome sia visibile in alto a destra.
 
-Il sistema prevede inoltre un timeout di sessione: se rimani inattivo per un periodo prolungato, verrai disconnesso automaticamente per proteggere i dati visibili a schermo qualora ti allontanassi dalla tua postazione di lavoro. Ti consigliamo vivamente di effettuare sempre il Logout manuale tramite il menu utente situato in alto a destra al termine della tua giornata lavorativa o dei tuoi turni.
+Se non riesci ad accedere, non creare un nuovo account da solo: contatta un Admin.
 
----
+## Cosa trovi appena entri
 
-## Definizione dei Ruoli Utente
+In alto trovi il menu principale con le sezioni disponibili per il tuo ruolo.
 
-Il sistema riconosce quattro tipologie di utenti, ognuno con un set di funzionalità specifico per ottimizzare il flusso di lavoro.
+Le piu usate sono:
 
-### 1. Amministratore (Admin)
-L'Amministratore è l'utente con i privilegi più elevati. Oltre a poter visualizzare e modificare ogni dato clinico e finanziario, ha l'esclusiva competenza sulla configurazione tecnica dello studio. Solo l'Admin può creare nuovi account per lo staff, modificare i permessi di accesso ai moduli (ad esempio attivare o disattivare la visibilità del magazzino per un ruolo), configurare il listino prezzi dei servizi e consultare il registro delle attività (Audit Log) per verificare ogni operazione effettuata nel sistema.
+- `Giornata`
+- `Agenda`
+- `Pazienti`
+- `Richiami`
+- `Finanza`
+- `Magazzino`
+- `Profilo`
 
-### 2. Manager
-Il ruolo di Manager è pensato per chi coordina gli aspetti operativi ed economici dello studio. Questo utente ha accesso completo al modulo di Magazzino per la gestione dei fornitori e degli ordini, e al modulo Finanza per monitorare l'andamento economico globale, registrare le spese e gestire i compensi dei medici. Il Manager non può creare nuovi utenti o modificare le configurazioni strutturali del sistema, ma ha una visione d'insieme necessaria alla gestione aziendale.
+Se una voce non compare, significa che il tuo account non ha quel permesso.
 
-### 3. Segreteria
-Il personale di Segreteria ha accesso agli strumenti necessari per l'accoglienza e l'organizzazione quotidiana. Le funzionalità principali riguardano la gestione completa dell'Agenda (creazione, spostamento e stato degli appuntamenti) e la gestione delle anagrafiche dei pazienti. La segreteria può caricare documenti, gestire i consensi privacy e inviare comunicazioni. Per motivi di privacy e sicurezza, non ha accesso ai dati di profitto globali dello studio né alle impostazioni di sistema riservate agli Admin.
+## Menu utente in alto a destra
 
-### 4. Medico
-I Medici operano principalmente sulla parte clinica del sistema. Ogni medico può visualizzare la propria agenda personale per conoscere gli impegni della giornata e ha accesso completo alle cartelle cliniche dei pazienti. Qui può compilare il diario clinico, aggiornare l'odontogramma interattivo e consultare lo storico dei trattamenti. Il medico non ha accesso ai moduli amministrativi, finanziari o di magazzino, focalizzando la sua interfaccia esclusivamente sulla cura del paziente.
+Dal menu utente puoi:
+
+- aprire il tuo **Profilo**
+- aprire **Personalizza**
+- entrare in **Amministrazione** se sei Admin
+- uscire con **Esci**
+
+## La finestra "Personalizza"
+
+Da qui puoi cambiare alcune preferenze senza chiedere aiuto tecnico:
+
+- **Schermata iniziale**: scegli quale pagina aprire dopo il login
+- **Dopo registrazione paziente**: scegli dove vuoi essere portato dopo aver creato una nuova scheda
+- **Aspetto**: automatico, chiaro o scuro
+- **Filtro automatico lista pazienti**: attiva o disattiva il filtro rapido nella lista
+
+Queste scelte restano memorizzate sul dispositivo che stai usando.
+
+## Uscita sicura
+
+Quando smetti di usare il computer:
+
+1. apri il menu utente
+2. premi **Esci**
+
+L'app puo scollegarti anche da sola dopo un periodo di inattivita. E normale ed e una protezione di sicurezza.
+
+## Ruoli in modo semplice
+
+## Admin
+
+Puo usare tutte le aree e cambiare le impostazioni dello studio.
+
+## Manager
+
+Di solito usa agenda, pazienti, finanza e magazzino, ma non gestisce tutta la parte tecnica.
+
+## Segreteria / Assistente
+
+Di solito usa agenda, pazienti, richiami e comunicazioni.
+
+## Medico
+
+Lavora soprattutto su agenda personale, schede paziente, consensi e diario clinico.
+
+## Se vedi qualcosa che non torna
+
+Controlla prima:
+
+- se hai internet
+- se sei entrato con l'account giusto
+- se il campo obbligatorio che hai lasciato vuoto e evidenziato
+
+Se il problema continua, segnala la schermata e l'operazione che stavi facendo.

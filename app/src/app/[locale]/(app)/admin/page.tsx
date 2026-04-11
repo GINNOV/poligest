@@ -242,7 +242,7 @@ export default async function AdminPage() {
                   className={`mt-1.5 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                     item.tone === "warning"
                       ? "bg-rose-500 text-white"
-                      : "bg-white/60 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                      : "bg-white/60 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-1 dark:ring-zinc-700/50"
                   }`}
                 >
                   {item.badge}
@@ -251,7 +251,7 @@ export default async function AdminPage() {
             </div>
           </div>
         </div>
-        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
           {item.description}
         </p>
       </div>
@@ -261,10 +261,10 @@ export default async function AdminPage() {
       return (
         <div
           key={item.key}
-          className={`${cardBaseStyles} border-zinc-200 bg-zinc-50 opacity-60 grayscale cursor-not-allowed`}
+          className={`${cardBaseStyles} border-zinc-200 bg-zinc-50 opacity-60 grayscale cursor-not-allowed dark:bg-zinc-900/50 dark:border-zinc-800`}
         >
           {CardContent}
-          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+          <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
@@ -280,8 +280,8 @@ export default async function AdminPage() {
         href={item.href ?? "#"}
         className={`${cardBaseStyles} ${cardHoverStyles} ${sectionGradient} ${
           item.tone === "warning" 
-            ? "border-rose-200 from-rose-50 to-rose-100/40 hover:border-rose-400 dark:border-rose-900/50 dark:from-rose-950/30 dark:to-rose-900/10" 
-            : "hover:border-zinc-400 dark:hover:border-zinc-600"
+            ? "border-rose-200 from-rose-50 to-rose-100/40 hover:border-rose-400 dark:border-rose-900/50 dark:from-rose-900/20 dark:via-zinc-950 dark:to-rose-900/10 dark:hover:border-rose-700" 
+            : "hover:border-zinc-400 dark:hover:border-zinc-600 dark:hover:shadow-zinc-900/20"
         }`}
       >
         {CardContent}
@@ -291,7 +291,7 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-12 pb-12">
-      <div className="relative overflow-hidden rounded-[2.5rem] border border-emerald-200 bg-gradient-to-br from-emerald-100/40 via-white to-emerald-50 p-8 shadow-sm dark:border-emerald-900/30 dark:from-zinc-950 dark:via-zinc-950 dark:to-emerald-950/20">
+      <div className="relative overflow-hidden rounded-[2.5rem] border border-emerald-200 bg-gradient-to-br from-emerald-100/40 via-white to-emerald-50 p-8 shadow-sm dark:border-emerald-900/30 dark:from-emerald-900/20 dark:via-zinc-950 dark:to-emerald-900/10">
         <div className="relative z-10">
           <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] text-emerald-800 dark:text-emerald-400">
             <span className="h-1 w-8 rounded-full bg-emerald-600" />
@@ -300,7 +300,7 @@ export default async function AdminPage() {
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-5xl">
             {t("subtitle")}
           </h1>
-          <p className="mt-4 max-w-2xl text-lg font-medium text-zinc-600 dark:text-zinc-400">
+          <p className="mt-4 max-w-2xl text-lg font-medium text-zinc-600 dark:text-zinc-300">
             {t("dashboardHint")}
           </p>
         </div>
@@ -310,10 +310,10 @@ export default async function AdminPage() {
       <div className="space-y-8">
         <div className="flex items-center gap-4 border-l-4 border-emerald-500 pl-4">
           <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Principali</h2>
-          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800/80" />
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {primaryShortcuts.map((item) => renderShortcut(item, "border-emerald-100/80 bg-gradient-to-br from-emerald-50 to-emerald-100/30 dark:border-emerald-900/30 dark:from-emerald-950/20 dark:to-emerald-900/10"))}
+          {primaryShortcuts.map((item) => renderShortcut(item, "border-emerald-100/80 bg-gradient-to-br from-emerald-50 to-emerald-100/30 dark:border-emerald-900/30 dark:from-emerald-900/20 dark:via-zinc-950 dark:to-emerald-900/10"))}
         </div>
       </div>
 
@@ -321,10 +321,10 @@ export default async function AdminPage() {
         <div className="space-y-8">
           <div className="flex items-center gap-4 border-l-4 border-blue-500 pl-4">
             <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Comunicazioni</h2>
-            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800/80" />
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {messageShortcuts.map((item) => renderShortcut(item, "border-blue-100/80 bg-gradient-to-br from-blue-50 to-blue-100/30 dark:border-blue-900/30 dark:from-blue-950/20 dark:to-blue-900/10"))}
+            {messageShortcuts.map((item) => renderShortcut(item, "border-blue-100/80 bg-gradient-to-br from-blue-50 to-blue-100/30 dark:border-blue-900/30 dark:from-blue-900/20 dark:via-zinc-950 dark:to-blue-900/10"))}
           </div>
         </div>
       )}
@@ -333,10 +333,10 @@ export default async function AdminPage() {
         <div className="space-y-8">
           <div className="flex items-center gap-4 border-l-4 border-purple-500 pl-4">
             <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Sistema</h2>
-            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800/80" />
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {systemShortcuts.map((item) => renderShortcut(item, "border-purple-100/80 bg-gradient-to-br from-purple-50 to-purple-100/30 dark:border-purple-900/30 dark:from-purple-950/20 dark:to-purple-900/10"))}
+            {systemShortcuts.map((item) => renderShortcut(item, "border-purple-100/80 bg-gradient-to-br from-purple-50 to-purple-100/30 dark:border-purple-900/30 dark:from-purple-900/20 dark:via-zinc-950 dark:to-purple-900/10"))}
           </div>
         </div>
       )}

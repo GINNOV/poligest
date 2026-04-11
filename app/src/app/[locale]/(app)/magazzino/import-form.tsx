@@ -40,15 +40,15 @@ export function ImportForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Importa / Esporta</h2>
       <form action={handleSubmit} className="mt-3 space-y-3 text-sm">
-        <p className="text-xs text-zinc-500">Carica un file CSV con colonne: Paziente; Tipo; Marca; Data Acq; UDI-DI; UDI-PI; Data Int; Sede.</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">Carica un file CSV con colonne: Paziente; Tipo; Marca; Data Acq; UDI-DI; UDI-PI; Data Int; Sede.</p>
         <LocalizedFileInput name="file" accept=".csv" required placeholder="Nessun file selezionato" />
         <SubmitButton />
       </form>
-      {message && <p className="mt-2 text-xs font-medium text-emerald-600">{message}</p>}
-      {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
+      {message && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-500">{message}</p>}
+      {error && <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-500">{error}</p>}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export function CalendarWeekPicker({ label, weekKey }: Props) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="rounded-full border border-zinc-200 px-3 py-1 text-lg font-semibold text-zinc-900 transition hover:border-emerald-200 hover:text-emerald-700"
+        className="rounded-full border border-zinc-200 px-3 py-1 text-lg font-semibold text-zinc-900 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-100 dark:hover:text-emerald-300"
         aria-expanded={open}
         aria-controls={inputId}
       >
@@ -38,14 +38,14 @@ export function CalendarWeekPicker({ label, weekKey }: Props) {
       {open ? (
         <div
           id={inputId}
-          className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg"
+          className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-950"
         >
-          <label className="text-[10px] font-semibold uppercase text-zinc-500">Seleziona settimana</label>
+          <label className="text-[10px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Seleziona settimana</label>
           <input
             type="date"
             value={weekKey}
             onChange={(event) => handleChange(event.target.value)}
-            className="mt-2 h-9 w-full rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
+            className="mt-2 h-9 w-full rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
           />
         </div>
       ) : null}

@@ -13,6 +13,7 @@ import { normalizePersonName } from "@/lib/name";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { prisma } from "@/lib/prisma";
+import { syncAllTreatedDentalRecordsIntoQuote } from "@/lib/quote-sync";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { sendSms } from "@/lib/sms";
 import { stackServerApp } from "@/lib/stack-app";
@@ -364,7 +365,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
 
   const quote = await prisma.$transaction(async (tx) => {
     if (!quoteId) {
-      return tx.quote.create({
+      const createdQuote = await tx.quote.create({
         data: {
           patientId,
           serviceId: primaryItem.serviceId,
@@ -387,6 +388,12 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
             })),
           },
         },
+      });
+
+      await syncAllTreatedDentalRecordsIntoQuote(tx, patientId, createdQuote.id);
+
+      return tx.quote.findUniqueOrThrow({
+        where: { id: createdQuote.id },
       });
     }
 
@@ -489,6 +496,8 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
         },
       });
     }
+
+    await syncAllTreatedDentalRecordsIntoQuote(tx, patientId, existingQuote.id);
 
     return tx.quote.findUniqueOrThrow({
       where: { id: existingQuote.id },

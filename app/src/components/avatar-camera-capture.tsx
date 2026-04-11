@@ -176,9 +176,9 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
   }, [previewUrl, stopCamera]);
 
   return (
-    <div className="mt-4 space-y-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4">
+    <div className="mt-4 space-y-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/25">
       <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Scatta un avatar con la webcam</div>
-      <div className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white">
+      <div className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-950">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={previewUrl} alt="Anteprima avatar" className="h-48 w-full object-cover" />
@@ -192,12 +192,12 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
         ) : null}
         <canvas ref={canvasRef} className="hidden" />
       </div>
-      {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+      {error ? <p className="text-xs text-rose-600 dark:text-rose-300">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={isStreaming ? stopCamera : startCamera}
-          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300"
+          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-200"
         >
           {isStreaming ? "Chiudi fotocamera" : "Apri fotocamera"}
         </button>
@@ -213,7 +213,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
           type="button"
           onClick={handleResetPreview}
           disabled={!previewUrl || isBusy}
-          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300"
+          className="inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-200 dark:disabled:text-emerald-800"
         >
           Scatta di nuovo
         </button>

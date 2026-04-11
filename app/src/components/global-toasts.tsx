@@ -55,9 +55,9 @@ export function GlobalToasts() {
           key={toast.id}
           className={clsx(
             "flex min-w-[240px] max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-lg shadow-emerald-900/5 transition",
-            toast.variant === "success" && "border-emerald-200 bg-emerald-50 text-emerald-900",
-            toast.variant === "error" && "border-rose-200 bg-rose-50 text-rose-900",
-            toast.variant === "info" && "border-zinc-200 bg-white text-zinc-900"
+            toast.variant === "success" && "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950 dark:text-emerald-200",
+            toast.variant === "error" && "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950 dark:text-rose-200",
+            toast.variant === "info" && "border-zinc-200 bg-white text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
           )}
         >
           <span className="text-xl" aria-hidden="true">

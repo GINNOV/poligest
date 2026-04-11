@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
+import { Button } from "@/components/ui/button";
 
 async function saveConsentModule(formData: FormData) {
   "use server";
@@ -77,12 +78,12 @@ export default async function AdminConsentModulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
           Consensi
         </p>
         <h1 className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Moduli consenso dinamici</h1>
-        <p className="mt-2 text-sm text-zinc-600">
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
           Gestisci i moduli che appaiono nella scheda paziente. Puoi attivare/disattivare e segnare quelli obbligatori.
         </p>
       </div>
@@ -126,12 +127,12 @@ export default async function AdminConsentModulesPage() {
                 Obbligatorio
               </label>
             </div>
-            <button
+            <Button
               type="submit"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+              variant="primary"
             >
               Aggiorna modulo
-            </button>
+            </Button>
           </form>
         </div>
 
@@ -211,12 +212,13 @@ export default async function AdminConsentModulesPage() {
                     </label>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <button
+                    <Button
                       type="submit"
-                      className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                      variant="primary"
+                      size="sm"
                     >
                       Aggiorna modifiche
-                    </button>
+                    </Button>
                   </div>
                 </form>
                 <form
@@ -225,12 +227,13 @@ export default async function AdminConsentModulesPage() {
                   data-confirm="Eliminare definitivamente questo modulo di consenso?"
                 >
                   <input type="hidden" name="moduleId" value={module.id} />
-                  <button
+                  <Button
                     type="submit"
-                    className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-300"
+                    variant="destructive"
+                    size="sm"
                   >
                     Elimina modulo
-                  </button>
+                  </Button>
                 </form>
               </div>
             ))

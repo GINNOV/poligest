@@ -37,88 +37,88 @@ const SERVICE_STYLES: Record<
   { bg: string; border: string; text: string; pill: string }
 > = {
   "prima visita": {
-    bg: "bg-sky-50",
-    border: "border-sky-200",
-    text: "text-sky-900",
-    pill: "bg-sky-100 text-sky-800",
+    bg: "bg-sky-50 dark:bg-sky-950/35",
+    border: "border-sky-200 dark:border-sky-800",
+    text: "text-sky-900 dark:text-sky-100",
+    pill: "bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100",
   },
   "visita di controllo": {
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    text: "text-emerald-900",
-    pill: "bg-emerald-100 text-emerald-800",
+    bg: "bg-emerald-50 dark:bg-emerald-950/35",
+    border: "border-emerald-200 dark:border-emerald-800",
+    text: "text-emerald-900 dark:text-emerald-100",
+    pill: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100",
   },
   urgenza: {
-    bg: "bg-rose-50",
-    border: "border-rose-200",
-    text: "text-rose-900",
-    pill: "bg-rose-100 text-rose-800",
+    bg: "bg-rose-50 dark:bg-rose-950/35",
+    border: "border-rose-200 dark:border-rose-800",
+    text: "text-rose-900 dark:text-rose-100",
+    pill: "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100",
   },
   richiamo: {
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    text: "text-amber-900",
-    pill: "bg-amber-100 text-amber-800",
+    bg: "bg-amber-50 dark:bg-amber-950/35",
+    border: "border-amber-200 dark:border-amber-800",
+    text: "text-amber-900 dark:text-amber-100",
+    pill: "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-100",
   },
   igiene: {
-    bg: "bg-cyan-50",
-    border: "border-cyan-200",
-    text: "text-cyan-900",
-    pill: "bg-cyan-100 text-cyan-800",
+    bg: "bg-cyan-50 dark:bg-cyan-950/35",
+    border: "border-cyan-200 dark:border-cyan-800",
+    text: "text-cyan-900 dark:text-cyan-100",
+    pill: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/60 dark:text-cyan-100",
   },
   otturazione: {
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    text: "text-indigo-900",
-    pill: "bg-indigo-100 text-indigo-800",
+    bg: "bg-indigo-50 dark:bg-indigo-950/35",
+    border: "border-indigo-200 dark:border-indigo-800",
+    text: "text-indigo-900 dark:text-indigo-100",
+    pill: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-100",
   },
   devitalizzazione: {
-    bg: "bg-violet-50",
-    border: "border-violet-200",
-    text: "text-violet-900",
-    pill: "bg-violet-100 text-violet-800",
+    bg: "bg-violet-50 dark:bg-violet-950/35",
+    border: "border-violet-200 dark:border-violet-800",
+    text: "text-violet-900 dark:text-violet-100",
+    pill: "bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-100",
   },
   estrazione: {
-    bg: "bg-amber-50",
-    border: "border-amber-200",
-    text: "text-amber-900",
-    pill: "bg-amber-100 text-amber-800",
+    bg: "bg-amber-50 dark:bg-amber-950/35",
+    border: "border-amber-200 dark:border-amber-800",
+    text: "text-amber-900 dark:text-amber-100",
+    pill: "bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-100",
   },
   "estrazione chirurgica": {
-    bg: "bg-red-50",
-    border: "border-red-200",
-    text: "text-red-900",
-    pill: "bg-red-100 text-red-800",
+    bg: "bg-red-50 dark:bg-red-950/35",
+    border: "border-red-200 dark:border-red-800",
+    text: "text-red-900 dark:text-red-100",
+    pill: "bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-100",
   },
   "ablazione tartaro": {
-    bg: "bg-teal-50",
-    border: "border-teal-200",
-    text: "text-teal-900",
-    pill: "bg-teal-100 text-teal-800",
+    bg: "bg-teal-50 dark:bg-teal-950/35",
+    border: "border-teal-200 dark:border-teal-800",
+    text: "text-teal-900 dark:text-teal-100",
+    pill: "bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-100",
   },
   implantologia: {
-    bg: "bg-orange-50",
-    border: "border-orange-200",
-    text: "text-orange-900",
-    pill: "bg-orange-100 text-orange-800",
+    bg: "bg-orange-50 dark:bg-orange-950/35",
+    border: "border-orange-200 dark:border-orange-800",
+    text: "text-orange-900 dark:text-orange-100",
+    pill: "bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-100",
   },
   "protesi mobile": {
-    bg: "bg-lime-50",
-    border: "border-lime-200",
-    text: "text-lime-900",
-    pill: "bg-lime-100 text-lime-800",
+    bg: "bg-lime-50 dark:bg-lime-950/35",
+    border: "border-lime-200 dark:border-lime-800",
+    text: "text-lime-900 dark:text-lime-100",
+    pill: "bg-lime-100 text-lime-800 dark:bg-lime-900/60 dark:text-lime-100",
   },
   "protesi fissa": {
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-yellow-900",
-    pill: "bg-yellow-100 text-yellow-800",
+    bg: "bg-yellow-50 dark:bg-yellow-950/35",
+    border: "border-yellow-200 dark:border-yellow-800",
+    text: "text-yellow-900 dark:text-yellow-100",
+    pill: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/60 dark:text-yellow-100",
   },
   altro: {
-    bg: "bg-zinc-50",
-    border: "border-zinc-200",
-    text: "text-zinc-900",
-    pill: "bg-zinc-100 text-zinc-700",
+    bg: "bg-zinc-50 dark:bg-zinc-900",
+    border: "border-zinc-200 dark:border-zinc-700",
+    text: "text-zinc-900 dark:text-zinc-100",
+    pill: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
   },
 };
 
@@ -126,10 +126,10 @@ function getServiceStyle(serviceType: string) {
   const key = (serviceType ?? "").toLowerCase().trim();
   return (
     SERVICE_STYLES[key] ?? {
-      bg: "bg-zinc-50",
-      border: "border-zinc-200",
-      text: "text-zinc-900",
-      pill: "bg-zinc-100 text-zinc-700",
+      bg: "bg-zinc-50 dark:bg-zinc-900",
+      border: "border-zinc-200 dark:border-zinc-700",
+      text: "text-zinc-900 dark:text-zinc-100",
+      pill: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
     }
   );
 }
@@ -308,7 +308,7 @@ export function CalendarWeekView({
     <>
       <div className="overflow-x-auto pb-2">
         <div className="min-w-[1080px]">
-          <div className="grid grid-cols-[70px_repeat(7,minmax(140px,1fr))] gap-2 text-[11px] font-semibold uppercase text-zinc-500">
+          <div className="grid grid-cols-[70px_repeat(7,minmax(140px,1fr))] gap-2 text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">
             <div />
             {weekDays.map((day) => {
               const date = new Date(day.date);
@@ -320,12 +320,12 @@ export function CalendarWeekView({
                 <div key={day.date} className="flex items-center justify-between px-2">
                   <span
                     className={`rounded-full px-2 py-1 ${
-                      day.isToday ? "bg-emerald-100 text-emerald-800" : ""
+                      day.isToday ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200" : ""
                     }`}
                   >
                     {label}
                   </span>
-                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-zinc-600 shadow-sm">
+                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-zinc-600 shadow-sm dark:bg-zinc-900 dark:text-zinc-300 dark:ring-1 dark:ring-zinc-700">
                     {day.appointments.length}
                   </span>
                 </div>
@@ -334,7 +334,7 @@ export function CalendarWeekView({
           </div>
 
           <div className="mt-2 grid grid-cols-[70px_repeat(7,minmax(140px,1fr))] gap-2">
-            <div className="relative text-[10px] text-zinc-500" style={{ height: gridHeight }}>
+            <div className="relative text-[10px] text-zinc-500 dark:text-zinc-400" style={{ height: gridHeight }}>
               {hourMarks.map((hour) => {
                 const minutes = hour * 60;
                 if (minutes < timeStartMinute || minutes > timeEndMinute) return null;
@@ -356,7 +356,7 @@ export function CalendarWeekView({
               return (
                 <div
                   key={day.date}
-                  className="relative rounded-xl border border-zinc-200 bg-white p-1"
+                  className="relative rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-950"
                   style={{ height: gridHeight }}
                   role="button"
                   tabIndex={0}
@@ -385,7 +385,7 @@ export function CalendarWeekView({
                     });
                   }}
                 >
-                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white to-zinc-50/50" />
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white to-zinc-50/50 dark:from-zinc-950 dark:to-zinc-900/70" />
                   <div className="absolute inset-0">
                     {hourMarks.map((hour) => {
                       const minutes = hour * 60;
@@ -394,7 +394,7 @@ export function CalendarWeekView({
                       return (
                         <div
                           key={`${day.date}-line-${hour}`}
-                          className="absolute left-0 right-0 border-t border-zinc-200/70"
+                          className="absolute left-0 right-0 border-t border-zinc-200/70 dark:border-zinc-800"
                           style={{ top }}
                         />
                       );
@@ -455,7 +455,7 @@ export function CalendarWeekView({
                               setSelectedSlot(null);
                               setSelectedAppointment(appt);
                             }}
-                            className={`absolute right-0 top-0 bottom-0 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 ${styles.bg} ${styles.border} ${styles.text} ${
+                            className={`absolute right-0 top-0 bottom-0 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 dark:hover:border-emerald-500 ${styles.bg} ${styles.border} ${styles.text} ${
                               isCompact ? "px-1.5 py-0.5" : "px-2 py-1"
                             }`}
                             style={{ left: gutterWidth, width: `calc(100% - ${gutterWidth}px)` }}
@@ -466,7 +466,7 @@ export function CalendarWeekView({
                               >
                                 {appt.serviceType}
                               </span>
-                              <span className="shrink-0 text-[9px] font-semibold text-zinc-600">
+                              <span className="shrink-0 text-[9px] font-semibold text-zinc-600 dark:text-zinc-300">
                                 {start.toLocaleTimeString("it-IT", { timeStyle: "short" })}
                               </span>
                             </div>
@@ -482,7 +482,7 @@ export function CalendarWeekView({
                   </div>
 
                   {day.isPracticeClosed ? (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-rose-50/80 text-[11px] font-semibold text-rose-700">
+                    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-rose-50/80 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-200">
                       CHIUSO
                     </div>
                   ) : null}
@@ -505,13 +505,13 @@ export function CalendarWeekView({
             }
           }}
         >
-          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-950 dark:ring-1 dark:ring-zinc-800">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {selectedAppointment ? "Aggiorna appuntamento" : "Nuovo appuntamento"}
                 </h3>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   {selectedLabelDate
                     ? new Intl.DateTimeFormat("it-IT", {
                         weekday: "long",
@@ -536,7 +536,7 @@ export function CalendarWeekView({
                   setSelectedSlot(null);
                   setSelectedAppointment(null);
                 }}
-                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               >
                 Chiudi
               </button>
@@ -574,7 +574,7 @@ export function CalendarWeekView({
                   <input type="hidden" name="returnTo" value={returnTo} />
                   <button
                     type="submit"
-                    className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                    className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/30"
                   >
                     Elimina appuntamento
                   </button>

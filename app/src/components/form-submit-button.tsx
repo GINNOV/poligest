@@ -1,38 +1,32 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 type Props = {
   children: React.ReactNode;
   className?: string;
   pendingLabel?: string;
   disabled?: boolean;
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "black" | "destructive" | "destructive-outline";
+  size?: "default" | "sm" | "xs" | "lg";
 };
 
-export function FormSubmitButton({ children, className, pendingLabel, disabled }: Props) {
+export function FormSubmitButton({ children, className, pendingLabel, disabled, variant = "primary", size = "default" }: Props) {
   const { pending } = useFormStatus();
-  const isDisabled = disabled || pending;
-  const label = pending ? pendingLabel ?? children : children;
 
   return (
-    <button
+    <Button
       type="submit"
-      className={cn(
-        "inline-flex items-center justify-center gap-2",
-        className,
-        pending && "cursor-not-allowed opacity-70"
-      )}
-      disabled={isDisabled}
+      className={className}
+      disabled={disabled}
+      variant={variant}
+      size={size}
+      loading={pending}
+      loadingLabel={pendingLabel}
       aria-busy={pending || undefined}
     >
-      {pending ? (
-        <span
-          aria-hidden
-          className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-emerald-500"
-        />
-      ) : null}
-      <span>{label}</span>
-    </button>
+      {children}
+    </Button>
   );
 }

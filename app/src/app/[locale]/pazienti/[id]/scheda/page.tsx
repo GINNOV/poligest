@@ -139,11 +139,11 @@ export default async function PatientPrintPage({
   const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt);
 
   return (
-    <div className="min-h-screen bg-zinc-100 px-6 py-8 print:bg-white print:px-0 print:py-0">
-      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm print:max-w-none print:border-none print:p-0 print:shadow-none">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-6 print:pb-4">
+    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900 px-6 py-8 print:bg-white print:px-0 print:py-0">
+      <div className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-8 shadow-sm print:max-w-none print:border-none print:p-0 print:shadow-none">
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6 print:pb-4">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-40 rounded-lg bg-white p-2">
+            <div className="h-14 w-40 rounded-lg bg-white dark:bg-zinc-950 p-2">
               <Image
                 src="/logo/studio_agovinoangrisano_logo.png"
                 alt="Logo Studio Agovino & Angrisano"
@@ -160,70 +160,71 @@ export default async function PatientPrintPage({
             </div>
           </div>
           <PrintButton
-            className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 print:hidden"
             label="Stampa scheda paziente"
+            variant="primary"
+            className="print:hidden"
           />
         </div>
 
-        <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Paziente</p>
-            <p className="mt-2 text-base font-semibold text-zinc-900">
+        <div className="grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Paziente</p>
+            <p className="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               {patient.lastName} {patient.firstName}
             </p>
-            <p className="text-xs text-zinc-600">{patient.email ?? "—"}</p>
-            <p className="text-xs text-zinc-600">{patient.phone ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.email ?? "—"}</p>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">{patient.phone ?? "—"}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Dettagli</p>
-            <p className="mt-2 text-sm text-zinc-800">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Dettagli</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               Data di nascita:{" "}
               {patient.birthDate
                 ? new Date(patient.birthDate).toLocaleDateString("it-IT", { dateStyle: "short" })
                 : "—"}
             </p>
-            <p className="text-sm text-zinc-800">Genere: {formatGender(patient.gender)}</p>
-            <p className="text-sm text-zinc-800">Codice fiscale: {parsedTaxId || "—"}</p>
+            <p className="text-sm text-zinc-800 dark:text-zinc-200">Genere: {formatGender(patient.gender)}</p>
+            <p className="text-sm text-zinc-800 dark:text-zinc-200">Codice fiscale: {parsedTaxId || "—"}</p>
           </div>
         </div>
 
-        <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Indirizzo</p>
-            <p className="mt-2 text-sm text-zinc-800">{parsedAddress || "—"}</p>
-            <p className="text-sm text-zinc-800">{parsedCity || "—"}</p>
+        <div className="grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Indirizzo</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">{parsedAddress || "—"}</p>
+            <p className="text-sm text-zinc-800 dark:text-zinc-200">{parsedCity || "—"}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Anamnesi generale
             </p>
-            <p className="mt-2 text-sm text-zinc-800">
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               {parsedConditions.length ? parsedConditions.join(", ") : "—"}
             </p>
           </div>
         </div>
 
-        <div className="grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <div className="grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
               Farmaci e dosaggi
             </p>
-            <p className="mt-2 text-sm text-zinc-800">{parsedMedications || "—"}</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">{parsedMedications || "—"}</p>
           </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Note</p>
-            <p className="mt-2 text-sm text-zinc-800">{parsedExtra || "—"}</p>
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Note</p>
+            <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">{parsedExtra || "—"}</p>
           </div>
         </div>
 
-        <div className="border-t border-zinc-200 pt-6">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Diario clinico</h2>
           {dentalRecords.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-600">Nessun record clinico disponibile.</p>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Nessun record clinico disponibile.</p>
           ) : (
-            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200">
-              <table className="min-w-full divide-y divide-zinc-100 text-sm">
-                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                   <tr>
                     <th className="px-4 py-3 text-left">Data</th>
                     <th className="px-4 py-3 text-left">Dente</th>
@@ -233,22 +234,22 @@ export default async function PatientPrintPage({
                     <th className="px-4 py-3 text-left">Aggiornato da</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {dentalRecords.map((record) => (
                     <tr key={record.id}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {new Date(record.performedAt).toLocaleString("it-IT", {
                           dateStyle: "short",
                           timeStyle: "short",
                         })}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {record.tooth === 0 ? "Tutta la bocca" : `Dente ${record.tooth}`}
                       </td>
-                      <td className="px-4 py-3">{record.procedure}</td>
-                      <td className="px-4 py-3">{record.notes ?? "—"}</td>
-                      <td className="px-4 py-3">{record.treated ? "Si" : "No"}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{record.procedure}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{record.notes ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{record.treated ? "Si" : "No"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {record.updatedBy?.name ?? record.updatedBy?.email ?? "—"}
                       </td>
                     </tr>
@@ -259,14 +260,14 @@ export default async function PatientPrintPage({
           )}
         </div>
 
-        <div className="border-t border-zinc-200 pt-6">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Impianti</h2>
           {implants.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-600">Nessun impianto associato.</p>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Nessun impianto associato.</p>
           ) : (
-            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200">
-              <table className="min-w-full divide-y divide-zinc-100 text-sm">
-                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                   <tr>
                     <th className="px-4 py-3 text-left">Data</th>
                     <th className="px-4 py-3 text-left">Prodotto</th>
@@ -276,20 +277,20 @@ export default async function PatientPrintPage({
                     <th className="px-4 py-3 text-left">Fornitore</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {implants.map((imp) => (
                     <tr key={imp.id}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {new Date(imp.createdAt).toLocaleString("it-IT", {
                           dateStyle: "short",
                           timeStyle: "short",
                         })}
                       </td>
-                      <td className="px-4 py-3">{imp.product?.name ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.product?.brand ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.product?.udiDi ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.udiPi ?? "—"}</td>
-                      <td className="px-4 py-3">{imp.product?.supplier?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.name ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.brand ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.udiDi ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.udiPi ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.supplier?.name ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -298,14 +299,14 @@ export default async function PatientPrintPage({
           )}
         </div>
 
-        <div className="border-t border-zinc-200 pt-6">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Appuntamenti passati</h2>
           {pastAppointments.length === 0 ? (
-            <p className="mt-2 text-sm text-zinc-600">Nessun appuntamento passato.</p>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Nessun appuntamento passato.</p>
           ) : (
-            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200">
-              <table className="min-w-full divide-y divide-zinc-100 text-sm">
-                <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+            <div className="mt-4 relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+              <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
+                <thead className="bg-zinc-50 dark:bg-zinc-900/50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
                   <tr>
                     <th className="px-4 py-3 text-left">Data</th>
                     <th className="px-4 py-3 text-left">Servizio</th>
@@ -313,18 +314,18 @@ export default async function PatientPrintPage({
                     <th className="px-4 py-3 text-left">Stato</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                   {pastAppointments.map((appt) => (
                     <tr key={appt.id}>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {new Date(appt.startsAt).toLocaleString("it-IT", {
                           dateStyle: "short",
                           timeStyle: "short",
                         })}
                       </td>
-                      <td className="px-4 py-3">{appt.serviceType ?? "—"}</td>
-                      <td className="px-4 py-3">{appt.doctor?.fullName ?? "—"}</td>
-                      <td className="px-4 py-3">{appt.status ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{appt.serviceType ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{appt.doctor?.fullName ?? "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{appt.status ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -332,28 +333,28 @@ export default async function PatientPrintPage({
             </div>
           )}
         </div>
-        <div className="border-t border-zinc-200 pt-6">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6">
           <h2 className="text-lg font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-50">
             Storico scheda
           </h2>
-          <div className="mt-4 grid gap-4 text-sm text-zinc-700 sm:grid-cols-2">
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          <div className="mt-4 grid gap-4 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Creata il
               </p>
-              <p className="mt-2 text-sm text-zinc-800">{createdAtLabel}</p>
-              <p className="text-sm text-zinc-800">Da: {createdBy}</p>
+              <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">{createdAtLabel}</p>
+              <p className="text-sm text-zinc-800 dark:text-zinc-200">Da: {createdBy}</p>
             </div>
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Ultimo aggiornamento
               </p>
-              <p className="mt-2 text-sm text-zinc-800">{updatedAtLabel}</p>
-              <p className="text-sm text-zinc-800">Da: {updatedBy}</p>
+              <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">{updatedAtLabel}</p>
+              <p className="text-sm text-zinc-800 dark:text-zinc-200">Da: {updatedBy}</p>
             </div>
           </div>
         </div>
-        <div className="border-t border-zinc-200 pt-4 text-xs text-zinc-500">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 text-xs text-zinc-500 dark:text-zinc-400">
           Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })} · Operatore:{" "}
           {user.name ?? user.email ?? "—"}
         </div>

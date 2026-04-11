@@ -11,6 +11,7 @@ import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { ConfirmButton } from "@/components/confirm-button";
+import { Button } from "@/components/ui/button";
 import { getRandomAvatarUrl } from "@/lib/avatars";
 import { sendEmail } from "@/lib/email";
 import { buildStaffInviteEmail } from "@/lib/invite-email";
@@ -591,9 +592,9 @@ export default async function AdminUsersPage({
             </div>
           </div>
           <form action={stopImpersonation}>
-            <button className="rounded-full bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-amber-700">
+            <Button type="submit" size="sm" variant="outline" className="bg-amber-600 border-amber-600 text-white hover:bg-amber-700 hover:border-amber-700 font-bold">
               {t("exit")}
-            </button>
+            </Button>
           </form>
         </div>
       )}
@@ -639,23 +640,27 @@ export default async function AdminUsersPage({
                   </option>
                 ))}
               </select>
-              <button
+              <Button
                 type="submit"
-                className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white transition hover:bg-emerald-700 shadow-sm"
+                size="xs"
+                variant="primary"
+                className="ml-auto h-8 w-8 p-0"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-              </button>
+              </Button>
               {(query || roleFilter) && (
-                <Link
-                  href="/admin/utenti"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 transition hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </Link>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="xs"
+                  className="h-8 w-8 p-0"
+                ><Link href="/admin/utenti">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </Link></Button>
               )}
             </form>
           </div>
@@ -724,7 +729,9 @@ export default async function AdminUsersPage({
                           name="userId"
                           value={user.id}
                           confirmMessage={t("impersonateConfirm")}
-                          className="flex h-8 items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/40"
+                          variant="secondary"
+                          size="xs"
+                          className="gap-2"
                         >
                           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -737,7 +744,9 @@ export default async function AdminUsersPage({
                         name="userId"
                         value={user.id}
                         confirmMessage={t("sendResetConfirm")}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-100 bg-zinc-50 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                        variant="ghost"
+                        size="xs"
+                        className="h-8 w-8 p-0"
                       >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -746,8 +755,11 @@ export default async function AdminUsersPage({
                       <form action={setUserStatus}>
                         <input type="hidden" name="userId" value={user.id} />
                         <input type="hidden" name="active" value={(!user.isActive).toString()} />
-                        <button 
-                          className={`flex h-8 w-8 items-center justify-center rounded-lg border transition ${user.isActive ? "border-amber-100 bg-amber-50 text-amber-600 hover:bg-amber-100 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-400" : "border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-amber-400"}`} 
+                        <Button 
+                          type="submit"
+                          variant="ghost"
+                          size="xs"
+                          className={`h-8 w-8 p-0 ${user.isActive ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50" : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"}`} 
                           title={t("toggle")}
                           onClick={(e) => {
                             if (!window.confirm(t("toggleStatusConfirm"))) {
@@ -764,14 +776,16 @@ export default async function AdminUsersPage({
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                           )}
-                        </button>
+                        </Button>
                       </form>
                       <ConfirmButton
                         action={deleteUser}
                         name="userId"
                         value={user.id}
                         confirmMessage={t("deleteConfirm")}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100 dark:border-rose-900/30 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40"
+                        variant="ghost"
+                        size="xs"
+                        className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                       >
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -808,12 +822,14 @@ export default async function AdminUsersPage({
                           required
                           className="h-9 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900/30"
                         />
-                        <button
+                        <Button
                           type="submit"
-                          className="flex h-9 items-center gap-2 rounded-lg bg-zinc-900 px-3 text-[11px] font-bold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                          size="sm"
+                          variant="black"
+                          className="h-9 px-3 gap-2"
                         >
                           {t("save")}
-                        </button>
+                        </Button>
                       </div>
                     </form>
 
@@ -836,12 +852,14 @@ export default async function AdminUsersPage({
                             </option>
                           ))}
                         </select>
-                        <button
+                        <Button
                           type="submit"
-                          className="flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-[11px] font-bold text-white transition hover:bg-emerald-700 shadow-sm"
+                          size="sm"
+                          variant="primary"
+                          className="h-9 px-3 gap-2"
                         >
                           {t("apply")}
-                        </button>
+                        </Button>
                       </div>
                     </form>
                   </div>
@@ -932,15 +950,16 @@ export default async function AdminUsersPage({
                 {t("usersFormHelper")}
               </p>
 
-              <button
+              <Button
                 type="submit"
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-700"
+                variant="primary"
+                className="w-full h-12 gap-2 text-sm font-bold shadow-lg"
               >
                 <span>{t("saveUser")}</span>
                 <svg className="h-4 w-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </button>
+              </Button>
             </form>
           </div>
         </div>

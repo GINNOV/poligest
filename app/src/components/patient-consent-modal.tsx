@@ -61,7 +61,7 @@ const renderInline = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {
     if (segment.startsWith("**") && segment.endsWith("**")) {
       return (
-        <strong key={idx} className="font-semibold text-zinc-900">
+        <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">
           {segment.slice(2, -2)}
         </strong>
       );
@@ -78,7 +78,7 @@ const renderMarkdown = (markdown: string) => {
   const flushList = () => {
     if (list.length > 0) {
       nodes.push(
-        <ul key={`list-${nodes.length}`} className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-800">
+        <ul key={`list-${nodes.length}`} className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
           {list}
         </ul>,
       );
@@ -115,7 +115,7 @@ const renderMarkdown = (markdown: string) => {
 
     if (line.startsWith("* ")) {
       list.push(
-        <li key={`li-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+        <li key={`li-${idx}`} className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
           {renderInline(line.replace(/^\*\s+/, ""))}
         </li>,
       );
@@ -124,7 +124,7 @@ const renderMarkdown = (markdown: string) => {
 
     flushList();
     nodes.push(
-      <p key={`p-${idx}`} className="text-sm leading-relaxed text-zinc-800">
+      <p key={`p-${idx}`} className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
         {renderInline(line)}
       </p>,
     );
@@ -178,7 +178,7 @@ export function PatientConsentSection({
   onSignatureChange,
   onFieldChange,
 }: Props) {
-  const requiredLabelClass = markRequired ? "text-rose-600" : "text-zinc-800";
+  const requiredLabelClass = markRequired ? "text-rose-600 dark:text-rose-300" : "text-zinc-800 dark:text-zinc-200";
   const [patientName, setPatientName] = useState("Paziente");
   const [fiscalCode, setFiscalCode] = useState(fiscalCodeProp ?? "");
   const defaultDate = useMemo(
@@ -539,14 +539,14 @@ export function PatientConsentSection({
 
   return (
     <section
-      className={`space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 ${
+      className={`space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/70 ${
         disabled ? "opacity-70" : ""
       }`}
     >
       {!hideIntro ? (
         <div className="space-y-1">
           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Consenso Informato</p>
-          <p className="text-xs text-zinc-500 leading-relaxed">
+          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             Leggi l&apos;informativa completa e raccogli la firma digitale del paziente.
             La firma è obbligatoria per completare la registrazione.
           </p>
@@ -569,7 +569,7 @@ export function PatientConsentSection({
         >
           {buttonLabel}
         </button>
-        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700">
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-200">
           <span
             className={`inline-flex h-2.5 w-2.5 rounded-full ${
               signatureData ? "bg-emerald-500" : "bg-zinc-300"
@@ -582,13 +582,13 @@ export function PatientConsentSection({
       <input type="hidden" name="consentSignatureData" value={signatureData} readOnly />
 
       {signatureData ? (
-        <div className="rounded-lg border border-emerald-100 bg-white p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Firma salvata</p>
+        <div className="rounded-lg border border-emerald-100 bg-white p-3 dark:border-emerald-900 dark:bg-zinc-950">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Firma salvata</p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <img
               src={signatureData}
               alt="Firma digitale"
-              className="h-16 rounded border border-emerald-100 bg-white object-contain px-2 py-1 shadow-sm"
+              className="h-16 rounded border border-emerald-100 bg-white object-contain px-2 py-1 shadow-sm dark:border-emerald-900 dark:bg-zinc-950"
             />
             <button
               type="button"
@@ -597,7 +597,7 @@ export function PatientConsentSection({
                 setIsOpen(true);
               }}
               disabled={disabled}
-              className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-300 dark:hover:border-emerald-700"
             >
               Rivedi informativa / Rifirma
             </button>
@@ -610,7 +610,7 @@ export function PatientConsentSection({
                 clearCanvas(canvasRef);
               }}
               disabled={disabled}
-              className="inline-flex items-center justify-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-800 dark:text-rose-200 dark:hover:border-rose-700"
             >
               Rimuovi firma
             </button>
@@ -627,7 +627,7 @@ export function PatientConsentSection({
             required={!disabled && requireFields}
             defaultValue={initialValues?.place ?? "Striano"}
             onChange={(event) => onFieldChange?.({ place: event.target.value })}
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             placeholder="Luogo"
           />
         </label>
@@ -640,7 +640,7 @@ export function PatientConsentSection({
             required={!disabled && requireFields}
             defaultValue={initialValues?.date ?? defaultDate}
             onChange={(event) => onFieldChange?.({ date: event.target.value })}
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             placeholder="dd/mm/yyyy"
           />
         </label>
@@ -654,7 +654,7 @@ export function PatientConsentSection({
             disabled={disabled}
             defaultValue={initialValues?.patientName ?? ""}
             onChange={(event) => onFieldChange?.({ patientName: event.target.value })}
-            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             placeholder="Inserire nome"
           />
         </label>
@@ -662,7 +662,7 @@ export function PatientConsentSection({
           Medico assegnato
           <select
             name="doctorSignature"
-            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+            className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             defaultValue={initialValues?.doctorName ?? ""}
             required={!disabled && requireFields}
             disabled={disabled}
@@ -683,7 +683,7 @@ export function PatientConsentSection({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
         <Link
           href="/pazienti"
-          className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
+          className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
         >
           Annulla
         </Link>
@@ -699,35 +699,35 @@ export function PatientConsentSection({
 
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="relative h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white p-6 shadow-2xl">
+          <div className="relative h-[85vh] w-full max-w-4xl overflow-hidden rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950 dark:ring-1 dark:ring-zinc-800">
             <div className="flex h-full flex-col">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                     Informativa {moduleLabel || "consenso"}
                   </p>
                   <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Lettura e firma digitale</h2>
-                  <p className="text-sm text-zinc-600">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">Scorri il testo, usa Avanti/Indietro e firma nel riquadro.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                  className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
                 >
                   Chiudi
                 </button>
               </div>
 
               <div className="mt-4 flex-1 overflow-y-auto pr-1">
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-600">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                     <span>Pagina {pageIndex + 1} di {totalPages}</span>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={() => setPageIndex((idx) => Math.max(0, idx - 1))}
                         disabled={pageIndex === 0}
-                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500"
                       >
                         Indietro
                       </button>
@@ -735,18 +735,18 @@ export function PatientConsentSection({
                         type="button"
                         onClick={() => setPageIndex((idx) => Math.min(totalPages - 1, idx + 1))}
                         disabled={pageIndex === totalPages - 1}
-                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-full border border-zinc-200 px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500"
                       >
                         Avanti
                       </button>
                     </div>
                   </div>
-                  <div className="mt-3 h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800">
+                  <div className="mt-3 h-[45vh] space-y-3 overflow-y-auto rounded-lg border border-zinc-100 bg-white p-3 text-sm leading-relaxed text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
                     {renderedMarkdown}
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                <div className="mt-4 space-y-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/25">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p
@@ -756,7 +756,7 @@ export function PatientConsentSection({
                       >
                         Firma digitale del paziente
                       </p>
-                      <p className="text-xs text-emerald-700">
+                      <p className="text-xs text-emerald-700 dark:text-emerald-300">
                         Firma all&apos;interno del riquadro. Usa Cancella per ricominciare.
                         {!hasReachedEnd ? " Completa la lettura dell'informativa prima di salvare." : ""}
                       </p>
@@ -776,7 +776,7 @@ export function PatientConsentSection({
                         className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                           useTabletSignature
                             ? "bg-emerald-700 text-white"
-                            : "border border-emerald-200 text-emerald-800 hover:border-emerald-300"
+                            : "border border-emerald-200 text-emerald-800 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-300 dark:hover:border-emerald-700"
                         }`}
                       >
                         Tablet
@@ -785,7 +785,7 @@ export function PatientConsentSection({
                         type="button"
                         onClick={captureWithWacom}
                         disabled={wacomLoading || disabled}
-                        className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-300 dark:hover:border-emerald-700"
                       >
                         {wacomLoading ? "Collego Wacom..." : "Wacom"}
                       </button>
@@ -797,7 +797,7 @@ export function PatientConsentSection({
                             setHasStroke(false);
                             updateSignature("");
                           }}
-                          className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300"
+                          className="rounded-full border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-300 dark:hover:border-emerald-700"
                         >
                           Cancella
                         </button>
@@ -815,7 +815,7 @@ export function PatientConsentSection({
                     </div>
                   </div>
                   {useTabletSignature ? (
-                    <div className="h-44 overflow-hidden rounded-lg border border-emerald-200 bg-white">
+                    <div className="h-44 overflow-hidden rounded-lg border border-emerald-200 bg-white dark:border-emerald-900 dark:bg-zinc-950">
                       <canvas
                         ref={canvasRef}
                         className="h-full w-full touch-none"
@@ -826,9 +826,9 @@ export function PatientConsentSection({
                       />
                     </div>
                   ) : null}
-                  {signatureError ? <p className="text-xs font-semibold text-amber-700">{signatureError}</p> : null}
+                  {signatureError ? <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">{signatureError}</p> : null}
                   {!hasReachedEnd ? (
-                    <p className="text-xs font-semibold text-amber-700">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
                       Scorri l&apos;informativa fino in fondo prima di salvare la firma.
                     </p>
                   ) : null}

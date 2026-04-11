@@ -43,13 +43,13 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 const statusClasses: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800 shadow-sm",
-  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm",
-  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700 shadow-sm",
-  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800 shadow-sm",
-  COMPLETED: "border-green-200 bg-green-50 text-green-800 shadow-sm",
-  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800 shadow-sm",
-  NO_SHOW: "border-slate-200 bg-slate-50 text-slate-700 shadow-sm",
+  TO_CONFIRM: "border-amber-200 bg-amber-50 text-amber-800 shadow-sm dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200",
+  CONFIRMED: "border-emerald-200 bg-emerald-50 text-emerald-800 shadow-sm dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-200",
+  IN_WAITING: "border-zinc-200 bg-zinc-50 text-zinc-700 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900/20 dark:text-zinc-300",
+  IN_PROGRESS: "border-sky-200 bg-sky-50 text-sky-800 shadow-sm dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200",
+  COMPLETED: "border-teal-200 bg-teal-50 text-teal-800 shadow-sm dark:border-teal-800/60 dark:bg-teal-900/20 dark:text-teal-200",
+  CANCELLED: "border-rose-200 bg-rose-50 text-rose-800 shadow-sm dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200",
+  NO_SHOW: "border-violet-200 bg-violet-50 text-violet-700 shadow-sm dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300",
 };
 
 const formatDateTime = (value: Date | string | null | undefined) => {
@@ -134,11 +134,11 @@ export default async function PatientDetailPage({
 
   if (!patient) {
     return (
-      <div className="order-2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-zinc-600">Paziente non trovato.</p>
+      <div className="order-2 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Paziente non trovato.</p>
         <Link
           href="/pazienti"
-          className="mt-4 inline-flex rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-emerald-800"
+          className="mt-4 inline-flex rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-emerald-800 dark:border-zinc-800 dark:text-emerald-200"
         >
           Torna a Pazienti
         </Link>
@@ -167,19 +167,19 @@ export default async function PatientDetailPage({
           <div
             role="alertdialog"
             aria-labelledby="sms-error-title"
-            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl dark:border-amber-900/40 dark:bg-zinc-950"
           >
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                 ⚠️
               </div>
               <div className="space-y-2">
-                <p id="sms-error-title" className="text-base font-semibold text-amber-900">
+                <p id="sms-error-title" className="text-base font-semibold text-amber-900 dark:text-amber-100">
                   Impossibile inviare l&apos;SMS
                 </p>
-                <p className="text-sm text-zinc-700">{smsErrorMessage}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{smsErrorMessage}</p>
                 {smsErrorMessage.toLowerCase().includes("telefono") ? (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Aggiungi o aggiorna il numero di telefono del paziente dalla sezione dati di
                     contatto, poi riprova.
                   </p>
@@ -189,7 +189,7 @@ export default async function PatientDetailPage({
             <div className="mt-4 flex justify-end gap-2">
               <Link
                 href={`/pazienti/${patient.id}?openContact=1#contact-info`}
-                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900"
+                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900 dark:border-amber-800 dark:text-amber-200 dark:hover:border-amber-700 dark:hover:text-amber-100"
               >
                 Vai ai dati di contatto
               </Link>
@@ -208,19 +208,19 @@ export default async function PatientDetailPage({
           <div
             role="alertdialog"
             aria-labelledby="access-error-title"
-            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl dark:border-amber-900/40 dark:bg-zinc-950"
           >
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                 ⚠️
               </div>
               <div className="space-y-2">
-                <p id="access-error-title" className="text-base font-semibold text-amber-900">
+                <p id="access-error-title" className="text-base font-semibold text-amber-900 dark:text-amber-100">
                   Impossibile inviare l&apos;email
                 </p>
-                <p className="text-sm text-zinc-700">{accessErrorMessage}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{accessErrorMessage}</p>
                 {accessErrorMessage.toLowerCase().includes("email") ? (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Aggiungi o aggiorna l&apos;email del paziente dalla sezione dati di contatto,
                     poi riprova.
                   </p>
@@ -230,7 +230,7 @@ export default async function PatientDetailPage({
             <div className="mt-4 flex justify-end gap-2">
               <Link
                 href={`/pazienti/${patient.id}?openContact=1#contact-info`}
-                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900"
+                className="inline-flex items-center justify-center rounded-full border border-amber-200 px-3 py-1 text-sm font-semibold text-amber-800 transition hover:border-amber-300 hover:text-amber-900 dark:border-amber-800 dark:text-amber-200 dark:hover:border-amber-700 dark:hover:text-amber-100"
               >
                 Vai ai dati di contatto
               </Link>
@@ -250,19 +250,19 @@ export default async function PatientDetailPage({
           <div
             role="alertdialog"
             aria-labelledby="consent-error-title"
-            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl dark:border-amber-900/40 dark:bg-zinc-950"
           >
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+              <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                 ⚠️
               </div>
               <div className="space-y-2">
-                <p id="consent-error-title" className="text-base font-semibold text-amber-900">
+                <p id="consent-error-title" className="text-base font-semibold text-amber-900 dark:text-amber-100">
                   Non possiamo salvare questo consenso
                 </p>
-                <p className="text-sm text-zinc-700">{consentErrorMessage}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{consentErrorMessage}</p>
                 {consentErrorMessage.toLowerCase().includes("esiste già") ? (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Ogni tipo di consenso può essere registrato una sola volta per paziente. Modifica
                     quello esistente o scegli un tipo diverso.
                   </p>
@@ -284,15 +284,15 @@ export default async function PatientDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
         <div className="space-y-6">
           <details
-            className="group rounded-2xl border border-zinc-200 bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden"
+            className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden"
             open={openContactPanel}
           >
             <summary className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl px-6 py-4 text-left">
               <div className="flex min-w-0 flex-1 items-center gap-3">
-                <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-800">
+                <span className="pg-badge-base pg-badge-emerald uppercase tracking-wide">
                   PIN {patientPin}
                 </span>
-                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 text-lg font-semibold text-emerald-800">
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-emerald-100 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20">
                   <PatientAvatar
                     src={patient.photoUrl}
                     alt={`${patient.lastName} ${patient.firstName}`}
@@ -302,12 +302,12 @@ export default async function PatientDetailPage({
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm uppercase tracking-wide text-zinc-600">Scheda paziente</p>
+                  <p className="text-sm uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Scheda paziente</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
                       {patient.lastName} {patient.firstName}
                     </h1>
-                    <p className="text-sm text-zinc-700">
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
                       {patient.email ?? "—"} · {patient.phone ?? "—"}
                     </p>
                   </div>
@@ -319,7 +319,7 @@ export default async function PatientDetailPage({
                   label="Stampa scheda paziente"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-sky-200 text-sky-700 transition hover:border-sky-300 hover:text-sky-800"
+                  className="h-8 w-8 rounded-full border-sky-200 text-sky-700 dark:border-sky-900/40 dark:text-sky-300"
                 >
                   <svg
                     className="h-4 w-4"
@@ -352,7 +352,7 @@ export default async function PatientDetailPage({
                 </svg>
               </div>
             </summary>
-            <div className="border-t border-zinc-200 px-6 pb-6 pt-4">
+            <div className="border-t border-zinc-200 px-6 pb-6 pt-4 dark:border-zinc-800">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px,1fr]">
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-xs shadow-sm dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
                   <div className="flex items-center justify-between gap-4">
@@ -393,7 +393,7 @@ export default async function PatientDetailPage({
                           <input
                             name="lastName"
                             defaultValue={patient.lastName}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             required
                           />
                         </label>
@@ -402,7 +402,7 @@ export default async function PatientDetailPage({
                           <input
                             name="firstName"
                             defaultValue={patient.firstName}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             required
                           />
                         </label>
@@ -442,7 +442,7 @@ export default async function PatientDetailPage({
                           <input
                             name="phone"
                             defaultValue={patient.phone ?? ""}
-                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                            className="h-11 rounded-lg border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
                             placeholder="Telefono"
                             required
                           />
@@ -504,7 +504,7 @@ export default async function PatientDetailPage({
                               name="conditions"
                               value={condition}
                               defaultChecked={parsedConditions.includes(condition)}
-                              className="mt-1 h-4 w-4 rounded border-zinc-300"
+                              className="mt-1 h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950"
                             />
                             <span>{condition}</span>
                           </label>
@@ -557,7 +557,7 @@ export default async function PatientDetailPage({
                     label="Stampa consensi"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+                    className="h-8 w-8 rounded-full border-zinc-200 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
                   >
                     <svg
                       className="h-4 w-4"
@@ -600,8 +600,8 @@ export default async function PatientDetailPage({
                                 key={module.id}
                                 className={`rounded-full px-3 py-1 ${
                                   patient.hasPaperConsentForRequired
-                                    ? "border border-violet-200 bg-violet-50 text-violet-700"
-                                    : "border border-rose-200 bg-rose-50 text-rose-700"
+                                    ? "border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300"
+                                    : "border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200"
                                 }`}
                               >
                                 {patient.hasPaperConsentForRequired
@@ -640,7 +640,7 @@ export default async function PatientDetailPage({
                                         href={`/pazienti/${patient.id}/consensi/${consent.id}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900"
+                                        className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 hover:text-emerald-900 dark:bg-zinc-900 dark:text-emerald-200 dark:decoration-emerald-900/40 dark:hover:text-emerald-100"
                                       >
                                         Stampa
                                       </Link>
@@ -683,7 +683,7 @@ export default async function PatientDetailPage({
                         />
                         {canExport ? (
                             <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
                               Strumenti GDPR
                             </p>
                               <p className="mt-2 text-sm text-emerald-900 dark:text-emerald-100">
@@ -712,7 +712,7 @@ export default async function PatientDetailPage({
               initialRecords={dentalRecordsSerialized}
               services={services.map((service) => ({ id: service.id, name: service.name }))}
               printHref={`/pazienti/${patient.id}/diario`}
-              containerClassName="bg-zinc-50"
+              containerClassName="bg-zinc-50 dark:bg-zinc-900"
             />
           ) : null}
 
@@ -917,11 +917,11 @@ export default async function PatientDetailPage({
         </p>
 
         <div className="mt-4 space-y-4">
-          <div className="relative overflow-x-auto rounded-2xl border border-zinc-200">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-            <table className="min-w-full divide-y divide-zinc-100 text-sm">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
+          <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
+            <table className="min-w-full divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
                 <tr>
                   <th className="px-3 py-2 text-left">Tipo di DM</th>
                   <th className="px-3 py-2 text-left">Marca</th>
@@ -933,10 +933,10 @@ export default async function PatientDetailPage({
                   <th className="px-3 py-2 text-left">Modifica</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
+              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {implants.length === 0 ? (
                   <tr>
-                    <td className="px-3 py-3 text-sm text-zinc-600" colSpan={8}>
+                    <td className="px-3 py-3 text-sm text-zinc-600 dark:text-zinc-400" colSpan={8}>
                       Nessun impianto associato.
                     </td>
                   </tr>
@@ -949,36 +949,36 @@ export default async function PatientDetailPage({
                     const brand =
                       brandFromNote ?? imp.product?.supplier?.name ?? (imp.product?.name ? "—" : "—");
                     return (
-                      <tr key={imp.id} className="hover:bg-zinc-50">
-                        <td className="px-3 py-2 text-zinc-900">{deviceType}</td>
-                        <td className="px-3 py-2 text-zinc-700">{brand ?? "—"}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-600">
+                      <tr key={imp.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                        <td className="px-3 py-2 text-zinc-900 dark:text-zinc-50">{deviceType}</td>
+                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{brand ?? "—"}</td>
+                        <td className="px-3 py-2 font-mono text-xs text-zinc-600 dark:text-zinc-400">
                           {udiDiFromNote ?? imp.product?.udiDi ?? "—"}
                         </td>
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-600">{imp.udiPi ?? "—"}</td>
-                        <td className="px-3 py-2 text-zinc-700">
+                        <td className="px-3 py-2 font-mono text-xs text-zinc-600 dark:text-zinc-400">{imp.udiPi ?? "—"}</td>
+                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
                           {imp.purchaseDate
                             ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.purchaseDate)
                             : "—"}
                         </td>
-                        <td className="px-3 py-2 text-zinc-700">
+                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
                           {imp.interventionDate
                             ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.interventionDate)
                             : "—"}
                         </td>
-                        <td className="px-3 py-2 text-zinc-700">{imp.interventionSite ?? "—"}</td>
+                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{imp.interventionSite ?? "—"}</td>
                         <td className="px-3 py-2">
-                          <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm">
-                            <summary className="cursor-pointer font-semibold text-emerald-800">Modifica</summary>
+                          <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                            <summary className="cursor-pointer font-semibold text-emerald-800 dark:text-emerald-300">Modifica</summary>
                             <form action={updateImplantAssociationAction} className="mt-2 grid grid-cols-1 gap-2">
                               <input type="hidden" name="implantId" value={imp.id} />
                               <input type="hidden" name="patientId" value={patient.id} />
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Prodotto
                                 <select
                                   name="productId"
                                   defaultValue={imp.productId}
-                                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 >
                                   {products.map((p) => (
                                     <option key={p.id} value={p.id}>
@@ -987,23 +987,23 @@ export default async function PatientDetailPage({
                                   ))}
                                 </select>
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Tipo DM
                                 <input
                                   name="deviceType"
                                   defaultValue={deviceType !== "—" ? deviceType : ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Marca
                                 <input
                                   name="brand"
                                   defaultValue={brand ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 UDI-DI
                                 <input
                                   name="udiDi"
@@ -1012,7 +1012,7 @@ export default async function PatientDetailPage({
                                   placeholder="UDI-DI"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 UDI-PI
                                 <input
                                   name="udiPi"
@@ -1020,7 +1020,7 @@ export default async function PatientDetailPage({
                                   className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Data acquisto
                                 <input
                                   type="date"
@@ -1028,10 +1028,10 @@ export default async function PatientDetailPage({
                                   defaultValue={
                                     imp.purchaseDate ? imp.purchaseDate.toISOString().split("T")[0] : ""
                                   }
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Data intervento
                                 <input
                                   type="date"
@@ -1039,15 +1039,15 @@ export default async function PatientDetailPage({
                                   defaultValue={
                                     imp.interventionDate ? imp.interventionDate.toISOString().split("T")[0] : ""
                                   }
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 />
                               </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700">
+                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
                                 Sede
                                 <input
                                   name="interventionSite"
                                   defaultValue={imp.interventionSite ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                                 />
                               </label>
                               <div className="flex justify-end pt-1">
@@ -1069,11 +1069,11 @@ export default async function PatientDetailPage({
             </table>
           </div>
 
-          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm [&_summary::-webkit-details-marker]:hidden">
-            <summary className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50">
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/20">
               <span>Dettagli impianto</span>
               <svg
-                className="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180"
+                className="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180 dark:text-emerald-500"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 aria-hidden="true"
@@ -1087,11 +1087,11 @@ export default async function PatientDetailPage({
             </summary>
             <form action={addImplantAssociationAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input type="hidden" name="patientId" value={patient.id} />
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Prodotto / Tipo di DM
                 <select
                   name="productId"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   required
                   defaultValue=""
                 >
@@ -1105,59 +1105,59 @@ export default async function PatientDetailPage({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Marca
                 <input
                   name="brand"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="Marca"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Tipo di DM (personalizzato)
                 <input
                   name="deviceType"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="Es. Impianto, Protesi..."
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Codice UDI-DI
                 <input
                   name="udiDi"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="UDI-DI"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Codice UDI-PI
                 <input
                   name="udiPi"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="UDI-PI / Lotto"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Data acquisto
                 <input
                   type="date"
                   name="purchaseDate"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Data intervento
                 <input
                   type="date"
                   name="interventionDate"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 Sede intervento
                 <input
                   name="interventionSite"
-                  className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                   placeholder="Es. 1.1, 2.4..."
                 />
               </label>
@@ -1172,7 +1172,7 @@ export default async function PatientDetailPage({
       </details>
     </div>
 
-    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <svg
@@ -1195,23 +1195,23 @@ export default async function PatientDetailPage({
             Storico appuntamenti
           </h2>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
           {pastAppointments.length}
         </span>
       </div>
       <div className="mt-4 space-y-3">
         {pastAppointments.length === 0 ? (
-          <p className="py-4 text-sm text-zinc-600">Nessun appuntamento passato.</p>
+          <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun appuntamento passato.</p>
         ) : (
           pastAppointments.slice(0, 5).map((appt) => (
             <div
               key={appt.id}
-              className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm"
+              className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-white p-4 shadow-sm dark:border-zinc-800 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
                       <span aria-hidden="true">
                         {(appt.serviceType ?? "").toLowerCase().includes("odo") ||
                         (appt.doctor?.specialty ?? "").toLowerCase().includes("odo")
@@ -1220,11 +1220,11 @@ export default async function PatientDetailPage({
                       </span>
                       {appt.title}
                     </span>
-                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700">
+                    <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                       {appt.serviceType}
                     </span>
                   </div>
-                  <p className="text-sm text-zinc-800">
+                  <p className="text-sm text-zinc-800 dark:text-zinc-200">
                     🧑‍⚕️ Paziente {patient.lastName} {patient.firstName} è stato visto da{" "}
                     <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
                     il{" "}
@@ -1236,7 +1236,7 @@ export default async function PatientDetailPage({
                     }).format(appt.startsAt)}{" "}
                     alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
                   </p>
-                  <p className="text-sm text-zinc-800">
+                  <p className="text-sm text-zinc-800 dark:text-zinc-200">
                     🕒 Il servizio ha richiesto circa{" "}
                     {Math.max(
                       1,
@@ -1253,7 +1253,7 @@ export default async function PatientDetailPage({
                   >
                     {statusLabels[appt.status].toUpperCase()}
                   </span>
-                  <span className="text-xs font-semibold text-zinc-600">
+                  <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
                     {new Intl.DateTimeFormat("it-IT", {
                       day: "numeric",
                       month: "short",
@@ -1267,7 +1267,7 @@ export default async function PatientDetailPage({
       </div>
     </div>
 
-    <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-3">
         <svg
           className="h-8 w-8 text-emerald-600"
@@ -1289,18 +1289,18 @@ export default async function PatientDetailPage({
         </h2>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Creata il
           </p>
-          <p className="mt-2 font-medium text-zinc-900">{createdAtLabel}</p>
+          <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-50">{createdAtLabel}</p>
           <p className="mt-1">Da: {createdBy}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Ultimo aggiornamento
           </p>
-          <p className="mt-2 font-medium text-zinc-900">{updatedAtLabel}</p>
+          <p className="mt-2 font-medium text-zinc-900 dark:text-zinc-50">{updatedAtLabel}</p>
           <p className="mt-1">Da: {updatedBy}</p>
         </div>
       </div>

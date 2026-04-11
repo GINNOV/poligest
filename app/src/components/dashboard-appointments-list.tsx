@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
+import { Button } from "./ui/button";
 
 type AppointmentItem = {
   id: string;
@@ -45,13 +46,13 @@ const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
 const getDateKey = (date: Date) => DATE_KEY_FORMATTER.format(date);
 
 const statusCardBackgrounds: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50",
-  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50",
-  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50",
-  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50",
-  COMPLETED: "border-green-200 bg-gradient-to-r from-green-50 via-white to-green-50",
-  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50",
-  NO_SHOW: "border-slate-200 bg-gradient-to-r from-slate-50 via-white to-slate-50",
+  TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:border-amber-800/60 dark:from-amber-900/20 dark:via-zinc-950 dark:to-amber-900/20",
+  CONFIRMED: "border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50 dark:border-emerald-800/60 dark:from-emerald-900/20 dark:via-zinc-950 dark:to-emerald-900/20",
+  IN_WAITING: "border-zinc-200 bg-gradient-to-r from-zinc-50 via-white to-zinc-50 dark:border-zinc-800/60 dark:from-zinc-900/20 dark:via-zinc-950 dark:to-zinc-900/20",
+  IN_PROGRESS: "border-sky-200 bg-gradient-to-r from-sky-50 via-white to-sky-50 dark:border-sky-800/60 dark:from-sky-900/20 dark:via-zinc-950 dark:to-sky-900/20",
+  COMPLETED: "border-teal-200 bg-gradient-to-r from-teal-50 via-white to-teal-50 dark:border-teal-800/60 dark:from-teal-900/20 dark:via-zinc-950 dark:to-teal-900/20",
+  CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:border-rose-800/60 dark:from-rose-900/20 dark:via-zinc-950 dark:to-rose-900/20",
+  NO_SHOW: "border-violet-200 bg-gradient-to-r from-violet-50 via-white to-violet-50 dark:border-violet-800/60 dark:from-violet-900/20 dark:via-zinc-950 dark:to-violet-900/20",
 };
 
 const PAGE_SIZE = 10;
@@ -68,7 +69,6 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [page, setPage] = useState(1);
-  const [clickedReminderIds, setClickedReminderIds] = useState<string[]>([]);
   const orderedAppointments = useMemo(() => {
     const isSameDay = (date: Date, target: Date) => getDateKey(date) === getDateKey(target);
     const parsed = appointments.map((appt) => ({
@@ -96,7 +96,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
   }, [orderedAppointments, safeCurrentPage]);
 
   if (orderedAppointments.length === 0) {
-    return <p className="py-4 text-sm text-zinc-600">{emptyLabel}</p>;
+    return <p className="py-4 text-sm text-zinc-600 dark:text-zinc-300">{emptyLabel}</p>;
   }
 
   return (
@@ -126,59 +126,59 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           : null;
         const isPast = appt.endsAtDate < now;
         const cardClass = isPast
-          ? "border-amber-200 bg-amber-50"
+          ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
           : statusCardBackgrounds[appt.status];
         const dayKey = getDateKey(appt.startsAtDate);
         const dayLabel = formatDate(appt.startsAtDate, { dateStyle: "long" });
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
         const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate) : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
-        const reminderSent = appt.reminderSent || clickedReminderIds.includes(appt.id);
+        const reminderSent = appt.reminderSent;
         const outerCardClass = index % 2 === 0
-          ? "border-zinc-200 bg-white/90"
-          : "border-zinc-200 bg-zinc-50/80";
+          ? "border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-950/90"
+          : "border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/80";
 
         return (
           <div key={appt.id}>
             {showDivider ? (
-              <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500">
-                <div className="h-px flex-1 bg-zinc-200" />
-                <span className="rounded-full border border-zinc-200 bg-white px-3 py-1">
+              <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
                   📅 {dayLabel}
                 </span>
-                <div className="h-px flex-1 bg-zinc-200" />
+                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               </div>
             ) : null}
             <div className={`mb-4 rounded-2xl border p-4 shadow-sm ${outerCardClass}`}>
               <div className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900">
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                       <span>
                         {getServiceIcon(appt.serviceType, appt.title)} {appt.title}
                       </span>
                       {isPast ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
                           ✅ Passato
                         </span>
                       ) : null}
                     </div>
-                    <div className="grid gap-2 text-sm text-zinc-800 sm:grid-cols-2">
+                    <div className="grid gap-2 text-sm text-zinc-800 dark:text-zinc-200 sm:grid-cols-2">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-zinc-500">Paziente</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">Paziente</span>
                         <Link
                           href={`/pazienti/${appt.patient.id}`}
-                          className="font-semibold hover:text-emerald-700"
+                          className="font-semibold hover:text-emerald-700 dark:hover:text-emerald-300"
                         >
                           {appt.patient.lastName} {appt.patient.firstName}
                         </Link>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-zinc-500">Medico</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">Medico</span>
                         <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-zinc-500">Quando</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                         <span>
                           {formatDate(appt.startsAtDate, {
                             weekday: "short",
@@ -189,7 +189,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-zinc-500">Durata</span>
+                        <span className="text-zinc-500 dark:text-zinc-400">Durata</span>
                         <span>
                           {Math.max(
                             1,
@@ -203,12 +203,10 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <button
-                      type="button"
+                    <Button
                       disabled={!whatsappHref}
                       onClick={() => {
                         if (!whatsappHref) return;
-                        setClickedReminderIds((prev) => (prev.includes(appt.id) ? prev : [...prev, appt.id]));
                         const clickLogUrl = `/api/appointments/${appt.id}/whatsapp-reminder-click`;
                         if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
                           navigator.sendBeacon(clickLogUrl, new Blob(["{}"], { type: "application/json" }));
@@ -222,19 +220,12 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                         }
                         window.location.href = whatsappHref;
                       }}
-                      className={`inline-flex h-9 w-full items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold text-white transition sm:w-auto ${
-                        reminderSent
-                          ? whatsappHref
-                            ? "bg-emerald-700 hover:bg-emerald-600"
-                            : "bg-emerald-700/60 opacity-70"
-                          : whatsappHref
-                            ? "bg-rose-600 hover:bg-rose-500"
-                            : "bg-rose-600/60 opacity-70"
-                      }`}
+                      variant={reminderSent ? "primary" : "destructive"}
+                      className="h-9 w-full gap-2 sm:w-auto"
                     >
                       <Image src="/whatsapp.png" alt="" width={18} height={18} />
                       Promemoria
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -243,27 +234,27 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         );
       })}
       {totalPages > 1 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700">
-          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">
+          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
             Pagina {safeCurrentPage} di {totalPages}
           </span>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
               onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               disabled={safeCurrentPage === 1}
-              className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              variant="outline"
+              size="sm"
             >
               Indietro
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
               disabled={safeCurrentPage === totalPages}
-              className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              variant="outline"
+              size="sm"
             >
               Avanti
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}

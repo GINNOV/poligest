@@ -138,18 +138,18 @@ export default async function AdminErrorsPage({
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Errori</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Registro errori</h1>
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Elenco degli errori applicativi con codice per il supporto.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-950/20 dark:text-rose-300">
             {filtered.length} errori (max 200)
           </span>
           <form action={clearErrors}>
             <button
               type="submit"
-              className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 bg-white px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
             >
               Trash all errors
             </button>
@@ -157,25 +157,25 @@ export default async function AdminErrorsPage({
         </div>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <form className="grid grid-cols-1 gap-3 md:grid-cols-[2fr,1fr,auto]" method="get">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Codice o messaggio
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder="Cerca per codice o testo"
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-rose-500/50 dark:focus:ring-rose-500/10"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Data
             <input
               type="date"
               name="date"
               defaultValue={dateParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-rose-500/50 dark:focus:ring-rose-500/10"
             />
           </label>
           <div className="flex items-end gap-2">
@@ -187,7 +187,7 @@ export default async function AdminErrorsPage({
             </button>
             <Link
               href="/admin/errori"
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-rose-200 hover:text-rose-600"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-800 transition hover:border-rose-200 hover:text-rose-600 dark:border-zinc-800 dark:text-zinc-200 dark:hover:border-rose-500/50 dark:hover:text-rose-400"
             >
               Reset
             </Link>
@@ -196,46 +196,46 @@ export default async function AdminErrorsPage({
 
         <div className="mt-6 space-y-4">
           {filtered.length === 0 ? (
-            <p className="py-4 text-sm text-zinc-600">Nessun errore trovato con i filtri scelti.</p>
+            <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun errore trovato con i filtri scelti.</p>
           ) : (
             filtered.map((entry) => (
-              <div key={entry.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm">
+              <div key={entry.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-zinc-700">Codice: {entry.code}</p>
-                  <p className="text-xs text-zinc-500">{formatDate(entry.createdAt)}</p>
+                  <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Codice: {entry.code}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{formatDate(entry.createdAt)}</p>
                 </div>
-                <p className="mt-2 text-sm font-semibold text-zinc-900">{entry.message}</p>
+                <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{entry.message}</p>
                 {(() => {
                   const { detail, stackLine } = formatDetail(entry);
                   return (
                     <>
                       {detail ? (
-                        <p className="mt-1 text-xs text-rose-700">Dettaglio: {detail}</p>
+                        <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">Dettaglio: {detail}</p>
                       ) : null}
                       {entry.errorName ? (
-                        <p className="mt-1 text-xs text-zinc-600">Tipo: {entry.errorName}</p>
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Tipo: {entry.errorName}</p>
                       ) : null}
                       {entry.errorDigest ? (
-                        <p className="mt-1 text-xs text-zinc-600">Digest: {entry.errorDigest}</p>
+                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Digest: {entry.errorDigest}</p>
                       ) : null}
                       {stackLine ? (
-                        <p className="mt-1 text-xs text-zinc-500">Stack: {stackLine}</p>
+                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Stack: {stackLine}</p>
                       ) : null}
                     </>
                   );
                 })()}
-                <p className="mt-2 text-xs text-zinc-500">
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                   {entry.source ? `Sorgente: ${entry.source}` : "Sorgente: —"}
                   {" · "}
                   {entry.path ? `Percorso: ${entry.path}` : "Percorso: —"}
                 </p>
                 {entry.context ? (
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     Contesto: {formatContext(entry.context)}
                   </p>
                 ) : null}
                 {entry.actor ? (
-                  <p className="mt-1 text-xs text-zinc-500">
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     Utente: {entry.actor}
                     {entry.role ? ` (${entry.role})` : ""}
                   </p>

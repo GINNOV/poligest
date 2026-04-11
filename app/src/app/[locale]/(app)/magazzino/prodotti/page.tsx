@@ -56,14 +56,14 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-zinc-600">Magazzino</p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Magazzino</p>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Materiali &amp; Impianti</h1>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/20">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700 dark:border-emerald-900/40 dark:text-emerald-400">
               +
             </span>
             Registra impianto
@@ -71,21 +71,21 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
           <form action={createProduct} className="mt-3 space-y-3 text-sm">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
                 <input
                   name="name"
                   placeholder="Nome prodotto"
                   required
                   defaultValue="IMPIANTO 2026"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Fornitore</span>
                 <select
                   name="supplierId"
                   required
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 >
                   <option value="" disabled>
                     Seleziona fornitore
@@ -100,64 +100,64 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">SKU</span>
                 <input
                   name="sku"
                   placeholder="SKU"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Marca</span>
                 <input
                   name="brand"
                   placeholder="Marca"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Tipo Prodotto</span>
                 <input
                   name="serviceType"
                   placeholder="es. impianto"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
             </div>
             <div className="grid gap-3 sm:grid-cols-4">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-DI</span>
                 <input
                   name="udiDi"
                   placeholder="UDI-DI"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-PI</span>
                 <input
                   name="udiPi"
                   placeholder="UDI-PI"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Costo unitario</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Costo unitario</span>
                 <input
                   name="unitCost"
                   placeholder="Costo unitario (€)"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   type="number"
                   step="0.01"
                   min="0"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia minima</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Soglia minima</span>
                 <input
                   name="minThreshold"
                   placeholder="Soglia minima"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   type="number"
                   min="0"
                   defaultValue={0}
@@ -166,16 +166,16 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             </div>
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
             >
               Registra impianto
             </button>
           </form>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
+            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700 dark:border-emerald-900/40 dark:text-emerald-400">
               +
             </span>
             Aggiungi prodotto
@@ -183,20 +183,20 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
           <form action={createProduct} className="mt-3 space-y-3 text-sm">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
                 <input
                   name="name"
                   placeholder="Nome prodotto"
                   required
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Fornitore</span>
                 <select
                   name="supplierId"
                   required
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 >
                   <option value="" disabled>
                     Seleziona fornitore
@@ -211,36 +211,36 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">SKU</span>
                 <input
                   name="sku"
                   placeholder="SKU"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Marca</span>
                 <input
                   name="brand"
                   placeholder="Marca"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Tipo Prodotto</span>
                 <input
                   name="serviceType"
                   placeholder="es. impianto"
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase text-zinc-500">Costo unitario</span>
+              <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Costo unitario</span>
               <input
                 name="unitCost"
                 placeholder="Costo unitario (€)"
-                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 type="number"
                 step="0.01"
                 min="0"
@@ -248,7 +248,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             </label>
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
             >
               Aggiungi
             </button>
@@ -267,11 +267,11 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                 name="q"
                 placeholder="Cerca materiali e impianti"
                 defaultValue={query}
-                className="h-9 w-56 rounded-full border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-9 w-56 rounded-full border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
               />
               <button
                 type="submit"
-                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
               >
                 Cerca
               </button>
@@ -282,21 +282,21 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                   ? `/magazzino/prodotti${query ? `?q=${encodeURIComponent(query)}` : ""}`
                   : `/magazzino/prodotti?impianti=1${query ? `&q=${encodeURIComponent(query)}` : ""}`
               }
-              className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-700"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300"
               aria-pressed={showImplants}
             >
-              <span className="text-xs uppercase tracking-wide text-zinc-500">
+              <span className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                 Mostra solo impianti
               </span>
               <span
                 className={`relative inline-flex h-6 w-11 items-center rounded-full border transition ${
                   showImplants
-                    ? "border-emerald-500 bg-emerald-500"
-                    : "border-zinc-300 bg-zinc-200"
+                    ? "border-emerald-500 bg-emerald-500 dark:border-emerald-600 dark:bg-emerald-600"
+                    : "border-zinc-300 bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800"
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition dark:bg-zinc-200 ${
                     showImplants ? "translate-x-5" : "translate-x-1"
                   }`}
                 />
@@ -305,7 +305,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
           </div>
         </div>
         {products.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
             Nessun prodotto presente.
           </div>
         ) : (
@@ -313,26 +313,26 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             <form
               key={product.id}
               action={updateProduct}
-              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[3fr,3fr,auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-[3fr,3fr,auto] sm:items-end"
             >
               <input type="hidden" name="productId" value={product.id} />
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
                   <input
                     name="name"
                     defaultValue={product.name}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                     required
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Fornitore</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Fornitore</span>
                   <select
                     name="supplierId"
                     defaultValue={product.supplierId ?? ""}
                     required
-                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   >
                     <option value="" disabled>
                       Seleziona
@@ -347,59 +347,59 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">SKU</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">SKU</span>
                   <input
                     name="sku"
                     defaultValue={product.sku ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Marca</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Marca</span>
                   <input
                     name="brand"
                     defaultValue={product.brand ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Tipo Prodotto</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Tipo Prodotto</span>
                   <input
                     name="serviceType"
                     defaultValue={product.serviceType ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Soglia</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Soglia</span>
                   <input
                     type="number"
                     name="minThreshold"
                     defaultValue={product.minThreshold ?? 0}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-DI</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-DI</span>
                   <input
                     name="udiDi"
                     defaultValue={product.udiDi ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Codice UDI-PI</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-PI</span>
                   <input
                     name="udiPi"
                     defaultValue={product.udiPi ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
               </div>
               <div className="flex items-center gap-2 pb-1 sm:pb-0">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-950/20"
                 >
                   Aggiorna
                 </button>
@@ -407,7 +407,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                   type="submit"
                   formAction={deleteProduct}
                   data-confirm="Eliminare definitivamente questo prodotto e i movimenti collegati?"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                     <path

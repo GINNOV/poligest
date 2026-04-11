@@ -11,8 +11,27 @@ const mocks = vi.hoisted(() => {
   const put = vi.fn();
   const sharp = vi.fn();
   const prisma = {
+    $transaction: vi.fn(),
     patient: {
       findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    service: {
+      findMany: vi.fn(),
+    },
+    dentalRecord: {
+      findMany: vi.fn(),
+    },
+    quote: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      update: vi.fn(),
+    },
+    quoteItem: {
+      create: vi.fn(),
+      delete: vi.fn(),
       update: vi.fn(),
     },
   };
@@ -81,6 +100,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { resetPhotoAction, updatePatientAction, uploadPhotoAction } from "@/lib/patients/actions";
+import { savePreventivoAction } from "@/lib/patients/actions";
 
 describe("patient actions", () => {
   beforeEach(() => {
@@ -98,6 +118,17 @@ describe("patient actions", () => {
     mocks.isSystemAvatar.mockReturnValue(false);
     mocks.prisma.patient.findUnique.mockResolvedValue(null);
     mocks.prisma.patient.update.mockResolvedValue(undefined);
+    mocks.prisma.service.findMany.mockResolvedValue([]);
+    mocks.prisma.dentalRecord.findMany.mockResolvedValue([]);
+    mocks.prisma.quote.create.mockResolvedValue({ id: "quote-created" });
+    mocks.prisma.quote.findFirst.mockResolvedValue(null);
+    mocks.prisma.quote.findUnique.mockResolvedValue(null);
+    mocks.prisma.quote.findUniqueOrThrow.mockResolvedValue({ id: "quote-created" });
+    mocks.prisma.quote.update.mockResolvedValue(undefined);
+    mocks.prisma.quoteItem.create.mockResolvedValue(undefined);
+    mocks.prisma.quoteItem.delete.mockResolvedValue(undefined);
+    mocks.prisma.quoteItem.update.mockResolvedValue(undefined);
+    mocks.prisma.$transaction.mockImplementation(async (callback: (tx: typeof mocks.prisma) => unknown) => callback(mocks.prisma));
 
     const toBuffer = vi.fn().mockResolvedValue(Buffer.from("resized-image"));
     const jpeg = vi.fn(() => ({ toBuffer }));
@@ -202,5 +233,245 @@ describe("patient actions", () => {
     expect(mocks.revalidatePath).toHaveBeenNthCalledWith(1, "/pazienti/patient-1");
     expect(mocks.revalidatePath).toHaveBeenNthCalledWith(2, "/pazienti");
     expect(mocks.redirect).toHaveBeenCalledWith("/pazienti/patient-1?openContact=1");
+  });
+
+  it("adds treated dental procedures when creating a quote after the mouth view was already updated", async () => {
+    mocks.prisma.service.findMany.mockResolvedValue([{ id: "service-manual", name: "Prima visita" }]);
+    mocks.prisma.quote.create.mockResolvedValue({ id: "quote-created" });
+    mocks.prisma.quote.findFirst
+      .mockResolvedValueOnce({
+        id: "quote-created",
+        patientId: "patient-1",
+        items: [],
+      })
+      .mockResolvedValueOnce({
+        id: "quote-created",
+        patientId: "patient-1",
+        items: [
+          {
+            id: "qi-auto",
+            dentalRecordId: "record-1",
+            serviceId: "service-auto",
+            serviceName: "Otturazione",
+            quantity: 1,
+            price: { toString: () => "80.00" },
+            total: { toString: () => "80.00" },
+            saldato: false,
+            payments: [],
+          },
+          {
+            id: "qi-manual",
+            dentalRecordId: null,
+            serviceId: "service-manual",
+            serviceName: "Prima visita",
+            quantity: 1,
+            price: { toString: () => "120.00" },
+            total: { toString: () => "120.00" },
+            saldato: false,
+            payments: [],
+          },
+        ],
+      });
+    mocks.prisma.quote.findUnique.mockResolvedValue({
+      id: "quote-created",
+      items: [
+        {
+          id: "qi-manual",
+          serviceId: "service-manual",
+          serviceName: "Prima visita",
+          serviceDate: new Date("2026-04-10T12:00:00.000Z"),
+          quantity: 1,
+          price: { toString: () => "120.00" },
+          total: { toString: () => "120.00" },
+        },
+        {
+          id: "qi-auto",
+          serviceId: "service-auto",
+          serviceName: "Otturazione",
+          serviceDate: new Date("2026-04-10T10:00:00.000Z"),
+          quantity: 1,
+          price: { toString: () => "80.00" },
+          total: { toString: () => "80.00" },
+        },
+      ],
+    });
+    mocks.prisma.dentalRecord.findMany.mockResolvedValue([{ id: "record-1" }]);
+    mocks.prisma.dentalRecord.findFirst = vi.fn().mockResolvedValue({
+      id: "record-1",
+      treated: true,
+      procedure: "Otturazione",
+      performedAt: new Date("2026-04-10T10:00:00.000Z"),
+    });
+    mocks.prisma.service.findFirst = vi.fn().mockResolvedValue({
+      id: "service-auto",
+      name: "Otturazione",
+      costBasis: { toString: () => "80.00" },
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("itemsJson", JSON.stringify([
+      {
+        serviceId: "service-manual",
+        serviceDate: "2026-04-10",
+        quantity: 1,
+        price: 120,
+      },
+    ]));
+    formData.set("existingQuoteSignatureUrl", "https://blob.test/signature.png");
+
+    const result = await savePreventivoAction({ savedAt: 0 }, formData);
+
+    expect(result.savedAt).toEqual(expect.any(Number));
+    expect(mocks.prisma.quoteItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        quoteId: "quote-created",
+        dentalRecordId: "record-1",
+        serviceId: "service-auto",
+        serviceName: "Otturazione",
+      }),
+    });
+    expect(mocks.prisma.quote.findUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: "quote-created" },
+    });
+  });
+
+  it("re-adds treated dental procedures when an older accounting form saves a stale quote", async () => {
+    mocks.prisma.service.findMany.mockResolvedValue([{ id: "service-manual", name: "Prima visita" }]);
+    mocks.prisma.quote.findFirst
+      .mockResolvedValueOnce({
+        id: "quote-1",
+        patientId: "patient-1",
+        items: [
+          {
+            id: "qi-manual",
+            dentalRecordId: null,
+            serviceId: "service-manual",
+            serviceName: "Prima visita",
+            quantity: 1,
+            price: { toString: () => "120.00" },
+            total: { toString: () => "120.00" },
+            saldato: false,
+          },
+          {
+            id: "qi-linked",
+            dentalRecordId: "record-1",
+            serviceId: "service-auto",
+            serviceName: "Otturazione",
+            quantity: 1,
+            price: { toString: () => "80.00" },
+            total: { toString: () => "80.00" },
+            saldato: false,
+            payments: [],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: "quote-1",
+        patientId: "patient-1",
+        items: [
+          {
+            id: "qi-manual",
+            dentalRecordId: null,
+            serviceId: "service-manual",
+            serviceName: "Prima visita",
+            quantity: 1,
+            price: { toString: () => "120.00" },
+            total: { toString: () => "120.00" },
+            saldato: false,
+            payments: [],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        id: "quote-1",
+        patientId: "patient-1",
+        items: [
+          {
+            id: "qi-manual",
+            dentalRecordId: null,
+            serviceId: "service-manual",
+            serviceName: "Prima visita",
+            quantity: 1,
+            price: { toString: () => "120.00" },
+            total: { toString: () => "120.00" },
+            saldato: false,
+            payments: [],
+          },
+          {
+            id: "qi-recreated",
+            dentalRecordId: "record-1",
+            serviceId: "service-auto",
+            serviceName: "Otturazione",
+            quantity: 1,
+            price: { toString: () => "80.00" },
+            total: { toString: () => "80.00" },
+            saldato: false,
+            payments: [],
+          },
+        ],
+      });
+    mocks.prisma.dentalRecord.findMany.mockResolvedValue([{ id: "record-1" }]);
+    mocks.prisma.quote.findUnique.mockResolvedValue({
+      id: "quote-1",
+      items: [
+        {
+          id: "qi-manual",
+          serviceId: "service-manual",
+          serviceName: "Prima visita",
+          serviceDate: new Date("2026-04-10T12:00:00.000Z"),
+          quantity: 1,
+          price: { toString: () => "120.00" },
+          total: { toString: () => "120.00" },
+        },
+        {
+          id: "qi-recreated",
+          serviceId: "service-auto",
+          serviceName: "Otturazione",
+          serviceDate: new Date("2026-04-10T10:00:00.000Z"),
+          quantity: 1,
+          price: { toString: () => "80.00" },
+          total: { toString: () => "80.00" },
+        },
+      ],
+    });
+    mocks.prisma.dentalRecord.findFirst = vi.fn().mockResolvedValue({
+      id: "record-1",
+      treated: true,
+      procedure: "Otturazione",
+      performedAt: new Date("2026-04-10T10:00:00.000Z"),
+    });
+    mocks.prisma.service.findFirst = vi.fn().mockResolvedValue({
+      id: "service-auto",
+      name: "Otturazione",
+      costBasis: { toString: () => "80.00" },
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("itemsJson", JSON.stringify([
+      {
+        id: "qi-manual",
+        serviceId: "service-manual",
+        serviceDate: "2026-04-10",
+        quantity: 1,
+        price: 120,
+      },
+    ]));
+    formData.set("existingQuoteSignatureUrl", "https://blob.test/signature.png");
+
+    const result = await savePreventivoAction({ savedAt: 0 }, formData);
+
+    expect(result.savedAt).toEqual(expect.any(Number));
+    expect(mocks.prisma.quoteItem.delete).toHaveBeenCalledTimes(1);
+    expect(mocks.prisma.dentalRecord.findMany).toHaveBeenCalledWith({
+      where: { patientId: "patient-1", treated: true },
+      select: { id: true },
+      orderBy: [{ performedAt: "asc" }, { id: "asc" }],
+    });
+    expect(
+      mocks.prisma.quoteItem.create.mock.calls.length + mocks.prisma.quoteItem.update.mock.calls.length
+    ).toBeGreaterThan(0);
   });
 });

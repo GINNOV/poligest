@@ -132,10 +132,10 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             const moduleState = moduleStates[module.id] ?? getDefaultModuleState();
             const isSigned = Boolean(moduleState.signatureData);
             const statusClass = isSigned
-              ? "border-sky-300 bg-sky-50 text-sky-800"
+              ? "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
               : module.required
-                ? "border-rose-300 bg-rose-50 text-rose-800"
-                : "border-amber-300 bg-amber-50 text-amber-800";
+                ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200";
             return (
               <button
                 key={module.id}
@@ -151,14 +151,14 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
           })}
         </div>
         {!selectedModule ? (
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Seleziona un consenso per attivare le opzioni sottostanti.
           </p>
         ) : null}
       </div>
 
       {canEdit ? (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:p-5 dark:border-emerald-900 dark:bg-emerald-950/30">
           <PatientConsentSection
             key={selectedModuleId || "consent-empty"}
             content={selectedModule?.content ?? ""}
@@ -186,7 +186,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
 
       {canEdit ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 font-medium text-zinc-800 dark:text-zinc-200">
             Consenso ottenuto via...
             <select
               name="consentChannel"
@@ -196,14 +196,14 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
                 if (!selectedModuleId) return;
                 updateModuleState(selectedModuleId, { channel: event.target.value });
               }}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             >
               {CHANNELS.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 font-medium text-zinc-800 dark:text-zinc-200">
             Scadenza (opzionale)
             <input
               type="date"
@@ -214,7 +214,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
                 if (!selectedModuleId) return;
                 updateModuleState(selectedModuleId, { expiresAt: event.target.value });
               }}
-              className="h-10 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             />
           </label>
         </div>

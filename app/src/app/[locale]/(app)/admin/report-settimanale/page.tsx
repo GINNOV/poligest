@@ -1,10 +1,17 @@
 import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getOptionalPrismaModel, isMissingPrismaModelError, runOptionalPrismaQuery } from "@/lib/prisma-models";
 import { logAudit } from "@/lib/audit";
-import { FormSubmitButton } from "@/components/form-submit-button";
-import { ConfirmButton } from "@/components/confirm-button";
-import { REPORT_CONFIG_ID, getCompletedPracticeWeekPeriod, parseRecipientEmails, sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
+import { Button } from "@/components/ui/button";
+import {
+  REPORT_CONFIG_ID,
+  addPracticeDays,
+  createPracticeWeeklyReportPeriod,
+  getCompletedPracticeWeekPeriod,
+  parseRecipientEmails,
+  sendPracticeWeeklyReport,
+} from "@/lib/practice-weekly-report";
 import { Role } from "@prisma/client";
 
 const formatDateTime = (value: Date | null) =>
@@ -117,218 +124,271 @@ async function clearWeeklyReportHistory() {
 }
 
 export default async function AdminWeeklyReportPage() {
-  await requireUser([Role.ADMIN]);
-  const configClient = getOptionalPrismaModel<{
-    findUnique?: (args: { where: { id: string } }) => Promise<{
-      enabled: boolean;
-      recipientEmails: string;
-    } | null>;
-  }>("practiceWeeklyReportConfig");
-  const logClient = getOptionalPrismaModel<{
-    findMany?: (args: {
-      orderBy: { createdAt: "asc" | "desc" };
-      take: number;
-    }) => Promise<Array<{
-      id: string;
-      periodStart: Date;
-      periodEnd: Date;
-      status: string;
-      trigger: string;
-      recipientCount: number;
-      sentAt: Date | null;
-      error: string | null;
-      createdAt: Date;
-    }>>;
-  }>("practiceWeeklyReportLog");
+  try {
+    await requireUser([Role.ADMIN]);
+    const configClient = getOptionalPrismaModel<{
+      findUnique?: (args: { where: { id: string } }) => Promise<{
+        enabled: boolean;
+        recipientEmails: string;
+      } | null>;
+    }>("practiceWeeklyReportConfig");
+    const logClient = getOptionalPrismaModel<{
+      findMany?: (args: {
+        orderBy: { createdAt: "asc" | "desc" };
+        take: number;
+      }) => Promise<Array<{
+        id: string;
+        periodStart: Date;
+        periodEnd: Date;
+        status: string;
+        trigger: string;
+        recipientCount: number;
+        sentAt: Date | null;
+        error: string | null;
+        createdAt: Date;
+      }>>;
+    }>("practiceWeeklyReportLog");
 
-  const [configResult, logResult] = await Promise.all([
-    runOptionalPrismaQuery(
-      configClient?.findUnique ? () => configClient.findUnique!({ where: { id: REPORT_CONFIG_ID } }) : undefined,
-      null,
-    ),
-    runOptionalPrismaQuery(
-      logClient?.findMany
-        ? () =>
-            logClient.findMany!({
-              orderBy: { createdAt: "desc" },
-              take: 8,
-            })
-        : undefined,
-      [],
-    ),
-  ]);
-  const config = configResult.value;
-  const recentLogs = logResult.value;
-  const weeklyReportAvailable = configResult.available && logResult.available;
+    const [configResult, logResult] = await Promise.all([
+      runOptionalPrismaQuery(
+        configClient?.findUnique ? () => configClient.findUnique!({ where: { id: REPORT_CONFIG_ID } }) : undefined,
+        null,
+      ),
+      runOptionalPrismaQuery(
+        logClient?.findMany
+          ? () =>
+              logClient.findMany!({
+                orderBy: { createdAt: "desc" },
+                take: 8,
+              })
+          : undefined,
+        [],
+      ),
+    ]);
+    const config = configResult.value;
+    const recentLogs = logResult.value;
+    const weeklyReportAvailable = configResult.available && logResult.available;
 
-  const recipients = parseRecipientEmails(config?.recipientEmails ?? "");
-  const nextPeriod = getCompletedPracticeWeekPeriod();
+    const recipients = parseRecipientEmails(config?.recipientEmails ?? "");
+    let nextPeriod = getCompletedPracticeWeekPeriod();
 
-  return (
-    <div className="space-y-6">
-      <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-          Reportistica automatica
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-900">Report settimanale studio</h1>
-        <p className="mt-3 text-sm text-zinc-600">
-          Ogni report riepiloga visite completate per medico, promemoria inviati, nuovi pazienti,
-          incassi registrati e altri indicatori utili a mostrare il valore operativo dell&apos;app.
-        </p>
-      </div>
+    const isAlreadySent = recentLogs.some(
+      (log) => log.status === "SENT" && log.periodStart && log.periodStart.toISOString() === nextPeriod.start.toISOString(),
+    );
 
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-zinc-900">Configurazione destinatari</p>
-              <p className="text-xs text-zinc-600">
-                Inserisci una o piu email, separate da virgola o una per riga.
-              </p>
-            </div>
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                config?.enabled ? "bg-emerald-50 text-emerald-800" : "bg-zinc-100 text-zinc-700"
-              }`}
-            >
-              {config?.enabled ? "Attivo" : "Disattivo"}
-            </span>
-          </div>
+    if (isAlreadySent) {
+      nextPeriod = createPracticeWeeklyReportPeriod(
+        addPracticeDays(nextPeriod.start, 7),
+        addPracticeDays(nextPeriod.endExclusive, 7),
+      );
+    }
 
-          <form action={saveWeeklyReportConfig} className="mt-5 space-y-4">
-            <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-800">
-              <input
-                type="checkbox"
-                name="enabled"
-                defaultChecked={config?.enabled ?? false}
-                className="h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500"
-              />
-              Abilita l&apos;invio automatico del report settimanale
-            </label>
+    const nextPreviewHref = `/admin/report-settimanale/preview?start=${encodeURIComponent(nextPeriod.start.toISOString())}&endExclusive=${encodeURIComponent(nextPeriod.endExclusive.toISOString())}`;
 
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-              Lista email
-              <textarea
-                name="recipientEmails"
-                defaultValue={config?.recipientEmails ?? ""}
-                rows={8}
-                className="rounded-2xl border border-zinc-200 px-4 py-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                placeholder={"studio@example.com\nmanager@example.com"}
-              />
-            </label>
-
-            <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
-              Destinatari validi rilevati: <span className="font-semibold text-zinc-900">{recipients.length}</span>
-            </div>
-
-            <FormSubmitButton
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={!weeklyReportAvailable}
-            >
-              Salva configurazione
-            </FormSubmitButton>
-          </form>
-          {!weeklyReportAvailable ? (
-            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Il modulo report settimanale non è disponibile nel server attivo.
-            </p>
-          ) : null}
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
+          <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            Reportistica automatica
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">Report settimanale studio</h1>
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+            Ogni report riepiloga visite completate per medico, promemoria inviati, nuovi pazienti,
+            incassi registrati e altri indicatori utili a mostrare il valore operativo dell&apos;app.
+          </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-900">Invio manuale</p>
-            <p className="mt-2 text-sm text-zinc-600">
-              Il prossimo invio copre il periodo <span className="font-semibold text-zinc-900">{nextPeriod.label}</span>.
-            </p>
-            <form action={sendWeeklyReportNow} className="mt-4">
-              <FormSubmitButton
-                className="inline-flex h-10 items-center justify-center rounded-full bg-zinc-900 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="pg-card-base">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Configurazione destinatari</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  Inserisci una o piu email, separate da virgola o una per riga.
+                </p>
+              </div>
+              <span
+                className={`pg-badge-base ${config?.enabled ? "pg-badge-emerald" : "pg-badge-zinc"}`}
+              >
+                {config?.enabled ? "Attivo" : "Disattivo"}
+              </span>
+            </div>
+
+            <form action={saveWeeklyReportConfig} className="mt-5 space-y-4">
+              <label className="pg-card-flat flex items-center gap-3 px-4 py-3 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  name="enabled"
+                  defaultChecked={config?.enabled ?? false}
+                  className="h-4 w-4 rounded border-zinc-300 text-emerald-700 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-900"
+                />
+                Abilita l&apos;invio automatico del report settimanale
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium">
+                Lista email
+                <textarea
+                  name="recipientEmails"
+                  defaultValue={config?.recipientEmails ?? ""}
+                  rows={8}
+                  className="input-base"
+                  placeholder={"studio@example.com\nmanager@example.com"}
+                />
+              </label>
+
+              <div className="pg-card-flat px-4 py-3 text-xs">
+                Destinatari validi rilevati: <span className="font-semibold">{recipients.length}</span>
+              </div>
+
+              <Button
+                type="submit"
                 disabled={!weeklyReportAvailable}
               >
-                Invia adesso il report
-              </FormSubmitButton>
+                Salva configurazione
+              </Button>
             </form>
-            <p className="mt-3 text-xs text-zinc-500">
-              L&apos;invio manuale forza un nuovo invio anche se il report della stessa settimana e gia stato spedito.
-            </p>
+            {!weeklyReportAvailable ? (
+              <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                Il modulo report settimanale non è disponibile nel server attivo.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-4">
+            <div className="pg-card-base">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Invio manuale</p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                Il prossimo invio copre il periodo <span className="font-semibold text-zinc-900 dark:text-zinc-50">{nextPeriod.label}</span>.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <Button asChild variant="secondary" disabled={!weeklyReportAvailable}><Link
+                    href={nextPreviewHref}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Anteprima report
+                  </Link></Button>
+                <form action={sendWeeklyReportNow}>
+                  <Button
+                    variant="black"
+                    type="submit"
+                    disabled={!weeklyReportAvailable}
+                  >
+                    Invia adesso il report
+                  </Button>
+                </form>
+              </div>
+              <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                L&apos;invio manuale forza un nuovo invio anche se il report della stessa settimana e gia stato spedito.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-zinc-900">Storico invii</p>
-            <p className="text-xs text-zinc-600">Ultimi tentativi registrati dal sistema.</p>
+        <div className="pg-card-base">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Storico invii</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Ultimi tentativi registrati dal sistema.</p>
+            </div>
+            {recentLogs.length > 0 && (
+              <form action={clearWeeklyReportHistory}>
+                <Button
+                  variant="destructive-outline"
+                  type="submit"
+                  size="sm"
+                >
+                  Azzera storico
+                </Button>
+              </form>
+            )}
           </div>
-          {recentLogs.length > 0 && (
-            <ConfirmButton
-              action={clearWeeklyReportHistory}
-              confirmMessage="Sei sicuro di voler azzerare lo storico degli invii? Questa azione non può essere annullata."
-              className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-200 hover:bg-rose-50"
-            >
-              Azzera storico
-            </ConfirmButton>
+
+          {recentLogs.length === 0 ? (
+            <p className="mt-4 rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              Nessun invio registrato.
+            </p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    <th className="px-3 py-2 font-semibold">Periodo</th>
+                    <th className="px-3 py-2 font-semibold">Stato</th>
+                    <th className="px-3 py-2 font-semibold">Trigger</th>
+                    <th className="px-3 py-2 font-semibold">Destinatari</th>
+                    <th className="px-3 py-2 font-semibold">Inviato</th>
+                    <th className="px-3 py-2 font-semibold">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900/50">
+                  {recentLogs.map((log) => {
+                    const previewHref = `/admin/report-settimanale/preview?start=${encodeURIComponent(log.periodStart.toISOString())}&endExclusive=${encodeURIComponent(log.periodEnd.toISOString())}`;
+
+                    return (
+                      <tr key={log.id}>
+                        <td className="px-3 py-3 text-zinc-700 dark:text-zinc-300">
+                          {new Intl.DateTimeFormat("it-IT", {
+                            dateStyle: "medium",
+                            timeZone: "Europe/Rome",
+                          }).format(log.periodStart)}{" "}
+                          -{" "}
+                          {new Intl.DateTimeFormat("it-IT", {
+                            dateStyle: "medium",
+                            timeZone: "Europe/Rome",
+                          }).format(new Date(log.periodEnd.getTime() - 1000))}
+                        </td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={`pg-badge-base ${
+                              log.status === "SENT"
+                                ? "pg-badge-emerald"
+                                : log.status === "FAILED"
+                                  ? "pg-badge-rose"
+                                  : "pg-badge-zinc"
+                            }`}
+                          >
+                            {log.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-zinc-700 dark:text-zinc-300">{log.trigger}</td>
+                        <td className="px-3 py-3 text-zinc-700 dark:text-zinc-300">{log.recipientCount}</td>
+                        <td className="px-3 py-3 text-zinc-700 dark:text-zinc-300">
+                          {formatDateTime(log.sentAt)}
+                          {log.error ? <p className="mt-1 text-xs text-rose-700 dark:text-rose-400">{log.error}</p> : null}
+                        </td>
+                        <td className="px-3 py-3">
+                          <Button asChild variant="secondary" size="xs"><Link
+                              href={previewHref}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Anteprima
+                            </Link></Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-
-        {recentLogs.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-500">
-            Nessun invio registrato.
-          </p>
-        ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-zinc-500">
-                  <th className="px-3 py-2 font-semibold">Periodo</th>
-                  <th className="px-3 py-2 font-semibold">Stato</th>
-                  <th className="px-3 py-2 font-semibold">Trigger</th>
-                  <th className="px-3 py-2 font-semibold">Destinatari</th>
-                  <th className="px-3 py-2 font-semibold">Inviato</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {recentLogs.map((log) => (
-                  <tr key={log.id}>
-                    <td className="px-3 py-3 text-zinc-700">
-                      {new Intl.DateTimeFormat("it-IT", {
-                        dateStyle: "medium",
-                        timeZone: "Europe/Rome",
-                      }).format(log.periodStart)}{" "}
-                      -{" "}
-                      {new Intl.DateTimeFormat("it-IT", {
-                        dateStyle: "medium",
-                        timeZone: "Europe/Rome",
-                      }).format(new Date(log.periodEnd.getTime() - 1000))}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          log.status === "SENT"
-                            ? "bg-emerald-50 text-emerald-800"
-                            : log.status === "FAILED"
-                              ? "bg-rose-50 text-rose-800"
-                              : "bg-zinc-100 text-zinc-700"
-                        }`}
-                      >
-                        {log.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-zinc-700">{log.trigger}</td>
-                    <td className="px-3 py-3 text-zinc-700">{log.recipientCount}</td>
-                    <td className="px-3 py-3 text-zinc-700">
-                      {formatDateTime(log.sentAt)}
-                      {log.error ? <p className="mt-1 text-xs text-rose-700">{log.error}</p> : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("Error in AdminWeeklyReportPage:", error);
+    return (
+      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-200">
+        <h2 className="text-lg font-semibold">Si è verificato un errore nel caricamento del report settimanale</h2>
+        <p className="mt-2 text-sm italic opacity-80">
+          {error instanceof Error ? error.message : "Errore interno del server"}
+        </p>
+        <div className="mt-6">
+          <Button asChild variant="outline"><Link href="/admin">Torna alla dashboard</Link></Button>
+        </div>
+      </div>
+    );
+  }
 }
+

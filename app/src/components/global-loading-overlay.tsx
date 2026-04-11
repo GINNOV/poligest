@@ -162,7 +162,6 @@ export function GlobalLoadingOverlay() {
           (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
         "GET";
       const methodUpper = method.toUpperCase();
-      const isServerActionRequest = requestHeaders.has("next-action");
       const isErrorReport = requestUrl.includes("/api/errors/report");
       const shouldTrackRequest =
         !isErrorReport &&
@@ -179,11 +178,8 @@ export function GlobalLoadingOverlay() {
       try {
         const response = await originalFetch(...args);
         const shouldNotify = hadFreshInteraction(5000);
-        if (isServerActionRequest && response.ok && shouldNotify) {
-          emitToast("Salvato con successo", "success");
-        }
-        const isRedirectAfterPost = response.status === 303 && response.headers.has("location");
-        if (!response.ok && !isRedirectAfterPost && shouldNotify) {
+        const isRedirect = response.status >= 300 && response.status < 400;
+        if (!response.ok && !isRedirect && shouldNotify) {
           let errorCode = response.headers.get("x-error-code");
           if (!errorCode) {
             try {
@@ -266,17 +262,17 @@ export function GlobalLoadingOverlay() {
       }`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/40 via-emerald-800/15 to-amber-200/30 backdrop-blur-[2px]" />
-      <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-white/20 bg-white/70 px-7 py-6 text-center shadow-2xl backdrop-blur-xl">
+      <div className="relative flex flex-col items-center gap-3 rounded-2xl border border-white/20 bg-white/70 px-7 py-6 text-center shadow-2xl backdrop-blur-xl dark:border-zinc-700/60 dark:bg-zinc-950/80">
         <div className="relative flex h-12 w-12 items-center justify-center">
           <span className="absolute inset-0 animate-spin rounded-full border-4 border-emerald-200/70 border-t-emerald-600" />
           <span className="absolute inset-[6px] animate-[spin_1.6s_linear_infinite] rounded-full border-2 border-emerald-500/30 border-t-emerald-500" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-zinc-900">Operazione in corso</p>
-          <p className="text-xs text-zinc-600">Stiamo aggiornando i dati. Attendi qualche secondo.</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Operazione in corso</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-300">Stiamo aggiornando i dati. Attendi qualche secondo.</p>
         </div>
-        <div className="h-1.5 w-40 overflow-hidden rounded-full bg-emerald-100">
+        <div className="h-1.5 w-40 overflow-hidden rounded-full bg-emerald-100 dark:bg-emerald-950/40">
           <div className="h-full w-2/3 animate-pulse rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-300" />
         </div>
       </div>

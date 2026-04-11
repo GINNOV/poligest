@@ -67,25 +67,25 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
         type="button"
         onClick={() => setShowConfirm(true)}
         disabled={isSubmitting}
-        className="rounded-full border border-rose-200 px-4 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70"
+        className="rounded-full border border-rose-200 px-4 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
       >
         Elimina
       </button>
       {showConfirm ? (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
-        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-          <div className="mb-3 text-center text-lg font-semibold text-rose-700">Conferma azione</div>
-          <p className="text-sm text-zinc-700">
+        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950">
+          <div className="mb-3 text-center text-lg font-semibold text-rose-700 dark:text-rose-400">Conferma azione</div>
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">
             Confermi l&apos;eliminazione definitiva del paziente e di tutti i dati collegati?
           </p>
-          <label className="mt-4 flex flex-col gap-2 text-left text-sm font-medium text-zinc-800">
+          <label className="mt-4 flex flex-col gap-2 text-left text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Digita <span className="font-semibold">{DELETE_CONFIRMATION_TEXT}</span> per continuare
             <input
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
               placeholder={DELETE_CONFIRMATION_TEXT}
               autoComplete="off"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-zinc-800"
             />
           </label>
           <div className="mt-5 flex items-center justify-center gap-3">
@@ -93,7 +93,7 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
               type="button"
               onClick={close}
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
             >
               Annulla
             </button>
@@ -101,7 +101,7 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
               type="button"
               onClick={onDelete}
               disabled={isSubmitting || confirmation.trim() !== DELETE_CONFIRMATION_TEXT}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-80"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-80 dark:focus:ring-rose-900"
             >
               {isSubmitting ? (
                 <span
@@ -121,7 +121,7 @@ export function PatientDeleteButton({ patientId }: { patientId: string }) {
           aria-live="polite"
           aria-busy="true"
         >
-          <div className="rounded-2xl bg-white px-5 py-4 text-sm font-semibold text-zinc-700 shadow-xl">
+          <div className="rounded-2xl bg-white px-5 py-4 text-sm font-semibold text-zinc-700 shadow-xl dark:bg-zinc-950 dark:text-zinc-200">
             Eliminazione in corso...
           </div>
         </div>

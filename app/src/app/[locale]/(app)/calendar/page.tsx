@@ -743,7 +743,7 @@ export default async function CalendarPage({
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
             Calendario medici
           </h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Seleziona un medico o tutto lo staff per vedere la pianificazione del periodo selezionato.
           </p>
         </div>
@@ -759,8 +759,8 @@ export default async function CalendarPage({
               href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                 view === "month"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
               }`}
             >
               Vista mese
@@ -769,8 +769,8 @@ export default async function CalendarPage({
               href={buildCalendarLink({ view: "week", week: weekKey })}
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
                 view === "week"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
               }`}
             >
               Vista settimana
@@ -780,11 +780,11 @@ export default async function CalendarPage({
       </div>
 
       {doctors.length === 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
           Nessun medico registrato. Aggiungi un medico per usare il calendario.
         </div>
       ) : (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 capitalize">
@@ -806,29 +806,29 @@ export default async function CalendarPage({
                 )}
               </h2>
               {view === "week" && showAllDoctors ? (
-                <p className="mt-1 text-xs text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                   Per vedere gli slot liberi in modo chiaro, seleziona un medico specifico.
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               {view === "month" ? (
                 <>
                   <Link
                     href={buildCalendarLink({ view: "month", month: prevMonth })}
-                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
                   >
                     ← Mese precedente
                   </Link>
                   <Link
                     href={buildCalendarLink({ view: "month", month: currentMonthKey })}
-                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
                   >
                     Mese corrente
                   </Link>
                   <Link
                     href={buildCalendarLink({ view: "month", month: nextMonth })}
-                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
                   >
                     Mese successivo →
                   </Link>
@@ -837,25 +837,25 @@ export default async function CalendarPage({
                 <>
                   <Link
                     href={buildCalendarLink({ view: "week", week: prevWeekKey })}
-                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
                   >
                     ← Settimana precedente
                   </Link>
                   <Link
                     href={buildCalendarLink({ view: "week", week: format(new Date(), "yyyy-MM-dd") })}
-                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100"
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
                   >
                     Settimana corrente
                   </Link>
                   <Link
                     href={buildCalendarLink({ view: "week", week: nextWeekKey })}
-                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700"
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
                   >
                     Settimana successiva →
                   </Link>
                 </>
               )}
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 {appointments.length} appuntamenti
               </span>
             </div>

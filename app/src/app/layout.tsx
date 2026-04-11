@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
+import { getThemeInitScript } from "@/lib/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,25 +39,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <head />
+      <head>
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: getThemeInitScript(),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-50`}
       >
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-              } catch (_) {}
-            `,
-          }}
-        />
         {children}
       </body>
     </html>

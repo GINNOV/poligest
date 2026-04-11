@@ -94,10 +94,10 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
     <div className="space-y-6">
       <PlaceholderGuide placeholders={placeholderCatalog} />
 
-      <form onSubmit={handleSave} className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <form onSubmit={handleSave} className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Editor</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Editor</p>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{template.title ?? template.name}</h2>
           </div>
           <button
@@ -109,33 +109,33 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
           </button>
         </div>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Oggetto
           <input
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           />
         </label>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Corpo (Markdown semplice)
           <textarea
             ref={bodyRef}
             value={body}
             onChange={(event) => setBody(event.target.value)}
             rows={12}
-            className="rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           />
         </label>
 
         <div className="grid gap-3 md:grid-cols-[1fr,1fr]">
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Colore bottone
             <input
               value={buttonColor}
               onChange={(event) => setButtonColor(event.target.value)}
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             />
           </label>
           <div className="flex flex-wrap items-end gap-2">
@@ -144,7 +144,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
                 key={placeholder.key}
                 type="button"
                 onClick={() => handleInsert(placeholder.key)}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               >
                 {`{{${placeholder.key}}}`}
               </button>
@@ -152,34 +152,34 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Test invio</p>
+        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Test invio</p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
             <input
               value={testEmail}
               onChange={(event) => setTestEmail(event.target.value)}
               placeholder="email@esempio.com"
-              className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             />
             <button
               type="button"
               disabled={isSending}
               onClick={handleSendTest}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200 px-4 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-emerald-800 dark:text-emerald-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40"
             >
               {isSending ? "Invio..." : "Invia test"}
             </button>
           </div>
-          {status ? <p className="mt-2 text-sm text-zinc-600">{status}</p> : null}
+          {status ? <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{status}</p> : null}
         </div>
       </form>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-5 py-4">
+      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Anteprima live</h3>
         </div>
         <div className="p-4">
-          <iframe title="Preview" className="h-[520px] w-full rounded-xl border border-zinc-200" srcDoc={previewHtml} />
+          <iframe title="Preview" className="h-[520px] w-full rounded-xl border border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950" srcDoc={previewHtml} />
         </div>
       </div>
     </div>

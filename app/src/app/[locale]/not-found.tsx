@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
@@ -31,19 +32,9 @@ export default function NotFound() {
             Verifica l&apos;indirizzo o utilizza i pulsanti sotto per continuare.
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/"
-            className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-          >
-            Torna alla home
-          </Link>
-          <Link
-            href="/contatti"
-            className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-          >
-            Contatta il centro
-          </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+          <Button asChild variant="primary" className="rounded-full"><Link href="/">Torna alla home</Link></Button>
+          <Button asChild variant="outline" className="rounded-full border-zinc-200"><Link href="/contatti">Contatta il centro</Link></Button>
         </div>
       </main>
     </div>

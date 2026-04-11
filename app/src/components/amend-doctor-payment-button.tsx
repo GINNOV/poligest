@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 type Payment = {
   id: string;
@@ -48,13 +49,15 @@ export function AmendDoctorPaymentButton({ payment, action }: Props) {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center justify-center rounded-full border border-amber-200 px-3 text-xs font-semibold text-amber-700 transition hover:border-amber-300 hover:bg-amber-50"
+        className="px-3 font-semibold"
       >
         Ammenda
-      </button>
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
@@ -122,21 +125,23 @@ export function AmendDoctorPaymentButton({ payment, action }: Props) {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setOpen(false)}
                   disabled={issubmitting}
-                  className="rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                  className="px-4 py-2 text-xs font-semibold"
                 >
                   Annulla
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={issubmitting}
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-70 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                  loading={issubmitting}
+                  loadingLabel="Salvataggio..."
+                  className="h-10 px-5 text-sm font-semibold"
                 >
-                  {issubmitting ? "Salvataggio..." : "Salva correzione"}
-                </button>
+                  Salva correzione
+                </Button>
               </div>
             </form>
           </div>

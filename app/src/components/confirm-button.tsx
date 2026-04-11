@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 type Props = {
   action: (formData: FormData) => Promise<void>;
@@ -11,7 +11,8 @@ type Props = {
   cancelText?: string;
   children: React.ReactNode;
   className?: string;
-  variant?: "danger" | "warning" | "default";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "black" | "destructive" | "destructive-outline";
+  size?: "default" | "sm" | "xs" | "lg";
   formId?: string;
   name?: string;
   value?: string;
@@ -26,6 +27,8 @@ export function ConfirmButton({
   confirmMessage = "Sei sicuro di voler procedere?",
   children,
   className,
+  variant = "primary",
+  size,
   name,
   value,
 }: Props) {
@@ -49,13 +52,15 @@ export function ConfirmButton({
   }
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handleClick}
-      disabled={isPending}
-      className={cn(className, isPending && "opacity-60 cursor-not-allowed")}
+      loading={isPending}
+      className={className}
+      variant={variant}
+      size={size}
     >
       {children}
-    </button>
+    </Button>
   );
 }

@@ -141,9 +141,9 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
         <div className="grid gap-4 md:grid-cols-3">
           <Link
             href="/magazzino/fornitori"
-            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
           >
-            <div className="overflow-hidden rounded-2xl border border-zinc-100">
+            <div className="overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
               <Image
                 src="/tiles/suppliers.png"
                 alt="Gestione fornitori"
@@ -153,15 +153,15 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
               />
             </div>
             <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Gestione fornitori</h2>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               Aggiungi nuovi fornitori. Aggiorna fornitori esistenti.
             </p>
           </Link>
           <Link
             href="/magazzino/prodotti"
-            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
           >
-            <div className="overflow-hidden rounded-2xl border border-zinc-100">
+            <div className="overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
               <Image
                 src="/tiles/products.png"
                 alt="Gestione Materiali & Impianti"
@@ -173,15 +173,15 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
             <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">
               Gestione Materiali &amp; Impianti
             </h2>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               Aggiungi un prodotto da utilizzare nei movimenti
             </p>
           </Link>
           <Link
             href="/magazzino/movimenti"
-            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="group rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
           >
-            <div className="overflow-hidden rounded-2xl border border-zinc-100">
+            <div className="overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
               <Image
                 src="/tiles/accounting.png"
                 alt="Movimenti"
@@ -191,17 +191,17 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
               />
             </div>
             <h2 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h2>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
               Entrate e uscite per il magazzino
             </p>
           </Link>
         </div>
 
-        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(movementQuery)}>
+        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950" open={Boolean(movementQuery)}>
           <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Lista prodotti
           </summary>
-          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
+          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3 dark:border-zinc-800">
             <form className="flex flex-wrap items-center gap-3" method="get">
               {movementQuery ? (
                 <input type="hidden" name="mq" value={movementQuery} />
@@ -212,19 +212,19 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                   name="q"
                   placeholder="Cerca per nome o UDI"
                   defaultValue={query}
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </div>
               <button
                 type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
               >
                 Cerca
               </button>
               {query ? (
                 <Link
                   href={movementQuery ? `/magazzino?mq=${encodeURIComponent(movementQuery)}` : "/magazzino"}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
                 >
                   Annulla
                 </Link>
@@ -233,18 +233,18 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 href={productPrintHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
               >
                 Stampa lista
               </a>
             </form>
 
-            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-              <table className="min-w-full divide-y divide-zinc-100">
-                <thead className="bg-zinc-50">
-                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+              <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <th className="px-4 py-3">Prodotto</th>
                     <th className="px-4 py-3">UDI-DI / UDI-PI</th>
                     <th className="px-4 py-3">Fornitore</th>
@@ -252,10 +252,10 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                     <th className="px-4 py-3">Soglia</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 text-sm">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
                   {products.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-zinc-600" colSpan={5}>
+                      <td className="px-4 py-4 text-zinc-600 dark:text-zinc-400" colSpan={5}>
                         Nessun prodotto a catalogo.
                       </td>
                     </tr>
@@ -263,36 +263,36 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                     products.map((p) => {
                       const low = p.stock <= p.minThreshold;
                       return (
-                        <tr key={p.id} className="hover:bg-zinc-50">
+                        <tr key={p.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
                           <td className="px-4 py-3">
                             <div className="flex flex-col">
-                              <span className="font-semibold text-zinc-900">{p.name}</span>
-                              <span className="text-xs text-zinc-500">
+                              <span className="font-semibold text-zinc-900 dark:text-zinc-50">{p.name}</span>
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                 {p.serviceType ?? "Generico"}
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
+                          <td className="px-4 py-3 text-zinc-600 font-mono text-xs dark:text-zinc-400">
                             <div className="flex flex-col gap-0.5">
                               <span>UDI-DI {p.udiDi ?? "—"}</span>
-                              <span className="text-[11px] text-zinc-400">UDI-PI {p.udiPi ?? "—"}</span>
+                              <span className="text-[11px] text-zinc-400 dark:text-zinc-500">UDI-PI {p.udiPi ?? "—"}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-zinc-700">
+                          <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                             {p.supplier?.name ?? "—"}
                           </td>
                           <td className="px-4 py-3">
                             <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                                 low
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-emerald-50 text-emerald-800"
+                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                                  : "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
                               }`}
                             >
                               {p.stock}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-zinc-700">{p.minThreshold}</td>
+                          <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{p.minThreshold}</td>
                         </tr>
                       );
                     })
@@ -306,11 +306,11 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
 
       {/* Movements Section */}
       <div className="space-y-4">
-        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm" open={Boolean(query)}>
+        <details className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950" open={Boolean(query)}>
           <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             Lista movimenti
           </summary>
-          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3">
+          <div className="border-t border-zinc-100 px-4 pb-4 pt-3 space-y-3 dark:border-zinc-800">
             <form className="flex flex-wrap items-center gap-3" method="get">
               {query ? <input type="hidden" name="q" value={query} /> : null}
               <div className="flex-1 min-w-[220px]">
@@ -319,7 +319,7 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                   name="mq"
                   placeholder="Cerca movimenti"
                   defaultValue={movementQuery}
-                  className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 />
               </div>
               <input
@@ -327,25 +327,25 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 name="from"
                 aria-label="Data da"
                 defaultValue={fromParam}
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
               <input
                 type="date"
                 name="to"
                 aria-label="Data a"
                 defaultValue={toParam}
-                className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               />
               <button
                 type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
               >
                 Cerca
               </button>
               {hasMovementFilters ? (
                 <Link
                   href={query ? `/magazzino?q=${encodeURIComponent(query)}` : "/magazzino"}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50"
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
                 >
                   Annulla
                 </Link>
@@ -354,18 +354,18 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                 href={movementPrintHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-900"
               >
                 Stampa lista
               </a>
             </form>
 
-            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm">
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden" />
-              <table className="min-w-full divide-y divide-zinc-100">
-                <thead className="bg-zinc-50">
-                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent sm:hidden dark:from-zinc-950/90" />
+              <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800">
+                <thead className="bg-zinc-50 dark:bg-zinc-900">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <th className="px-4 py-3">Data</th>
                     <th className="px-4 py-3">Paziente</th>
                     <th className="px-4 py-3">Prodotto</th>
@@ -374,48 +374,48 @@ export default async function MagazzinoPage({ searchParams }: MagazzinoPageProps
                     <th className="px-4 py-3">Sede</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-100 text-sm">
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
                   {movements.length === 0 ? (
                     <tr>
-                      <td className="px-4 py-4 text-zinc-600" colSpan={6}>
+                      <td className="px-4 py-4 text-zinc-600 dark:text-zinc-400" colSpan={6}>
                         Nessun movimento recente.
                       </td>
                     </tr>
                   ) : (
                     movements.map((m) => (
-                      <tr key={m.id} className="hover:bg-zinc-50">
-                        <td className="px-4 py-3 text-zinc-600">
+                      <tr key={m.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                        <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                           {m.interventionDate
                             ? format(m.interventionDate, "dd/MM/yyyy")
                             : format(m.createdAt, "dd/MM/yyyy HH:mm")}
                         </td>
-                        <td className="px-4 py-3 font-medium text-zinc-900">
+                        <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
                           {m.patient ? `${m.patient.lastName} ${m.patient.firstName}` : "—"}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col">
-                            <span className="text-zinc-900">{m.product.name}</span>
-                            <span className="text-xs text-zinc-500 font-mono">
+                            <span className="text-zinc-900 dark:text-zinc-50">{m.product.name}</span>
+                            <span className="text-xs text-zinc-500 font-mono dark:text-zinc-400">
                               {m.product.udiDi || "—"}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-zinc-600 font-mono text-xs">
+                        <td className="px-4 py-3 text-zinc-600 font-mono text-xs dark:text-zinc-400">
                           {m.udiPi ?? "—"}
                         </td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
                               m.movement === "IN"
-                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                                : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10"
+                                ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-500/20"
+                                : "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/10 dark:bg-red-950/40 dark:text-red-300 dark:ring-red-500/20"
                             }`}
                           >
                             {m.movement === "IN" ? "+" : "-"}
                             {m.quantity}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-zinc-600 text-xs">
+                        <td className="px-4 py-3 text-zinc-600 text-xs dark:text-zinc-400">
                           {m.interventionSite ?? "—"}
                         </td>
                       </tr>

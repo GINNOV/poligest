@@ -185,9 +185,9 @@ export function PatientPhotoCameraCapture({
   }, [previewUrl, stopCamera]);
 
   return (
-    <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-xs">
+    <div className="space-y-2 rounded-xl border border-emerald-100 bg-white px-4 py-3 text-xs dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-zinc-200">
       <div className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">Scatta foto con la webcam</div>
-      <div className="relative overflow-hidden rounded-lg border border-emerald-100 bg-zinc-50">
+      <div className="relative overflow-hidden rounded-lg border border-emerald-100 bg-zinc-50 dark:border-emerald-900/40 dark:bg-zinc-900">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={previewUrl} alt="Anteprima foto paziente" className="h-40 w-full object-cover" />
@@ -201,12 +201,12 @@ export function PatientPhotoCameraCapture({
         ) : null}
         <canvas ref={canvasRef} className="hidden" />
       </div>
-      {error ? <p className="text-[11px] text-rose-600">{error}</p> : null}
+      {error ? <p className="text-[11px] text-rose-600 dark:text-rose-300">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={isStreaming ? stopCamera : startCamera}
-          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-200"
         >
           {isStreaming ? "Chiudi fotocamera" : "Apri fotocamera"}
         </button>
@@ -222,7 +222,7 @@ export function PatientPhotoCameraCapture({
           type="button"
           onClick={handleResetPreview}
           disabled={!previewUrl || isBusy}
-          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300"
+          className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-white px-3 text-[11px] font-semibold text-emerald-700 transition hover:border-emerald-300 disabled:cursor-not-allowed disabled:text-emerald-300 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-200 dark:disabled:text-emerald-800"
         >
           Scatta di nuovo
         </button>

@@ -1,32 +1,105 @@
-# Gestione Agenda e Organizzazione Appuntamenti
+# Agenda e Calendario
 
-L'**Agenda** di SORRIDI è stata progettata per essere il centro di coordinamento dello studio, permettendo di visualizzare e gestire l'occupazione delle poltrone e il tempo dei medici in modo dinamico. Il sistema non è un semplice calendario, ma un assistente intelligente che ti avverte in caso di sovrapposizioni e ti permette di monitorare il percorso del paziente all'interno dello studio, dalla prenotazione telefonica fino al termine della visita.
+In SORRIDI la sezione **Agenda** e divisa in due parti:
 
-## Navigazione e Visualizzazione del Calendario
+- **Appuntamenti esistenti**
+- **Aggiungi appuntamenti**
 
-Accedendo alla sezione Agenda, troverai un calendario interattivo che puoi consultare in diverse modalità grazie ai selettori posti in alto a destra: la vista **Mensile** è ideale per una pianificazione a lungo termine, quella **Settimanale** è perfetta per l'organizzazione operativa, mentre la vista **Giornaliera** offre il massimo dettaglio sugli orari della giornata corrente. Ogni appuntamento è identificato da un blocco colorato in base al medico assegnato, rendendo immediata la distinzione dei carichi di lavoro. Puoi filtrare il calendario utilizzando il menu a tendina dei medici per visualizzare solo gli impegni di un professionista specifico o avere una visione d'insieme dell'intero studio.
+Usa la prima per controllare e aggiornare quello che e gia prenotato. Usa la seconda per vedere il calendario completo e inserire nuovi appuntamenti.
 
----
+## Quando usare "Aggiungi appuntamenti"
 
-## Creazione di un Appuntamento
+Apri questa schermata quando devi:
 
-Per inserire un nuovo impegno, puoi cliccare direttamente su uno spazio vuoto nel calendario o utilizzare il pulsante **"Nuovo Appuntamento"**. Si aprirà un modulo dettagliato che richiede le seguenti informazioni:
+- trovare un giorno libero
+- vedere disponibilita e chiusure
+- creare un nuovo appuntamento
+- spostare un appuntamento in un altro orario
 
-1.  **Selezione Paziente:** Inizia a scrivere il cognome del paziente nel campo di ricerca. Se il paziente è già censito, selezionalo dall'elenco. Se invece si tratta di un nuovo paziente, puoi cliccare su **"+ Nuovo cliente"**: il modulo si espanderà permettendoti di inserire rapidamente Nome, Cognome e Numero di Telefono senza dover abbandonare l'agenda.
-2.  **Motivo e Servizio:** Scegli il motivo della visita dal menu a tendina (es. "Richiamo", "Urgenza", "Prima visita") e seleziona il servizio specifico dal listino (es. "Igiene", "Otturazione"). Se la prestazione non è in elenco, puoi utilizzare il campo "Altro..." per inserire una descrizione personalizzata.
-3.  **Orario e Durata:** Inserisci la data e l'ora di inizio. Il sistema imposterà automaticamente un'ora di fine basata sulla durata standard del servizio scelto, ma puoi modificarla manualmente o utilizzare i pulsanti rapidi (**15m**, **30m**, **1H**) per regolare velocemente la durata dello slot.
-4.  **Medico e Note:** Seleziona il medico che effettuerà la prestazione. In fondo al modulo troverai un campo "Note" dove potrai scrivere indicazioni utili per il medico o per i colleghi (ad esempio "Paziente richiede preventivo per impianto").
+## Come creare un appuntamento
 
-Al momento del salvataggio, il sistema effettua un **controllo automatico delle sovrapposizioni**. Se il medico scelto ha già un altro impegno nello stesso orario, apparirà un avviso bloccante: dovrai scegliere un altro orario o un altro medico per procedere. Inoltre, il sistema ti segnalerà se l'appuntamento cade in un orario di chiusura dello studio o fuori dall'orario di disponibilità del medico, permettendoti però di forzare l'inserimento se necessario.
+1. Apri `Agenda` > `Aggiungi appuntamenti`.
+2. Scegli il giorno.
+3. Premi sullo spazio orario libero oppure usa il modulo di creazione.
+4. Seleziona il paziente.
+5. Scegli titolo e servizio.
+6. Controlla ora di inizio e fine.
+7. Seleziona il medico.
+8. Aggiungi eventuali note.
+9. Salva.
 
----
+## Se il paziente non esiste ancora
 
-## Aggiornamento e Stati dell'Appuntamento
+Nel modulo appuntamento puoi creare un nuovo paziente senza uscire dal calendario.
 
-Una volta creato, l'appuntamento non è statico. Cliccando su un blocco esistente nel calendario, puoi modificarne i dettagli o aggiornarne lo **Stato**. Questa funzione è fondamentale per la comunicazione interna:
-*   **Confermato:** Quando il paziente risponde al promemoria.
-*   **In Sala d'Attesa:** Da selezionare appena il paziente arriva in studio. Il medico vedrà cambiare il colore dell'appuntamento sulla sua interfaccia e saprà che può chiamare il paziente.
-*   **In Corso:** Indica che il paziente è entrato in ambulatorio.
-*   **Completato:** Da segnare al termine della visita. Questo stato è importante perché permette alla segreteria di procedere con la registrazione del pagamento nel modulo Finanza.
+Inserisci almeno:
 
-Puoi anche spostare velocemente un appuntamento trascinandolo con il mouse (Drag & Drop) verso un nuovo orario o una nuova data, oppure allungarne la durata trascinando il bordo inferiore del blocco direttamente sul calendario.
+- nome
+- cognome
+- telefono
+
+Se hai anche l'email, inseriscila subito: tornera utile per richiami e promemoria.
+
+## Cosa succede se c'e un conflitto
+
+Se il medico ha gia un appuntamento in quello stesso orario, SORRIDI mostra un avviso e non salva.
+
+In questo caso:
+
+1. cambia orario
+2. oppure cambia medico
+3. poi salva di nuovo
+
+## Stati dell'appuntamento
+
+Ogni appuntamento puo avere uno stato.
+
+I principali sono:
+
+- **Da confermare**
+- **Confermato**
+- **In attesa**
+- **In corso**
+- **Completato**
+- **Annullato**
+- **No-show**
+
+Usare bene gli stati aiuta tutti: segreteria, medico e finanza.
+
+## Regola pratica per gli stati
+
+- il paziente ha risposto: `Confermato`
+- il paziente e arrivato: `In attesa`
+- il paziente e entrato: `In corso`
+- la visita e finita: `Completato`
+- il paziente non si presenta: `No-show`
+- l'appuntamento salta: `Annullato`
+
+## Modifica di un appuntamento
+
+Apri l'appuntamento e aggiorna:
+
+- data
+- orario
+- medico
+- servizio
+- note
+- stato
+
+Se un appuntamento e gia completato, alcune modifiche possono essere limitate in base al ruolo.
+
+## Promemoria rapidi
+
+Dalle schermate agenda e giornata puoi trovare il pulsante **Promemoria**.
+
+Usalo quando vuoi aprire subito il messaggio WhatsApp del paziente o registrare il clic sul promemoria.
+
+Se il pulsante non parte, controlla che nella scheda paziente ci sia un numero corretto.
+
+## Suggerimento semplice
+
+Prima di chiudere la giornata:
+
+1. controlla gli appuntamenti del giorno
+2. segna `Completato`, `Annullato` o `No-show`
+3. passa in finanza per registrare gli incassi

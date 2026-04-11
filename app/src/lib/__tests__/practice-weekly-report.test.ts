@@ -53,4 +53,18 @@ describe("practice weekly report helpers", () => {
     expect(period.dedupeKey).toBe("practice-weekly-report:2026-03-23");
     expect(period.label).toBe("23 mar 2026 - 29 mar 2026");
   });
+
+  test("createPracticeWeeklyReportPeriod rebuilds labels from stored period boundaries", async () => {
+    const { createPracticeWeeklyReportPeriod } = await import("@/lib/practice-weekly-report");
+
+    const period = createPracticeWeeklyReportPeriod(
+      new Date("2026-03-29T22:00:00.000Z"),
+      new Date("2026-04-05T22:00:00.000Z"),
+    );
+
+    expect(period.dedupeKey).toBe("practice-weekly-report:2026-03-30");
+    expect(period.startKey).toBe("2026-03-30");
+    expect(period.endKey).toBe("2026-04-05");
+    expect(period.label).toBe("30 mar 2026 - 5 apr 2026");
+  });
 });

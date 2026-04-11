@@ -39,40 +39,40 @@ export default async function RichiamiManualePage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Richiami</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Richiami</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Promemoria manuali</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Invia notifiche per appuntamenti imminenti o eventi speciali.
           </p>
         </div>
         <Link
           href="/richiami"
-          className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+          className="inline-flex items-center rounded-full border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
         >
           Torna alle sezioni
         </Link>
       </div>
 
       {manualSuccessMessage ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
           {manualSuccessMessage}
         </div>
       ) : null}
       {manualErrorMessage ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
           {manualErrorMessage}
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Promemoria appuntamento</h3>
           <form action={sendManualNotification} className="mt-3 space-y-3 text-sm">
             <input type="hidden" name="notificationType" value="appointment" />
             <input type="hidden" name="returnTo" value="/richiami/manuale" />
             <select
               name="appointmentId"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               required
               defaultValue=""
               disabled={upcomingAppointments.length === 0}
@@ -96,7 +96,7 @@ export default async function RichiamiManualePage({
               name="channel"
               required
               defaultValue="EMAIL"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             >
               <option value="EMAIL">Email</option>
               <option value="SMS">SMS</option>
@@ -105,12 +105,12 @@ export default async function RichiamiManualePage({
             <input
               name="emailSubject"
               placeholder="Oggetto email (facoltativo)"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
             <textarea
               name="message"
               placeholder="Messaggio (facoltativo). Se vuoto, verrà usato un promemoria standard."
-              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               rows={3}
             />
             <button
@@ -123,14 +123,14 @@ export default async function RichiamiManualePage({
           </form>
         </div>
 
-        <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
           <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Notifica evento</h3>
           <form action={sendManualNotification} className="mt-3 space-y-3 text-sm">
             <input type="hidden" name="notificationType" value="event" />
             <input type="hidden" name="returnTo" value="/richiami/manuale" />
             <select
               name="patientId"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               required
               defaultValue=""
             >
@@ -146,18 +146,18 @@ export default async function RichiamiManualePage({
             <input
               name="eventTitle"
               placeholder="Titolo evento (es. Controllo annuale)"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
             <input
               name="eventAt"
               type="datetime-local"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
             <select
               name="channel"
               required
               defaultValue="EMAIL"
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             >
               <option value="EMAIL">Email</option>
               <option value="SMS">SMS</option>
@@ -166,12 +166,12 @@ export default async function RichiamiManualePage({
             <input
               name="emailSubject"
               placeholder="Oggetto email (facoltativo)"
-              className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
             />
             <textarea
               name="message"
               placeholder="Messaggio (facoltativo). Se vuoto, verrà usato un promemoria standard."
-              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
               rows={3}
             />
             <button

@@ -3,6 +3,9 @@ import { Prisma } from "@prisma/client";
 const EPSILON = 0.009;
 
 type TransactionClient = Prisma.TransactionClient;
+type SyncOptions = {
+  refreshSummary?: boolean;
+};
 
 function toNumber(value: Prisma.Decimal | number) {
   return Number(value.toString());
@@ -38,11 +41,14 @@ async function refreshQuoteSummary(tx: TransactionClient, quoteId: string) {
   });
 }
 
-export async function syncDentalRecordIntoLatestQuote(
+async function syncDentalRecordIntoQuote(
   tx: TransactionClient,
+  quoteId: string,
   patientId: string,
-  dentalRecordId: string
+  dentalRecordId: string,
+  options: SyncOptions = {}
 ) {
+  const { refreshSummary: shouldRefreshSummary = true } = options;
   const record = await tx.dentalRecord.findFirst({
     where: { id: dentalRecordId, patientId },
     select: {
@@ -76,8 +82,7 @@ export async function syncDentalRecordIntoLatestQuote(
   }
 
   const quote = await tx.quote.findFirst({
-    where: { patientId },
-    orderBy: { createdAt: "desc" },
+    where: { id: quoteId, patientId },
     include: {
       items: {
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -112,7 +117,9 @@ export async function syncDentalRecordIntoLatestQuote(
       },
     });
 
-    await refreshQuoteSummary(tx, quote.id);
+    if (shouldRefreshSummary) {
+      await refreshQuoteSummary(tx, quote.id);
+    }
     return { synced: true, reason: "created" as const };
   }
 
@@ -143,6 +150,55 @@ export async function syncDentalRecordIntoLatestQuote(
     },
   });
 
-  await refreshQuoteSummary(tx, quote.id);
+  if (shouldRefreshSummary) {
+    await refreshQuoteSummary(tx, quote.id);
+  }
   return { synced: true, reason: "updated" as const };
+}
+
+export async function syncAllTreatedDentalRecordsIntoQuote(
+  tx: TransactionClient,
+  patientId: string,
+  quoteId: string
+) {
+  const treatedRecords = await tx.dentalRecord.findMany({
+    where: { patientId, treated: true },
+    select: { id: true },
+    orderBy: [{ performedAt: "asc" }, { id: "asc" }],
+  });
+
+  let changed = false;
+
+  for (const record of treatedRecords) {
+    const result = await syncDentalRecordIntoQuote(tx, quoteId, patientId, record.id, {
+      refreshSummary: false,
+    });
+    if (result.synced && result.reason !== "unchanged") {
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await refreshQuoteSummary(tx, quoteId);
+  }
+
+  return { synced: changed, treatedCount: treatedRecords.length };
+}
+
+export async function syncDentalRecordIntoLatestQuote(
+  tx: TransactionClient,
+  patientId: string,
+  dentalRecordId: string
+) {
+  const quote = await tx.quote.findFirst({
+    where: { patientId },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+
+  if (!quote) {
+    return { synced: false, reason: "quote_not_found" as const };
+  }
+
+  return syncDentalRecordIntoQuote(tx, quote.id, patientId, dentalRecordId);
 }

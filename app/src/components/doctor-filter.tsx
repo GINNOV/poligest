@@ -24,11 +24,11 @@ export function DoctorFilter({ doctors, selectedDoctor }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs font-semibold text-zinc-700">Appuntamenti per...</label>
+      <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Appuntamenti per...</label>
       <select
         onChange={(e) => handleChange(e.target.value)}
         value={selectedDoctor || "all"}
-        className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+        className="h-9 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
       >
         <option value="all">Tutti i medici</option>
         {doctors.map((doc) => (

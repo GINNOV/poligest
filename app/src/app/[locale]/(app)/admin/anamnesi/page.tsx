@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { Button } from "@/components/ui/button";
 
 type AnamnesisConditionRecord = {
   id: string;
@@ -142,12 +143,12 @@ export default async function AnamnesisSettingsPage() {
               />
             </label>
             <div>
-              <button
+              <Button
                 type="submit"
-                className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+                variant="primary"
               >
                 {t("anamnesisCreateButton")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

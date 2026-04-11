@@ -9,6 +9,8 @@ import {
   PATIENT_POST_CREATE_STORAGE_KEY,
   PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
 } from "@/lib/app-preferences";
+import { APP_THEME_EVENT, APP_THEME_STORAGE_KEY, isThemePreference, type ThemePreference } from "@/lib/theme";
+import clsx from "clsx";
 
 type Props = {
   name: string;
@@ -45,11 +47,19 @@ export function UserMenu({
     typeof window === "undefined"
       ? true
       : window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY) !== "false";
+  const initialThemePreference =
+    typeof window === "undefined"
+      ? "system"
+      : (() => {
+          const stored = window.localStorage.getItem(APP_THEME_STORAGE_KEY);
+          return isThemePreference(stored) ? stored : "system";
+        })();
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
   const [patientPostCreate, setPatientPostCreate] = useState(initialPatientPostCreate);
   const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const settingsRef = useRef<HTMLDivElement | null>(null);
 
@@ -186,61 +196,137 @@ export function UserMenu({
 
       {showSettings && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-[100000] flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10">
+            <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-zinc-950/40 px-4 py-6 backdrop-blur-sm sm:py-10">
               <div
                 ref={settingsRef}
-                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950"
+                className="flex w-full max-w-lg flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
               >
-                <div className="mb-3 text-center text-lg font-semibold text-emerald-900 dark:text-emerald-300">
-                  Personalizza
+                <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+                      Personalizza App
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowSettings(false)}
+                      className="rounded-full border border-zinc-200 bg-white p-2 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    Modifica le preferenze per adattare Poligest al tuo flusso di lavoro.
+                  </p>
                 </div>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Impostazioni generali dell&apos;app.
-                </p>
-                <div className="mt-5 space-y-4">
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Schermata iniziale
-                    <select
-                      value={selectedHomeScreen}
-                      onChange={(event) => setHomeScreen(event.target.value)}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                    >
-                      {homeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Dopo registrazione paziente
-                    <select
-                      value={patientPostCreate}
-                      onChange={(event) => setPatientPostCreate(event.target.value)}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                    >
-                      <option value="dashboard">Giornata</option>
-                      <option value="patients">Lista pazienti</option>
-                      <option value="patient_detail">Scheda paziente</option>
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Filtro automatico lista pazienti
-                    <select
-                      value={patientAutoFilter ? "on" : "off"}
-                      onChange={(event) => setPatientAutoFilter(event.target.value === "on")}
-                      className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                    >
-                      <option value="on">Attivo</option>
-                      <option value="off">Disattivo</option>
-                    </select>
-                  </label>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                  {/* Navigazione Section */}
+                  <section className="space-y-4">
+                    <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-400">
+                      <span>🏠</span> Navigazione
+                    </h4>
+                    <div className="grid gap-4">
+                      <label className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Schermata iniziale</span>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">La pagina visualizzata subito dopo l&apos;accesso.</p>
+                        <select
+                          value={selectedHomeScreen}
+                          onChange={(event) => setHomeScreen(event.target.value)}
+                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30"
+                        >
+                          {homeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Destinazione post-registrazione</span>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">Dove l&apos;app ti porta dopo aver creato un nuovo paziente.</p>
+                        <select
+                          value={patientPostCreate}
+                          onChange={(event) => setPatientPostCreate(event.target.value)}
+                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30"
+                        >
+                          <option value="dashboard">Giornata</option>
+                          <option value="patients">Lista pazienti</option>
+                          <option value="patient_detail">Scheda paziente</option>
+                        </select>
+                      </label>
+                    </div>
+                  </section>
+
+                  {/* Interfaccia Section */}
+                  <section className="space-y-4">
+                    <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-blue-700 dark:text-blue-400">
+                      <span>🎨</span> Interfaccia
+                    </h4>
+                    <div className="space-y-3">
+                      <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Aspetto e Tema</span>
+                      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
+                        {[
+                          { value: "light", label: "Chiaro", icon: "☀️" },
+                          { value: "system", label: "Sistema", icon: "🌓" },
+                          { value: "dark", label: "Scuro", icon: "🌙" },
+                        ].map((t) => (
+                          <button
+                            key={t.value}
+                            type="button"
+                            onClick={() => setThemePreference(t.value as ThemePreference)}
+                            className={clsx(
+                              "flex flex-col items-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all",
+                              themePreference === t.value
+                                ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-50 dark:ring-zinc-700"
+                                : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                            )}
+                          >
+                            <span className="text-lg">{t.icon}</span>
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Funzionalità Section */}
+                  <section className="space-y-4">
+                    <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-purple-700 dark:text-purple-400">
+                      <span>🛡️</span> Funzionalità
+                    </h4>
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Filtro automatico lista</span>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Applica filtri intelligenti quando cerchi pazienti.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPatientAutoFilter(!patientAutoFilter)}
+                        className={clsx(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                          patientAutoFilter ? "bg-emerald-600" : "bg-zinc-200 dark:bg-zinc-700"
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={clsx(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            patientAutoFilter ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+                  </section>
                 </div>
-                <div className="mt-6 flex items-center justify-end gap-3">
+
+                <div className="flex items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
                   <button
                     type="button"
                     onClick={() => setShowSettings(false)}
-                    className="inline-flex items-center justify-center rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 bg-white px-6 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
                   >
                     Annulla
                   </button>
@@ -256,6 +342,8 @@ export function UserMenu({
                         PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
                         patientAutoFilter ? "true" : "false"
                       );
+                      window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
+                      window.dispatchEvent(new CustomEvent(APP_THEME_EVENT));
                       window.dispatchEvent(
                         new CustomEvent("patient-auto-filter-changed", {
                           detail: { enabled: patientAutoFilter },
@@ -263,9 +351,9 @@ export function UserMenu({
                       );
                       setShowSettings(false);
                     }}
-                    className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600"
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                   >
-                    Salva
+                    Salva modifiche
                   </button>
                 </div>
               </div>

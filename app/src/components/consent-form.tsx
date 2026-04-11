@@ -117,7 +117,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
   return (
     <form
       action={addConsentAction}
-      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800"
+      className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
     >
       <input type="hidden" name="patientId" value={patientId} />
       <input type="hidden" name="consentModuleId" value={selectedModuleId} />
@@ -129,10 +129,10 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
             const consent = consentByModule.get(module.id);
             const isActiveConsent = consent && consent.status !== "REVOKED";
             const statusClass = isActiveConsent
-              ? "border-sky-300 bg-sky-50 text-sky-800"
+              ? "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
               : module.required
-                ? "border-rose-300 bg-rose-50 text-rose-800"
-                : "border-amber-300 bg-amber-50 text-amber-800";
+                ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200";
             return (
               <div key={module.id} className="flex flex-col gap-2">
                 <button
@@ -151,7 +151,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
                       setPendingRevokeId(consent.id);
                       setShowRevokeConfirm(true);
                     }}
-                    className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-300"
+                    className="inline-flex h-9 items-center justify-center rounded-full border border-rose-200 px-4 text-xs font-semibold text-rose-700 transition hover:border-rose-300 dark:border-rose-800 dark:text-rose-200 dark:hover:border-rose-700"
                   >
                     Revoca
                   </button>
@@ -161,7 +161,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
           })}
         </div>
         {!selectedModule ? (
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Seleziona un consenso per attivare le opzioni sottostanti.
           </p>
         ) : null}
@@ -181,7 +181,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
       </button>
 
       {canEdit ? (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
           <PatientConsentSection
             key={selectedModuleId || "consent-empty"}
             content={selectedModule?.content ?? ""}
@@ -206,28 +206,28 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
 
       {canEdit ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 font-medium text-zinc-800">
+        <label className="flex flex-col gap-1 font-medium text-zinc-800 dark:text-zinc-200">
           Consenso ottenuto via...
             <select
               name="consentChannel"
               defaultValue="Di persona"
               disabled={!canEdit}
               onChange={markDirty}
-              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             >
               {CHANNELS.map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-1 font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 font-medium text-zinc-800 dark:text-zinc-200">
             Scadenza (opzionale)
             <input
               type="date"
               name="consentExpiresAt"
               disabled={!canEdit}
               onChange={markDirty}
-              className="h-10 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50"
+              className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:disabled:bg-zinc-900 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             />
           </label>
         </div>
@@ -235,9 +235,9 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
 
       {showRevokeConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-zinc-950 dark:ring-1 dark:ring-zinc-800">
             <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Conferma revoca</h3>
-            <p className="mt-2 text-sm text-zinc-600">
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Vuoi revocare questo consenso? L&apos;azione può essere annullata creando un nuovo consenso.
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -247,7 +247,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
                   setShowRevokeConfirm(false);
                   setPendingRevokeId(null);
                 }}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               >
                 Annulla
               </button>
@@ -269,9 +269,9 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
 
       {showSwitchConfirm ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl dark:bg-zinc-950 dark:ring-1 dark:ring-zinc-800">
             <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Modifiche non salvate</h3>
-            <p className="mt-2 text-sm text-zinc-600">
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Hai modifiche non salvate per questo modulo. Se cambi modulo perderai i dati inseriti.
             </p>
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -281,7 +281,7 @@ export function ConsentForm({ patientId, modules, doctors, consents, revokeActio
                   setShowSwitchConfirm(false);
                   setPendingModuleId(null);
                 }}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               >
                 Annulla
               </button>

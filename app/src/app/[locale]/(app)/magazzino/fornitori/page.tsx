@@ -13,18 +13,18 @@ export default async function FornitoriPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-zinc-600">Magazzino</p>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Magazzino</p>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Fornitori</h1>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 text-[13px] font-bold text-emerald-700">
+          <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900/50 text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
             +
           </span>
           Gestione fornitori
         </h2>
-        <p className="mt-1 text-xs text-zinc-600">
+        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
           Aggiungi nuovi fornitori. Aggiorna fornitori esistenti.
         </p>
         <form action={createSupplier} className="mt-3 space-y-3 text-sm">
@@ -32,22 +32,22 @@ export default async function FornitoriPage() {
             name="name"
             placeholder="Nome"
             required
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
           />
           <input
             name="email"
             placeholder="Email"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
           />
           <PhoneInput
             name="phone"
             placeholder="Telefono"
-            className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
           />
           <textarea
             name="notes"
             placeholder="Note"
-            className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
             rows={2}
           />
           <button
@@ -62,7 +62,7 @@ export default async function FornitoriPage() {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Fornitori</h2>
         {suppliers.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm text-zinc-600 shadow-sm">
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-4 text-sm text-zinc-600 dark:text-zinc-400 shadow-sm">
             Nessun fornitore presente.
           </div>
         ) : (
@@ -70,48 +70,48 @@ export default async function FornitoriPage() {
             <form
               key={supplier.id}
               action={updateSupplier}
-              className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,3fr,2fr,auto] sm:items-end"
+              className="grid gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-4 py-4 text-sm shadow-sm sm:grid-cols-[2fr,3fr,2fr,auto] sm:items-end"
             >
               <input type="hidden" name="supplierId" value={supplier.id} />
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Nome</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
                 <input
                   name="name"
                   defaultValue={supplier.name}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
                   required
                 />
               </label>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Email</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Email</span>
                   <input
                     name="email"
                     defaultValue={supplier.email ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase text-zinc-500">Telefono</span>
+                  <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Telefono</span>
                   <PhoneInput
                     name="phone"
                     defaultValue={supplier.phone ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                    className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
                   />
                 </label>
               </div>
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold uppercase text-zinc-500">Note</span>
+                <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Note</span>
                 <input
                   name="notes"
                   defaultValue={supplier.notes ?? ""}
-                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-950/20"
                 />
               </label>
               <div className="flex items-center gap-2 pb-1 sm:pb-0">
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-50"
+                  className="inline-flex items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900/50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 transition hover:border-emerald-300 dark:hover:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                 >
                   Aggiorna
                 </button>
@@ -119,7 +119,7 @@ export default async function FornitoriPage() {
                   type="submit"
                   formAction={deleteSupplier}
                   data-confirm="Eliminare definitivamente questo fornitore?"
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 dark:border-rose-900/50 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-950/30"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

@@ -611,94 +611,94 @@ export default async function ResetPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm">
+        <section className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm dark:border-rose-900/30 dark:bg-rose-950/10">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">
+              <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
                 {t("reset")}
               </p>
-              <h1 className="text-xl font-semibold text-rose-900 dark:text-rose-300">
+              <h1 className="text-xl font-semibold text-rose-900 dark:text-rose-200">
                 {t("resetTitle")}
               </h1>
             </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
+            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-900/30">
               {t("dangerZone")}
             </span>
           </div>
-          <p className="text-sm text-rose-900">{t("resetDescription")}</p>
-          <p className="text-sm font-semibold text-rose-800">
+          <p className="text-sm text-rose-900 dark:text-rose-200">{t("resetDescription")}</p>
+          <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">
             {t("resetWarning")}
           </p>
           <form action={resetSystem} className="space-y-3">
-            <label className="flex flex-col gap-2 text-sm font-medium text-rose-900">
+            <label className="flex flex-col gap-2 text-sm font-medium text-rose-900 dark:text-rose-200">
               {t("resetConfirmLabel")}
               <input
                 name="confirm"
                 placeholder={t("resetConfirmPlaceholder")}
-                className="h-11 rounded-xl border border-rose-200 px-3 text-base text-rose-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100"
+                className="h-11 rounded-xl border border-rose-200 bg-white px-3 text-base text-rose-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-100 dark:placeholder:text-rose-900/50 dark:focus:border-rose-700 dark:focus:ring-rose-900/20"
                 autoComplete="off"
               />
             </label>
-            <p className="text-xs text-rose-900">
+            <p className="text-xs text-rose-900 dark:text-rose-400">
               Questa azione richiede la variabile ambiente
-              <code className="ml-1 rounded bg-white/70 px-1 py-0.5">
+              <code className="ml-1 rounded bg-white/70 px-1 py-0.5 dark:bg-rose-900/40 dark:text-rose-200">
                 ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
               </code>
               .
             </p>
-            <label className="flex items-center gap-2 text-sm font-semibold text-rose-900">
+            <label className="flex items-center gap-2 text-sm font-semibold text-rose-900 dark:text-rose-200">
               <input
                 type="checkbox"
                 name="seedDemo"
                 defaultChecked
-                className="h-4 w-4 rounded border-rose-300"
+                className="h-4 w-4 rounded border-rose-300 dark:border-rose-800 dark:bg-rose-950"
               />
               Ripristina anche i dati demo
             </label>
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-rose-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600"
+              className="inline-flex items-center justify-center rounded-full bg-rose-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500"
             >
               {t("resetButton")}
             </button>
-            <p className="text-xs text-rose-900">{t("resetFooterHint")}</p>
+            <p className="text-xs text-rose-900 dark:text-rose-400">{t("resetFooterHint")}</p>
           </form>
         </section>
 
-        <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                   {t("export")}
                 </p>
                 <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
                   {t("exportTitle")}
                 </h2>
               </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
                 JSON
               </span>
             </div>
-            <p className="text-sm text-zinc-600">{t("exportDescription")}</p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("exportDescription")}</p>
           </div>
           <form
             method="GET"
             action="/api/admin/export"
-            className="space-y-4 text-sm text-zinc-800"
+            className="space-y-4 text-sm text-zinc-800 dark:text-zinc-200"
           >
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {exportTables.map((table) => (
                 <label
                   key={table.key}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2"
+                  className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
                 >
                   <input
                     type="checkbox"
                     name="tables"
                     value={table.key}
                     defaultChecked
-                    className="h-4 w-4 rounded border-zinc-300"
+                    className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950"
                   />
                   <span>{table.label}</span>
                 </label>
@@ -706,64 +706,64 @@ export default async function ResetPage() {
             </div>
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
             >
               {t("exportButton")}
             </button>
           </form>
 
-          <div className="border-t border-zinc-100 pt-4">
+          <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                   {t("import")}
                 </p>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {t("importTitle")}
                 </h3>
               </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                 JSON
               </span>
             </div>
-            <p className="mt-2 text-sm text-zinc-600">{t("importDescription")}</p>
-            <form action={importData} className="mt-3 space-y-3 text-sm text-zinc-800">
-              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t("importDescription")}</p>
+            <form action={importData} className="mt-3 space-y-3 text-sm text-zinc-800 dark:text-zinc-200">
+              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
                 {t("importLabel")}
                 <LocalizedFileInput name="file" accept="application/json" required />
               </div>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
-                Digita <span className="font-semibold">{IMPORT_CONFIRMATION_TEXT}</span> per
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                Digita <span className="font-semibold dark:text-zinc-50">{IMPORT_CONFIRMATION_TEXT}</span> per
                 confermare l&apos;import che sovrascrive i dati esistenti
                 <input
                   name="confirmImport"
                   placeholder={IMPORT_CONFIRMATION_TEXT}
                   autoComplete="off"
-                  className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100"
+                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-700 dark:focus:ring-zinc-900"
                   required
                 />
               </label>
-              <p className="text-xs text-zinc-500">{t("importHint")}</p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("importHint")}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 L&apos;import distruttivo richiede anche
-                <code className="ml-1 rounded bg-zinc-100 px-1 py-0.5">
+                <code className="ml-1 rounded bg-zinc-100 px-1 py-0.5 dark:bg-zinc-900 dark:text-zinc-300">
                   ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
                 </code>
                 .
               </p>
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+                className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
               >
                 {t("importButton")}
               </button>
             </form>
           </div>
 
-          <div className="border-t border-zinc-100 pt-4">
+          <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                   Magazzino
                 </p>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
@@ -772,12 +772,12 @@ export default async function ResetPage() {
               </div>
               <Link
                 href="/api/magazzino/export"
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50"
+                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 Esporta CSV
               </Link>
             </div>
-            <p className="mt-2 text-sm text-zinc-600">
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Carica un file CSV con movimenti o scarica lo stato attuale dell&apos;inventario.
             </p>
             <div className="mt-3">

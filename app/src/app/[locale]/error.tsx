@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   buildCrashSupportEmail,
   CRASH_CONTEXT_STORAGE_KEY,
@@ -143,17 +144,19 @@ export default function GlobalError({
                 <p className="font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
                   Ultimi passaggi rilevati
                 </p>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="xs"
                   onClick={handleCopyBreadcrumbs}
-                  className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+                  className="rounded-full border-zinc-200 dark:border-zinc-700 dark:bg-zinc-900"
                 >
                   {copyState === "copied"
                     ? "Copiato"
                     : copyState === "error"
                       ? "Copia non riuscita"
                       : "Copia"}
-                </button>
+                </Button>
               </div>
               <ul className="mt-2 space-y-1">
                 {recentBreadcrumbs.map((entry) => (
@@ -166,25 +169,16 @@ export default function GlobalError({
           ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <button
+          <Button
+            variant="primary"
             onClick={reset}
-            className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            className="rounded-full"
           >
             Riprova
-          </button>
-          <Link
-            href="/"
-            className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
-          >
-            Torna alla home
-          </Link>
+          </Button>
+          <Button asChild variant="outline" className="rounded-full border-zinc-200 dark:border-zinc-700"><Link href="/">Torna alla home</Link></Button>
           {supportHref ? (
-            <a
-              href={supportHref}
-              className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-zinc-900 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
-            >
-              Segnala a supporto tecnico
-            </a>
+            <Button asChild variant="outline" className="rounded-full border-emerald-200 hover:border-emerald-300 dark:border-emerald-800"><a href={supportHref}>Segnala a supporto tecnico</a></Button>
           ) : null}
         </div>
       </main>

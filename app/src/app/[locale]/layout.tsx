@@ -10,6 +10,7 @@ import { CookieBanner } from "@/components/cookie-banner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { StackConsoleNoiseFilter } from "@/components/stack-console-noise-filter";
 import { CrashContextTracker } from "@/components/crash-context-tracker";
+import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import { headers } from "next/headers";
 
 export default async function RootLayout({
@@ -37,6 +38,7 @@ export default async function RootLayout({
           <CookieBanner />
           <StackConsoleNoiseFilter />
           <CrashContextTracker />
+          <ThemePreferenceSync />
         </StackProvider>
       </NextIntlClientProvider>
     </TooltipProvider>

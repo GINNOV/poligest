@@ -3,8 +3,9 @@ import { getTranslations } from "next-intl/server";
 import { stackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-
 import { getAppVersion } from "@/lib/version";
+
+import { Button } from "@/components/ui/button";
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");
@@ -66,12 +67,7 @@ export default async function Home() {
               />
             </div>
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                href={patientSignInUrl}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-              >
-                ACCESSO PAZIENTI
-              </Link>
+              <Button asChild variant="primary" className="rounded-full px-8 py-6 text-lg"><Link href={patientSignInUrl}>ACCESSO PAZIENTI</Link></Button>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

@@ -86,32 +86,32 @@ export default async function MediciPage() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.1fr,0.9fr]">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
-          <p className="mt-2 text-sm text-zinc-600">{t("subtitle")}</p>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t("subtitle")}</p>
 
           <form action={createDoctor} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("name")}
               <input
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 name="name"
                 required
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("lastName")}
               <input
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 name="lastName"
                 required
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("specialty")}
               <select
                 name="specialty"
-                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 defaultValue="Odontoiatra"
               >
                 <option value="Odontoiatra">{t("odontoiatra")}</option>
@@ -119,21 +119,21 @@ export default async function MediciPage() {
                 <option value="Igenista">{t("igenista")}</option>
               </select>
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               {t("phone")}
               <input
-                className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 name="phone"
                 type="tel"
                 placeholder="+39..."
               />
             </label>
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 lg:col-span-3">
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:col-span-3">
               {t("notes")}
               <textarea
                 name="notes"
                 rows={2}
-                className="rounded-xl border border-zinc-200 px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                 placeholder={t("notesPlaceholder")}
               />
             </label>
@@ -148,16 +148,16 @@ export default async function MediciPage() {
           </form>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Elenco</h2>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
               {doctors.length} medici
             </span>
           </div>
-          <div className="mt-4 divide-y divide-zinc-100">
+          <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
             {doctors.length === 0 ? (
-              <p className="py-4 text-sm text-zinc-600">Nessun medico registrato.</p>
+              <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun medico registrato.</p>
             ) : (
               doctors.map((doc) => (
                 <div
@@ -172,13 +172,13 @@ export default async function MediciPage() {
                     <input
                       name="fullName"
                       defaultValue={doc.fullName}
-                      className="h-10 flex-1 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       placeholder={t("name")}
                     />
                     <select
                       name="specialty"
                       defaultValue={doc.specialty ?? "Odontoiatra"}
-                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                     >
                       <option value="Odontoiatra">{t("odontoiatra")}</option>
                       <option value="Cardiologo">{t("cardiologo")}</option>
@@ -187,14 +187,14 @@ export default async function MediciPage() {
                     <input
                       name="phone"
                       defaultValue={doc.phone ?? ""}
-                      className="h-10 rounded-xl border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       placeholder={t("phone")}
                     />
                     <textarea
                       name="notes"
                       defaultValue={doc.notes ?? ""}
                       rows={1}
-                      className="min-h-[40px] flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                      className="min-h-[40px] flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                       placeholder={t("notes")}
                     />
                     <button
@@ -212,7 +212,7 @@ export default async function MediciPage() {
                     <input type="hidden" name="doctorId" value={doc.id} />
                     <button
                       type="submit"
-                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 dark:border-rose-900/50 dark:bg-zinc-950 dark:text-rose-400 dark:hover:border-rose-800"
                     >
                       Elimina
                     </button>

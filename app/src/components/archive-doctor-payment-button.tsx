@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+
 type Props = {
   entryId: string;
   action: (formData: FormData) => Promise<void>;
@@ -17,12 +19,14 @@ export function ArchiveDoctorPaymentButton({ entryId, action }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <input type="hidden" name="entryId" value={entryId} />
-      <button
+      <Button
         type="submit"
-        className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+        variant="outline"
+        size="sm"
+        className="px-3 font-semibold"
       >
         Archivia
-      </button>
+      </Button>
     </form>
   );
 }

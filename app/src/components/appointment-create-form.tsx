@@ -213,11 +213,11 @@ export function AppointmentCreateForm({
       }}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         Paziente
         <select
           name="patientId"
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           required
           defaultValue=""
           onChange={(e) => {
@@ -250,50 +250,50 @@ export function AppointmentCreateForm({
       </label>
       {isNewPatient && (
         <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Nome
             <input
               name="newFirstName"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
               placeholder="Nome"
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Cognome
             <input
               name="newLastName"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
               placeholder="Cognome"
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Telefono
             <input
               name="newPhone"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
               placeholder="Telefono"
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 sm:col-span-3">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-3">
             Email (facoltativa, consigliata per l&apos;accesso)
             <input
               name="newEmail"
               type="email"
-              className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
               placeholder="email@esempio.it"
             />
           </label>
         </div>
       )}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Richiede visita per...
         <div className="grid grid-cols-[2fr,1fr] gap-2">
           <select
             name="title"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             value={title}
             required
             onChange={(e) => setTitle(e.target.value)}
@@ -304,20 +304,20 @@ export function AppointmentCreateForm({
             <option value="Urgenza">Urgenza</option>
           </select>
           <input
-            className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             name="titleCustom"
             placeholder="Altro..."
             aria-label="Titolo personalizzato"
           />
         </div>
-        <span className="text-xs text-zinc-500">Motivo della visita.</span>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">Motivo della visita.</span>
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Servizio
         <div className="grid grid-cols-[2fr,1fr] gap-2">
           <select
             name="serviceType"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             value={serviceType}
             required
             onChange={(e) => setServiceType(e.target.value)}
@@ -330,19 +330,19 @@ export function AppointmentCreateForm({
             <option value="">Personalizzato</option>
           </select>
           <input
-            className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             name="serviceTypeCustom"
             placeholder="Altro..."
           />
         </div>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
           Scegli un servizio oppure inserisci un nome personalizzato.
         </span>
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Inizio visita
         <input
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           type="datetime-local"
           name="startsAt"
           value={localStartsAt}
@@ -360,11 +360,11 @@ export function AppointmentCreateForm({
           required
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Stima di fine visita
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           <input
-            className="h-11 flex-1 min-w-0 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="h-11 flex-1 min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             type="datetime-local"
             name="endsAt"
             value={localEndsAt}
@@ -374,21 +374,21 @@ export function AppointmentCreateForm({
           <div className="flex gap-2">
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               onClick={() => setEndFromStart(60)}
             >
               1H
             </button>
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               onClick={() => setEndFromStart(30)}
             >
               30m
             </button>
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
               onClick={() => setEndFromStart(15)}
             >
               15m
@@ -396,11 +396,11 @@ export function AppointmentCreateForm({
           </div>
         </div>
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
         Medico assegnato
         <select
           name="doctorId"
-          className="h-11 rounded-xl border border-zinc-200 px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           defaultValue={initialDoctorId ?? ""}
         >
           <option value="">—</option>
@@ -412,11 +412,11 @@ export function AppointmentCreateForm({
         </select>
       </label>
       {error ? <p className="col-span-full text-sm text-rose-600">{error}</p> : null}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 sm:col-span-2">
+      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         Note (opzionali)
         <textarea
           name="notes"
-          className="min-h-[80px] rounded-xl border border-zinc-200 px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className="min-h-[80px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           placeholder="Note per il team o dettagli sul paziente/servizio"
         />
       </label>

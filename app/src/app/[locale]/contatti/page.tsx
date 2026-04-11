@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 const studio = {
   name: "Studio Associato Dottori Agovino e Angrisano",
@@ -54,19 +55,9 @@ export default function ContactPage() {
           </div>
         </section>
 
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/"
-            className="rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
-          >
-            Torna alla home
-          </Link>
-          <Link
-            href="/staff"
-            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700"
-          >
-            Area staff
-          </Link>
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+          <Button asChild variant="primary" className="rounded-full"><Link href="/">Torna alla home</Link></Button>
+          <Button asChild variant="outline" className="rounded-full border-zinc-200"><Link href="/staff">Area staff</Link></Button>
         </div>
       </div>
     </main>
