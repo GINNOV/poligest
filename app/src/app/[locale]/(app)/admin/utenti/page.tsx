@@ -752,32 +752,25 @@ export default async function AdminUsersPage({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                         </svg>
                       </ConfirmButton>
-                      <form action={setUserStatus}>
-                        <input type="hidden" name="userId" value={user.id} />
-                        <input type="hidden" name="active" value={(!user.isActive).toString()} />
-                        <Button 
-                          type="submit"
-                          variant="ghost"
-                          size="xs"
-                          className={`h-8 w-8 p-0 ${user.isActive ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50" : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"}`} 
-                          title={t("toggle")}
-                          onClick={(e) => {
-                            if (!window.confirm(t("toggleStatusConfirm"))) {
-                              e.preventDefault();
-                            }
-                          }}
-                        >
-                          {user.isActive ? (
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                            </svg>
-                          ) : (
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                        </Button>
-                      </form>
+                      <ConfirmButton
+                        action={setUserStatus}
+                        data={{ userId: user.id, active: (!user.isActive).toString() }}
+                        confirmMessage={t("toggleStatusConfirm")}
+                        variant="ghost"
+                        size="xs"
+                        className={`h-8 w-8 p-0 ${user.isActive ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50" : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"}`}
+                        title={t("toggle")}
+                      >
+                        {user.isActive ? (
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          </svg>
+                        ) : (
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </ConfirmButton>
                       <ConfirmButton
                         action={deleteUser}
                         name="userId"
