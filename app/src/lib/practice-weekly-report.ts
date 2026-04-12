@@ -677,7 +677,7 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
             </tr>
           </table>
           <p style="margin:18px 0 0;font-size:15px;line-height:22px;color:#52525b;">
-            Una fotografia semplice dell'attività clinica, dei contatti automatici ai pazienti e dei risultati economici registrati in settimana.
+            Una fotografia dell'attività clinica, dei contatti automatici ai pazienti e dei risultati economici registrati in settimana.
           </p>
         </div>
 
