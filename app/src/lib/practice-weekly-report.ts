@@ -10,26 +10,10 @@ import { sendEmailWithHtml } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { autoCompletePastAppointments } from "@/lib/appointments/status-automation";
+import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 
-const REPORT_TIME_ZONE = "Europe/Rome";
+const REPORT_TIME_ZONE = DEFAULT_PRACTICE_TIME_ZONE;
 const REPORT_CONFIG_ID = "default";
-
-const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
-  timeZone: REPORT_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-const DATE_LABEL_FORMATTER = new Intl.DateTimeFormat("it-IT", {
-  timeZone: REPORT_TIME_ZONE,
-  dateStyle: "medium",
-});
-
-const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("en-US", {
-  timeZone: REPORT_TIME_ZONE,
-  weekday: "short",
-});
 
 const EURO_FORMATTER = new Intl.NumberFormat("it-IT", {
   style: "currency",
@@ -137,13 +121,36 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function getTimeZoneDateParts(date: Date) {
-  const [year, month, day] = DATE_KEY_FORMATTER
+function getDateKeyFormatter(timeZone: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+function getDateLabelFormatter(timeZone: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    timeZone,
+    dateStyle: "medium",
+  });
+}
+
+function getWeekdayFormatter(timeZone: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  });
+}
+
+function getTimeZoneDateParts(date: Date, timeZone = REPORT_TIME_ZONE) {
+  const [year, month, day] = getDateKeyFormatter(timeZone)
     .format(date)
     .split("-")
     .map((value) => Number.parseInt(value, 10));
 
-  const weekdayLabel = WEEKDAY_FORMATTER.format(date);
+  const weekdayLabel = getWeekdayFormatter(timeZone).format(date);
   const weekdayMap: Record<string, number> = {
     Mon: 1,
     Tue: 2,
@@ -162,9 +169,9 @@ function getTimeZoneDateParts(date: Date) {
   };
 }
 
-function getTimeZoneOffset(date: Date) {
+function getTimeZoneOffset(date: Date, timeZone = REPORT_TIME_ZONE) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: REPORT_TIME_ZONE,
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -187,9 +194,17 @@ function getTimeZoneOffset(date: Date) {
   return utcTimestamp - date.getTime();
 }
 
-function toUtcForPracticeTime(year: number, month: number, day: number, hour = 0, minute = 0, second = 0) {
+function toUtcForPracticeTime(
+  year: number,
+  month: number,
+  day: number,
+  hour = 0,
+  minute = 0,
+  second = 0,
+  timeZone = REPORT_TIME_ZONE,
+) {
   const guess = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
-  const offset = getTimeZoneOffset(guess);
+  const offset = getTimeZoneOffset(guess, timeZone);
   return new Date(guess.getTime() - offset);
 }
 
@@ -203,18 +218,18 @@ function shiftCalendarDate(year: number, month: number, day: number, deltaDays: 
   };
 }
 
-export function addPracticeDays(date: Date, days: number) {
-  const parts = getTimeZoneDateParts(date);
+export function addPracticeDays(date: Date, days: number, timeZone = REPORT_TIME_ZONE) {
+  const parts = getTimeZoneDateParts(date, timeZone);
   const shifted = shiftCalendarDate(parts.year, parts.month, parts.day, days);
-  return toUtcForPracticeTime(shifted.year, shifted.month, shifted.day);
+  return toUtcForPracticeTime(shifted.year, shifted.month, shifted.day, 0, 0, 0, timeZone);
 }
 
-export function getCompletedPracticeWeekPeriod(now = new Date()): WeeklyReportPeriod {
-  const today = getTimeZoneDateParts(now);
+export function getCompletedPracticeWeekPeriod(now = new Date(), timeZone = REPORT_TIME_ZONE): WeeklyReportPeriod {
+  const today = getTimeZoneDateParts(now, timeZone);
   const currentWeekStartDate = shiftCalendarDate(today.year, today.month, today.day, -(today.weekday - 1));
   
   // By default, the most recently completed week is the previous one (Mon-Sun)
-  let periodStartDate = shiftCalendarDate(
+  const periodStartDate = shiftCalendarDate(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
@@ -239,40 +254,60 @@ export function getCompletedPracticeWeekPeriod(now = new Date()): WeeklyReportPe
     periodStartDate.year,
     periodStartDate.month,
     periodStartDate.day,
+    0,
+    0,
+    0,
+    timeZone,
   );
   const endExclusive = toUtcForPracticeTime(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
+    0,
+    0,
+    0,
+    timeZone,
   );
 
-  const startKey = DATE_KEY_FORMATTER.format(start);
-  const endKey = DATE_KEY_FORMATTER.format(toUtcForPracticeTime(
+  const dateKeyFormatter = getDateKeyFormatter(timeZone);
+  const dateLabelFormatter = getDateLabelFormatter(timeZone);
+  const startKey = dateKeyFormatter.format(start);
+  const endKey = dateKeyFormatter.format(toUtcForPracticeTime(
     previousWeekEndDate.year,
     previousWeekEndDate.month,
     previousWeekEndDate.day,
+    0,
+    0,
+    0,
+    timeZone,
   ));
 
   return {
     start,
     endExclusive,
     dedupeKey: `practice-weekly-report:${startKey}`,
-    label: `${DATE_LABEL_FORMATTER.format(start)} - ${DATE_LABEL_FORMATTER.format(new Date(endExclusive.getTime() - 1000))}`,
+    label: `${dateLabelFormatter.format(start)} - ${dateLabelFormatter.format(new Date(endExclusive.getTime() - 1000))}`,
     startKey,
     endKey,
   };
 }
 
-export function createPracticeWeeklyReportPeriod(start: Date, endExclusive: Date): WeeklyReportPeriod {
-  const startKey = DATE_KEY_FORMATTER.format(start);
+export function createPracticeWeeklyReportPeriod(
+  start: Date,
+  endExclusive: Date,
+  timeZone = REPORT_TIME_ZONE,
+): WeeklyReportPeriod {
+  const dateKeyFormatter = getDateKeyFormatter(timeZone);
+  const dateLabelFormatter = getDateLabelFormatter(timeZone);
+  const startKey = dateKeyFormatter.format(start);
   const periodEnd = new Date(endExclusive.getTime() - 1000);
-  const endKey = DATE_KEY_FORMATTER.format(periodEnd);
+  const endKey = dateKeyFormatter.format(periodEnd);
 
   return {
     start,
     endExclusive,
     dedupeKey: `practice-weekly-report:${startKey}`,
-    label: `${DATE_LABEL_FORMATTER.format(start)} - ${DATE_LABEL_FORMATTER.format(periodEnd)}`,
+    label: `${dateLabelFormatter.format(start)} - ${dateLabelFormatter.format(periodEnd)}`,
     startKey,
     endKey,
   };
@@ -743,12 +778,14 @@ export async function sendPracticeWeeklyReport(params?: {
   force?: boolean;
   trigger?: "CRON" | "MANUAL" | "API";
   actor?: AuditActor | null;
+  timeZone?: string;
 }) {
   const now = params?.now ?? new Date();
+  const timeZone = params?.timeZone ?? REPORT_TIME_ZONE;
   const force = params?.force ?? false;
   const trigger = params?.trigger ?? "CRON";
   const actor = params?.actor ?? null;
-  const period = getCompletedPracticeWeekPeriod(now);
+  const period = getCompletedPracticeWeekPeriod(now, timeZone);
 
   const config = await prisma.practiceWeeklyReportConfig.findUnique({
     where: { id: REPORT_CONFIG_ID },

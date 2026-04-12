@@ -5,6 +5,8 @@ import {
   getItalianHolidays,
   type HolidayDefinition,
 } from "@/lib/recurring-messages";
+import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
+import { formatDateInTimeZone, isSameTimeZoneDate, toUtcForTimeZone } from "@/lib/time-zone";
 
 export type RecurringMessageConfigRecord = {
   kind: RecurringMessageKind;
@@ -57,22 +59,33 @@ function addDays(date: Date, days: number) {
   return next;
 }
 
-function setLocalHour(date: Date, hour: number) {
-  const next = new Date(date);
-  next.setUTCHours(hour, 0, 0, 0);
-  return next;
+function setLocalHour(date: Date, hour: number, timeZone: string) {
+  return toUtcForTimeZone(
+    {
+      year: date.getUTCFullYear(),
+      month: date.getUTCMonth() + 1,
+      day: date.getUTCDate(),
+      hour,
+      minute: 0,
+      second: 0,
+    },
+    timeZone,
+  );
 }
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", { dateStyle: "long", timeZone: "UTC" }).format(date);
+function formatDate(date: Date, timeZone: string) {
+  return formatDateInTimeZone(date, { dateStyle: "long" }, timeZone);
 }
 
-function formatMonthLabel(date: Date) {
-  return new Intl.DateTimeFormat("it-IT", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+function formatMonthLabel(date: Date, timeZone: string) {
+  return formatDateInTimeZone(
+    date,
+    {
+      month: "long",
+      year: "numeric",
+    },
+    timeZone,
+  );
 }
 
 function normalizeBirthday(base: Date, year: number) {
@@ -105,15 +118,17 @@ export function buildRecurringCandidates(params: {
   patients: RecurringMessagePatientRecord[];
   closures: PracticeClosureRecord[];
   holidays?: HolidayDefinition[];
+  timeZone?: string;
 }) {
+  const timeZone = params.timeZone ?? DEFAULT_PRACTICE_TIME_ZONE;
   const { now, configs, patients, closures, holidays = getItalianHolidays(now.getFullYear()) } = params;
   const candidates: RecurringCandidate[] = [];
 
   const holidayConfig = configs.find((config) => config.kind === RecurringMessageKind.HOLIDAY && config.enabled);
   if (holidayConfig) {
     for (const holiday of holidays) {
-      const scheduledFor = setLocalHour(holiday.date, 9);
-      if (!(now >= scheduledFor && now < addDays(scheduledFor, 1))) continue;
+      const scheduledFor = setLocalHour(holiday.date, 9, timeZone);
+      if (!(now >= scheduledFor && isSameTimeZoneDate(now, scheduledFor, timeZone))) continue;
 
       for (const patient of patients) {
         candidates.push({
@@ -127,7 +142,7 @@ export function buildRecurringCandidates(params: {
             firstName: patient.firstName,
             lastName: patient.lastName,
             holidayName: holiday.name,
-            holidayDate: formatDate(holiday.date),
+            holidayDate: formatDate(holiday.date, timeZone),
           },
           subject: holidayConfig.subject,
           body: holidayConfig.body,
@@ -140,8 +155,8 @@ export function buildRecurringCandidates(params: {
   if (closureConfig) {
     const daysBefore = closureConfig.daysBefore ?? 7;
     for (const closure of closures) {
-      const scheduledFor = setLocalHour(addDays(closure.startsAt, -daysBefore), 9);
-      if (!(now >= scheduledFor && now < closure.startsAt)) continue;
+      const scheduledFor = setLocalHour(addDays(closure.startsAt, -daysBefore), 9, timeZone);
+      if (!(now >= scheduledFor && now < closure.startsAt && isSameTimeZoneDate(now, scheduledFor, timeZone))) continue;
 
       const closureTitle = closure.title ?? "chiusura programmata";
       for (const patient of patients) {
@@ -156,8 +171,8 @@ export function buildRecurringCandidates(params: {
             firstName: patient.firstName,
             lastName: patient.lastName,
             closureTitle,
-            closureStart: formatDate(closure.startsAt),
-            closureEnd: formatDate(closure.endsAt),
+            closureStart: formatDate(closure.startsAt, timeZone),
+            closureEnd: formatDate(closure.endsAt, timeZone),
           },
           subject: closureConfig.subject,
           body: closureConfig.body,
@@ -171,8 +186,8 @@ export function buildRecurringCandidates(params: {
     for (const patient of patients) {
       if (!patient.birthDate) continue;
       const birthdayThisYear = normalizeBirthday(patient.birthDate, now.getFullYear());
-      const scheduledFor = setLocalHour(birthdayThisYear, 9);
-      if (!(now >= scheduledFor && now < addDays(scheduledFor, 1))) continue;
+      const scheduledFor = setLocalHour(birthdayThisYear, 9, timeZone);
+      if (!(now >= scheduledFor && isSameTimeZoneDate(now, scheduledFor, timeZone))) continue;
 
       candidates.push({
         kind: RecurringMessageKind.BIRTHDAY,
@@ -184,7 +199,7 @@ export function buildRecurringCandidates(params: {
         templateVars: {
           firstName: patient.firstName,
           lastName: patient.lastName,
-          birthdayDate: formatDate(birthdayThisYear),
+          birthdayDate: formatDate(birthdayThisYear, timeZone),
         },
         subject: birthdayConfig.subject,
         body: birthdayConfig.body,
@@ -262,9 +277,10 @@ export function buildAdminBackupReminderCandidates(params: {
   admins: Array<{ id: string; email: string; name: string | null }>;
   existingAuditEntityIds: Set<string>;
   adminResetUrl: string;
+  timeZone?: string;
 }) {
   const monthKey = getAdminBackupReminderMonthKey(params.now);
-  const monthLabel = formatMonthLabel(params.now);
+  const monthLabel = formatMonthLabel(params.now, params.timeZone ?? DEFAULT_PRACTICE_TIME_ZONE);
 
   return params.admins
     .map((admin): AdminBackupReminderCandidate | null => {

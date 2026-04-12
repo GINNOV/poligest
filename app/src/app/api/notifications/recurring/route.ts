@@ -13,6 +13,7 @@ import {
   type RecurringCandidate,
 } from "@/lib/recurring-messages/domain";
 import { logAudit } from "@/lib/audit";
+import { getPracticeTimeZone } from "@/lib/practice-settings";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,7 @@ async function getConfigs() {
   return mergeRecurringConfigs(stored);
 }
 
-async function buildCandidates(now: Date): Promise<RecurringCandidate[]> {
+async function buildCandidates(now: Date, timeZone: string): Promise<RecurringCandidate[]> {
   const configs = await getConfigs();
   const patients = await prisma.patient.findMany({
     where: { email: { not: null } },
@@ -49,6 +50,7 @@ async function buildCandidates(now: Date): Promise<RecurringCandidate[]> {
 
   return buildRecurringCandidates({
     now,
+    timeZone,
     configs,
     patients: patients.map((patient) => ({
       id: patient.id,
@@ -80,7 +82,8 @@ export async function GET(req: Request) {
 
   try {
     const now = new Date();
-    const candidates = await buildCandidates(now);
+    const timeZone = await getPracticeTimeZone();
+    const candidates = await buildCandidates(now, timeZone);
     const siteOrigin = resolveSiteOrigin();
     const adminResetUrl = siteOrigin ? `${siteOrigin}/admin/reset` : "/admin/reset";
     const monthKey = getAdminBackupReminderMonthKey(now);
@@ -108,6 +111,7 @@ export async function GET(req: Request) {
 
     const adminBackupCandidates = buildAdminBackupReminderCandidates({
       now,
+      timeZone,
       admins: admins.map((admin) => ({
         id: admin.id,
         email: admin.email ?? "",

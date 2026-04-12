@@ -18,6 +18,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { AppStartRedirect } from "@/components/app-start-redirect";
+import { getPracticeTimeZone } from "@/lib/practice-settings";
 
 async function stopImpersonation() {
   "use server";
@@ -125,6 +126,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     ...(user ? [{ href: "/profilo", label: "Profilo" }] : []),
     ...(isAdmin ? [{ href: "/admin", label: t("admin") }] : []),
   ];
+  const practiceTimeZone = await getPracticeTimeZone();
 
   const featureUpdateClient = getOptionalPrismaModel<
     | { findFirst?: (args: unknown) => Promise<unknown> }
@@ -203,6 +205,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 adminHref={isAdmin ? "/admin" : undefined}
                 adminLabel={isAdmin ? t("admin") : undefined}
                 signOutUrl={signOutUrl}
+                practiceTimeZone={practiceTimeZone}
+                canManagePracticeTimeZone={isManagerOrAdmin}
               />
             ) : null}
           </div>

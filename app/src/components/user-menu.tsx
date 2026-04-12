@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { SignOutButton } from "./sign-out-button";
 import {
@@ -11,6 +11,14 @@ import {
 } from "@/lib/app-preferences";
 import { APP_THEME_EVENT, APP_THEME_STORAGE_KEY, isThemePreference, type ThemePreference } from "@/lib/theme";
 import clsx from "clsx";
+import { updatePracticeTimeZone } from "@/app/_actions/practice-settings";
+import {
+  DEFAULT_PRACTICE_TIME_ZONE,
+  PRACTICE_TIME_ZONE_OPTIONS,
+  PRACTICE_TIME_ZONE_STORAGE_KEY,
+  isPracticeTimeZone,
+  type PracticeTimeZone,
+} from "@/lib/practice-time-zone";
 
 type Props = {
   name: string;
@@ -22,6 +30,8 @@ type Props = {
   adminLabel?: string;
   signOutUrl?: string;
   allowedHomeScreens?: string[];
+  practiceTimeZone?: PracticeTimeZone;
+  canManagePracticeTimeZone?: boolean;
 };
 
 export function UserMenu({
@@ -34,6 +44,8 @@ export function UserMenu({
   adminLabel,
   signOutUrl = "/handler/sign-out",
   allowedHomeScreens,
+  practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
+  canManagePracticeTimeZone = false,
 }: Props) {
   const initialHomeScreen =
     typeof window === "undefined"
@@ -54,14 +66,29 @@ export function UserMenu({
           const stored = window.localStorage.getItem(APP_THEME_STORAGE_KEY);
           return isThemePreference(stored) ? stored : "system";
         })();
+  const initialPracticeTimeZone =
+    typeof window === "undefined"
+      ? practiceTimeZone
+      : (() => {
+          const stored = window.localStorage.getItem(PRACTICE_TIME_ZONE_STORAGE_KEY);
+          return isPracticeTimeZone(stored) ? stored : practiceTimeZone;
+        })();
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
   const [patientPostCreate, setPatientPostCreate] = useState(initialPatientPostCreate);
   const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
+  const [selectedPracticeTimeZone, setSelectedPracticeTimeZone] =
+    useState<PracticeTimeZone>(initialPracticeTimeZone);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isSaving, startSaving] = useTransition();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const settingsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setSelectedPracticeTimeZone(practiceTimeZone);
+  }, [practiceTimeZone]);
 
   useEffect(() => {
     if (!open) return;
@@ -265,7 +292,7 @@ export function UserMenu({
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-blue-700 dark:text-blue-400">
                       <span>🎨</span> Interfaccia
                     </h4>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Aspetto e Tema</span>
                       <div className="grid grid-cols-3 gap-2 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
                         {[
@@ -289,6 +316,31 @@ export function UserMenu({
                           </button>
                         ))}
                       </div>
+                      <label className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario</span>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Tutti gli orari cron lato server usano questo fuso.
+                        </p>
+                        <select
+                          value={selectedPracticeTimeZone}
+                          onChange={(event) =>
+                            setSelectedPracticeTimeZone(event.target.value as PracticeTimeZone)
+                          }
+                          disabled={!canManagePracticeTimeZone || isSaving}
+                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+                        >
+                          {PRACTICE_TIME_ZONE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        {!canManagePracticeTimeZone ? (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            Solo admin e manager possono modificare il fuso orario dello studio.
+                          </p>
+                        ) : null}
+                      </label>
                     </div>
                   </section>
 
@@ -323,6 +375,9 @@ export function UserMenu({
                 </div>
 
                 <div className="flex items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                  {saveMessage ? (
+                    <p className="mr-auto text-xs text-zinc-500 dark:text-zinc-400">{saveMessage}</p>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setShowSettings(false)}
@@ -332,28 +387,51 @@ export function UserMenu({
                   </button>
                   <button
                     type="button"
+                    disabled={isSaving}
                     onClick={() => {
-                      window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, selectedHomeScreen);
-                      window.localStorage.setItem(
-                        PATIENT_POST_CREATE_STORAGE_KEY,
-                        patientPostCreate
-                      );
-                      window.localStorage.setItem(
-                        PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
-                        patientAutoFilter ? "true" : "false"
-                      );
-                      window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
-                      window.dispatchEvent(new CustomEvent(APP_THEME_EVENT));
-                      window.dispatchEvent(
-                        new CustomEvent("patient-auto-filter-changed", {
-                          detail: { enabled: patientAutoFilter },
-                        })
-                      );
-                      setShowSettings(false);
+                      setSaveMessage(null);
+                      startSaving(async () => {
+                        try {
+                          window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, selectedHomeScreen);
+                          window.localStorage.setItem(
+                            PATIENT_POST_CREATE_STORAGE_KEY,
+                            patientPostCreate
+                          );
+                          window.localStorage.setItem(
+                            PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
+                            patientAutoFilter ? "true" : "false"
+                          );
+                          window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
+                          window.dispatchEvent(new CustomEvent(APP_THEME_EVENT));
+                          window.dispatchEvent(
+                            new CustomEvent("patient-auto-filter-changed", {
+                              detail: { enabled: patientAutoFilter },
+                            })
+                          );
+
+                          if (canManagePracticeTimeZone) {
+                            const savedTimeZone = await updatePracticeTimeZone(
+                              selectedPracticeTimeZone,
+                            );
+                            window.localStorage.setItem(
+                              PRACTICE_TIME_ZONE_STORAGE_KEY,
+                              savedTimeZone,
+                            );
+                          }
+
+                          setShowSettings(false);
+                        } catch (error) {
+                          setSaveMessage(
+                            error instanceof Error
+                              ? error.message
+                              : "Impossibile salvare le preferenze."
+                          );
+                        }
+                      });
                     }}
                     className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-8 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
                   >
-                    Salva modifiche
+                    {isSaving ? "Salvataggio..." : "Salva modifiche"}
                   </button>
                 </div>
               </div>

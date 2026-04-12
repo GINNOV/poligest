@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/error-response";
 import { sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
+import { getPracticeTimeZone } from "@/lib/practice-settings";
 
 export const runtime = "nodejs";
 
@@ -19,7 +20,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const force = url.searchParams.get("force") === "1";
-    const result = await sendPracticeWeeklyReport({ force, trigger: "API" });
+    const timeZone = await getPracticeTimeZone();
+    const result = await sendPracticeWeeklyReport({ force, trigger: "API", timeZone });
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse({

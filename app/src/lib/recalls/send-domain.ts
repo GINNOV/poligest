@@ -1,5 +1,7 @@
 import { AppointmentStatus, RecallStatus } from "@prisma/client";
 import { replacePlaceholders } from "@/lib/email-template-utils";
+import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
+import { addDaysInTimeZone, formatDateInTimeZone, setTimeOfDayInTimeZone } from "@/lib/time-zone";
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -59,6 +61,7 @@ export function computeRecurringRecallCreates(params: {
 export function computeAppointmentReminderCreates(params: {
   now: Date;
   horizon: Date;
+  timeZone?: string;
   rule: {
     id: string;
     daysBefore: number;
@@ -74,16 +77,15 @@ export function computeAppointmentReminderCreates(params: {
 }) {
   const timeOfDayMinutes =
     typeof params.rule.timeOfDayMinutes === "number" ? params.rule.timeOfDayMinutes : 540;
+  const timeZone = params.timeZone ?? DEFAULT_PRACTICE_TIME_ZONE;
 
   return params.appointments
     .map((appointment) => {
-      let dueAt: Date;
-      if (params.rule.timingType === "SAME_DAY_TIME") {
-        dueAt = new Date(appointment.startsAt);
-        dueAt.setUTCHours(Math.floor(timeOfDayMinutes / 60), timeOfDayMinutes % 60, 0, 0);
-      } else {
-        dueAt = addDays(appointment.startsAt, -params.rule.daysBefore);
-      }
+      const baseDate =
+        params.rule.timingType === "SAME_DAY_TIME"
+          ? appointment.startsAt
+          : addDaysInTimeZone(appointment.startsAt, -params.rule.daysBefore, timeZone);
+      let dueAt = setTimeOfDayInTimeZone(baseDate, timeOfDayMinutes, timeZone);
 
       if (dueAt < params.now) dueAt = params.now;
       if (dueAt > params.horizon) return null;
@@ -159,6 +161,7 @@ export function buildRecallDeliveryPlan(params: {
 export function buildAppointmentReminderDeliveryPlan(params: {
   patient: { firstName: string | null; lastName: string | null };
   appointment: { startsAt: Date; doctor: { fullName: string | null } | null };
+  timeZone?: string;
   rule: {
     emailSubject?: string | null;
     message?: string | null;
@@ -166,15 +169,20 @@ export function buildAppointmentReminderDeliveryPlan(params: {
   };
   template?: { subject: string | null; body: string | null } | null;
 }) {
+  const timeZone = params.timeZone ?? DEFAULT_PRACTICE_TIME_ZONE;
   const patientName =
     `${params.patient.lastName ?? ""} ${params.patient.firstName ?? ""}`.trim() || "paziente";
   const placeholderData = {
     patientName,
-    appointmentDate: new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(
+    appointmentDate: formatDateInTimeZone(
       params.appointment.startsAt,
+      { dateStyle: "medium" },
+      timeZone,
     ),
-    appointmentTime: new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(
+    appointmentTime: formatDateInTimeZone(
       params.appointment.startsAt,
+      { timeStyle: "short" },
+      timeZone,
     ),
     doctorName: params.appointment.doctor?.fullName ?? "lo staff",
     button: "",

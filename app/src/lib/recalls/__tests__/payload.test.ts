@@ -55,7 +55,7 @@ describe("recalls payload", () => {
       makeFormData([
         ["patientId", "patient-1"],
         ["ruleId", "rule-1"],
-        ["dueAt", "2026-03-25T10:00:00.000Z"],
+        ["dueAt", "2026-03-25T10:00"],
       ]),
     );
     const manual = parseManualNotificationPayload(
@@ -71,7 +71,7 @@ describe("recalls payload", () => {
     );
 
     expect(scheduled.patientId).toBe("patient-1");
-    expect(scheduled.dueAt.toISOString()).toBe("2026-03-25T10:00:00.000Z");
+    expect(scheduled.dueAt.toISOString()).toBe("2026-03-25T09:00:00.000Z");
     expect(manual.notificationType).toBe("event");
     expect(manual.channel).toBe("BOTH");
   });

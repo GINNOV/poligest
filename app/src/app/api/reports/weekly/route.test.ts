@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   errorResponse: vi.fn(async ({ message, status = 500 }: { message: string; status?: number }) =>
     Response.json({ error: message, code: "ERR_WEEKLY" }, { status })),
   sendPracticeWeeklyReport: vi.fn(),
+  getPracticeTimeZone: vi.fn(async () => "Europe/Rome"),
 }));
 
 vi.mock("@/lib/error-response", () => ({
@@ -12,6 +13,10 @@ vi.mock("@/lib/error-response", () => ({
 
 vi.mock("@/lib/practice-weekly-report", () => ({
   sendPracticeWeeklyReport: mocks.sendPracticeWeeklyReport,
+}));
+
+vi.mock("@/lib/practice-settings", () => ({
+  getPracticeTimeZone: mocks.getPracticeTimeZone,
 }));
 
 import { GET, runtime } from "@/app/api/reports/weekly/route";
@@ -41,7 +46,11 @@ describe("GET /api/reports/weekly", () => {
       }),
     );
 
-    expect(mocks.sendPracticeWeeklyReport).toHaveBeenCalledWith({ force: true, trigger: "API" });
+    expect(mocks.sendPracticeWeeklyReport).toHaveBeenCalledWith({
+      force: true,
+      trigger: "API",
+      timeZone: "Europe/Rome",
+    });
     expect(await response.json()).toEqual({ sent: true, skipped: false });
   });
 

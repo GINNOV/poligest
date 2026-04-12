@@ -1,4 +1,6 @@
 import { NotificationChannel } from "@prisma/client";
+import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
+import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
 
 export type AppointmentReminderTimingType = "DAYS_BEFORE" | "SAME_DAY_TIME";
 export type ManualNotificationType = "appointment" | "event";
@@ -140,10 +142,14 @@ export function parseScheduledRecallPayload(formData: FormData): ScheduledRecall
   const dueAt = parseTrimmedString(formData.get("dueAt"));
   const notes = parseOptionalTrimmedString(formData.get("notes"));
   if (!patientId || !ruleId || !dueAt) throw new Error("Dati mancanti");
+  const parsedDueAt = parseDateTimeLocalInTimeZone(dueAt, DEFAULT_PRACTICE_TIME_ZONE);
+  if (!parsedDueAt || Number.isNaN(parsedDueAt.getTime())) {
+    throw new Error("Data invio non valida");
+  }
   return {
     patientId,
     ruleId,
-    dueAt: new Date(dueAt),
+    dueAt: parsedDueAt,
     notes,
   };
 }

@@ -80,6 +80,19 @@ describe("recalls send domain", () => {
     expect(creates[0]?.dueAt.toISOString()).toBe("2026-03-25T10:00:00.000Z");
   });
 
+  it("uses the practice timezone when scheduling future appointment reminders", () => {
+    const creates = computeAppointmentReminderCreates({
+      now: new Date("2026-03-20T10:00:00.000Z"),
+      horizon: new Date("2026-04-01T10:00:00.000Z"),
+      rule: { id: "rule-1", daysBefore: 2, timingType: "DAYS_BEFORE", timeOfDayMinutes: 540 },
+      appointments: [
+        { id: "appt-1", patientId: "patient-1", startsAt: new Date("2026-03-28T09:00:00.000Z") },
+      ],
+    });
+
+    expect(creates[0]?.dueAt.toISOString()).toBe("2026-03-26T08:00:00.000Z");
+  });
+
   it("skips past and completed appointment reminders", () => {
     expect(
       shouldSkipAppointmentReminder(new Date("2026-03-25T10:00:00.000Z"), {
@@ -127,5 +140,6 @@ describe("recalls send domain", () => {
     expect(plan.wantsEmail).toBe(true);
     expect(plan.wantsSms).toBe(false);
     expect(plan.body).toContain("Dr. Bianchi");
+    expect(plan.body).toContain("11:30");
   });
 });

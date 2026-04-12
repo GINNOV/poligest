@@ -14,6 +14,7 @@ import {
   shouldSkipAppointmentReminder,
 } from "@/lib/recalls/send-domain";
 import { sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
+import { getPracticeTimeZone } from "@/lib/practice-settings";
 
 const HORIZON_DAYS = 30;
 
@@ -75,7 +76,7 @@ async function enqueueRecurringRecalls(now: Date) {
   }
 }
 
-async function enqueueAppointmentReminders(now: Date) {
+async function enqueueAppointmentReminders(now: Date, timeZone: string) {
   const horizon = addDays(now, HORIZON_DAYS);
   const rule = await prisma.appointmentReminderRule.findFirst({ where: { enabled: true } });
   if (!rule) return;
@@ -94,6 +95,7 @@ async function enqueueAppointmentReminders(now: Date) {
   const pendingCreates = computeAppointmentReminderCreates({
     now,
     horizon,
+    timeZone,
     rule: { id: rule.id, daysBefore: rule.daysBefore, timingType, timeOfDayMinutes },
     appointments: upcomingAppointments,
   });
@@ -117,10 +119,11 @@ export async function GET(req: Request) {
 
   try {
     const now = new Date();
+    const timeZone = await getPracticeTimeZone();
     let weeklyReport: Awaited<ReturnType<typeof sendPracticeWeeklyReport>> | null = null;
     const autoCompletedAppointments = await autoCompletePastAppointments(now);
     await enqueueRecurringRecalls(now);
-    await enqueueAppointmentReminders(now);
+    await enqueueAppointmentReminders(now, timeZone);
     const dueRecalls = await prisma.recall.findMany({
       where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
       include: {
@@ -216,6 +219,7 @@ export async function GET(req: Request) {
       const { subject, body, wantsEmail, wantsSms } = buildAppointmentReminderDeliveryPlan({
         patient,
         appointment,
+        timeZone,
         rule,
         template,
       });
@@ -263,7 +267,7 @@ export async function GET(req: Request) {
     }
 
     try {
-      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON" });
+      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON", timeZone });
     } catch (err) {
       console.error("[practice_weekly_report] failed during recalls cron", { err });
     }

@@ -48,7 +48,7 @@ describe("recurring messages domain", () => {
 
   it("builds closure and leap-year birthday candidates", () => {
     const candidates = buildRecurringCandidates({
-      now: new Date("2025-02-28T10:00:00.000Z"),
+      now: new Date("2025-02-26T10:00:00.000Z"),
       configs: [
         {
           kind: RecurringMessageKind.CLOSURE,
@@ -88,9 +88,33 @@ describe("recurring messages domain", () => {
     expect(candidates.some((candidate) => candidate.kind === RecurringMessageKind.CLOSURE)).toBe(
       true,
     );
-    expect(candidates.find((candidate) => candidate.kind === RecurringMessageKind.BIRTHDAY)?.eventDate?.toISOString()).toBe(
-      "2025-02-28T00:00:00.000Z",
-    );
+    const birthdayCandidate = buildRecurringCandidates({
+      now: new Date("2025-02-28T10:00:00.000Z"),
+      configs: [
+        {
+          kind: RecurringMessageKind.BIRTHDAY,
+          enabled: true,
+          subject: "Auguri {{firstName}}",
+          body: "Buon compleanno {{firstName}}",
+          daysBefore: null,
+        },
+      ],
+      patients: [
+        {
+          id: "patient-1",
+          email: "mario@example.com",
+          firstName: "Mario",
+          lastName: "Rossi",
+          birthDate: new Date("1988-02-29T00:00:00.000Z"),
+        },
+      ],
+      closures: [],
+      holidays: [],
+    });
+
+    expect(
+      birthdayCandidate.find((candidate) => candidate.kind === RecurringMessageKind.BIRTHDAY)?.eventDate?.toISOString(),
+    ).toBe("2025-02-28T00:00:00.000Z");
   });
 
   it("skips disabled configs and candidates outside the due window", () => {
