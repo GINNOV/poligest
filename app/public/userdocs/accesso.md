@@ -62,7 +62,7 @@ L'app puo scollegarti anche da sola dopo un periodo di inattivita. E normale ed 
 
 Puo usare tutte le aree e cambiare le impostazioni dello studio.
 
-## Manager
+## Dottore
 
 Di solito usa agenda, pazienti, finanza e magazzino, ma non gestisce tutta la parte tecnica.
 

@@ -3,7 +3,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const roleLabels: Partial<Record<Role, string>> = {
   [Role.ADMIN]: "Amministratore",
-  [Role.MANAGER]: "Manager",
+  [Role.MANAGER]: "Dottore",
   [Role.SECRETARY]: "Segreteria",
   [Role.PATIENT]: "Paziente",
   [ASSISTANT_ROLE]: "Assistente",

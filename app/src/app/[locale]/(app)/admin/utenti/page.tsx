@@ -517,7 +517,7 @@ export default async function AdminUsersPage({
 
   const roleLabels: Record<Role, string> = {
     [Role.ADMIN]: "Admin",
-    [Role.MANAGER]: "Manager",
+    [Role.MANAGER]: "Dottore",
     [Role.ASSISTANT]: "Assistente",
     [Role.SECRETARY]: "Segreteria",
     [Role.PATIENT]: "Paziente",

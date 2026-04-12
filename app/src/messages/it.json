@@ -57,7 +57,7 @@
     "admin": "Amministrazione",
     "roleLabels": {
       "admin": "Admin",
-      "manager": "Manager",
+      "manager": "Dottore",
       "assistant": "Assistente",
       "secretary": "Segreteria",
       "patient": "Paziente"
@@ -206,7 +206,7 @@
   "featureAccessLegend": "Spunta le caselle per consentire l'uso del modulo.",
   "featureAccessRoleLabel": "Ruolo",
   "featureAccessRoleAdmin": "Amministratore",
-  "featureAccessRoleManager": "Manager",
+  "featureAccessRoleManager": "Dottore",
   "featureAccessRoleAssistant": "Assistente",
   "featureAccessRoleSecretary": "Segreteria",
   "featureAccessToast": "Accessi aggiornati",
