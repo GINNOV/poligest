@@ -242,6 +242,7 @@ export function DentalChart({
   const chartRef = useRef<HTMLDivElement | null>(null);
   const [useColorChart, setUseColorChart] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [pendingTreatedRecordIds, setPendingTreatedRecordIds] = useState<string[]>([]);
 
   useEffect(() => {
     setNoteDrafts((prev) => {
@@ -438,6 +439,18 @@ export function DentalChart({
   };
 
   const updateRecordTreated = async (recordId: string, treated: boolean) => {
+    const previousRecord = records.find((record) => record.id === recordId);
+    if (!previousRecord || pendingTreatedRecordIds.includes(recordId)) {
+      return;
+    }
+
+    setPendingTreatedRecordIds((prev) => [...prev, recordId]);
+    setRecords((prev) =>
+      prev.map((record) =>
+        record.id === recordId ? { ...record, treated } : record
+      )
+    );
+
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/patients/${patientId}/dental-records`, {
@@ -459,10 +472,16 @@ export function DentalChart({
       setRecords((prev) => prev.map((r) => (r.id === normalized.id ? normalized : r)));
       emitToast("Stato aggiornato", "success");
     } catch (error) {
+      setRecords((prev) =>
+        prev.map((record) =>
+          record.id === recordId ? { ...record, treated: previousRecord.treated } : record
+        )
+      );
       console.error(error);
       emitToast("Impossibile aggiornare lo stato", "error");
     } finally {
       setIsSubmitting(false);
+      setPendingTreatedRecordIds((prev) => prev.filter((id) => id !== recordId));
     }
   };
 
@@ -864,6 +883,7 @@ export function DentalChart({
                             <input
                               type="checkbox"
                               checked={Boolean(rec.treated)}
+                              disabled={pendingTreatedRecordIds.includes(rec.id)}
                               onChange={(e) => {
                                 e.stopPropagation();
                                 updateRecordTreated(rec.id, e.target.checked);

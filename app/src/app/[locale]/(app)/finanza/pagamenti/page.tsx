@@ -45,9 +45,14 @@ const formatDateInputValue = (value: Date, timeZone = "Europe/Rome") => {
   return `${year}-${month}-${day}`;
 };
 
-type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid";
+type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid" | "in_progress";
 
-function getQuoteItemPaymentStatus(paid: number, remaining: number): QuoteItemPaymentStatus {
+function getQuoteItemPaymentStatus(
+  paid: number,
+  remaining: number,
+  inProgress: boolean
+): QuoteItemPaymentStatus {
+  if (inProgress) return "in_progress";
   if (remaining < 0.01) return "settled";
   if (paid > 0.009) return "partial";
   return "unpaid";
@@ -66,7 +71,7 @@ export default async function PagamentiPage({
     select: { id: true, firstName: true, lastName: true },
   });
 
-  const selectedPatientId = resolvedSearchParams.patientId ?? patients[0]?.id ?? "";
+  const selectedPatientId = resolvedSearchParams.patientId?.trim() ?? "";
   const selectedPatient = selectedPatientId
     ? await prisma.patient.findUnique({
         where: { id: selectedPatientId },
@@ -87,6 +92,11 @@ export default async function PagamentiPage({
               items: {
                 orderBy: { createdAt: "asc" },
                 include: {
+                  dentalRecord: {
+                    select: {
+                      treated: true,
+                    },
+                  },
                   payments: {
                     where: {
                       archivedAt: null,
@@ -132,7 +142,8 @@ export default async function PagamentiPage({
     );
     const paid = paidFromPayments > 0 ? paidFromPayments : item.saldato ? total : 0;
     const remaining = Math.max(total - paid, 0);
-    const status = getQuoteItemPaymentStatus(paid, remaining);
+    const inProgress = Boolean(item.dentalRecord && !item.dentalRecord.treated);
+    const status = getQuoteItemPaymentStatus(paid, remaining, inProgress);
     return {
       id: item.id,
       serviceName: item.serviceName,
@@ -313,14 +324,18 @@ export default async function PagamentiPage({
                           </div>
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              item.status === "settled"
+                              item.status === "in_progress"
+                                ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
+                                : item.status === "settled"
                                 ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
                                 : item.status === "partial"
                                   ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
                                   : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
                             }`}
                           >
-                            {item.status === "settled"
+                            {item.status === "in_progress"
+                              ? "Lavori in corso"
+                              : item.status === "settled"
                               ? "Saldato"
                               : item.status === "partial"
                                 ? "Parzialmente incassato"

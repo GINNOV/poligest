@@ -59,8 +59,8 @@ async function syncDentalRecordIntoQuote(
     },
   });
 
-  if (!record?.treated) {
-    return { synced: false, reason: "record_not_treated" as const };
+  if (!record) {
+    return { synced: false, reason: "record_not_found" as const };
   }
 
   const service = await tx.service.findFirst({
@@ -156,20 +156,20 @@ async function syncDentalRecordIntoQuote(
   return { synced: true, reason: "updated" as const };
 }
 
-export async function syncAllTreatedDentalRecordsIntoQuote(
+export async function syncAllDentalRecordsIntoQuote(
   tx: TransactionClient,
   patientId: string,
   quoteId: string
 ) {
-  const treatedRecords = await tx.dentalRecord.findMany({
-    where: { patientId, treated: true },
+  const records = await tx.dentalRecord.findMany({
+    where: { patientId },
     select: { id: true },
     orderBy: [{ performedAt: "asc" }, { id: "asc" }],
   });
 
   let changed = false;
 
-  for (const record of treatedRecords) {
+  for (const record of records) {
     const result = await syncDentalRecordIntoQuote(tx, quoteId, patientId, record.id, {
       refreshSummary: false,
     });
@@ -182,7 +182,7 @@ export async function syncAllTreatedDentalRecordsIntoQuote(
     await refreshQuoteSummary(tx, quoteId);
   }
 
-  return { synced: changed, treatedCount: treatedRecords.length };
+  return { synced: changed, recordCount: records.length };
 }
 
 export async function syncDentalRecordIntoLatestQuote(

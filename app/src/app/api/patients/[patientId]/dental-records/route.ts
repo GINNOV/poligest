@@ -216,9 +216,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         },
       });
 
-      if (treated === true || nextRecord.treated) {
-        await syncDentalRecordIntoLatestQuote(tx, patientId, nextRecord.id);
-      }
+      await syncDentalRecordIntoLatestQuote(tx, patientId, nextRecord.id);
 
       return nextRecord;
     });

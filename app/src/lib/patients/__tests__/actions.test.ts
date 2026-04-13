@@ -18,9 +18,11 @@ const mocks = vi.hoisted(() => {
     },
     service: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     dentalRecord: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     quote: {
       create: vi.fn(),
@@ -119,7 +121,9 @@ describe("patient actions", () => {
     mocks.prisma.patient.findUnique.mockResolvedValue(null);
     mocks.prisma.patient.update.mockResolvedValue(undefined);
     mocks.prisma.service.findMany.mockResolvedValue([]);
+    mocks.prisma.service.findFirst.mockResolvedValue(null);
     mocks.prisma.dentalRecord.findMany.mockResolvedValue([]);
+    mocks.prisma.dentalRecord.findFirst.mockResolvedValue(null);
     mocks.prisma.quote.create.mockResolvedValue({ id: "quote-created" });
     mocks.prisma.quote.findFirst.mockResolvedValue(null);
     mocks.prisma.quote.findUnique.mockResolvedValue(null);
@@ -235,7 +239,7 @@ describe("patient actions", () => {
     expect(mocks.redirect).toHaveBeenCalledWith("/pazienti/patient-1?openContact=1");
   });
 
-  it("adds treated dental procedures when creating a quote after the mouth view was already updated", async () => {
+  it("adds dental procedures from the diary when creating a quote after the mouth view was already updated", async () => {
     mocks.prisma.service.findMany.mockResolvedValue([{ id: "service-manual", name: "Prima visita" }]);
     mocks.prisma.quote.create.mockResolvedValue({ id: "quote-created" });
     mocks.prisma.quote.findFirst
@@ -298,7 +302,7 @@ describe("patient actions", () => {
     mocks.prisma.dentalRecord.findMany.mockResolvedValue([{ id: "record-1" }]);
     mocks.prisma.dentalRecord.findFirst = vi.fn().mockResolvedValue({
       id: "record-1",
-      treated: true,
+      treated: false,
       procedure: "Otturazione",
       performedAt: new Date("2026-04-10T10:00:00.000Z"),
     });
@@ -336,7 +340,7 @@ describe("patient actions", () => {
     });
   });
 
-  it("re-adds treated dental procedures when an older accounting form saves a stale quote", async () => {
+  it("re-adds diary dental procedures when an older accounting form saves a stale quote", async () => {
     mocks.prisma.service.findMany.mockResolvedValue([{ id: "service-manual", name: "Prima visita" }]);
     mocks.prisma.quote.findFirst
       .mockResolvedValueOnce({
@@ -437,7 +441,7 @@ describe("patient actions", () => {
     });
     mocks.prisma.dentalRecord.findFirst = vi.fn().mockResolvedValue({
       id: "record-1",
-      treated: true,
+      treated: false,
       procedure: "Otturazione",
       performedAt: new Date("2026-04-10T10:00:00.000Z"),
     });
@@ -466,7 +470,7 @@ describe("patient actions", () => {
     expect(result.savedAt).toEqual(expect.any(Number));
     expect(mocks.prisma.quoteItem.delete).toHaveBeenCalledTimes(1);
     expect(mocks.prisma.dentalRecord.findMany).toHaveBeenCalledWith({
-      where: { patientId: "patient-1", treated: true },
+      where: { patientId: "patient-1" },
       select: { id: true },
       orderBy: [{ performedAt: "asc" }, { id: "asc" }],
     });
