@@ -112,7 +112,17 @@ export default async function PagamentiPage({
         ])
       : [[], null];
 
-  const parsedQuote = serializePatientQuoteDraft(latestQuote);
+  const parsedQuote = serializePatientQuoteDraft(
+    latestQuote
+      ? {
+          ...latestQuote,
+          items: latestQuote.items.map((item) => ({
+            ...item,
+            treated: item.dentalRecord?.treated,
+          })),
+        }
+      : null
+  );
   const payments = (latestQuote?.items ?? [])
     .flatMap((item) =>
       item.payments.map((payment) => ({

@@ -689,18 +689,10 @@ export function DentalChart({
                   <circle
                     cx={TOOTH_POSITIONS[selectedTooth].x}
                     cy={TOOTH_POSITIONS[selectedTooth].y}
-                    r="4.6"
-                    fill="rgba(239, 68, 68, 0.14)"
-                    stroke="#ffffff"
-                    strokeWidth="0.9"
-                  />
-                  <circle
-                    cx={TOOTH_POSITIONS[selectedTooth].x}
-                    cy={TOOTH_POSITIONS[selectedTooth].y}
                     r="3.7"
                     fill="none"
                     stroke="#ef4444"
-                    strokeWidth="0.95"
+                    strokeWidth="0.6"
                   />
                   <circle
                     cx={TOOTH_POSITIONS[selectedTooth].x}

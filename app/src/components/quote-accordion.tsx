@@ -38,6 +38,7 @@ type QuoteDraft = {
     price?: number | null;
     total?: number | null;
     saldato?: boolean | null;
+    treated?: boolean | null;
     createdAt?: string | null;
   }>;
 };
@@ -492,6 +493,7 @@ export function QuoteAccordion({
         ),
         quantity: item.quantity ? String(item.quantity) : "1",
         price: item.price != null ? String(item.price) : "",
+        treated: Boolean(item.treated),
         createdAt: item.createdAt ?? null,
       }));
     }
@@ -503,6 +505,7 @@ export function QuoteAccordion({
           serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate, displayTimeZone),
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
+          treated: false,
           createdAt: null,
         },
       ];
@@ -546,6 +549,7 @@ export function QuoteAccordion({
         price: fallbackService
           ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
           : "",
+        treated: false,
         createdAt: null,
       },
     ]);
@@ -569,6 +573,7 @@ export function QuoteAccordion({
         priceValue,
         totalValue: quantityValue * priceValue,
         serviceDate: item.serviceDate,
+        treated: item.treated,
         createdAt: item.createdAt ?? null,
       };
     });
@@ -803,7 +808,14 @@ export function QuoteAccordion({
                 </button>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
-                <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
+                <div className="flex items-center gap-3">
+                  <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
+                  {item.treated === false ? (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-500/30">
+                      In corso
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           ))}
