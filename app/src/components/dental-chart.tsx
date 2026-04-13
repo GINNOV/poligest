@@ -363,12 +363,6 @@ export function DentalChart({
   useEffect(() => {
     if (selectedTooth === null) return;
     const record = recordsByTooth.get(selectedTooth);
-    if (!record && selectedTooth !== 0) {
-      setSelectedTooth(null);
-      setProcedure("");
-      setNotes("");
-      return;
-    }
     setProcedure(record?.procedure ?? "");
     setNotes(record?.notes ?? "");
   }, [recordsByTooth, selectedTooth]);
