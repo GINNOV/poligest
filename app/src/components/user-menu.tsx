@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { SignOutButton } from "./sign-out-button";
@@ -8,6 +9,8 @@ import {
   HOME_SCREEN_STORAGE_KEY,
   PATIENT_POST_CREATE_STORAGE_KEY,
   PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
+  USER_TIME_ZONE_COOKIE,
+  USER_TIME_ZONE_STORAGE_KEY,
 } from "@/lib/app-preferences";
 import { APP_THEME_EVENT, APP_THEME_STORAGE_KEY, isThemePreference, type ThemePreference } from "@/lib/theme";
 import clsx from "clsx";
@@ -19,6 +22,11 @@ import {
   isPracticeTimeZone,
   type PracticeTimeZone,
 } from "@/lib/practice-time-zone";
+import {
+  DISPLAY_TIME_ZONE_OPTIONS,
+  getBrowserUserDisplayTimeZone,
+  resolveUserDisplayTimeZone,
+} from "@/lib/user-display-time-zone";
 
 type Props = {
   name: string;
@@ -31,6 +39,7 @@ type Props = {
   signOutUrl?: string;
   allowedHomeScreens?: string[];
   practiceTimeZone?: PracticeTimeZone;
+  displayTimeZone?: string;
   canManagePracticeTimeZone?: boolean;
 };
 
@@ -45,8 +54,10 @@ export function UserMenu({
   signOutUrl = "/handler/sign-out",
   allowedHomeScreens,
   practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
+  displayTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   canManagePracticeTimeZone = false,
 }: Props) {
+  const router = useRouter();
   const initialHomeScreen =
     typeof window === "undefined"
       ? "/dashboard"
@@ -73,6 +84,10 @@ export function UserMenu({
           const stored = window.localStorage.getItem(PRACTICE_TIME_ZONE_STORAGE_KEY);
           return isPracticeTimeZone(stored) ? stored : practiceTimeZone;
         })();
+  const initialDisplayTimeZone =
+    typeof window === "undefined"
+      ? displayTimeZone
+      : getBrowserUserDisplayTimeZone(displayTimeZone);
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
@@ -81,6 +96,9 @@ export function UserMenu({
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
   const [selectedPracticeTimeZone, setSelectedPracticeTimeZone] =
     useState<PracticeTimeZone>(initialPracticeTimeZone);
+  const [selectedDisplayTimeZone, setSelectedDisplayTimeZone] = useState(
+    resolveUserDisplayTimeZone(initialDisplayTimeZone, displayTimeZone)
+  );
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -89,6 +107,10 @@ export function UserMenu({
   useEffect(() => {
     setSelectedPracticeTimeZone(practiceTimeZone);
   }, [practiceTimeZone]);
+
+  useEffect(() => {
+    setSelectedDisplayTimeZone(resolveUserDisplayTimeZone(displayTimeZone, practiceTimeZone));
+  }, [displayTimeZone, practiceTimeZone]);
 
   useEffect(() => {
     if (!open) return;
@@ -317,6 +339,24 @@ export function UserMenu({
                         ))}
                       </div>
                       <label className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario visualizzazione</span>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Tutte le date e gli orari mostrati nell&apos;app usano questo fuso.
+                        </p>
+                        <select
+                          value={selectedDisplayTimeZone}
+                          onChange={(event) => setSelectedDisplayTimeZone(event.target.value)}
+                          disabled={isSaving}
+                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+                        >
+                          {DISPLAY_TIME_ZONE_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-2">
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario</span>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
                           Tutti gli orari cron lato server usano questo fuso.
@@ -402,6 +442,17 @@ export function UserMenu({
                             patientAutoFilter ? "true" : "false"
                           );
                           window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
+                          const normalizedDisplayTimeZone = resolveUserDisplayTimeZone(
+                            selectedDisplayTimeZone,
+                            practiceTimeZone
+                          );
+                          window.localStorage.setItem(
+                            USER_TIME_ZONE_STORAGE_KEY,
+                            normalizedDisplayTimeZone
+                          );
+                          document.cookie = `${USER_TIME_ZONE_COOKIE}=${encodeURIComponent(
+                            normalizedDisplayTimeZone
+                          )}; path=/; max-age=31536000; SameSite=Lax`;
                           window.dispatchEvent(new CustomEvent(APP_THEME_EVENT));
                           window.dispatchEvent(
                             new CustomEvent("patient-auto-filter-changed", {
@@ -419,6 +470,7 @@ export function UserMenu({
                             );
                           }
 
+                          router.refresh();
                           setShowSettings(false);
                         } catch (error) {
                           setSaveMessage(

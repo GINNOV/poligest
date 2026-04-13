@@ -7,6 +7,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { emitToast } from "./global-toasts";
 import { DictationTextarea } from "./dictation-textarea";
 import { PrintLinkButton } from "./print-link-button";
+import {
+  formatDateInDisplayTimeZone,
+  getBrowserUserDisplayTimeZone,
+} from "@/lib/user-display-time-zone";
 
 type DentalRecord = {
   id: string;
@@ -239,6 +243,7 @@ export function DentalChart({
 }) {
   const router = useRouter();
   const storageKey = `dental-chart:${patientId}`;
+  const [displayTimeZone, setDisplayTimeZone] = useState(() => getBrowserUserDisplayTimeZone());
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -285,6 +290,10 @@ export function DentalChart({
   }, [defaultCollapsed, storageKey]);
 
   useEffect(() => {
+    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     window.sessionStorage.setItem(
       storageKey,
@@ -326,6 +335,11 @@ export function DentalChart({
 
   const selectedRecord =
     selectedTooth === null ? undefined : recordsByTooth.get(selectedTooth);
+  const selectedToothData =
+    selectedTooth !== null && selectedTooth !== 0
+      ? TEETH.find((tooth) => tooth.id === selectedTooth) ?? null
+      : null;
+  const selectedToothImage = selectedToothData ? TOOTH_IMAGES[selectedToothData.type] : null;
   const selectedProcedureLabel =
     procedure === "altro"
       ? customProcedure.trim() || "Altro"
@@ -677,14 +691,30 @@ export function DentalChart({
                   />
                 ))}
               {selectedTooth !== null && selectedTooth !== 0 && TOOTH_POSITIONS[selectedTooth] ? (
-                <circle
-                  cx={TOOTH_POSITIONS[selectedTooth].x}
-                  cy={TOOTH_POSITIONS[selectedTooth].y}
-                  r="3.5"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="0.5"
-                />
+                <>
+                  <circle
+                    cx={TOOTH_POSITIONS[selectedTooth].x}
+                    cy={TOOTH_POSITIONS[selectedTooth].y}
+                    r="4.6"
+                    fill="rgba(239, 68, 68, 0.14)"
+                    stroke="#ffffff"
+                    strokeWidth="0.9"
+                  />
+                  <circle
+                    cx={TOOTH_POSITIONS[selectedTooth].x}
+                    cy={TOOTH_POSITIONS[selectedTooth].y}
+                    r="3.7"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="0.95"
+                  />
+                  <circle
+                    cx={TOOTH_POSITIONS[selectedTooth].x}
+                    cy={TOOTH_POSITIONS[selectedTooth].y}
+                    r="1.1"
+                    fill="#ef4444"
+                  />
+                </>
               ) : null}
             </svg>
             <div className="absolute bottom-3 left-3 rounded-full bg-white/90 dark:bg-zinc-900 px-3 py-2 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-200 dark:border-zinc-800">
@@ -731,6 +761,28 @@ export function DentalChart({
               selectedTooth === null && "pointer-events-none opacity-50"
             )}
           >
+          {selectedToothData ? (
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+              <div className="relative h-14 w-14 overflow-hidden rounded-md bg-white shadow-sm dark:bg-zinc-900">
+                <img
+                  src={selectedToothImage ?? ""}
+                  alt={`Dente ${selectedToothData.id}`}
+                  className="h-full w-full object-contain dark:brightness-110"
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                  {selectedToothData.id}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  Dente selezionato
+                </p>
+                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  Dente {selectedToothData.id}
+                </p>
+              </div>
+            </div>
+          ) : null}
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
@@ -897,7 +949,13 @@ export function DentalChart({
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-300">
                         <span>{toothLabel}</span>
-                        <span>{new Date(rec.performedAt).toLocaleDateString("it-IT")}</span>
+                        <span>
+                          {formatDateInDisplayTimeZone(
+                            new Date(rec.performedAt),
+                            { dateStyle: "short" },
+                            displayTimeZone
+                          )}
+                        </span>
                       </div>
                       <div
                         className={clsx(
@@ -925,10 +983,14 @@ export function DentalChart({
                         {rec.notes && rec.updatedAt ? (
                           <span className="block">
                             Aggiornato il{" "}
-                            {new Date(rec.updatedAt).toLocaleString("it-IT", {
-                              dateStyle: "short",
-                              timeStyle: "short",
-                            })}
+                            {formatDateInDisplayTimeZone(
+                              new Date(rec.updatedAt),
+                              {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              },
+                              displayTimeZone
+                            )}
                             {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
                           </span>
                         ) : null}

@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { AppStartRedirect } from "@/components/app-start-redirect";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 
 async function stopImpersonation() {
   "use server";
@@ -127,6 +128,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     ...(isAdmin ? [{ href: "/admin", label: t("admin") }] : []),
   ];
   const practiceTimeZone = await getPracticeTimeZone();
+  const displayTimeZone = await getUserDisplayTimeZone();
 
   const featureUpdateClient = getOptionalPrismaModel<
     | { findFirst?: (args: unknown) => Promise<unknown> }
@@ -206,6 +208,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 adminLabel={isAdmin ? t("admin") : undefined}
                 signOutUrl={signOutUrl}
                 practiceTimeZone={practiceTimeZone}
+                displayTimeZone={displayTimeZone}
                 canManagePracticeTimeZone={isManagerOrAdmin}
               />
             ) : null}
@@ -215,7 +218,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
       <AppStartRedirect />
-      <SiteFooter version={version} deployedAt={deployedAt} showDocs />
+      <SiteFooter version={version} deployedAt={deployedAt} displayTimeZone={displayTimeZone} showDocs />
       {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
     </div>
   );

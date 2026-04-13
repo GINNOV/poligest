@@ -7,6 +7,7 @@ import { AppointmentStatus } from "@prisma/client";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
 import { Button } from "./ui/button";
+import { getBrowserUserDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 type AppointmentItem = {
   id: string;
@@ -34,16 +35,15 @@ type Props = {
 };
 
 const LOCALE = "it-IT";
-const TIME_ZONE = "Europe/Rome";
-const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
-  timeZone: TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }).format(date);
-const getDateKey = (date: Date) => DATE_KEY_FORMATTER.format(date);
+const formatDate = (date: Date, options: Intl.DateTimeFormatOptions, timeZone: string) =>
+  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone }).format(date);
+const getDateKey = (date: Date, timeZone: string) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 
 const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:border-amber-800/60 dark:from-amber-900/20 dark:via-zinc-950 dark:to-amber-900/20",
@@ -68,9 +68,11 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
+  const displayTimeZone = getBrowserUserDisplayTimeZone();
   const [page, setPage] = useState(1);
   const orderedAppointments = useMemo(() => {
-    const isSameDay = (date: Date, target: Date) => getDateKey(date) === getDateKey(target);
+    const isSameDay = (date: Date, target: Date) =>
+      getDateKey(date, displayTimeZone) === getDateKey(target, displayTimeZone);
     const parsed = appointments.map((appt) => ({
       ...appt,
       startsAtDate: new Date(appt.startsAt),
@@ -87,7 +89,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         .filter((appt) => appt.startsAtDate < now && !isSameDay(appt.startsAtDate, now))
         .sort((a, b) => b.startsAtDate.getTime() - a.startsAtDate.getTime()),
     ];
-  }, [appointments, now]);
+  }, [appointments, displayTimeZone, now]);
   const totalPages = Math.max(1, Math.ceil(orderedAppointments.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(page, totalPages);
   const paginatedAppointments = useMemo(() => {
@@ -112,7 +114,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
-        });
+        }, displayTimeZone);
         const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
           firstName: appt.patient.firstName ?? "",
           lastName: appt.patient.lastName ?? "",
@@ -128,10 +130,10 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const cardClass = isPast
           ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
           : statusCardBackgrounds[appt.status];
-        const dayKey = getDateKey(appt.startsAtDate);
-        const dayLabel = formatDate(appt.startsAtDate, { dateStyle: "long" });
+        const dayKey = getDateKey(appt.startsAtDate, displayTimeZone);
+        const dayLabel = formatDate(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone);
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
-        const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate) : null;
+        const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate, displayTimeZone) : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
         const reminderSent = appt.reminderSent;
         const outerCardClass = index % 2 === 0

@@ -17,14 +17,21 @@ import {
 import {
   getAgendaPageData,
 } from "@/lib/appointments/agenda";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import {
+  formatDateInDisplayTimeZone,
+  formatDateInputValueInTimeZone,
+} from "@/lib/user-display-time-zone";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const formatLocalInput = (date: Date) => {
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 16);
-};
+const formatLocalInput = (date: Date, timeZone: string) =>
+  `${formatDateInputValueInTimeZone(date, timeZone)}T${formatDateInDisplayTimeZone(
+    date,
+    { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
+    timeZone
+  )}`;
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -88,6 +95,7 @@ export default async function AgendaPage({
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "agenda");
+  const displayTimeZone = await getUserDisplayTimeZone();
 
   const dateFilter = dateValue;
   const searchValue =
@@ -143,7 +151,8 @@ export default async function AgendaPage({
   };
   const now = new Date();
   const isSameDay = (date: Date, target: Date) =>
-    date.toDateString() === target.toDateString();
+    formatDateInDisplayTimeZone(date, { dateStyle: "short" }, displayTimeZone) ===
+    formatDateInDisplayTimeZone(target, { dateStyle: "short" }, displayTimeZone);
   const orderedAppointments = [
     ...appointments
       .filter((appt) => isSameDay(appt.startsAt, now))
@@ -211,6 +220,7 @@ export default async function AgendaPage({
                 year: "numeric",
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: displayTimeZone,
               }).format(appt.startsAt);
               const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
                 firstName: appt.patient.firstName ?? "",
@@ -229,12 +239,10 @@ export default async function AgendaPage({
                 : isPast
                   ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
                   : statusCardBackgrounds[appt.status];
-              const dayKey = new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(
-                appt.startsAt
-              );
+              const dayKey = formatDateInDisplayTimeZone(appt.startsAt, { dateStyle: "long" }, displayTimeZone);
               const prevAppt = index > 0 ? orderedAppointments[index - 1] : null;
               const prevDayKey = prevAppt
-                ? new Intl.DateTimeFormat("it-IT", { dateStyle: "long" }).format(prevAppt.startsAt)
+                ? formatDateInDisplayTimeZone(prevAppt.startsAt, { dateStyle: "long" }, displayTimeZone)
                 : null;
               const showDivider = !prevDayKey || prevDayKey !== dayKey;
 
@@ -284,12 +292,21 @@ export default async function AgendaPage({
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                               <span>
-                                {new Intl.DateTimeFormat("it-IT", {
-                                  weekday: "short",
-                                  day: "numeric",
-                                  month: "short",
-                                }).format(appt.startsAt)}{" "}
-                                alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}
+                                {formatDateInDisplayTimeZone(
+                                  appt.startsAt,
+                                  {
+                                    weekday: "short",
+                                    day: "numeric",
+                                    month: "short",
+                                  },
+                                  displayTimeZone
+                                )}{" "}
+                                alle{" "}
+                                {formatDateInDisplayTimeZone(
+                                  appt.startsAt,
+                                  { timeStyle: "short" },
+                                  displayTimeZone
+                                )}
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -332,8 +349,8 @@ export default async function AgendaPage({
                           id: appt.id,
                           title: appt.title,
                           serviceType: appt.serviceType,
-                          startsAt: formatLocalInput(appt.startsAt),
-                          endsAt: formatLocalInput(appt.endsAt),
+                          startsAt: formatLocalInput(appt.startsAt, displayTimeZone),
+                          endsAt: formatLocalInput(appt.endsAt, displayTimeZone),
                           patientId: appt.patientId,
                           doctorId: appt.doctorId,
                           status: appt.status,

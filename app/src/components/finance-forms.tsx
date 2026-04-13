@@ -1,6 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  formatDateInDisplayTimeZone,
+  getBrowserUserDisplayTimeZone,
+} from "@/lib/user-display-time-zone";
 
 type PatientOption = { id: string; fullName: string };
 type DiaryOption = { id: string; patientId: string; label: string; performedAt: string };
@@ -21,6 +25,7 @@ type IncomeProps = {
 
 export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
   const [patientId, setPatientId] = useState<string>("");
+  const displayTimeZone = getBrowserUserDisplayTimeZone();
 
   const patientDiaryEntries = useMemo(() => {
     if (!patientId) return [];
@@ -76,7 +81,12 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           </option>
           {patientDiaryEntries.map((entry) => (
             <option key={entry.id} value={entry.id}>
-              {entry.label} · {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(entry.performedAt))}
+              {entry.label} ·{" "}
+              {formatDateInDisplayTimeZone(
+                new Date(entry.performedAt),
+                { dateStyle: "medium" },
+                displayTimeZone
+              )}
             </option>
           ))}
         </select>

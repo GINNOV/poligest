@@ -19,6 +19,7 @@ import {
   WHATSAPP_TEMPLATE_NAME,
 } from "@/lib/whatsapp-template";
 import { DashboardAppointmentsList } from "@/components/dashboard-appointments-list";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -42,17 +43,15 @@ const statusClasses: Record<AppointmentStatus, string> = {
 
 const statusLegendItems = Object.entries(statusLabels) as Array<[AppointmentStatus, string]>;
 const LOCALE = "it-IT";
-const TIME_ZONE = "Europe/Rome";
-const DATE_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
-  timeZone: TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone: TIME_ZONE }).format(date);
-const getDateKey = (date: Date) => DATE_KEY_FORMATTER.format(date);
+const formatDate = (date: Date, options: Intl.DateTimeFormatOptions, timeZone: string) =>
+  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone }).format(date);
+const getDateKey = (date: Date, timeZone: string) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 const formatLocalDateTime = (date: Date) => {
   const pad = (value: number) => value.toString().padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
@@ -257,6 +256,7 @@ export default async function DashboardPage({
   ]);
   const t = await getTranslations("dashboard");
   const isPatient = user.role === Role.PATIENT;
+  const displayTimeZone = await getUserDisplayTimeZone();
 
   const patientRecord = isPatient && user.email
     ? await prisma.patient.findFirst({
@@ -284,7 +284,7 @@ export default async function DashboardPage({
   const selectedDay =
     selectedDayParam && !Number.isNaN(Date.parse(selectedDayParam))
       ? selectedDayParam
-      : getDateKey(today);
+      : getDateKey(today, displayTimeZone);
 
   const [appointments, whatsappTemplate] = await Promise.all([
     prisma.appointment.findMany({
@@ -309,14 +309,14 @@ export default async function DashboardPage({
   ]);
   const whatsappTemplateBody = whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE;
   const perDay = days.map((day) => {
-    const key = getDateKey(day);
+    const key = getDateKey(day, displayTimeZone);
     const dayAppointments = appointments.filter(
-      (appt) => getDateKey(appt.startsAt) === key
+      (appt) => getDateKey(appt.startsAt, displayTimeZone) === key
     );
     const uniquePatients = new Set(dayAppointments.map((a) => a.patientId)).size;
     return {
       key,
-      label: formatDate(day, { weekday: "short", day: "numeric" }),
+      label: formatDate(day, { weekday: "short", day: "numeric" }, displayTimeZone),
       count: uniquePatients,
     };
   });
@@ -333,7 +333,7 @@ export default async function DashboardPage({
     return "bg-rose-200 dark:bg-rose-800/50";
   };
   const selectedAppointments = appointments.filter(
-    (appt) => getDateKey(appt.startsAt) === selectedDay
+    (appt) => getDateKey(appt.startsAt, displayTimeZone) === selectedDay
   );
   const doctors = Array.from(
     new Map(
@@ -414,7 +414,7 @@ export default async function DashboardPage({
       return sum + (item.saldato ? 0 : totalValue);
     }, 0);
     const quoteSignedAt = latestQuote?.signedAt
-      ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(latestQuote.signedAt)
+      ? formatDate(latestQuote.signedAt, { dateStyle: "medium" }, displayTimeZone)
       : null;
 
     return (
@@ -460,13 +460,17 @@ export default async function DashboardPage({
                           <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
-                            {new Intl.DateTimeFormat("it-IT", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }).format(appt.startsAt)}{" "}
-                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                            {formatDate(
+                              appt.startsAt,
+                              {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                              displayTimeZone
+                            )}{" "}
+                            alle {formatDate(appt.startsAt, { timeStyle: "short" }, displayTimeZone)}.
                           </p>
                           <p className="text-zinc-700 dark:text-zinc-300">
                             🕒 L&apos;appuntamento dovrebbe richiedere circa{" "}
@@ -517,13 +521,17 @@ export default async function DashboardPage({
                           <p>
                             🧑‍⚕️ Dottore{" "}
                             <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span> il{" "}
-                            {new Intl.DateTimeFormat("it-IT", {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            }).format(appt.startsAt)}{" "}
-                            alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                            {formatDate(
+                              appt.startsAt,
+                              {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              },
+                              displayTimeZone
+                            )}{" "}
+                            alle {formatDate(appt.startsAt, { timeStyle: "short" }, displayTimeZone)}.
                           </p>
                           {appt.notes ? (
                             <p className="text-zinc-700 dark:text-zinc-300">

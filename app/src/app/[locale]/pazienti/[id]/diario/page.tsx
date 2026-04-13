@@ -7,6 +7,8 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,7 @@ export default async function DiarioPrintPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "clinical-records");
+  const displayTimeZone = await getUserDisplayTimeZone();
   const resolvedParams = await params;
   const patientId = resolvedParams?.id;
   if (!patientId) {
@@ -86,7 +89,7 @@ export default async function DiarioPrintPage({
               Record clinici: {records.length}
             </p>
             <p className="text-sm text-zinc-800 dark:text-zinc-200">
-              Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })}
+              Data stampa: {formatDateInDisplayTimeZone(new Date(), { dateStyle: "short" }, displayTimeZone)}
             </p>
           </div>
         </div>
@@ -114,10 +117,14 @@ export default async function DiarioPrintPage({
                 {records.map((record) => (
                   <tr key={record.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                      {new Date(record.performedAt).toLocaleString("it-IT", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
+                      {formatDateInDisplayTimeZone(
+                        new Date(record.performedAt),
+                        {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        },
+                        displayTimeZone
+                      )}
                     </td>
                     <td className="px-4 py-3 text-zinc-900 dark:text-zinc-50">
                       {record.tooth === 0 ? "Tutta la bocca" : `Dente ${record.tooth}`}

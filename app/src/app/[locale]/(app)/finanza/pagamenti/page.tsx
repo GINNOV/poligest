@@ -8,9 +8,13 @@ import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { ConfirmButton } from "@/components/confirm-button";
 import { savePreventivoAction } from "@/lib/patients/actions";
 import { archivePatientPayment, recordPatientPayment } from "../actions";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import {
+  formatDateInDisplayTimeZone,
+  formatDateInputValueInTimeZone,
+} from "@/lib/user-display-time-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -32,19 +36,6 @@ const formatCurrency = (value: number) =>
     currency: "EUR",
   }).format(value);
 
-const formatDateInputValue = (value: Date, timeZone = "Europe/Rome") => {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(value);
-  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
-  const month = parts.find((part) => part.type === "month")?.value ?? "01";
-  const day = parts.find((part) => part.type === "day")?.value ?? "01";
-  return `${year}-${month}-${day}`;
-};
-
 type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid" | "in_progress";
 
 function getQuoteItemPaymentStatus(
@@ -64,6 +55,7 @@ export default async function PagamentiPage({
   searchParams?: Promise<SearchParams>;
 }) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
+  const displayTimeZone = await getUserDisplayTimeZone();
 
   const resolvedSearchParams = (await searchParams) ?? {};
   const patients = await prisma.patient.findMany({
@@ -170,7 +162,7 @@ export default async function PagamentiPage({
     id: patient.id,
     fullName: `${patient.lastName} ${patient.firstName}`,
   }));
-  const defaultServiceDate = formatDateInputValue(new Date());
+  const defaultServiceDate = formatDateInputValueInTimeZone(new Date(), displayTimeZone);
 
   return (
     <div className="space-y-6">
@@ -470,9 +462,13 @@ export default async function PagamentiPage({
                         </p>
                         <div className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                           <span>
-                            {new Intl.DateTimeFormat("it-IT", {
-                              dateStyle: "medium",
-                            }).format(payment.paidAt)}
+                            {formatDateInDisplayTimeZone(
+                              payment.paidAt,
+                              {
+                                dateStyle: "medium",
+                              },
+                              displayTimeZone
+                            )}
                           </span>
                           <span className="text-zinc-300 dark:text-zinc-700">•</span>
                           <span>{paymentMethodLabels[payment.method]}</span>

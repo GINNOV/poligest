@@ -1,19 +1,26 @@
 import Link from "next/link";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 export function SiteFooter({
   version,
   deployedAt,
+  displayTimeZone,
   showDocs = false,
 }: {
   version: string;
   deployedAt?: Date | null;
+  displayTimeZone: string;
   showDocs?: boolean;
 }) {
   const deployLabel = deployedAt
-    ? new Intl.DateTimeFormat("it-IT", {
-        dateStyle: "short",
-        timeStyle: "short",
-      }).format(deployedAt)
+    ? formatDateInDisplayTimeZone(
+        deployedAt,
+        {
+          dateStyle: "short",
+          timeStyle: "short",
+        },
+        displayTimeZone
+      )
     : null;
   return (
     <footer className="mt-8 border-t border-zinc-200 bg-white/70 px-6 py-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-400">

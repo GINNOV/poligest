@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 import { PrintLinkButton } from "@/components/print-link-button";
+import {
+  formatDateInDisplayTimeZone,
+  formatDateInputValueInTimeZone,
+  getBrowserUserDisplayTimeZone,
+} from "@/lib/user-display-time-zone";
 
 type ServiceOption = {
   id: string;
@@ -73,21 +78,14 @@ type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]> & {
   };
 };
 
-function formatDateInputValue(value: Date) {
-  const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, "0");
-  const day = String(value.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getDefaultServiceDate(value?: string | null) {
+function getDefaultServiceDate(value: string | null | undefined, displayTimeZone: string) {
   if (value) {
     const parsed = new Date(value);
     if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toISOString().slice(0, 10);
+      return formatDateInputValueInTimeZone(parsed, displayTimeZone);
     }
   }
-  return formatDateInputValue(new Date());
+  return formatDateInputValueInTimeZone(new Date(), displayTimeZone);
 }
 
 function SignaturePad({
@@ -474,6 +472,7 @@ export function QuoteAccordion({
   printHref,
 }: Props) {
   const router = useRouter();
+  const displayTimeZone = getBrowserUserDisplayTimeZone();
   const sortedServices = useMemo(
     () =>
       [...services].sort((a, b) =>
@@ -487,7 +486,10 @@ export function QuoteAccordion({
       return initialQuote.items.map((item) => ({
         id: item.id ?? "",
         serviceId: item.serviceId ?? "",
-        serviceDate: getDefaultServiceDate(item.serviceDate ?? initialQuote.serviceDate ?? defaultServiceDate),
+        serviceDate: getDefaultServiceDate(
+          item.serviceDate ?? initialQuote.serviceDate ?? defaultServiceDate,
+          displayTimeZone
+        ),
         quantity: item.quantity ? String(item.quantity) : "1",
         price: item.price != null ? String(item.price) : "",
         createdAt: item.createdAt ?? null,
@@ -498,7 +500,7 @@ export function QuoteAccordion({
         {
           id: "",
           serviceId: initialQuote.serviceId,
-          serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate),
+          serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate, displayTimeZone),
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
           createdAt: null,
@@ -506,7 +508,7 @@ export function QuoteAccordion({
       ];
     }
     return [];
-  }, [defaultServiceDate, initialQuote]);
+  }, [defaultServiceDate, displayTimeZone, initialQuote]);
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
@@ -595,11 +597,14 @@ export function QuoteAccordion({
     if (!value) return "Da salvare";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "Da salvare";
-    return date.toLocaleString("it-IT", {
-      dateStyle: "short",
-      timeStyle: "short",
-      timeZone: "Europe/Rome",
-    });
+    return formatDateInDisplayTimeZone(
+      date,
+      {
+        dateStyle: "short",
+        timeStyle: "short",
+      },
+      displayTimeZone
+    );
   };
 
   return (

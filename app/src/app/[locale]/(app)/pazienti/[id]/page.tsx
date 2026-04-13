@@ -25,6 +25,8 @@ import {
   uploadPhotoAction,
 } from "@/lib/patients/actions";
 import { getPatientDetailPageData } from "@/lib/patients/page-data";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -52,12 +54,16 @@ const statusClasses: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-violet-200 bg-violet-50 text-violet-700 shadow-sm dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300",
 };
 
-const formatDateTime = (value: Date | string | null | undefined) => {
+const formatDateTime = (value: Date | string | null | undefined, timeZone: string) => {
   if (!value) return "—";
-  return new Date(value).toLocaleString("it-IT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  return formatDateInDisplayTimeZone(
+    new Date(value),
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+    timeZone
+  );
 };
 
 const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
@@ -76,6 +82,7 @@ export default async function PatientDetailPage({
   const canViewClinicalRecords = featureAccess.isAllowed("clinical-records");
   const isAdmin = user.role === Role.ADMIN;
   const canExport = isAdmin || user.role === Role.MANAGER;
+  const displayTimeZone = await getUserDisplayTimeZone();
 
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
@@ -149,8 +156,8 @@ export default async function PatientDetailPage({
   const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
   const createdBy = formatAuditActor(createdLog?.user);
   const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
-  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt);
-  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt);
+  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt, displayTimeZone);
+  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt, displayTimeZone);
 
   return (
     <>
@@ -630,10 +637,14 @@ export default async function PatientDetailPage({
                                       {consentStatusLabels[consent.status] ?? consent.status}
                                     </span>
                                     <span className="text-emerald-900">
-                                      {new Date(consent.givenAt).toLocaleString("it-IT", {
-                                        dateStyle: "short",
-                                        timeStyle: "short",
-                                      })}
+                                      {formatDateInDisplayTimeZone(
+                                        new Date(consent.givenAt),
+                                        {
+                                          dateStyle: "short",
+                                          timeStyle: "short",
+                                        },
+                                        displayTimeZone
+                                      )}
                                     </span>
                                     {signatureUrl ? (
                                       <Link
@@ -653,10 +664,18 @@ export default async function PatientDetailPage({
                                   <div className="text-[11px] text-emerald-900">
                                     Canale: {consent.channel ?? "—"}
                                     {consent.expiresAt
-                                      ? ` · Scadenza: ${new Date(consent.expiresAt).toLocaleDateString("it-IT")}`
+                                      ? ` · Scadenza: ${formatDateInDisplayTimeZone(
+                                          new Date(consent.expiresAt),
+                                          { dateStyle: "short" },
+                                          displayTimeZone
+                                        )}`
                                       : ""}
                                     {consent.revokedAt
-                                      ? ` · Revocato: ${new Date(consent.revokedAt).toLocaleDateString("it-IT")}`
+                                      ? ` · Revocato: ${formatDateInDisplayTimeZone(
+                                          new Date(consent.revokedAt),
+                                          { dateStyle: "short" },
+                                          displayTimeZone
+                                        )}`
                                       : ""}
                                   </div>
                                 </div>
@@ -795,10 +814,14 @@ export default async function PatientDetailPage({
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Ultimo invio:{" "}
                     {lastAccessEmailLog
-                      ? new Date(lastAccessEmailLog.createdAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
+                      ? formatDateInDisplayTimeZone(
+                          new Date(lastAccessEmailLog.createdAt),
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                          displayTimeZone
+                        )
                       : "mai"}
                   </p>
                 </form>
@@ -826,10 +849,14 @@ export default async function PatientDetailPage({
                   <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     Ultimo invio:{" "}
                     {lastWhatsappLog
-                      ? new Date(lastWhatsappLog.createdAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })
+                      ? formatDateInDisplayTimeZone(
+                          new Date(lastWhatsappLog.createdAt),
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                          displayTimeZone
+                        )
                       : "mai"}
                   </p>
                 </div>
@@ -865,7 +892,14 @@ export default async function PatientDetailPage({
                         </div>
                         <p className="text-[11px] text-zinc-600 dark:text-zinc-400">
                           {log.template?.name ? `${log.template.name} · ` : ""}
-                          {new Date(log.createdAt).toLocaleString("it-IT")}
+                          {formatDateInDisplayTimeZone(
+                            new Date(log.createdAt),
+                            {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            },
+                            displayTimeZone
+                          )}
                         </p>
                         <p className="line-clamp-2 text-sm text-zinc-700 dark:text-zinc-300">{log.body}</p>
                         {log.error ? (
@@ -958,12 +992,20 @@ export default async function PatientDetailPage({
                         <td className="px-3 py-2 font-mono text-xs text-zinc-600 dark:text-zinc-400">{imp.udiPi ?? "—"}</td>
                         <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
                           {imp.purchaseDate
-                            ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.purchaseDate)
+                            ? formatDateInDisplayTimeZone(
+                                imp.purchaseDate,
+                                { dateStyle: "medium" },
+                                displayTimeZone
+                              )
                             : "—"}
                         </td>
                         <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
                           {imp.interventionDate
-                            ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(imp.interventionDate)
+                            ? formatDateInDisplayTimeZone(
+                                imp.interventionDate,
+                                { dateStyle: "medium" },
+                                displayTimeZone
+                              )
                             : "—"}
                         </td>
                         <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{imp.interventionSite ?? "—"}</td>
@@ -1228,13 +1270,23 @@ export default async function PatientDetailPage({
                     🧑‍⚕️ Paziente {patient.lastName} {patient.firstName} è stato visto da{" "}
                     <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>{" "}
                     il{" "}
-                    {new Intl.DateTimeFormat("it-IT", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }).format(appt.startsAt)}{" "}
-                    alle {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(appt.startsAt)}.
+                    {formatDateInDisplayTimeZone(
+                      appt.startsAt,
+                      {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      },
+                      displayTimeZone
+                    )}{" "}
+                    alle{" "}
+                    {formatDateInDisplayTimeZone(
+                      appt.startsAt,
+                      { timeStyle: "short" },
+                      displayTimeZone
+                    )}
+                    .
                   </p>
                   <p className="text-sm text-zinc-800 dark:text-zinc-200">
                     🕒 Il servizio ha richiesto circa{" "}
@@ -1254,10 +1306,14 @@ export default async function PatientDetailPage({
                     {statusLabels[appt.status].toUpperCase()}
                   </span>
                   <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                    {new Intl.DateTimeFormat("it-IT", {
-                      day: "numeric",
-                      month: "short",
-                    }).format(appt.startsAt)}
+                    {formatDateInDisplayTimeZone(
+                      appt.startsAt,
+                      {
+                        day: "numeric",
+                        month: "short",
+                      },
+                      displayTimeZone
+                    )}
                   </span>
                 </div>
               </div>

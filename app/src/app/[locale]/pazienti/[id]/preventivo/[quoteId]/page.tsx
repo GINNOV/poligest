@@ -7,6 +7,8 @@ import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import type { Metadata } from "next";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function QuotePrintPage({
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "quotes");
   await requireFeatureAccess(Role.ADMIN, "quotes");
+  const displayTimeZone = await getUserDisplayTimeZone();
   const resolvedParams = await params;
   const patientId = resolvedParams?.id;
   const quoteId = resolvedParams?.quoteId;
@@ -124,7 +127,11 @@ export default async function QuotePrintPage({
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Dettagli</p>
             <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               Data accettazione:{" "}
-              {signedAt.toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}
+              {formatDateInDisplayTimeZone(
+                signedAt,
+                { dateStyle: "short", timeStyle: "short" },
+                displayTimeZone
+              )}
             </p>
             <p className="text-sm text-zinc-800 dark:text-zinc-200">Preventivo ID: {quote.id}</p>
           </div>
@@ -153,7 +160,7 @@ export default async function QuotePrintPage({
                   <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.price.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-900 dark:text-zinc-50">{item.total.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-600 dark:text-zinc-400">
-                    {item.serviceDate.toLocaleDateString("it-IT", { dateStyle: "short", timeZone: "UTC" })}
+                    {formatDateInDisplayTimeZone(item.serviceDate, { dateStyle: "short" }, displayTimeZone)}
                   </td>
                   <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">{item.paid.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-zinc-700 dark:text-zinc-300">
@@ -195,7 +202,7 @@ export default async function QuotePrintPage({
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
           <span>
-            Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })}
+            Data stampa: {formatDateInDisplayTimeZone(new Date(), { dateStyle: "short" }, displayTimeZone)}
           </span>
           <span>siamo online su sorrisosplendente.com</span>
         </div>

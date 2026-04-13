@@ -7,6 +7,8 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role, Gender } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +29,16 @@ const formatGender = (gender: Gender | null) => {
   }
 };
 
-const formatDateTime = (value: Date | string | null | undefined) => {
+const formatDateTime = (value: Date | string | null | undefined, timeZone: string) => {
   if (!value) return "—";
-  return new Date(value).toLocaleString("it-IT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  return formatDateInDisplayTimeZone(
+    new Date(value),
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+    timeZone
+  );
 };
 
 const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
@@ -45,6 +51,7 @@ export default async function PatientPrintPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
+  const displayTimeZone = await getUserDisplayTimeZone();
   const resolvedParams = await params;
   const patientId = resolvedParams?.id;
   if (!patientId) {
@@ -94,7 +101,13 @@ export default async function PatientPrintPage({
       where: {
         entity: "Patient",
         entityId: patientId,
-        action: "patient.updated",
+        action: {
+          notIn: [
+            "patient.created",
+            "patient.access_email_sent",
+            "patient.whatsapp_reminder_sent",
+          ],
+        },
       },
       orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true, email: true } } },
@@ -135,8 +148,8 @@ export default async function PatientPrintPage({
     : "";
   const createdBy = formatAuditActor(createdLog?.user);
   const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
-  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt);
-  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt);
+  const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt, displayTimeZone);
+  const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt, displayTimeZone);
 
   return (
     <div className="min-h-screen bg-zinc-100 dark:bg-zinc-900 px-6 py-8 print:bg-white print:px-0 print:py-0">
@@ -180,7 +193,11 @@ export default async function PatientPrintPage({
             <p className="mt-2 text-sm text-zinc-800 dark:text-zinc-200">
               Data di nascita:{" "}
               {patient.birthDate
-                ? new Date(patient.birthDate).toLocaleDateString("it-IT", { dateStyle: "short" })
+                ? formatDateInDisplayTimeZone(
+                    new Date(patient.birthDate),
+                    { dateStyle: "short" },
+                    displayTimeZone
+                  )
                 : "—"}
             </p>
             <p className="text-sm text-zinc-800 dark:text-zinc-200">Genere: {formatGender(patient.gender)}</p>
@@ -238,10 +255,14 @@ export default async function PatientPrintPage({
                   {dentalRecords.map((record) => (
                     <tr key={record.id}>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                        {new Date(record.performedAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
+                        {formatDateInDisplayTimeZone(
+                          new Date(record.performedAt),
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                          displayTimeZone
+                        )}
                       </td>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
                         {record.tooth === 0 ? "Tutta la bocca" : `Dente ${record.tooth}`}
@@ -281,10 +302,14 @@ export default async function PatientPrintPage({
                   {implants.map((imp) => (
                     <tr key={imp.id}>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                        {new Date(imp.createdAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
+                        {formatDateInDisplayTimeZone(
+                          new Date(imp.createdAt),
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                          displayTimeZone
+                        )}
                       </td>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.name ?? "—"}</td>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{imp.product?.brand ?? "—"}</td>
@@ -318,10 +343,14 @@ export default async function PatientPrintPage({
                   {pastAppointments.map((appt) => (
                     <tr key={appt.id}>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
-                        {new Date(appt.startsAt).toLocaleString("it-IT", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}
+                        {formatDateInDisplayTimeZone(
+                          new Date(appt.startsAt),
+                          {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          },
+                          displayTimeZone
+                        )}
                       </td>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{appt.serviceType ?? "—"}</td>
                       <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">{appt.doctor?.fullName ?? "—"}</td>
@@ -355,7 +384,7 @@ export default async function PatientPrintPage({
           </div>
         </div>
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 text-xs text-zinc-500 dark:text-zinc-400">
-          Data stampa: {new Date().toLocaleDateString("it-IT", { dateStyle: "short" })} · Operatore:{" "}
+          Data stampa: {formatDateInDisplayTimeZone(new Date(), { dateStyle: "short" }, displayTimeZone)} · Operatore:{" "}
           {user.name ?? user.email ?? "—"}
         </div>
       </div>
