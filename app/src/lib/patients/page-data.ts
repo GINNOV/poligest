@@ -134,7 +134,17 @@ export async function getPatientDetailPageData(patientId: string) {
         include: { user: { select: { name: true, email: true } } },
       }),
       prisma.auditLog.findFirst({
-        where: { action: "patient.updated", entity: "Patient", entityId: patientId },
+        where: {
+          entity: "Patient",
+          entityId: patientId,
+          action: {
+            notIn: [
+              "patient.created",
+              "patient.access_email_sent",
+              "patient.whatsapp_reminder_sent",
+            ],
+          },
+        },
         orderBy: { createdAt: "desc" },
         include: { user: { select: { name: true, email: true } } },
       }),

@@ -137,7 +137,11 @@ describe("patient page data", () => {
       .mockResolvedValueOnce({ id: "audit-access" })
       .mockResolvedValueOnce({ id: "audit-whatsapp" })
       .mockResolvedValueOnce({ id: "audit-created", user: { name: "Admin", email: "admin@example.com" } })
-      .mockResolvedValueOnce({ id: "audit-updated", user: { name: "Manager", email: "manager@example.com" } });
+      .mockResolvedValueOnce({
+        id: "audit-dental-record-updated",
+        action: "patient.dental_record_note_updated",
+        user: { name: "Manager", email: "manager@example.com" },
+      });
     mocks.prisma.smsTemplate.findMany.mockResolvedValue([
       { id: "tpl-1", name: "Whatsapp reminder" },
       { id: "tpl-2", name: "Promemoria visita" },
@@ -167,6 +171,21 @@ describe("patient page data", () => {
     expect(result.missingRequired).toEqual([{ id: "consent-2", active: true, required: true, name: "Marketing" }]);
     expect(result.visibleSmsTemplates).toEqual([{ id: "tpl-2", name: "Promemoria visita" }]);
     expect(result.pastAppointments).toHaveLength(1);
+    expect(mocks.prisma.auditLog.findFirst).toHaveBeenLastCalledWith({
+      where: {
+        entity: "Patient",
+        entityId: "patient-1",
+        action: {
+          notIn: [
+            "patient.created",
+            "patient.access_email_sent",
+            "patient.whatsapp_reminder_sent",
+          ],
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { name: true, email: true } } },
+    });
     expect(result.dentalRecordsSerialized).toEqual([
       expect.objectContaining({
         id: "record-1",

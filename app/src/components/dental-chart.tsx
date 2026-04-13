@@ -2,6 +2,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { emitToast } from "./global-toasts";
 import { DictationTextarea } from "./dictation-textarea";
@@ -41,6 +42,11 @@ const TOOTH_IMAGES: Record<ToothData["type"], string> = {
   canine: "/teeth/canini.png",
   premolar: "/teeth/premolari.png",
   molar: "/teeth/molari.png",
+};
+
+type PersistedDentalChartState = {
+  isOpen?: boolean;
+  selectedTooth?: number | null;
 };
 
 const TOOTH_POSITIONS: Record<number, { x: number; y: number }> = {
@@ -231,7 +237,10 @@ export function DentalChart({
   defaultCollapsed?: boolean;
   containerClassName?: string;
 }) {
+  const router = useRouter();
+  const storageKey = `dental-chart:${patientId}`;
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [procedure, setProcedure] = useState("");
   const [notes, setNotes] = useState("");
@@ -245,6 +254,10 @@ export function DentalChart({
   const [pendingTreatedRecordIds, setPendingTreatedRecordIds] = useState<string[]>([]);
 
   useEffect(() => {
+    setRecords(initialRecords);
+  }, [initialRecords]);
+
+  useEffect(() => {
     setNoteDrafts((prev) => {
       const next = { ...prev };
       records.forEach((record) => {
@@ -255,6 +268,32 @@ export function DentalChart({
       return next;
     });
   }, [records]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const rawState = window.sessionStorage.getItem(storageKey);
+      if (!rawState) return;
+      const savedState = JSON.parse(rawState) as PersistedDentalChartState;
+      setIsOpen(savedState.isOpen ?? !defaultCollapsed);
+      if (typeof savedState.selectedTooth === "number") {
+        setSelectedTooth(savedState.selectedTooth);
+      }
+    } catch {
+      // Ignore invalid persisted UI state.
+    }
+  }, [defaultCollapsed, storageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        isOpen,
+        selectedTooth,
+      } satisfies PersistedDentalChartState)
+    );
+  }, [isOpen, selectedTooth, storageKey]);
 
   const recordsByTooth = useMemo(() => {
     const map = new Map<number, DentalRecord>();
@@ -306,6 +345,19 @@ export function DentalChart({
     setProcedure(record?.procedure ?? "");
     setNotes(record?.notes ?? "");
   };
+
+  useEffect(() => {
+    if (selectedTooth === null) return;
+    const record = recordsByTooth.get(selectedTooth);
+    if (!record && selectedTooth !== 0) {
+      setSelectedTooth(null);
+      setProcedure("");
+      setNotes("");
+      return;
+    }
+    setProcedure(record?.procedure ?? "");
+    setNotes(record?.notes ?? "");
+  }, [recordsByTooth, selectedTooth]);
 
   const handleChartClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const wrapper = chartRef.current;
@@ -368,6 +420,7 @@ export function DentalChart({
         [normalized.id]: normalized.notes ?? "",
       }));
       setCustomProcedure("");
+      router.refresh();
     } catch (error) {
       console.error(error);
       emitToast("Impossibile salvare il diario clinico", "error");
@@ -398,6 +451,7 @@ export function DentalChart({
         resetSelection();
       }
       emitToast("Record eliminato", "success");
+      router.refresh();
     } catch (error) {
       console.error(error);
       emitToast("Impossibile eliminare il record", "error");
@@ -430,6 +484,7 @@ export function DentalChart({
       setRecords((prev) => prev.map((r) => (r.id === normalized.id ? normalized : r)));
       setNoteDrafts((prev) => ({ ...prev, [recordId]: normalized.notes ?? "" }));
       emitToast("Note aggiornate", "success");
+      router.refresh();
     } catch (error) {
       console.error(error);
       emitToast("Impossibile salvare le note", "error");
@@ -471,6 +526,7 @@ export function DentalChart({
       };
       setRecords((prev) => prev.map((r) => (r.id === normalized.id ? normalized : r)));
       emitToast("Stato aggiornato", "success");
+      router.refresh();
     } catch (error) {
       setRecords((prev) =>
         prev.map((record) =>
@@ -491,7 +547,8 @@ export function DentalChart({
         "group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm [&_summary::-webkit-details-marker]:hidden",
         containerClassName
       )}
-      open={!defaultCollapsed}
+      open={isOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
     >
       <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 dark:border-zinc-800 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
         <span className="flex items-center gap-3">
