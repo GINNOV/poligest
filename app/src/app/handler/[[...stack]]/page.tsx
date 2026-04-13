@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { getStackServerApp } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { getAppVersion, getDeployDate } from "@/lib/version";
+import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { redirect } from "next/navigation";
 
 // Optional catch-all so /handler and /handler/* both work for Stack OAuth callbacks.
@@ -32,6 +33,7 @@ export default async function StackAuthHandlerPage(props: {
   const isStaff = audienceRaw === "staff";
   const version = getAppVersion();
   const deployedAt = getDeployDate();
+  const displayTimeZone = await getPracticeTimeZone();
 
   const theme = isStaff
     ? {
@@ -238,7 +240,7 @@ export default async function StackAuthHandlerPage(props: {
             />
           ) : null}
           </main>
-          <SiteFooter version={version} deployedAt={deployedAt} />
+          <SiteFooter version={version} deployedAt={deployedAt} displayTimeZone={displayTimeZone} />
         </div>
       </StackProvider>
     </StackTheme>

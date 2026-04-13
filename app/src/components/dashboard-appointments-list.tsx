@@ -107,14 +107,19 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const patientPhone = normalizeItalianPhone(appt.patient.phone);
         const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
         const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-        const whatsappAppointmentDate = formatDate(appt.startsAtDate, {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }, displayTimeZone);
+        const whatsappAppointmentDate = formatDate(
+          appt.startsAtDate,
+          {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+          displayTimeZone
+        );
+
         const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
           firstName: appt.patient.firstName ?? "",
           lastName: appt.patient.lastName ?? "",
@@ -182,12 +187,16 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                         <span>
-                          {formatDate(appt.startsAtDate, {
-                            weekday: "short",
-                            day: "numeric",
-                            month: "short",
-                          })}{" "}
-                          alle {formatDate(appt.startsAtDate, { timeStyle: "short" })}
+                          {formatDate(
+                            appt.startsAtDate,
+                            {
+                              weekday: "short",
+                              day: "numeric",
+                              month: "short",
+                            },
+                            displayTimeZone
+                          )}{" "}
+                          alle {formatDate(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
