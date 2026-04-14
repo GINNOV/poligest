@@ -13,6 +13,8 @@ type Props = {
   defaultValue?: string;
   placeholder?: string;
   className?: string;
+  allowNew?: boolean;
+  onSelect?: (id: string) => void;
 };
 
 export function PatientSearchCombobox({
@@ -21,6 +23,8 @@ export function PatientSearchCombobox({
   defaultValue = "",
   placeholder = "Cerca paziente",
   className,
+  allowNew = false,
+  onSelect,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const defaultPatient = useMemo(
@@ -28,7 +32,15 @@ export function PatientSearchCombobox({
     [defaultValue, patients],
   );
   const [query, setQuery] = useState(defaultPatient?.fullName ?? "");
-  const [selectedId, setSelectedId] = useState(defaultPatient?.id ?? "");
+  const [selectedId, setSelectedId] = useState(defaultValue);
+  const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
+
+  if (defaultValue !== prevDefaultValue) {
+    setPrevDefaultValue(defaultValue);
+    setSelectedId(defaultValue);
+    const p = patients.find((patient) => patient.id === defaultValue);
+    setQuery(p?.fullName ?? "");
+  }
 
   const listId = `${name}-options`;
 
@@ -40,13 +52,30 @@ export function PatientSearchCombobox({
           ref={inputRef}
           list={listId}
           value={query}
+          type="text"
+          autoComplete="off"
           onChange={(event) => {
             const nextQuery = event.target.value;
             setQuery(nextQuery);
+            
+            if (allowNew && nextQuery.trim().toLowerCase() === "+ nuovo cliente") {
+              setSelectedId("new");
+              onSelect?.("new");
+              return;
+            }
+
             const match = patients.find(
               (patient) => patient.fullName.toLowerCase() === nextQuery.trim().toLowerCase(),
             );
-            setSelectedId(match?.id ?? "");
+            const nextId = match?.id ?? "";
+            setSelectedId(nextId);
+            if (nextId) {
+              onSelect?.(nextId);
+            }
+          }}
+          onBlur={() => {
+            // If query doesn't match selectedId name, and not allowNew 'new', clear or reset?
+            // For now, let's keep it simple.
           }}
           placeholder={placeholder}
           className={
@@ -61,6 +90,7 @@ export function PatientSearchCombobox({
             onClick={() => {
               setQuery("");
               setSelectedId("");
+              onSelect?.("");
               inputRef.current?.focus();
             }}
             aria-label="Cancella paziente"
@@ -83,6 +113,7 @@ export function PatientSearchCombobox({
         ) : null}
       </div>
       <datalist id={listId}>
+        {allowNew && <option value="+ Nuovo cliente" />}
         {patients.map((patient) => (
           <option key={patient.id} value={patient.fullName} />
         ))}

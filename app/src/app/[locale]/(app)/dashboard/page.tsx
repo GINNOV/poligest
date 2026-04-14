@@ -656,14 +656,14 @@ export default async function DashboardPage({
         </div>
         <PrintLinkButton
           href={dashboardPrintHref}
-          label="STAMPA"
+          label="Stampa"
           target="_blank"
           rel="noopener noreferrer"
           variant="primary"
-          className="h-10 shrink-0 gap-2 sm:whitespace-nowrap"
+          className="h-10 w-10 p-0 items-center justify-center rounded-full shrink-0"
         >
           <svg
-            className="h-4 w-4"
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -672,27 +672,10 @@ export default async function DashboardPage({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M6 9V3h12v6" />
+            <path d="M6 9V2h12v7" />
             <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-            <path d="M6 14h12v7H6z" />
-            <path d="M6 18h12" />
+            <path d="M6 14h12v8H6z" />
           </svg>
-          <svg
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <path d="M16 2v4" />
-            <path d="M8 2v4" />
-            <path d="M3 10h18" />
-          </svg>
-          <span className="hidden sm:inline">STAMPA</span>
         </PrintLinkButton>
       </div>
 

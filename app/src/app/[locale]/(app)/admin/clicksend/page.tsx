@@ -180,7 +180,8 @@ export default async function ClickSendSettingsPage() {
                 rows={2}
                 className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 placeholder="Messaggio di test dal pannello ClickSend."
-              />
+              ></textarea>
+
             </label>
             <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
               Invia SMS di test

@@ -240,7 +240,7 @@ export default async function RichiamiProgrammatiPage({
               name="notes"
               rows={2}
               className="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/20"
-            />
+            ></textarea>
           </label>
           <button
             type="submit"

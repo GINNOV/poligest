@@ -602,17 +602,19 @@ export function DentalChart({
           <span className="uppercase tracking-wide">Diario clinico</span>
         </span>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsChartDialogOpen(true);
-            }}
-            className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
-          >
-            Mostra dentatura
-          </button>
+          {isOpen && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsChartDialogOpen(true);
+              }}
+              className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
+            >
+              Mostra dentatura
+            </button>
+          )}
           {records.length > 0 ? (
             <PrintLinkButton
               href={printHref || `/pazienti/${patientId}/diario`}
@@ -661,7 +663,7 @@ export function DentalChart({
               {records.length}
             </span>
           </div>
-          <div className="grid gap-4 max-h-[360px] overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 max-h-[600px] overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
             {sortedRecords.length === 0 ? (
               <p className="text-xs text-zinc-500 dark:text-zinc-300">Nessun record salvato.</p>
             ) : (

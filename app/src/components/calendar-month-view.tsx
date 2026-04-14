@@ -193,6 +193,13 @@ export function CalendarMonthView({
 
   const selectedLabelDate = selectedDate ?? selectedAppointment?.startsAt ?? null;
 
+  const [prevReturnTo, setPrevReturnTo] = useState(returnTo);
+  if (returnTo !== prevReturnTo) {
+    setPrevReturnTo(returnTo);
+    setSelectedDate(null);
+    setSelectedAppointment(null);
+  }
+
   useEffect(() => {
     if (!selectedDate && !selectedAppointment) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -417,6 +424,10 @@ export function CalendarMonthView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={updateAction}
+                onSuccess={() => {
+                  setSelectedAppointment(null);
+                  setSelectedDate(null);
+                }}
                 returnTo={returnTo}
               />
                 <form
@@ -443,6 +454,10 @@ export function CalendarMonthView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={action}
+                onSuccess={() => {
+                  setSelectedAppointment(null);
+                  setSelectedDate(null);
+                }}
                 initialStartsAt={selectedStartsAt}
                 initialEndsAt={selectedEndsAt}
                 initialDoctorId={selectedDoctorId}

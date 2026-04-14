@@ -632,6 +632,9 @@ export default async function CalendarPage({
     if (params.week) {
       nextParams.set("week", params.week);
     }
+    if (searchQuery) {
+      nextParams.set("q", searchQuery);
+    }
     return `/calendar?${nextParams.toString()}`;
   };
   const selectedMonthKey = format(baseMonth, "yyyy-MM");
@@ -646,6 +649,9 @@ export default async function CalendarPage({
     returnParams.set("week", weekKey);
   } else {
     returnParams.set("month", selectedMonthKey);
+  }
+  if (searchQuery) {
+    returnParams.set("q", searchQuery);
   }
   const returnTo = `/calendar?${returnParams.toString()}`;
   const calendarDays = days.map((day) => {
@@ -881,6 +887,7 @@ export default async function CalendarPage({
               deleteAction={deleteAppointment}
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
+              searchQuery={searchQuery}
             />
           ) : (
             <CalendarWeekView
@@ -902,6 +909,7 @@ export default async function CalendarPage({
               deleteAction={deleteAppointment}
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
+              searchQuery={searchQuery}
             />
           )}
         </div>

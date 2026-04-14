@@ -230,7 +230,7 @@ export function PatientPaymentFields({
           rows={3}
           className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           placeholder="Es. acconto, saldo finale, riferimento POS"
-        />
+        ></textarea>
       </label>
     </div>
   );
@@ -344,7 +344,7 @@ export function FinanceExpenseFields({ suppliers, products }: ExpenseProps) {
           rows={3}
           className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           placeholder="Dettagli su condizioni di pagamento o numeri documento"
-        />
+        ></textarea>
       </label>
     </div>
   );

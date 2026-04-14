@@ -305,6 +305,13 @@ export function CalendarWeekView({
 
   const selectedLabelDate = selectedSlot?.startsAt ?? selectedAppointment?.startsAt ?? null;
 
+  const [prevReturnTo, setPrevReturnTo] = useState(returnTo);
+  if (returnTo !== prevReturnTo) {
+    setPrevReturnTo(returnTo);
+    setSelectedSlot(null);
+    setSelectedAppointment(null);
+  }
+
   useEffect(() => {
     if (!selectedSlot && !selectedAppointment) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -366,7 +373,7 @@ export function CalendarWeekView({
               })}
             </div>
 
-            {weekDays.map((day) => {
+            {filteredWeekDays.map((day) => {
               const positionedAppointments = buildPositionedAppointments(day.appointments);
               return (
                 <div
@@ -578,6 +585,10 @@ export function CalendarWeekView({
                   practiceClosures={practiceClosures}
                   practiceWeeklyClosures={practiceWeeklyClosures}
                   action={updateAction}
+                  onSuccess={() => {
+                    setSelectedAppointment(null);
+                    setSelectedSlot(null);
+                  }}
                   returnTo={returnTo}
                 />
                 <form
@@ -604,6 +615,10 @@ export function CalendarWeekView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={action}
+                onSuccess={() => {
+                  setSelectedAppointment(null);
+                  setSelectedSlot(null);
+                }}
                 initialStartsAt={selectedSlot?.startsAt}
                 initialEndsAt={selectedSlot?.endsAt}
                 initialDoctorId={selectedDoctorId}

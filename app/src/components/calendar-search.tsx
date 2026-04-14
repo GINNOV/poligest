@@ -1,18 +1,19 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 export function CalendarSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
 
-  // Sync state with URL
-  useEffect(() => {
+  if (searchParams !== prevSearchParams) {
+    setPrevSearchParams(searchParams);
     setQuery(searchParams.get("q") ?? "");
-  }, [searchParams]);
+  }
 
   const handleSearch = (value: string) => {
     setQuery(value);

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ConflictDialog } from "@/components/conflict-dialog";
+import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -32,6 +33,7 @@ type AppointmentUpdateFormProps = {
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures: PracticeWeeklyClosure[];
   action: (formData: FormData) => Promise<void>;
+  onSuccess?: () => void;
   returnTo?: string;
 };
 
@@ -44,12 +46,12 @@ export function AppointmentUpdateForm({
   practiceClosures,
   practiceWeeklyClosures,
   action,
+  onSuccess,
   returnTo,
 }: AppointmentUpdateFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
-  const [allowSubmit, setAllowSubmit] = useState(false);
 
   const sortedServices = useMemo(
     () =>
@@ -59,11 +61,15 @@ export function AppointmentUpdateForm({
     [services]
   );
 
-  const originalStartsAt = useMemo(() => appointment.startsAt, [appointment.startsAt]);
-  const originalEndsAt = useMemo(() => appointment.endsAt, [appointment.endsAt]);
-  const originalDoctorId = useMemo(() => appointment.doctorId ?? "", [appointment.doctorId]);
-  const originalStartMs = useMemo(() => new Date(appointment.startsAt).getTime(), [appointment.startsAt]);
-  const originalEndMs = useMemo(() => new Date(appointment.endsAt).getTime(), [appointment.endsAt]);
+  const [title, setTitle] = useState<string>(() => {
+    const knownTitles = ["Richiamo", "Prima visita", "Visita di controllo", "Urgenza"];
+    return knownTitles.includes(appointment.title) ? appointment.title : "altro";
+  });
+
+  const [serviceType, setServiceType] = useState<string>(() => {
+    const match = sortedServices.find((s) => s.name === appointment.serviceType);
+    return match ? match.name : "altro";
+  });
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -85,7 +91,22 @@ export function AppointmentUpdateForm({
   return (
     <form
       className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
-      action={action}
+      action={async (formData) => {
+        setChecking(true);
+        setError(null);
+        try {
+          await action(formData);
+          onSuccess?.();
+        } catch (err: unknown) {
+          if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
+            onSuccess?.();
+            return;
+          }
+          setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento.");
+        } finally {
+          setChecking(false);
+        }
+      }}
       onSubmit={async (e) => {
         const form = e.currentTarget;
         const submitter = (e.nativeEvent as SubmitEvent).submitter as
@@ -93,45 +114,18 @@ export function AppointmentUpdateForm({
           | HTMLInputElement
           | null;
 
-        // If we already green-lit submission, let it flow through.
         if (form.dataset.confirmedSubmit === "true") {
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
-          return;
-        }
-        if (allowSubmit) {
-          setAllowSubmit(false);
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
           return;
         }
 
         e.preventDefault();
         setError(null);
-        setConflictMessage(null);
 
         if (!handleValidate(form)) return;
 
         const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
         const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
         const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
-
-        const isUnchangedTime = (() => {
-          if (doctorId !== originalDoctorId) return false;
-          // Prefer string equality (exact same input values), fallback to millisecond comparison.
-          if (startsAt === originalStartsAt && endsAt === originalEndsAt) return true;
-          const startMs = new Date(startsAt ?? "").getTime();
-          const endMs = new Date(endsAt ?? "").getTime();
-          if (Number.isNaN(startMs) || Number.isNaN(endMs)) return false;
-          return Math.abs(startMs - originalStartMs) < 1000 && Math.abs(endMs - originalEndMs) < 1000;
-        })();
-
-        if (submitter) {
-          submitter.dataset.submitting = "false";
-          submitter.removeAttribute("aria-busy");
-          submitter.classList.remove("pointer-events-none", "opacity-70");
-          submitter.disabled = false;
-        }
 
         const warning = computeSchedulingWarning({
           doctorId,
@@ -148,105 +142,121 @@ export function AppointmentUpdateForm({
           } else {
             form.setAttribute("data-confirm", warning);
           }
-          if (typeof form.requestSubmit === "function") {
-            form.requestSubmit(submitter ?? undefined);
-          } else {
-            form.submit();
-          }
+          form.requestSubmit(submitter ?? undefined);
           return;
         } else {
           form.removeAttribute("data-confirm");
           submitter?.removeAttribute("data-confirm");
         }
 
-        // No conflicts: allow the native submit so the server action can redirect without errors.
-        setAllowSubmit(true);
+        // No warning: let the 'action' handle it via form submission
+        form.dataset.confirmedSubmit = "true";
         form.requestSubmit(submitter ?? undefined);
+        setTimeout(() => {
+          delete form.dataset.confirmedSubmit;
+        }, 0);
       }}
     >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Titolo
-        <input
-          name="title"
-          defaultValue={appointment.title}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-          required
+      
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
+        <PatientSearchCombobox
+          name="patientId"
+          patients={patients.map((p) => ({ id: p.id, fullName: `${p.lastName} ${p.firstName}` }))}
+          defaultValue={appointment.patientId}
+          placeholder="Cerca paziente..."
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Servizio
-        <div className="grid grid-cols-[2fr,1fr] gap-2">
+
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Tipo di appuntamento</span>
+          <select
+            name="title"
+            value={title}
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+            required
+            onChange={(e) => setTitle(e.target.value)}
+          >
+            <option value="Richiamo">Richiamo</option>
+            <option value="Prima visita">Prima visita</option>
+            <option value="Visita di controllo">Visita di controllo</option>
+            <option value="Urgenza">Urgenza</option>
+            <option value="altro">Altro</option>
+          </select>
+        </label>
+        {title === "altro" && (
+          <input
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+            name="titleCustom"
+            defaultValue={appointment.title}
+            placeholder="Specifica motivo..."
+            required
+            aria-label="Titolo personalizzato"
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Servizio</span>
           <select
             name="serviceType"
-            defaultValue={
-              sortedServices.find((s) => s.name === appointment.serviceType)?.name ??
-              sortedServices[0]?.name ??
-              ""
-            }
-            className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+            value={serviceType}
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+            required
+            onChange={(e) => setServiceType(e.target.value)}
           >
             {sortedServices.map((s) => (
               <option key={s.id} value={s.name}>
                 {s.name}
               </option>
             ))}
-            <option value="">Personalizzato</option>
+            <option value="altro">Altro</option>
           </select>
+        </label>
+        {serviceType === "altro" && (
           <input
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             name="serviceTypeCustom"
-            defaultValue={
-              sortedServices.find((s) => s.name === appointment.serviceType)
-                ? ""
-                : appointment.serviceType
-            }
-            className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
-            placeholder="Altro..."
+            defaultValue={appointment.serviceType}
+            placeholder="Specifica servizio..."
+            required
           />
-        </div>
-      </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Inizio
+        )}
+      </div>
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
         <input
           type="datetime-local"
           name="startsAt"
           defaultValue={appointment.startsAt}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           required
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Fine
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Stima di fine visita</span>
         <input
           type="datetime-local"
           name="endsAt"
           defaultValue={appointment.endsAt}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           required
         />
       </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Paziente
-        <select
-          name="patientId"
-          defaultValue={appointment.patientId}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-        >
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.lastName} {p.firstName}
-              {p.email ? ` · ${p.email}` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Medico
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold">Medico assegnato</span>
         <select
           name="doctorId"
           defaultValue={appointment.doctorId ?? ""}
-          className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
         >
           <option value="">—</option>
           {doctors.map((d) => (
@@ -256,28 +266,32 @@ export function AppointmentUpdateForm({
           ))}
         </select>
       </label>
-      <input type="hidden" name="status" value={appointment.status} />
-      <label className="col-span-full flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-        Note
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold">Note</span>
         <textarea
           name="notes"
           defaultValue={appointment.notes ?? ""}
-          className="min-h-[80px] rounded-lg border border-zinc-200 bg-white px-2 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-emerald-900"
-          placeholder="Note per il team o dettagli sul paziente/servizio"
-        />
+          className="min-h-[44px] h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          placeholder="Note per il team"
+        ></textarea>
       </label>
+
+      <input type="hidden" name="status" value={appointment.status} />
+
       {error ? (
-        <p className="col-span-full rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">{error}</p>
+        <p className="col-span-full text-sm text-rose-600 font-bold">{error}</p>
       ) : null}
+
       <div className="col-span-full">
         <button
           type="submit"
-        disabled={checking}
-        className="h-10 w-full rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {checking ? "Controllo sovrapposizioni..." : "Aggiorna appuntamento"}
-      </button>
-    </div>
+          disabled={checking}
+          className="h-11 w-full rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {checking ? "Operazione in corso..." : "Aggiorna appuntamento"}
+        </button>
+      </div>
       {conflictMessage ? (
         <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
       ) : null}

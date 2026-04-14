@@ -5,6 +5,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
+import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -20,6 +21,7 @@ type Props = {
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures: PracticeWeeklyClosure[];
   action: (formData: FormData) => Promise<void>;
+  onSuccess?: () => void;
   initialStartsAt?: string;
   initialEndsAt?: string;
   initialDoctorId?: string;
@@ -34,6 +36,7 @@ export function AppointmentCreateForm({
   practiceClosures,
   practiceWeeklyClosures,
   action,
+  onSuccess,
   initialStartsAt,
   initialEndsAt,
   initialDoctorId,
@@ -67,7 +70,6 @@ export function AppointmentCreateForm({
     }
     return "";
   });
-  const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
   const [title, setTitle] = useState<string>("Richiamo");
@@ -106,7 +108,22 @@ export function AppointmentCreateForm({
     <>
       <UnsavedChangesGuard formId={appointmentFormId} />
       <form
-      action={action}
+      action={async (formData) => {
+        setChecking(true);
+        setError(null);
+        try {
+          await action(formData);
+          onSuccess?.();
+        } catch (err: unknown) {
+          if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
+            onSuccess?.();
+            return;
+          }
+          setError(err instanceof Error ? err.message : "Errore durante la creazione.");
+        } finally {
+          setChecking(false);
+        }
+      }}
       className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
       data-appointment-form="create"
       id={appointmentFormId}
@@ -118,15 +135,6 @@ export function AppointmentCreateForm({
           | null;
 
         if (form.dataset.confirmedSubmit === "true") {
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
-          return;
-        }
-
-        if (allowSubmit) {
-          setAllowSubmit(false);
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
           return;
         }
 
@@ -141,7 +149,7 @@ export function AppointmentCreateForm({
         const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
 
         // Check for duplicates if it's a new patient
-        if (isNewPatient && !allowSubmit) {
+        if (isNewPatient) {
           const firstName = (form.elements.namedItem("newFirstName") as HTMLInputElement | null)?.value;
           const lastName = (form.elements.namedItem("newLastName") as HTMLInputElement | null)?.value;
           const phone = (form.elements.namedItem("newPhone") as HTMLInputElement | null)?.value;
@@ -168,14 +176,6 @@ export function AppointmentCreateForm({
           }
         }
 
-        // Re-enable the original submitter in case a guard disabled it.
-        if (submitter) {
-          submitter.dataset.submitting = "false";
-          submitter.removeAttribute("aria-busy");
-          submitter.classList.remove("pointer-events-none", "opacity-70");
-          submitter.disabled = false;
-        }
-
         const warning = computeSchedulingWarning({
           doctorId,
           startsAt: startsAt ?? "",
@@ -191,36 +191,32 @@ export function AppointmentCreateForm({
           } else {
             form.setAttribute("data-confirm", warning);
           }
-          setChecking(false);
-          if (typeof form.requestSubmit === "function") {
-            form.requestSubmit(submitter ?? undefined);
-          } else {
-            form.submit();
-          }
+          form.requestSubmit(submitter ?? undefined);
           return;
         } else {
           form.removeAttribute("data-confirm");
           submitter?.removeAttribute("data-confirm");
         }
 
-        setAllowSubmit(true);
-        if (typeof form.requestSubmit === "function") {
-          form.requestSubmit(submitter ?? undefined);
-        } else {
-          form.submit();
-        }
+        form.dataset.confirmedSubmit = "true";
+        form.requestSubmit(submitter ?? undefined);
+        // Do NOT delete confirmedSubmit immediately to avoid loops if requestSubmit is async
+        setTimeout(() => {
+          delete form.dataset.confirmedSubmit;
+        }, 0);
       }}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
-        <select
+        <PatientSearchCombobox
           name="patientId"
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          required
-          defaultValue=""
-          onChange={(e) => {
-            const isNew = e.target.value === "new";
+          patients={patients.map((p) => ({ id: p.id, fullName: `${p.lastName} ${p.firstName}` }))}
+          placeholder="Cerca paziente..."
+          allowNew
+          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          onSelect={(id) => {
+            const isNew = id === "new";
             setIsNewPatient(isNew);
             if (isNew) {
               setTitle("Prima visita");
@@ -229,23 +225,12 @@ export function AppointmentCreateForm({
                   ? "Visita di controllo"
                   : serviceOptions[0] ?? ""
               );
-            } else {
+            } else if (id) {
               setTitle("Richiamo");
               setServiceType(serviceOptions[0] ?? "");
             }
           }}
-        >
-          <option value="" disabled>
-            Seleziona paziente
-          </option>
-          <option value="new">+ Nuovo cliente</option>
-          {patients.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.lastName} {p.firstName}
-              {p.email ? ` · ${p.email}` : ""}
-            </option>
-          ))}
-        </select>
+        />
       </label>
       {isNewPatient && (
         <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -423,7 +408,7 @@ export function AppointmentCreateForm({
           name="notes"
           className="min-h-[44px] h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           placeholder="Note per il team"
-        />
+        ></textarea>
       </label>
       {error ? <p className="col-span-full text-sm text-rose-600 font-bold">{error}</p> : null}
       <div className="col-span-full">
@@ -442,18 +427,13 @@ export function AppointmentCreateForm({
           patient={duplicatePatient}
           onClose={() => setDuplicatePatient(null)}
           onProceed={() => {
-            setAllowSubmit(true);
             setDuplicatePatient(null);
-            // We need to trigger the form submission again.
-            // Since we use a hidden trigger or setAllowSubmit, the user will have to click again.
-            // But we can try to find the form and submit it programmatically.
             const form = document.getElementById(appointmentFormId) as HTMLFormElement;
             if (form) {
-              // Wait for state to update
-              setTimeout(() => {
-                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-                submitBtn?.click();
-              }, 0);
+              form.dataset.confirmedSubmit = "true";
+              const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+              submitBtn?.click();
+              delete form.dataset.confirmedSubmit;
             }
           }}
         />
