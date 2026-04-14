@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { PatientPaymentMethod, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { getOptionalPrismaModel } from "@/lib/prisma-models";
+import { logAudit } from "@/lib/audit";
 
 export async function recordPatientPayment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
@@ -28,18 +28,6 @@ export async function recordPatientPayment(formData: FormData) {
     throw new Error("Importo non valido");
   }
 
-  const patientPaymentClient = getOptionalPrismaModel<{
-    create?: unknown;
-    findMany?: (args: {
-      where: { quoteItemId: string; archivedAt?: null };
-      select: { amount: true };
-    }) => Promise<Array<{ amount: { toString(): string } }>>;
-  }>("patientPayment");
-
-  if (!patientPaymentClient?.create) {
-    throw new Error("Il modulo pagamenti non è ancora disponibile nel server attivo. Aggiorna la pagina o riavvia il server.");
-  }
-
   const quoteItem = await prisma.quoteItem.findFirst({
     where: {
       id: quoteItemId,
@@ -59,12 +47,10 @@ export async function recordPatientPayment(formData: FormData) {
     throw new Error("Prestazione del preventivo non trovata");
   }
 
-  const existingPayments = patientPaymentClient.findMany
-    ? await patientPaymentClient.findMany({
-        where: { quoteItemId, archivedAt: null },
-        select: { amount: true },
-      })
-    : [];
+  const existingPayments = await prisma.patientPayment.findMany({
+    where: { quoteItemId, archivedAt: null },
+    select: { amount: true },
+  });
 
   const totalAmount = Number(quoteItem.total.toString());
   const existingPaid = existingPayments.length
@@ -91,25 +77,8 @@ export async function recordPatientPayment(formData: FormData) {
           ? "altro"
           : "elettronico";
 
-  await prisma.$transaction(async (tx) => {
-    const txWithPayments = tx as typeof tx & {
-      patientPayment: {
-        create: (args: {
-          data: {
-            patientId: string;
-            quoteId: string;
-            quoteItemId: string;
-            amount: Prisma.Decimal;
-            paidAt: Date;
-            method: PatientPaymentMethod;
-            note: string | null;
-            userId: string;
-          };
-        }) => Promise<unknown>;
-      };
-    };
-
-    await txWithPayments.patientPayment.create({
+  const payment = await prisma.$transaction(async (tx) => {
+    const p = await tx.patientPayment.create({
       data: {
         patientId,
         quoteId,
@@ -145,6 +114,20 @@ export async function recordPatientPayment(formData: FormData) {
         userId: user.id,
       },
     });
+
+    return p;
+  });
+
+  await logAudit(user, {
+    action: "finance.patient_payment.recorded",
+    entity: "PatientPayment",
+    entityId: payment.id,
+    metadata: {
+      patientId,
+      amount: amountNumber,
+      method,
+      quoteItemId,
+    },
   });
 
   revalidatePath("/finanza");
@@ -152,7 +135,7 @@ export async function recordPatientPayment(formData: FormData) {
 }
 
 export async function archivePatientPayment(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const paymentId = (formData.get("paymentId") as string) || "";
 
   if (!paymentId) {
@@ -214,6 +197,16 @@ export async function archivePatientPayment(formData: FormData) {
     }
   });
 
+  await logAudit(user, {
+    action: "finance.patient_payment.archived",
+    entity: "PatientPayment",
+    entityId: paymentId,
+    metadata: {
+      patientId: payment.patientId,
+      quoteItemId: payment.quoteItemId,
+    },
+  });
+
   revalidatePath("/finanza");
   revalidatePath("/finanza/pagamenti");
 }
@@ -247,13 +240,24 @@ export async function recordExpense(formData: FormData) {
   details.push(`Pagamento: ${paymentType === "cash" ? "contanti" : "elettronico"}`);
   if (note) details.push(note);
 
-  await prisma.financeEntry.create({
+  const entry = await prisma.financeEntry.create({
     data: {
       type: "EXPENSE",
       description: details.join(" · "),
       amount,
       occurredAt: new Date(purchaseDate),
       userId: user.id,
+    },
+  });
+
+  await logAudit(user, {
+    action: "finance.expense.recorded",
+    entity: "FinanceEntry",
+    entityId: entry.id,
+    metadata: {
+      description,
+      amount,
+      expenseKind,
     },
   });
 
@@ -268,13 +272,23 @@ export async function createCashAdvance(formData: FormData) {
   const note = (formData.get("note") as string)?.trim() || null;
   if (!patientId || !amount || !issuedAt) throw new Error("Dati mancanti");
 
-  await prisma.cashAdvance.create({
+  const advance = await prisma.cashAdvance.create({
     data: {
       patientId,
       amount,
       issuedAt: new Date(issuedAt),
       note,
       userId: user.id,
+    },
+  });
+
+  await logAudit(user, {
+    action: "finance.cash_advance.created",
+    entity: "CashAdvance",
+    entityId: advance.id,
+    metadata: {
+      patientId,
+      amount,
     },
   });
 
@@ -322,7 +336,7 @@ export async function createDoctorPayment(formData: FormData) {
           ? "altro"
           : "elettronico";
 
-  await prisma.financeEntry.create({
+  const entry = await prisma.financeEntry.create({
     data: {
       type: "EXPENSE",
       description: ["Pagamento medico", `Metodo: ${methodLabel}`, note || "Liquidazione"].join(" · "),
@@ -330,6 +344,17 @@ export async function createDoctorPayment(formData: FormData) {
       occurredAt: new Date(occurredAt),
       doctorId,
       userId: user.id,
+    },
+  });
+
+  await logAudit(user, {
+    action: "finance.doctor_payment.created",
+    entity: "FinanceEntry",
+    entityId: entry.id,
+    metadata: {
+      doctorId,
+      amount: amountNumber,
+      method,
     },
   });
 
@@ -399,36 +424,19 @@ export async function amendDoctorPayment(formData: FormData) {
       },
     });
 
-    const auditLogClient = getOptionalPrismaModel<{
-      create?: (args: {
-        data: {
-          action: string;
-          entity: string;
-          entityId: string;
-          userId: string;
-          metadata: Prisma.InputJsonValue;
-        };
-      }) => Promise<unknown>;
-    }>("auditLog");
-
-    if (auditLogClient?.create) {
-      await auditLogClient.create({
-        data: {
-          action: "finance.doctor_payment.amend",
-          entity: "FinanceEntry",
-          entityId: entryId,
-          userId: user.id,
-          metadata: {
-            oldAmount: entry.amount.toString(),
-            newAmount: amountNumber.toString(),
-            oldDate: entry.occurredAt.toISOString(),
-            newDate: new Date(occurredAt).toISOString(),
-            oldDescription: entry.description,
-            newDescription: newDescription,
-          },
-        },
-      });
-    }
+    await logAudit(user, {
+      action: "finance.doctor_payment.amend",
+      entity: "FinanceEntry",
+      entityId: entryId,
+      metadata: {
+        oldAmount: entry.amount.toString(),
+        newAmount: amountNumber.toString(),
+        oldDate: entry.occurredAt.toISOString(),
+        newDate: new Date(occurredAt).toISOString(),
+        oldDescription: entry.description,
+        newDescription: newDescription,
+      },
+    });
   });
 
   revalidatePath("/finanza");
@@ -436,7 +444,7 @@ export async function amendDoctorPayment(formData: FormData) {
 }
 
 export async function archiveDoctorPayment(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const entryId = formData.get("entryId") as string;
   if (!entryId) return;
 
@@ -451,6 +459,15 @@ export async function archiveDoctorPayment(formData: FormData) {
   await prisma.financeEntry.update({
     where: { id: entryId },
     data: { description: `${ARCHIVE_PREFIX} ${entry.description}` },
+  });
+
+  await logAudit(user, {
+    action: "finance.doctor_payment.archived",
+    entity: "FinanceEntry",
+    entityId: entryId,
+    metadata: {
+      oldDescription: entry.description,
+    },
   });
 
   revalidatePath("/finanza");
