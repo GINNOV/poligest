@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
@@ -142,10 +142,12 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const cardClass = isPast
           ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
           : statusCardBackgrounds[appt.status];
-        const dayKey = getDateKey(appt.startsAtDate, displayTimeZone);
+        const dayKey = isMounted ? getDateKey(appt.startsAtDate, displayTimeZone) : appt.startsAt.slice(0, 10);
         const dayLabel = isMounted ? formatDate(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone) : "";
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
-        const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate, displayTimeZone) : null;
+        const prevDayKey = prevAppt 
+          ? (isMounted ? getDateKey(prevAppt.startsAtDate, displayTimeZone) : prevAppt.startsAt.slice(0, 10))
+          : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
         const reminderSent = appt.reminderSent;
         const outerCardClass = index % 2 === 0

@@ -533,15 +533,19 @@ export function QuoteAccordion({
   const [prevDisplayTimeZone, setPrevDisplayTimeZone] = useState(displayTimeZone);
   const [removeDialog, setRemoveDialog] = useState<{ index: number; type: "warning" | "confirm" } | null>(null);
 
+  const [dirtyVersion, setDirtyVersion] = useState(0);
+  const [savedVersion, setSavedVersion] = useState(0);
+  const dirtyVersionRef = useRef(0);
+
   if (initialQuote !== prevInitialQuote || displayTimeZone !== prevDisplayTimeZone) {
     setPrevInitialQuote(initialQuote);
     setPrevDisplayTimeZone(displayTimeZone);
     setItems(initialItems);
     setSignatureReady(Boolean(initialQuote?.signatureUrl));
+    setDirtyVersion(0);
+    setSavedVersion(0);
+    dirtyVersionRef.current = 0;
   }
-  const [dirtyVersion, setDirtyVersion] = useState(0);
-  const [savedVersion, setSavedVersion] = useState(0);
-  const dirtyVersionRef = useRef(0);
   const [, formAction] = useActionState(onSave, { savedAt: 0 });
   const isDirty = dirtyVersion > savedVersion;
   const markDirty = () =>
@@ -684,58 +688,38 @@ export function QuoteAccordion({
           </div>
         </span>
         <div className="flex items-center gap-2">
-          {initialQuote?.id ? (
-            isDirty ? (
-              <span
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-300 dark:text-zinc-700"
-                title="Salva prima di stampare"
-                aria-label="Salva prima di stampare"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 9V4h12v5" />
-                  <path d="M6 18h12v2H6z" />
-                  <path d="M6 14h12v4H6z" />
-                  <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
-                  <path d="M2 15h4" />
-                </svg>
-              </span>
-            ) : (
-              <PrintLinkButton
-                href={printHref || `/pazienti/${patientId}/preventivo/${initialQuote.id}`}
-                label="Stampa preventivo"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 transition hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-400"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M6 9V4h12v5" />
-                  <path d="M6 18h12v2H6z" />
-                  <path d="M6 14h12v4H6z" />
-                  <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
-                  <path d="M2 15h4" />
-                </svg>
-              </PrintLinkButton>
-            )
-          ) : null}
-          <svg
+        {initialQuote?.id ? (
+          <PrintLinkButton
+            href={printHref || `/pazienti/${patientId}/preventivo/${initialQuote.id}`}
+            label="Stampa preventivo"
+            title={isDirty ? "Stampa (salva per includere le modifiche recenti)" : "Stampa preventivo"}
+            target="_blank"
+            rel="noreferrer"
+            className={clsx(
+              "inline-flex h-8 w-8 items-center justify-center rounded-full border transition",
+              isDirty
+                ? "border-amber-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-950/20"
+                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-400"
+            )}
+          >
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 9V4h12v5" />
+              <path d="M6 18h12v2H6z" />
+              <path d="M6 14h12v4H6z" />
+              <path d="M4 10h16a2 2 0 0 1 2 2v3h-4" />
+              <path d="M2 15h4" />
+            </svg>
+          </PrintLinkButton>
+        ) : null}          <svg
             className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
             viewBox="0 0 24 24"
             fill="none"

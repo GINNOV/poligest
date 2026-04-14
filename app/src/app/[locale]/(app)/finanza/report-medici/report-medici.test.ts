@@ -70,7 +70,7 @@ describe("ReportMediciPage", () => {
     // We can't easily test the rendered JSX in a Server Component without a full DOM setup,
     // but we can at least verify it executes without crashing and fetches the right data.
     const result = await ReportMediciPage({ 
-      searchParams: Promise.resolve({ month: "2026-04" }) 
+      searchParams: Promise.resolve({ from: "2026-04-01", to: "2026-04-30" }) 
     });
     
     expect(result).toBeDefined();
