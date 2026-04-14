@@ -257,6 +257,7 @@ export function DentalChart({
   const [useColorChart, setUseColorChart] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [pendingTreatedRecordIds, setPendingTreatedRecordIds] = useState<string[]>([]);
+  const [isChartDialogOpen, setIsChartDialogOpen] = useState(false);
 
   useEffect(() => {
     setRecords(initialRecords);
@@ -306,16 +307,28 @@ export function DentalChart({
 
   const recordsByTooth = useMemo(() => {
     const map = new Map<number, DentalRecord>();
-    records.forEach((r) => map.set(r.tooth, r));
+    // records is sorted DESCENDING (latest first).
+    // To keep the LATEST record for each tooth, we only set if not present.
+    records.forEach((r) => {
+      if (!map.has(r.tooth)) {
+        map.set(r.tooth, r);
+      }
+    });
     return map;
   }, [records]);
 
-  const treatedToothIds = useMemo(() => {
-    const ids = new Set<number>();
+  const toothMarkers = useMemo(() => {
+    const markers: Array<{ tooth: number; treated: boolean }> = [];
+    const seen = new Set<number>();
+    // records is sorted DESCENDING (latest first).
+    // We take the status of the LATEST record for each tooth.
     records.forEach((r) => {
-      if (r.treated) ids.add(r.tooth);
+      if (r.tooth !== 0 && !seen.has(r.tooth)) {
+        markers.push({ tooth: r.tooth, treated: !!r.treated });
+        seen.add(r.tooth);
+      }
     });
-    return ids;
+    return markers;
   }, [records]);
 
   const sortedRecords = useMemo(
@@ -346,6 +359,15 @@ export function DentalChart({
       : procedure.trim()
         ? procedure.trim()
         : "";
+
+  const hasChanges = useMemo(() => {
+    if (!selectedRecord) return false;
+    const currentProcedure = procedure === "altro" ? customProcedure.trim() : procedure;
+    return (
+      currentProcedure !== selectedRecord.procedure ||
+      notes.trim() !== (selectedRecord.notes ?? "").trim()
+    );
+  }, [selectedRecord, procedure, customProcedure, notes]);
 
   const resetSelection = () => {
     setSelectedTooth(null);
@@ -428,6 +450,7 @@ export function DentalChart({
         [normalized.id]: normalized.notes ?? "",
       }));
       setCustomProcedure("");
+      setIsChartDialogOpen(false);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -579,6 +602,17 @@ export function DentalChart({
           <span className="uppercase tracking-wide">Diario clinico</span>
         </span>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsChartDialogOpen(true);
+            }}
+            className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
+          >
+            Mostra dentatura
+          </button>
           {records.length > 0 ? (
             <PrintLinkButton
               href={printHref || `/pazienti/${patientId}/diario`}
@@ -620,418 +654,324 @@ export function DentalChart({
         </div>
       </summary>
       <div className="p-0">
-        <div className="px-6 pt-2 text-sm text-zinc-600 dark:text-zinc-400">
-          Seleziona un dente o “Tutta la bocca” per registrare una procedura.
-        </div>
-        <div className="rounded-2xl bg-white dark:bg-zinc-950">
-          <div className="border-b border-zinc-200 dark:border-zinc-800 px-6 py-4" />
-          <div className="grid grid-cols-1 gap-6 p-6 lg:grid-cols-[1fr,280px]">
-        <section className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-950">
-          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600 dark:text-zinc-300">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Legenda
+        <aside className="mx-6 my-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
+          <div className="flex items-center justify-between pb-2">
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Pianificazioni</h3>
+            <span className="rounded-full bg-white dark:bg-zinc-800 px-2 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+              {records.length}
             </span>
-            {[
-              {
-                label: "Trattato",
-                render: (
-                  <svg width="16" height="16" viewBox="0 0 100 100" aria-hidden>
-                    <circle cx="50" cy="50" r="35" fill="none" stroke="#22c55e" strokeWidth="6" />
-                  </svg>
-                ),
-              },
-              {
-                label: "Selezionato",
-                render: (
-                  <svg width="16" height="16" viewBox="0 0 100 100" aria-hidden>
-                    <circle cx="50" cy="50" r="35" fill="none" stroke="#ef4444" strokeWidth="5" />
-                  </svg>
-                ),
-              },
-            ].map((item) => (
-              <span
-                key={item.label}
-                className="inline-flex items-center gap-2 rounded-full bg-white dark:bg-zinc-900 px-2.5 py-1.5 shadow-sm border border-zinc-100 dark:border-zinc-800"
-              >
-                {item.render}
-                <span className="font-semibold text-zinc-700 dark:text-zinc-200">{item.label}</span>
-              </span>
-            ))}
           </div>
-          <div
-            ref={chartRef}
-            onClick={handleChartClick}
-            className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-inner cursor-pointer"
-          >
-            <img
-              key={useColorChart ? "mouth-color" : "mouth-white"}
-              src={useColorChart ? "/teeth/mouth_color.png" : "/teeth/mouth_white.png"}
-              alt="Arcata dentale"
-              className="block h-auto w-full select-none dark:brightness-75 dark:contrast-125"
-              draggable={false}
-            />
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              {Array.from(treatedToothIds)
-                .filter((id) => TOOTH_POSITIONS[id])
-                .map((id) => (
-                  <circle
-                    key={`treated-${id}`}
-                    cx={TOOTH_POSITIONS[id].x}
-                    cy={TOOTH_POSITIONS[id].y}
-                    r="3.5"
-                    fill="none"
-                    stroke="#22c55e"
-                    strokeWidth="0.6"
-                  />
-                ))}
-              {selectedTooth !== null && selectedTooth !== 0 && TOOTH_POSITIONS[selectedTooth] ? (
-                <>
-                  <circle
-                    cx={TOOTH_POSITIONS[selectedTooth].x}
-                    cy={TOOTH_POSITIONS[selectedTooth].y}
-                    r="3.7"
-                    fill="none"
-                    stroke="#ef4444"
-                    strokeWidth="0.6"
-                  />
-                  <circle
-                    cx={TOOTH_POSITIONS[selectedTooth].x}
-                    cy={TOOTH_POSITIONS[selectedTooth].y}
-                    r="1.1"
-                    fill="#ef4444"
-                  />
-                </>
-              ) : null}
-            </svg>
-            <div className="absolute bottom-3 left-3 rounded-full bg-white/90 dark:bg-zinc-900 px-3 py-2 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 shadow-sm border border-zinc-200 dark:border-zinc-800">
-              <label className="inline-flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:checked:bg-emerald-600"
-                  checked={useColorChart}
-                  onChange={(e) => setUseColorChart(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                Colori
-              </label>
-            </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 px-2 py-1 font-semibold text-emerald-800 dark:text-emerald-300">
-              Seleziona dente e salva procedura
-            </span>
-            <button
-              type="button"
-              onClick={() => handleSelectTooth(0)}
-              className={clsx(
-                "rounded-full border px-3 py-1 text-[11px] font-semibold transition",
-                selectedTooth === 0
-                  ? "border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-400"
-              )}
-            >
-              Tutta la bocca
-            </button>
-          </div>
-        </section>
-
-        <aside className="relative rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm">
-          {selectedTooth === null ? (
-            <div
-              className="absolute inset-0 z-10 rounded-xl bg-white/70 dark:bg-zinc-950/80"
-              title="Seleziona un dente o “Tutta la bocca” per scegliere una procedura."
-            />
-          ) : null}
-          <div
-            className={clsx(
-              selectedTooth === null && "pointer-events-none opacity-50"
-            )}
-          >
-          {selectedToothData ? (
-            <div className="mb-4 flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-950/30">
-              <div className="relative h-14 w-14 overflow-hidden rounded-md bg-white shadow-sm dark:bg-zinc-900">
-                <img
-                  src={selectedToothImage ?? ""}
-                  alt={`Dente ${selectedToothData.id}`}
-                  className="h-full w-full object-contain dark:brightness-110"
-                />
-                <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                  {selectedToothData.id}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                  Dente selezionato
-                </p>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                  Dente {selectedToothData.id}
-                </p>
-              </div>
-            </div>
-          ) : null}
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                {selectedTooth === null
-                  ? "Nessun dente selezionato"
-                  : selectedTooth === 0
-                    ? "Tutta la bocca"
-                    : `Dente ${selectedTooth}`}
-              </p>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Procedura</h3>
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-300">
-                Seleziona un dente, poi una procedura che sara&apos; effettuata su quel dente. Aggiungi le note cliniche e poi clicca su Aggiungi al diario.
-              </p>
-            </div>
-            {selectedTooth !== null && (
-              <button
-                onClick={resetSelection}
-                className="rounded-full border border-zinc-200 dark:border-zinc-700 px-3 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-zinc-300 dark:hover:border-zinc-600"
-              >
-                Deseleziona
-              </button>
-            )}
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              {sortedServices.map((service) => {
-                const tint = tintForLabel(service.name);
+          <div className="grid gap-4 max-h-[360px] overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+            {sortedRecords.length === 0 ? (
+              <p className="text-xs text-zinc-500 dark:text-zinc-300">Nessun record salvato.</p>
+            ) : (
+              sortedRecords.map((rec) => {
+                const proc = resolveProcedure(rec.procedure, sortedServices);
+                const isActive = selectedTooth === rec.tooth;
+                const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
+                const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
+                const showThumbnail = rec.tooth !== 0;
                 return (
-                <button
-                  key={service.id}
-                  type="button"
-                  onClick={() => setProcedure(service.name)}
-                  className={clsx(
-                    "rounded-lg border px-3 py-2 text-left text-sm font-medium transition",
-                    procedure === service.name
-                      ? `border-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-900/40 ${tint.active}`
-                      : `border-zinc-200 dark:border-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-800 ${tint.idle}`
-                  )}
-                >
-                  {service.name}
-                </button>
+                  <div
+                    key={rec.id}
+                    onClick={() => {
+                      handleSelectTooth(rec.tooth);
+                      setIsChartDialogOpen(true);
+                    }}
+                    className={clsx(
+                      "w-full rounded-lg border px-3 py-2 text-left transition group cursor-pointer",
+                      isActive
+                        ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/40"
+                        : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                    )}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSelectTooth(rec.tooth);
+                        setIsChartDialogOpen(true);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      {showThumbnail ? (
+                        <div className="relative h-12 w-12 overflow-hidden rounded-md bg-zinc-50 dark:bg-white/5">
+                          <img
+                            src={toothImage ?? ""}
+                            alt={toothLabel}
+                            className="h-full w-full object-contain dark:brightness-110"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                            {rec.tooth}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                          Tutta la bocca
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-300">
+                          <span>{toothLabel}</span>
+                          <span>
+                            {formatDateInDisplayTimeZone(
+                              new Date(rec.performedAt),
+                              { dateStyle: "short" },
+                              displayTimeZone
+                            )}
+                          </span>
+                        </div>
+                        <div
+                          className={clsx(
+                            "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                            proc?.tint.tag ?? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                          )}
+                        >
+                          {proc?.label ?? rec.procedure}
+                        </div>
+                      </div>
+                    </div>
+                      <div className="mt-2 space-y-2">
+                        <textarea
+                          value={noteDrafts[rec.id] ?? ""}
+                          onChange={(e) =>
+                            setNoteDrafts((prev) => ({ ...prev, [rec.id]: e.target.value }))
+                          }
+                          rows={1}
+                          placeholder="Aggiungi nota..."
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                        />
+                        <div className="space-y-2 text-[11px] text-zinc-500 dark:text-zinc-300">
+                          {rec.notes && rec.updatedAt ? (
+                            <span className="block">
+                              Aggiornato il{" "}
+                              {formatDateInDisplayTimeZone(
+                                new Date(rec.updatedAt),
+                                {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                },
+                                displayTimeZone
+                              )}
+                              {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
+                            </span>
+                          ) : null}
+                          <div className="flex items-center justify-between gap-2">
+                            <label
+                              className="inline-flex items-center gap-2 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={Boolean(rec.treated)}
+                                disabled={pendingTreatedRecordIds.includes(rec.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  updateRecordTreated(rec.id, e.target.checked);
+                                }}
+                                className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
+                              />
+                              Trattato
+                            </label>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                updateRecordNote(rec.id);
+                              }}
+                              disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
+                              className="rounded-full border border-emerald-200 dark:border-emerald-900/50 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 transition hover:border-emerald-300 dark:hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Aggiorna nota
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex justify-end opacity-0 transition group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowDeleteConfirm(rec.id);
+                          }}
+                          className="rounded-full border border-rose-200 dark:border-rose-900/50 px-2 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          disabled={isSubmitting}
+                        >
+                          Elimina
+                        </button>
+                      </div>
+                  </div>
                 );
-              })}
-              <button
-                type="button"
-                onClick={() => setProcedure("altro")}
-                className={clsx(
-                  "rounded-lg border px-3 py-2 text-left text-sm font-medium transition",
-                  procedure === "altro"
-                    ? "border-emerald-500 ring-2 ring-emerald-100 dark:ring-emerald-900/40 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50"
-                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-800 hover:bg-white dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
-                )}
-              >
-                Altro
-              </button>
-            </div>
-
-            {procedure === "altro" && (
-              <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Procedura personalizzata
-                <input
-                  value={customProcedure}
-                  onChange={(e) => setCustomProcedure(e.target.value)}
-                  className="mt-1 h-11 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
-                  placeholder="Descrizione procedura"
-                />
-              </label>
+              })
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                <span
-                  className={
-                    isNotesActive
-                      ? "font-semibold text-emerald-700 dark:text-emerald-400"
-                      : "font-medium text-zinc-800 dark:text-zinc-200"
-                  }
-                >
-                  {selectedProcedureLabel
-                    ? `Note cliniche per procedura: ${selectedProcedureLabel}`
-                    : "Note cliniche"}
-                </span>
-              </label>
-              <DictationTextarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                onValueChange={setNotes}
-                onFocus={() => setIsNotesActive(true)}
-                onBlur={() => setIsNotesActive(false)}
-                placeholder="Materiali, superfici, complicanze..."
-                className="mt-1 h-28 w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 flex gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={selectedTooth === null || !procedure || isSubmitting}
-              className="flex-1 rounded-lg bg-emerald-700 dark:bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 dark:hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {selectedRecord ? "Aggiorna questa procedura" : "Aggiungi al diario"}
-            </button>
-          </div>
           </div>
         </aside>
       </div>
 
-      <aside className="mx-6 mb-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
-        <div className="flex items-center justify-between pb-2">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Pianificazioni</h3>
-          <span className="rounded-full bg-white dark:bg-zinc-800 px-2 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
-            {records.length}
-          </span>
-        </div>
-        <div className="grid gap-4 max-h-[360px] overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
-          {sortedRecords.length === 0 ? (
-            <p className="text-xs text-zinc-500 dark:text-zinc-300">Nessun record. Seleziona un dente.</p>
-          ) : (
-            sortedRecords.map((rec) => {
-              const proc = resolveProcedure(rec.procedure, sortedServices);
-              const isActive = selectedTooth === rec.tooth;
-              const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
-              const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
-              const showThumbnail = rec.tooth !== 0;
-              return (
-                <div
-                  key={rec.id}
-                  onClick={() => handleSelectTooth(rec.tooth)}
-                  className={clsx(
-                    "w-full rounded-lg border px-3 py-2 text-left transition group cursor-pointer",
-                    isActive
-                      ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/40"
-                      : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleSelectTooth(rec.tooth);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-4">
-                    {showThumbnail ? (
-                      <div className="relative h-12 w-12 overflow-hidden rounded-md bg-zinc-50 dark:bg-white/5">
-                        <img
-                          src={toothImage ?? ""}
-                          alt={toothLabel}
-                          className="h-full w-full object-contain dark:brightness-110"
-                        />
-                        <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                          {rec.tooth}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-                        Tutta la bocca
-                      </div>
-                    )}
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-300">
-                        <span>{toothLabel}</span>
-                        <span>
-                          {formatDateInDisplayTimeZone(
-                            new Date(rec.performedAt),
-                            { dateStyle: "short" },
-                            displayTimeZone
-                          )}
-                        </span>
-                      </div>
-                      <div
-                        className={clsx(
-                          "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-                          proc?.tint.tag ?? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
-                        )}
-                      >
-                        {proc?.label ?? rec.procedure}
-                      </div>
+      {isChartDialogOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
+          <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-zinc-50 shadow-2xl dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400">
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+                    <path d="M9 2v4" /><path d="M15 2v4" /><path d="M7 10h10" /><path d="M7 14h6" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">DENTATURA & PROCEDURE</h2>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">Seleziona dente o tutta la bocca</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChartDialogOpen(false)}
+                className="rounded-full p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-6">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,340px]">
+                <section className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="mb-6 flex flex-wrap items-center gap-4 text-xs">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Legenda</span>
+                    <div className="flex gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 border border-zinc-100 dark:border-zinc-800">
+                        <svg width="12" height="12" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#22c55e" strokeWidth="10" /></svg>
+                        <span className="font-bold text-zinc-700 dark:text-zinc-300">Trattato</span>
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 border border-zinc-100 dark:border-zinc-800">
+                        <svg width="12" height="12" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#ef4444" strokeWidth="10" /></svg>
+                        <span className="font-bold text-zinc-700 dark:text-zinc-300">Selezionato</span>
+                      </span>
                     </div>
                   </div>
-                    <div className="mt-2 space-y-2">
-                      <textarea
-                        value={noteDrafts[rec.id] ?? ""}
-                        onChange={(e) =>
-                          setNoteDrafts((prev) => ({ ...prev, [rec.id]: e.target.value }))
-                        }
-                        rows={2}
-                        placeholder="Aggiungi nota..."
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 py-1 text-xs text-zinc-800 dark:text-zinc-200 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
-                      />
-                      <div className="space-y-2 text-[11px] text-zinc-500 dark:text-zinc-300">
-                        {rec.notes && rec.updatedAt ? (
-                          <span className="block">
-                            Aggiornato il{" "}
-                            {formatDateInDisplayTimeZone(
-                              new Date(rec.updatedAt),
-                              {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              },
-                              displayTimeZone
-                            )}
-                            {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
-                          </span>
-                        ) : null}
-                        <div className="flex items-center justify-between gap-2">
-                          <label
-                            className="inline-flex items-center gap-2 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(rec.treated)}
-                              disabled={pendingTreatedRecordIds.includes(rec.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                updateRecordTreated(rec.id, e.target.checked);
-                              }}
-                              className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800"
-                            />
-                            Trattato
-                          </label>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              updateRecordNote(rec.id);
-                            }}
-                            disabled={isSubmitting || (noteDrafts[rec.id] ?? "") === (rec.notes ?? "")}
-                            className="rounded-full border border-emerald-200 dark:border-emerald-900/50 px-2 py-1 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 transition hover:border-emerald-300 dark:hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Aggiorna nota
+
+                  <div
+                    ref={chartRef}
+                    onClick={handleChartClick}
+                    className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-zinc-100 bg-white dark:border-zinc-800 dark:bg-zinc-950 shadow-inner cursor-pointer"
+                  >
+                    <img
+                      src={useColorChart ? "/teeth/mouth_color.png" : "/teeth/mouth_white.png"}
+                      alt="Arcata dentale"
+                      className="block h-auto w-full select-none dark:brightness-75"
+                      draggable={false}
+                    />
+                    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      {toothMarkers.filter((m) => TOOTH_POSITIONS[m.tooth]).map((m) => (
+                        <circle key={`marker-${m.tooth}`} cx={TOOTH_POSITIONS[m.tooth].x} cy={TOOTH_POSITIONS[m.tooth].y} r="3.5" fill="none" stroke={m.treated ? "#22c55e" : "#f59e0b"} strokeWidth="0.6" />
+                      ))}
+                      {selectedTooth !== null && selectedTooth !== 0 && TOOTH_POSITIONS[selectedTooth] && (
+                        <>
+                          <circle cx={TOOTH_POSITIONS[selectedTooth].x} cy={TOOTH_POSITIONS[selectedTooth].y} r="3.7" fill="none" stroke="#ef4444" strokeWidth="0.6" />
+                          <circle cx={TOOTH_POSITIONS[selectedTooth].x} cy={TOOTH_POSITIONS[selectedTooth].y} r="1.1" fill="#ef4444" />
+                        </>
+                      )}
+                    </svg>
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/90 dark:bg-zinc-900 px-3 py-2 text-[11px] font-bold shadow-sm border border-zinc-200 dark:border-zinc-800">
+                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" className="h-4 w-4 rounded border-zinc-300 dark:bg-zinc-800" checked={useColorChart} onChange={(e) => setUseColorChart(e.target.checked)} onClick={(e) => e.stopPropagation()} />
+                        Colori
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSelectTooth(0)}
+                      className={clsx(
+                        "rounded-full border px-6 py-2 text-sm font-bold transition-all",
+                        selectedTooth === 0
+                          ? "border-emerald-500 bg-emerald-500 text-white shadow-md shadow-emerald-200"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
+                      )}
+                    >
+                      Tutta la bocca
+                    </button>
+                  </div>
+                </section>
+
+                <aside className="flex flex-col gap-6">
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                    {selectedToothData ? (
+                      <div className="mb-6 flex items-center gap-4 rounded-xl bg-emerald-50/50 p-3 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
+                        <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white shadow-sm dark:bg-zinc-800">
+                          <img src={selectedToothImage ?? ""} alt={`Dente ${selectedToothData.id}`} className="h-full w-full object-contain" />
+                          <span className="absolute inset-0 flex items-center justify-center text-xl font-black text-zinc-900 dark:text-zinc-100">{selectedToothData.id}</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Dente Selezionato</p>
+                          <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Dente {selectedToothData.id}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-6 rounded-xl bg-zinc-50 p-4 text-center dark:bg-zinc-800/50 border border-dashed border-zinc-200 dark:border-zinc-700">
+                        <p className="text-sm font-bold text-zinc-500 italic">Seleziona un dente dal diagramma</p>
+                      </div>
+                    )}
+
+                    <div className={clsx("space-y-5", selectedTooth === null && "opacity-40 pointer-events-none")}>
+                      <div>
+                        <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-zinc-400">Procedura</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {sortedServices.map((service) => {
+                            const tint = tintForLabel(service.name);
+                            return (
+                              <button key={service.id} type="button" onClick={() => setProcedure(service.name)}
+                                className={clsx("rounded-lg border px-3 py-2 text-left text-xs font-bold transition-all",
+                                  procedure === service.name ? `border-emerald-500 ring-2 ring-emerald-100 ${tint.active}` : `border-zinc-100 bg-zinc-50/50 ${tint.idle} hover:border-emerald-200`
+                                )}>
+                                {service.name}
+                              </button>
+                            );
+                          })}
+                          <button type="button" onClick={() => setProcedure("altro")}
+                            className={clsx("rounded-lg border px-3 py-2 text-left text-xs font-bold transition-all",
+                              procedure === "altro" ? "border-emerald-500 ring-2 ring-emerald-100 bg-white text-zinc-900" : "border-zinc-100 bg-zinc-50/50 hover:border-emerald-200"
+                            )}>
+                            Altro...
                           </button>
                         </div>
                       </div>
-                    </div>
-                    <div className="mt-2 flex justify-end opacity-0 transition group-hover:opacity-100">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setShowDeleteConfirm(rec.id);
-                        }}
-                        className="rounded-full border border-rose-200 dark:border-rose-900/50 px-2 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-300 transition hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                        disabled={isSubmitting}
-                      >
-                        Elimina
+
+                      {procedure === "altro" && (
+                        <input value={customProcedure} onChange={(e) => setCustomProcedure(e.target.value)}
+                          className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-100"
+                          placeholder="Specifica procedura..." />
+                      )}
+
+                      <div>
+                        <label className="mb-2 block text-[11px] font-black uppercase tracking-wider text-zinc-400">Note Cliniche</label>
+                        <DictationTextarea value={notes} onChange={(e) => setNotes(e.target.value)} onValueChange={setNotes}
+                          placeholder="Materiali, superfici..."
+                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-100" />
+                      </div>
+
+                      <button type="button" onClick={handleSave}
+                        disabled={selectedTooth === null || !procedure || isSubmitting || (!!selectedRecord && !hasChanges)}
+                        className="w-full rounded-xl bg-emerald-600 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-40">
+                        {selectedRecord ? "Aggiorna" : "Salva nel Diario"}
                       </button>
                     </div>
-                </div>
-              );
-            })
-          )}
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
         </div>
-      </aside>
+      )}
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950">
@@ -1064,8 +1004,6 @@ export function DentalChart({
           </div>
         </div>
       )}
-    </div>
-      </div>
     </details>
   );
 }

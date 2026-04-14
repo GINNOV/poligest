@@ -143,6 +143,7 @@ type Props = {
   deleteAction: (formData: FormData) => Promise<void>;
   selectedDoctorId?: string;
   returnTo: string;
+  searchQuery?: string;
 };
 
 const DEFAULT_START_TIME = "09:00";
@@ -162,9 +163,23 @@ export function CalendarMonthView({
   deleteAction,
   selectedDoctorId,
   returnTo,
+  searchQuery,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+
+  const filteredDays = useMemo(() => {
+    if (!searchQuery) return days;
+    const q = searchQuery.toLowerCase();
+    return days.map((day) => ({
+      ...day,
+      appointments: day.appointments.filter(
+        (appt) =>
+          appt.patientName.toLowerCase().includes(q) ||
+          (appt.notes && appt.notes.toLowerCase().includes(q))
+      ),
+    }));
+  }, [days, searchQuery]);
 
   const selectedStartsAt = useMemo(() => {
     if (!selectedDate) return undefined;
@@ -203,7 +218,7 @@ export function CalendarMonthView({
       </div>
 
       <div className="mt-2 grid grid-cols-7 gap-2">
-        {days.map((day) => (
+        {filteredDays.map((day) => (
           <div
             key={day.date}
             role="button"

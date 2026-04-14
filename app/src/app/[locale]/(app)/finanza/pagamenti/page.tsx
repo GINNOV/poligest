@@ -87,6 +87,7 @@ export default async function PagamentiPage({
                   dentalRecord: {
                     select: {
                       treated: true,
+                      tooth: true,
                     },
                   },
                   payments: {
@@ -119,11 +120,12 @@ export default async function PagamentiPage({
           items: latestQuote.items.map((item) => ({
             ...item,
             treated: item.dentalRecord?.treated,
+            tooth: item.dentalRecord?.tooth,
           })),
         }
       : null
   );
-  const payments = (latestQuote?.items ?? [])
+  const allPayments = (latestQuote?.items ?? [])
     .flatMap((item) =>
       item.payments.map((payment) => ({
         ...payment,
@@ -136,10 +138,15 @@ export default async function PagamentiPage({
       return b.id.localeCompare(a.id, "it");
     });
 
+  // effective payments exclude PAY_LATER
+  const payments = allPayments.filter((p) => p.method !== "PAY_LATER");
+  const historicalPayments = allPayments;
+
   const quoteItemSummaries = (latestQuote?.items ?? []).map((item) => {
     const total = Number(item.total.toString());
     const paidFromPayments = item.payments.reduce(
-      (sum, payment) => sum + Number(payment.amount.toString()),
+      (sum, payment) =>
+        payment.method !== "PAY_LATER" ? sum + Number(payment.amount.toString()) : sum,
       0
     );
     const paid = paidFromPayments > 0 ? paidFromPayments : item.saldato ? total : 0;
@@ -181,7 +188,7 @@ export default async function PagamentiPage({
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-        <form className="flex-1 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-center min-w-0">
+        <form className="lg:w-1/2 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 flex flex-col justify-center min-w-0">
           <div className="flex flex-col gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">PAZIENTE</p>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -192,7 +199,7 @@ export default async function PagamentiPage({
                   patients={patientOptions}
                   defaultValue={selectedPatientId}
                   placeholder="Cerca per cognome e nome"
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
                 />
               </div>
               <Button type="submit" className="h-11 rounded-full px-5">
@@ -202,7 +209,7 @@ export default async function PagamentiPage({
           </div>
         </form>
 
-        <div className="lg:w-3/5">
+        <div className="lg:w-1/2">
           {!selectedPatient ? (
             <div className="h-full rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400 flex items-center justify-center">
               Nessun paziente selezionato.
@@ -244,7 +251,7 @@ export default async function PagamentiPage({
         <>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">CONTABILIZZAZIONE PRESTAZIONI</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">PRESTAZIONI</p>
               <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(totals.total)}</p>
             </div>
             <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -291,7 +298,7 @@ export default async function PagamentiPage({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <div>
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PAGAMENTI EFFETTUATI</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PRESTAZIONI NON ANCORA SALDATE</h2>
                   </div>
                 </div>
                 <svg
@@ -308,49 +315,53 @@ export default async function PagamentiPage({
                 </svg>
               </summary>
               <div className="space-y-4 p-6">
-                {!quoteItemSummaries.length ? (
+                {!quoteItemSummaries.filter((i) => !i.saldato).length ? (
                   <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                    Salva un preventivo per iniziare a registrare gli incassi.
+                    Tutte le prestazioni risultano saldate o non è presente un preventivo.
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {quoteItemSummaries.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{item.serviceName}</p>
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">Quantità: {item.quantity}</p>
-                          </div>
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              item.status === "in_progress"
-                                ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
-                                : item.status === "settled"
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                : item.status === "partial"
+                    {quoteItemSummaries
+                      .filter((item) => !item.saldato)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{item.serviceName}</p>
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400">Quantità: {item.quantity}</p>
+                            </div>
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                item.status === "in_progress"
                                   ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
-                                  : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                            }`}
-                          >
-                            {item.status === "in_progress"
-                              ? "Lavori in corso"
-                              : item.status === "settled"
-                              ? "Saldato"
-                              : item.status === "partial"
-                                ? "Parzialmente incassato"
-                                : "Da incassare"}
-                          </span>
+                                  : item.status === "settled"
+                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                  : item.status === "partial"
+                                    ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
+                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                              }`}
+                            >
+                              {item.status === "in_progress"
+                                ? "Lavori in corso"
+                                : item.status === "settled"
+                                ? "Saldato"
+                                : item.status === "partial"
+                                  ? "Parzialmente incassato"
+                                  : "Da incassare"}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-3">
+                            <div>Totale: {formatCurrency(item.total)}</div>
+                            <div>Incassato: {formatCurrency(item.paid)}</div>
+                            <div className="font-bold text-rose-600 dark:text-rose-500">
+                              Residuo: {formatCurrency(item.remaining)}
+                            </div>
+                          </div>
                         </div>
-                        <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-3">
-                          <div>Totale: {formatCurrency(item.total)}</div>
-                          <div>Incassato: {formatCurrency(item.paid)}</div>
-                          <div>Residuo: {formatCurrency(item.remaining)}</div>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
@@ -376,7 +387,7 @@ export default async function PagamentiPage({
                     <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       REGISTRA PAGAMENTO
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">NUOVO INCASSO</h2>
+                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">AGGIUNGI INCASSO</h2>
                   </div>
                 </div>
                 <svg
@@ -455,13 +466,13 @@ export default async function PagamentiPage({
               </svg>
             </summary>
             <div className="space-y-4 p-6">
-              {payments.length === 0 ? (
+              {historicalPayments.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
                   Nessun pagamento registrato per questo paziente.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {payments.map((payment) => (
+                  {historicalPayments.map((payment) => (
                       <div
                         key={payment.id}
                         className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900/50"

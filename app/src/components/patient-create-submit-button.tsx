@@ -10,9 +10,10 @@ type Props = {
   className?: string;
   label: string;
   pendingLabel?: string;
+  disabled?: boolean;
 };
 
-export function PatientCreateSubmitButton({ className, label, pendingLabel }: Props) {
+export function PatientCreateSubmitButton({ className, label, pendingLabel, disabled }: Props) {
   const [isComplete, setIsComplete] = useState(() => {
     if (typeof window === "undefined") return false;
     const initialValue = (window as typeof window & { __consentRequiredComplete?: boolean })
@@ -47,7 +48,7 @@ export function PatientCreateSubmitButton({ className, label, pendingLabel }: Pr
   return (
     <FormSubmitButton
       className={className}
-      disabled={!isComplete && !hasPaperConsentOverride}
+      disabled={disabled || (!isComplete && !hasPaperConsentOverride)}
       pendingLabel={pendingLabel}
     >
       {label}

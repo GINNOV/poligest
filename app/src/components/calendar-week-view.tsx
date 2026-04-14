@@ -234,6 +234,7 @@ type Props = {
   deleteAction: (formData: FormData) => Promise<void>;
   selectedDoctorId?: string;
   returnTo: string;
+  searchQuery?: string;
 };
 
 export function CalendarWeekView({
@@ -250,11 +251,25 @@ export function CalendarWeekView({
   deleteAction,
   selectedDoctorId,
   returnTo,
+  searchQuery,
 }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<{ startsAt: string; endsAt: string } | null>(
     null
   );
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+
+  const filteredWeekDays = useMemo(() => {
+    if (!searchQuery) return weekDays;
+    const q = searchQuery.toLowerCase();
+    return weekDays.map((day) => ({
+      ...day,
+      appointments: day.appointments.filter(
+        (appt) =>
+          appt.patientName.toLowerCase().includes(q) ||
+          (appt.notes && appt.notes.toLowerCase().includes(q))
+      ),
+    }));
+  }, [weekDays, searchQuery]);
 
   const { timeStartMinute, timeEndMinute } = useMemo(() => {
     let minMinute = 8 * 60;
@@ -310,7 +325,7 @@ export function CalendarWeekView({
         <div className="min-w-[1080px]">
           <div className="grid grid-cols-[70px_repeat(7,minmax(140px,1fr))] gap-2 text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">
             <div />
-            {weekDays.map((day) => {
+            {filteredWeekDays.map((day) => {
               const date = new Date(day.date);
               const label = new Intl.DateTimeFormat("it-IT", {
                 weekday: "short",

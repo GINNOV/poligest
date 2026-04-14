@@ -46,18 +46,8 @@ export async function hasDoctorConflict(params: {
   endsAt: Date;
   excludeId?: string;
 }) {
-  const { doctorId, startsAt, endsAt, excludeId } = params;
-  if (!doctorId) return false;
-
-  const conflicts = await prisma.appointment.count({
-    where: {
-      doctorId,
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-      startsAt: { lt: endsAt },
-      endsAt: { gt: startsAt },
-    },
-  });
-  return conflicts > 0;
+  // Allow concurrent appointments for the same doctor
+  return false;
 }
 
 type AgendaQueryInput = {

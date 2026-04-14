@@ -126,37 +126,6 @@ export function AppointmentUpdateForm({
           return Math.abs(startMs - originalStartMs) < 1000 && Math.abs(endMs - originalEndMs) < 1000;
         })();
 
-        if (doctorId && startsAt && endsAt && !isUnchangedTime) {
-          setChecking(true);
-          try {
-            const params = new URLSearchParams({
-              doctorId,
-              startsAt,
-              endsAt,
-              excludeId: appointment.id,
-            });
-            const res = await fetch(`/api/appointments/check-conflict?${params.toString()}`, {
-              credentials: "same-origin",
-            });
-            const data = res.ok ? await res.json() : { conflict: false };
-            if (data?.conflict) {
-              setConflictMessage(
-                "Questo medico ha già un appuntamento in questo intervallo. Gli appuntamenti sovrapposti per lo stesso medico non sono consentiti. Modifica l'orario o il medico."
-              );
-              setError(
-                "Sovrapposizione per il medico selezionato: scegli un altro orario o medico."
-              );
-              setChecking(false);
-              return;
-            }
-          } catch (err) {
-            console.error("Conflict check failed", err);
-            setChecking(false);
-            return;
-          }
-          setChecking(false);
-        }
-
         if (submitter) {
           submitter.dataset.submitting = "false";
           submitter.removeAttribute("aria-busy");

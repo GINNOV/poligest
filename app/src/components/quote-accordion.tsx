@@ -39,6 +39,7 @@ type QuoteDraft = {
     total?: number | null;
     saldato?: boolean | null;
     treated?: boolean | null;
+    tooth?: number | null;
     createdAt?: string | null;
   }>;
 };
@@ -473,7 +474,14 @@ export function QuoteAccordion({
   printHref,
 }: Props) {
   const router = useRouter();
-  const displayTimeZone = getBrowserUserDisplayTimeZone();
+  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+    setIsMounted(true);
+  }, []);
+
   const sortedServices = useMemo(
     () =>
       [...services].sort((a, b) =>
@@ -494,6 +502,7 @@ export function QuoteAccordion({
         quantity: item.quantity ? String(item.quantity) : "1",
         price: item.price != null ? String(item.price) : "",
         treated: Boolean(item.treated),
+        tooth: item.tooth ?? null,
         createdAt: item.createdAt ?? null,
       }));
     }
@@ -506,6 +515,7 @@ export function QuoteAccordion({
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
           treated: false,
+          tooth: null,
           createdAt: null,
         },
       ];
@@ -550,6 +560,7 @@ export function QuoteAccordion({
           ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
           : "",
         treated: false,
+        tooth: null,
         createdAt: null,
       },
     ]);
@@ -574,6 +585,7 @@ export function QuoteAccordion({
         totalValue: quantityValue * priceValue,
         serviceDate: item.serviceDate,
         treated: item.treated,
+        tooth: item.tooth,
         createdAt: item.createdAt ?? null,
       };
     });
@@ -593,12 +605,14 @@ export function QuoteAccordion({
           serviceDate: item.serviceDate,
           quantity: item.quantityValue,
           price: item.priceValue,
+          tooth: item.tooth,
         }))
       ),
     [itemsWithTotals]
   );
 
   const formatItemDate = (value?: string | null) => {
+    if (!isMounted) return null;
     if (!value) return "Da salvare";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "Da salvare";
@@ -614,6 +628,7 @@ export function QuoteAccordion({
 
   return (
     <details
+      open
       className={clsx(
         "group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm [&_summary::-webkit-details-marker]:hidden",
         className
@@ -631,13 +646,13 @@ export function QuoteAccordion({
             strokeLinejoin="round"
             aria-hidden="true"
           >
-            <path d="M9 3h6l-1.5 2h-3L9 3Z" />
-            <path d="M6 9a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9Z" />
-            <path d="M9 12h6" />
+            <path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1 .5-1.5 1-2V5h-2Z" />
+            <path d="M7 12h.01" />
+            <path d="M11 20h2" />
           </svg>
           <div>
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase">
-              CONTABILIZZAZIONE PRESTAZIONI
+              DETTAGLIO FINANZIARIO
             </h2>
           </div>
         </span>
@@ -808,13 +823,30 @@ export function QuoteAccordion({
                 </button>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
-                <div className="flex items-center gap-3">
-                  <span>Aggiunto: {formatItemDate(item.createdAt)}</span>
-                  {item.treated === false ? (
-                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-500/30">
-                      In corso
-                    </span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  {(() => {
+                    const d = formatItemDate(item.createdAt);
+                    return d ? <span>Aggiunto: {d}</span> : null;
+                  })()}
+                  {item.tooth != null ? (
+                    <>
+                      <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                      <span>Dente: {item.tooth === 0 ? "Bocca intera" : item.tooth}</span>
+                    </>
                   ) : null}
+                  <span className="text-zinc-300 dark:text-zinc-700">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>Stato:</span>
+                    {item.treated === false ? (
+                      <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 ring-1 ring-inset ring-amber-600/20 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-500/30">
+                        In corso
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-500/30">
+                        Trattato
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -836,8 +868,9 @@ export function QuoteAccordion({
         </div>
 
         <div className="flex justify-end">
-          <div className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-            Totale preventivo: € {totalSum.toFixed(2)}
+          <div className="rounded-full border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
+            <span>Totale:</span>
+            <span className="text-lg font-mono">€ {totalSum.toFixed(2)}</span>
           </div>
         </div>
 

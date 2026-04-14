@@ -656,7 +656,7 @@ export default async function DashboardPage({
         </div>
         <PrintLinkButton
           href={dashboardPrintHref}
-          label="Stampa agenda del giorno"
+          label="STAMPA"
           target="_blank"
           rel="noopener noreferrer"
           variant="primary"
@@ -692,7 +692,7 @@ export default async function DashboardPage({
             <path d="M8 2v4" />
             <path d="M3 10h18" />
           </svg>
-          <span className="hidden sm:inline">Stampa agenda del giorno</span>
+          <span className="hidden sm:inline">STAMPA</span>
         </PrintLinkButton>
       </div>
 

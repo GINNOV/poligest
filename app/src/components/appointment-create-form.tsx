@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
+import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -68,6 +69,7 @@ export function AppointmentCreateForm({
   });
   const [allowSubmit, setAllowSubmit] = useState(false);
   const [isNewPatient, setIsNewPatient] = useState(false);
+  const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
   const [title, setTitle] = useState<string>("Richiamo");
   const [serviceType, setServiceType] = useState<string>(() => sortedServiceOptions[0] ?? "");
 
@@ -138,35 +140,32 @@ export function AppointmentCreateForm({
         const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
         const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
 
-        // Check conflicts for the selected doctor before submitting.
-        if (doctorId && startsAt && endsAt) {
-          setChecking(true);
-          try {
-            const params = new URLSearchParams({
-              doctorId,
-              startsAt,
-              endsAt,
-            });
-            const res = await fetch(`/api/appointments/check-conflict?${params.toString()}`, {
-              credentials: "same-origin",
-            });
-            const data = res.ok ? await res.json() : { conflict: false, message: "" };
-            if (data?.conflict) {
-              setConflictMessage(
-                "Questo medico ha già un appuntamento in questo intervallo. Gli appuntamenti sovrapposti per lo stesso medico non sono consentiti. Modifica l'orario o il medico prima di salvare."
-              );
-              setError(
-                "Sovrapposizione per il medico selezionato: scegli un altro orario o medico."
-              );
-              setChecking(false);
-              return;
+        // Check for duplicates if it's a new patient
+        if (isNewPatient && !allowSubmit) {
+          const firstName = (form.elements.namedItem("newFirstName") as HTMLInputElement | null)?.value;
+          const lastName = (form.elements.namedItem("newLastName") as HTMLInputElement | null)?.value;
+          const phone = (form.elements.namedItem("newPhone") as HTMLInputElement | null)?.value;
+
+          if (firstName || lastName || phone) {
+            setChecking(true);
+            try {
+              const params = new URLSearchParams();
+              if (firstName) params.set("firstName", firstName);
+              if (lastName) params.set("lastName", lastName);
+              if (phone) params.set("phone", phone);
+
+              const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
+              const data = await res.json();
+              if (data.exists) {
+                setDuplicatePatient(data.patient);
+                setChecking(false);
+                return;
+              }
+            } catch (err) {
+              console.error("Duplicate check failed", err);
             }
-          } catch (err) {
-            console.error("Conflict check failed", err);
             setChecking(false);
-            return;
           }
-          setChecking(false);
         }
 
         // Re-enable the original submitter in case a guard disabled it.
@@ -213,8 +212,8 @@ export function AppointmentCreateForm({
       }}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-        Paziente
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
         <select
           name="patientId"
           className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -250,8 +249,8 @@ export function AppointmentCreateForm({
       </label>
       {isNewPatient && (
         <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Nome
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Nome</span>
             <input
               name="newFirstName"
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -259,8 +258,8 @@ export function AppointmentCreateForm({
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Cognome
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Cognome</span>
             <input
               name="newLastName"
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -268,8 +267,8 @@ export function AppointmentCreateForm({
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Telefono
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Telefono</span>
             <input
               name="newPhone"
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -277,8 +276,8 @@ export function AppointmentCreateForm({
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-3">
-            Email (facoltativa, consigliata per l&apos;accesso)
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-3">
+            <span className="font-bold">Email (facoltativa, consigliata per l&apos;accesso)</span>
             <input
               name="newEmail"
               type="email"
@@ -288,9 +287,9 @@ export function AppointmentCreateForm({
           </label>
         </div>
       )}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Richiede visita per...
-        <div className="grid grid-cols-[2fr,1fr] gap-2">
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Tipo di appuntamento</span>
           <select
             name="title"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -302,19 +301,23 @@ export function AppointmentCreateForm({
             <option value="Prima visita">Prima visita</option>
             <option value="Visita di controllo">Visita di controllo</option>
             <option value="Urgenza">Urgenza</option>
+            <option value="altro">Altro</option>
           </select>
+        </label>
+        {title === "altro" && (
           <input
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             name="titleCustom"
-            placeholder="Altro..."
+            placeholder="Specifica motivo..."
+            required
             aria-label="Titolo personalizzato"
           />
-        </div>
+        )}
         <span className="text-xs text-zinc-500 dark:text-zinc-400">Motivo della visita.</span>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Servizio
-        <div className="grid grid-cols-[2fr,1fr] gap-2">
+      </div>
+      <div className="flex flex-col gap-2">
+        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Servizio</span>
           <select
             name="serviceType"
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -327,20 +330,23 @@ export function AppointmentCreateForm({
                 {name}
               </option>
             ))}
-            <option value="">Personalizzato</option>
+            <option value="altro">Altro</option>
           </select>
+        </label>
+        {serviceType === "altro" && (
           <input
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             name="serviceTypeCustom"
-            placeholder="Altro..."
+            placeholder="Specifica servizio..."
+            required
           />
-        </div>
+        )}
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           Scegli un servizio oppure inserisci un nome personalizzato.
         </span>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Inizio visita
+      </div>
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
         <input
           className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           type="datetime-local"
@@ -360,8 +366,8 @@ export function AppointmentCreateForm({
           required
         />
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Stima di fine visita
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Stima di fine visita</span>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
           <input
             className="h-11 flex-1 min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -396,8 +402,8 @@ export function AppointmentCreateForm({
           </div>
         </div>
       </label>
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Medico assegnato
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold">Medico assegnato</span>
         <select
           name="doctorId"
           className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -411,26 +417,47 @@ export function AppointmentCreateForm({
           ))}
         </select>
       </label>
-      {error ? <p className="col-span-full text-sm text-rose-600">{error}</p> : null}
-      <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-        Note (opzionali)
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold">Note</span>
         <textarea
           name="notes"
-          className="min-h-[80px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          placeholder="Note per il team o dettagli sul paziente/servizio"
+          className="min-h-[44px] h-11 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          placeholder="Note per il team"
         />
       </label>
+      {error ? <p className="col-span-full text-sm text-rose-600 font-bold">{error}</p> : null}
       <div className="col-span-full">
         <FormSubmitButton
           disabled={checking}
           className="inline-flex h-11 w-full items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {checking ? "Controllo sovrapposizioni..." : "Aggiungi appuntamento"}
+          {checking ? "Operazione in corso..." : "Aggiungi appuntamento"}
         </FormSubmitButton>
       </div>
       {conflictMessage ? (
         <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
       ) : null}
+      {duplicatePatient && (
+        <DuplicatePatientDialog
+          patient={duplicatePatient}
+          onClose={() => setDuplicatePatient(null)}
+          onProceed={() => {
+            setAllowSubmit(true);
+            setDuplicatePatient(null);
+            // We need to trigger the form submission again.
+            // Since we use a hidden trigger or setAllowSubmit, the user will have to click again.
+            // But we can try to find the form and submit it programmatically.
+            const form = document.getElementById(appointmentFormId) as HTMLFormElement;
+            if (form) {
+              // Wait for state to update
+              setTimeout(() => {
+                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+                submitBtn?.click();
+              }, 0);
+            }
+          }}
+        />
+      )}
       </form>
     </>
   );

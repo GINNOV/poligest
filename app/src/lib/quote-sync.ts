@@ -54,6 +54,7 @@ async function syncDentalRecordIntoQuote(
     select: {
       id: true,
       treated: true,
+      tooth: true,
       procedure: true,
       performedAt: true,
     },

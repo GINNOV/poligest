@@ -25,16 +25,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ conflict: false, message: "Formato data non valido" });
     }
 
-    const conflicts = await prisma.appointment.count({
-      where: {
-        doctorId,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-        startsAt: { lt: endDate },
-        endsAt: { gt: startDate },
-      },
-    });
-
-    return NextResponse.json({ conflict: conflicts > 0, count: conflicts });
+    // Allow concurrent appointments for the same doctor
+    return NextResponse.json({ conflict: false, count: 0 });
   } catch (error) {
     return errorResponse({
       message: "Errore controllo conflitti",

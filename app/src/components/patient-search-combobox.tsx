@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 type PatientOption = {
   id: string;
@@ -22,6 +22,7 @@ export function PatientSearchCombobox({
   placeholder = "Cerca paziente",
   className,
 }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const defaultPatient = useMemo(
     () => patients.find((patient) => patient.id === defaultValue) ?? null,
     [defaultValue, patients],
@@ -36,6 +37,7 @@ export function PatientSearchCombobox({
       <input type="hidden" name={name} value={selectedId} />
       <div className="relative">
         <input
+          ref={inputRef}
           list={listId}
           value={query}
           onChange={(event) => {
@@ -49,8 +51,8 @@ export function PatientSearchCombobox({
           placeholder={placeholder}
           className={
             className
-              ? `${className} pr-12 font-semibold text-zinc-950 dark:text-white`
-              : "pr-12 font-semibold text-zinc-950 dark:text-white"
+              ? `${className} pr-10 font-semibold text-zinc-950 dark:text-white`
+              : "pr-10 font-semibold text-zinc-950 dark:text-white"
           }
         />
         {query ? (
@@ -59,6 +61,7 @@ export function PatientSearchCombobox({
             onClick={() => {
               setQuery("");
               setSelectedId("");
+              inputRef.current?.focus();
             }}
             aria-label="Cancella paziente"
             className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"

@@ -18,6 +18,7 @@ export type PatientQuoteDraft = {
     total?: number;
     saldato?: boolean;
     treated?: boolean;
+    tooth?: number;
     createdAt?: string;
   }>;
 } | null;
@@ -34,6 +35,7 @@ export type QuoteDraftItemInput = {
   total: QuoteDraftScalar;
   saldato: boolean | null;
   treated?: boolean | null;
+  tooth?: number | null;
   createdAt: Date | null;
 };
 
@@ -126,6 +128,7 @@ export function serializePatientQuoteDraft(latestQuote: QuoteDraftInput): Patien
           total: toNumericValue(item.total),
           saldato: Boolean(item.saldato),
           treated: item.treated != null ? Boolean(item.treated) : undefined,
+          tooth: item.tooth ?? undefined,
           createdAt: item.createdAt?.toISOString?.() ?? undefined,
         }))
       : undefined,

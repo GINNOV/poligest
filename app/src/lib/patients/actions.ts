@@ -294,7 +294,14 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     throw new Error("Preventivo non valido");
   }
 
-  let itemsPayload: Array<{ id?: string; serviceId: string; serviceDate: string; quantity: number; price: number }> = [];
+  let itemsPayload: Array<{
+    id?: string;
+    serviceId: string;
+    serviceDate: string;
+    quantity: number;
+    price: number;
+    tooth?: number | null;
+  }> = [];
   try {
     itemsPayload = JSON.parse(itemsRaw);
   } catch {
@@ -348,6 +355,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
       quantity,
       price: priceParsed,
       total,
+      tooth: item.tooth,
       saldato: false,
     };
   });

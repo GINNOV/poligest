@@ -37,6 +37,7 @@ import { CalendarMonthView } from "@/components/calendar-month-view";
 import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync";
 import { CalendarWeekView } from "@/components/calendar-week-view";
 import { CalendarWeekPicker } from "@/components/calendar-week-picker";
+import { CalendarSearch } from "@/components/calendar-search";
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -105,18 +106,8 @@ async function hasDoctorConflict(params: {
   endsAt: Date;
   excludeId?: string;
 }) {
-  const { doctorId, startsAt, endsAt, excludeId } = params;
-  if (!doctorId) return false;
-
-  const conflicts = await prisma.appointment.count({
-    where: {
-      doctorId,
-      ...(excludeId ? { id: { not: excludeId } } : {}),
-      startsAt: { lt: endsAt },
-      endsAt: { gt: startsAt },
-    },
-  });
-  return conflicts > 0;
+  // Allow concurrent appointments for the same doctor
+  return false;
 }
 
 async function resolvePatientIdForAppointment(params: {
@@ -432,6 +423,12 @@ export default async function CalendarPage({
       ? params.view
       : Array.isArray(params.view)
         ? params.view[0]
+        : undefined;
+  const searchQuery =
+    typeof params.q === "string"
+      ? params.q
+      : Array.isArray(params.q)
+        ? params.q[0]
         : undefined;
   const view = viewParam === "week" ? "week" : "month";
   const monthMatch = monthParam?.match(/^(\d{4})-(\d{2})$/);
@@ -754,27 +751,30 @@ export default async function CalendarPage({
             selectedDoctorId={selectedDoctorId}
             showAll={showAllDoctors}
           />
-          <div className="flex items-center gap-2">
-            <Link
-              href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                view === "month"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
-                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
-              }`}
-            >
-              Vista mese
-            </Link>
-            <Link
-              href={buildCalendarLink({ view: "week", week: weekKey })}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                view === "week"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
-                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
-              }`}
-            >
-              Vista settimana
-            </Link>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <CalendarSearch />
+            <div className="flex items-center gap-2">
+              <Link
+                href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  view === "month"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                    : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+                }`}
+              >
+                Vista mese
+              </Link>
+              <Link
+                href={buildCalendarLink({ view: "week", week: weekKey })}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  view === "week"
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                    : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+                }`}
+              >
+                Vista settimana
+              </Link>
+            </div>
           </div>
         </div>
       </div>
