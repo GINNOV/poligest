@@ -1,6 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: "DASHBOARD",
+};
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   eachDayOfInterval,

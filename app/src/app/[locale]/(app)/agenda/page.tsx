@@ -1,9 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+
+export const metadata: Metadata = {
+  title: "AGENDA",
+};
 
 export default async function AgendaPage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);

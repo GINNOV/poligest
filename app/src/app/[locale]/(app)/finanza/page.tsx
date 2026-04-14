@@ -1,7 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: "FINANZA",
+};
 
 const TILES = [
   {

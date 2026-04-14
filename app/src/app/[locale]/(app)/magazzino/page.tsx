@@ -1,9 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import { format } from "date-fns";
+
+export const metadata: Metadata = {
+  title: "MAGAZZINO",
+};
 
 export const dynamic = "force-dynamic";
 

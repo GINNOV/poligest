@@ -1,6 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const resolvedParams = await params;
+  const patient = await prisma.patient.findUnique({
+    where: { id: resolvedParams.id },
+    select: { firstName: true, lastName: true },
+  });
+
+  if (!patient) return { title: "Paziente non trovato" };
+
+  return {
+    title: `PAZIENTE: ${patient.lastName} ${patient.firstName}`,
+  };
+}
 import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
 import { Role, AppointmentStatus, Gender } from "@prisma/client";
 import { FormSubmitButton } from "@/components/form-submit-button";

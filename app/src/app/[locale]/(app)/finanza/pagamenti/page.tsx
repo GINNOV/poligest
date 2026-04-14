@@ -1,5 +1,10 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Role, type PatientPaymentMethod } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: "PAGAMENTI",
+};
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
@@ -153,16 +158,18 @@ export default async function PagamentiPage({
     const remaining = Math.max(total - paid, 0);
     const inProgress = Boolean(item.dentalRecord && !item.dentalRecord.treated);
     const status = getQuoteItemPaymentStatus(paid, remaining, inProgress);
+    const tooth = item.dentalRecord?.tooth;
     return {
       id: item.id,
       serviceName: item.serviceName,
+      tooth,
       quantity: item.quantity,
       total,
       paid,
       remaining,
       saldato: status === "settled",
       status,
-      label: `${item.serviceName} · residuo ${formatCurrency(remaining)}`,
+      label: `${item.serviceName}${tooth ? ` (Dente ${tooth})` : ""} · residuo ${formatCurrency(remaining)}`,
     };
   });
 
@@ -330,10 +337,16 @@ export default async function PagamentiPage({
                         >
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{item.serviceName}</p>
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                                {item.serviceName}
+                                {item.tooth ? (
+                                  <span className="ml-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 uppercase tracking-tighter">
+                                    Dente {item.tooth}
+                                  </span>
+                                ) : null}
+                              </p>
                               <p className="text-xs text-zinc-600 dark:text-zinc-400">Quantità: {item.quantity}</p>
-                            </div>
-                            <span
+                            </div>                            <span
                               className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                                 item.status === "in_progress"
                                   ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"

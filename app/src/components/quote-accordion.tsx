@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { ConflictDialog } from "@/components/conflict-dialog";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 import { PrintLinkButton } from "@/components/print-link-button";
 import {
@@ -31,6 +32,7 @@ type QuoteDraft = {
   signedAt?: string | null;
   items?: Array<{
     id?: string | null;
+    dentalRecordId?: string | null;
     serviceId?: string | null;
     serviceName?: string | null;
     serviceDate?: string | null;
@@ -494,6 +496,7 @@ export function QuoteAccordion({
     if (initialQuote?.items && initialQuote.items.length) {
       return initialQuote.items.map((item) => ({
         id: item.id ?? "",
+        dentalRecordId: item.dentalRecordId ?? null,
         serviceId: item.serviceId ?? "",
         serviceDate: getDefaultServiceDate(
           item.serviceDate ?? initialQuote.serviceDate ?? defaultServiceDate,
@@ -510,6 +513,7 @@ export function QuoteAccordion({
       return [
         {
           id: "",
+          dentalRecordId: null,
           serviceId: initialQuote.serviceId,
           serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate, displayTimeZone),
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
@@ -525,6 +529,16 @@ export function QuoteAccordion({
 
   const [items, setItems] = useState(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
+  const [prevInitialQuote, setPrevInitialQuote] = useState(initialQuote);
+  const [prevDisplayTimeZone, setPrevDisplayTimeZone] = useState(displayTimeZone);
+  const [removeDialog, setRemoveDialog] = useState<{ index: number; type: "warning" | "confirm" } | null>(null);
+
+  if (initialQuote !== prevInitialQuote || displayTimeZone !== prevDisplayTimeZone) {
+    setPrevInitialQuote(initialQuote);
+    setPrevDisplayTimeZone(displayTimeZone);
+    setItems(initialItems);
+    setSignatureReady(Boolean(initialQuote?.signatureUrl));
+  }
   const [dirtyVersion, setDirtyVersion] = useState(0);
   const [savedVersion, setSavedVersion] = useState(0);
   const dirtyVersionRef = useRef(0);
@@ -553,6 +567,7 @@ export function QuoteAccordion({
       ...prev,
       {
         id: "",
+        dentalRecordId: null,
         serviceId: fallbackService,
         serviceDate: defaultServiceDate,
         quantity: "1",
@@ -568,8 +583,19 @@ export function QuoteAccordion({
   };
 
   const removeItem = (index: number) => {
+    const item = items[index];
+    if (item.dentalRecordId || item.treated) {
+      setRemoveDialog({ index, type: "warning" });
+      return;
+    }
+
+    setRemoveDialog({ index, type: "confirm" });
+  };
+
+  const confirmRemove = (index: number) => {
     setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
     markDirty();
+    setRemoveDialog(null);
   };
 
   const itemsWithTotals = useMemo(() => {
@@ -601,6 +627,7 @@ export function QuoteAccordion({
       JSON.stringify(
         itemsWithTotals.map((item) => ({
           id: item.id || undefined,
+          dentalRecordId: item.dentalRecordId,
           serviceId: item.serviceId,
           serviceDate: item.serviceDate,
           quantity: item.quantityValue,
@@ -804,23 +831,31 @@ export function QuoteAccordion({
                 />
               </label>
               <div className="flex items-end justify-start gap-2">
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900 text-lg font-semibold text-emerald-700 dark:text-emerald-500 transition hover:border-emerald-300 dark:hover:border-emerald-800 hover:text-emerald-800 dark:hover:text-emerald-400"
-                  aria-label="Aggiungi prestazione"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeItem(index)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-lg font-semibold text-zinc-600 dark:text-zinc-400 transition hover:border-rose-200 dark:hover:border-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Rimuovi prestazione"
-                  disabled={items.length === 1}
-                >
-                  −
-                </button>
+                {!(item.treated || item.dentalRecordId) ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={addItem}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900 text-lg font-semibold text-emerald-700 dark:text-emerald-500 transition hover:border-emerald-300 dark:hover:border-emerald-800 hover:text-emerald-800 dark:hover:text-emerald-400"
+                      aria-label="Aggiungi prestazione"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-lg font-semibold text-zinc-600 dark:text-zinc-400 transition hover:border-rose-200 dark:hover:border-rose-900/50 hover:text-rose-600 dark:hover:text-rose-400 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Rimuovi prestazione"
+                      disabled={items.length === 1}
+                    >
+                      −
+                    </button>
+                  </>
+                ) : (
+                  <div className="h-11 flex items-center px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-600 italic">
+                    Collegato al diario
+                  </div>
+                )}
               </div>
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -851,6 +886,17 @@ export function QuoteAccordion({
               </div>
             </div>
           ))}
+
+          <div className="flex justify-start">
+            <button
+              type="button"
+              onClick={addItem}
+              className="inline-flex h-10 items-center justify-center rounded-full border border-emerald-200 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-950/20 px-4 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 transition hover:border-emerald-300 hover:bg-emerald-100 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
+            >
+              + Aggiungi prestazione
+            </button>
+          </div>
+
           {itemsWithTotals.length === 0 ? (
             <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-6 text-sm text-zinc-600 dark:text-zinc-400">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -892,6 +938,20 @@ export function QuoteAccordion({
           </FormSubmitButton>
         </div>
       </form>
+
+      {removeDialog && (
+        <ConflictDialog
+          message={
+            removeDialog.type === "warning"
+              ? "Questa prestazione è collegata al diario clinico. Per rimuoverla, elimina la prestazione corrispondente dal diario clinico."
+              : "Sei sicuro di voler rimuovere questa prestazione dal preventivo?"
+          }
+          onClose={() => setRemoveDialog(null)}
+          onProceed={removeDialog.type === "confirm" ? () => confirmRemove(removeDialog.index) : undefined}
+          proceedLabel="Rimuovi"
+          actionLabel="Annulla"
+        />
+      )}
     </details>
   );
 }

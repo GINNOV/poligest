@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   formatDateInDisplayTimeZone,
   getBrowserUserDisplayTimeZone,
@@ -16,6 +16,7 @@ type QuoteItemOption = {
   total: number;
   paid: number;
   remaining: number;
+  tooth?: number | null;
 };
 
 type IncomeProps = {
@@ -25,7 +26,13 @@ type IncomeProps = {
 
 export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
   const [patientId, setPatientId] = useState<string>("");
-  const displayTimeZone = getBrowserUserDisplayTimeZone();
+  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+    setIsMounted(true);
+  }, []);
 
   const patientDiaryEntries = useMemo(() => {
     if (!patientId) return [];
@@ -82,11 +89,11 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
           {patientDiaryEntries.map((entry) => (
             <option key={entry.id} value={entry.id}>
               {entry.label} ·{" "}
-              {formatDateInDisplayTimeZone(
+              {isMounted ? formatDateInDisplayTimeZone(
                 new Date(entry.performedAt),
                 { dateStyle: "medium" },
                 displayTimeZone
-              )}
+              ) : null}
             </option>
           ))}
         </select>
@@ -102,7 +109,7 @@ export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
       </label>
 
       <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Importo
+        <span className="font-bold text-rose-600 dark:text-rose-500 italic">Importo</span>
         <input
           name="amount"
           type="number"
@@ -150,37 +157,41 @@ export function PatientPaymentFields({
       <input type="hidden" name="patientId" value={patientId} />
       <input type="hidden" name="quoteId" value={quoteId} />
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Prestazione del preventivo
-        <select
-          name="quoteItemId"
-          value={quoteItemId}
-          onChange={(event) => setQuoteItemId(event.target.value)}
-          required
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-        >
-          <option value="" disabled>
-            Seleziona una prestazione
-          </option>
-          {quoteItems.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
+      <div className="grid gap-3 lg:grid-cols-[1fr,auto]">
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          Prestazione del preventivo
+          <select
+            name="quoteItemId"
+            value={quoteItemId}
+            onChange={(event) => setQuoteItemId(event.target.value)}
+            required
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+          >
+            <option value="" disabled>
+              Seleziona una prestazione
             </option>
-          ))}
-        </select>
-      </label>
+            {quoteItems.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      {selectedItem ? (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-xs text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <span>Totale: € {selectedItem.total.toFixed(2)}</span>
-            <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
-            <span>Residuo: € {selectedItem.remaining.toFixed(2)}</span>
+        {selectedItem ? (
+          <div className="flex flex-col justify-end">
+            <div className="flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 text-xs font-semibold text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
+              <div className="flex flex-wrap gap-x-4">
+                <span>Totale: € {selectedItem.total.toFixed(2)}</span>
+                <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
+                <span className="text-emerald-700 dark:text-emerald-300">Residuo: € {selectedItem.remaining.toFixed(2)}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Data pagamento
           <input
@@ -210,7 +221,7 @@ export function PatientPaymentFields({
         </label>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Importo
+          <span className="font-bold text-rose-600 dark:text-rose-500 italic uppercase tracking-tighter">Importo</span>
           <input
             name="amount"
             type="number"
@@ -221,17 +232,17 @@ export function PatientPaymentFields({
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           />
         </label>
-      </div>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-        Nota
-        <textarea
-          name="note"
-          rows={3}
-          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-          placeholder="Es. acconto, saldo finale, riferimento POS"
-        ></textarea>
-      </label>
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          Nota
+          <input
+            name="note"
+            type="text"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            placeholder="Es. acconto, saldo finale..."
+          />
+        </label>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
+import Link from "next/link";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -243,7 +244,8 @@ export function DentalChart({
 }) {
   const router = useRouter();
   const storageKey = `dental-chart:${patientId}`;
-  const [displayTimeZone, setDisplayTimeZone] = useState(() => getBrowserUserDisplayTimeZone());
+  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
+  const [isMounted, setIsMounted] = useState(false);
   const [records, setRecords] = useState<DentalRecord[]>(initialRecords);
   const [isOpen, setIsOpen] = useState(!defaultCollapsed);
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
@@ -292,6 +294,7 @@ export function DentalChart({
 
   useEffect(() => {
     setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
@@ -603,17 +606,30 @@ export function DentalChart({
         </span>
         <div className="flex items-center gap-2">
           {isOpen && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsChartDialogOpen(true);
-              }}
-              className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
-            >
-              Mostra dentatura
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/finanza/pagamenti?patientId=${patientId}`);
+                }}
+                className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
+              >
+                PAGAMENTI
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsChartDialogOpen(true);
+                }}
+                className="inline-flex h-8 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-900/40"
+              >
+                Mostra dentatura
+              </button>
+            </>
           )}
           {records.length > 0 ? (
             <PrintLinkButton
@@ -717,11 +733,11 @@ export function DentalChart({
                         <div className="flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-300">
                           <span>{toothLabel}</span>
                           <span>
-                            {formatDateInDisplayTimeZone(
+                            {isMounted ? formatDateInDisplayTimeZone(
                               new Date(rec.performedAt),
                               { dateStyle: "short" },
                               displayTimeZone
-                            )}
+                            ) : null}
                           </span>
                         </div>
                         <div
@@ -750,14 +766,14 @@ export function DentalChart({
                           {rec.notes && rec.updatedAt ? (
                             <span className="block">
                               Aggiornato il{" "}
-                              {formatDateInDisplayTimeZone(
+                              {isMounted ? formatDateInDisplayTimeZone(
                                 new Date(rec.updatedAt),
                                 {
                                   dateStyle: "short",
                                   timeStyle: "short",
                                 },
                                 displayTimeZone
-                              )}
+                              ) : null}
                               {rec.updatedByName ? ` da ${rec.updatedByName}` : ""}
                             </span>
                           ) : null}

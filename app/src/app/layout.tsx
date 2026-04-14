@@ -16,7 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SORRIDI",
+  title: {
+    template: "%s | SORRIDI",
+    default: "SORRIDI",
+  },
   description:
     "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
   manifest: "/favicon/site.webmanifest",

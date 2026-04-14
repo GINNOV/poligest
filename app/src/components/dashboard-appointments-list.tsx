@@ -68,8 +68,15 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const displayTimeZone = getBrowserUserDisplayTimeZone();
+  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
+  const [isMounted, setIsMounted] = useState(false);
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+    setIsMounted(true);
+  }, []);
+
   const orderedAppointments = useMemo(() => {
     const isSameDay = (date: Date, target: Date) =>
       getDateKey(date, displayTimeZone) === getDateKey(target, displayTimeZone);
@@ -107,7 +114,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const patientPhone = normalizeItalianPhone(appt.patient.phone);
         const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
         const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-        const whatsappAppointmentDate = formatDate(
+        const whatsappAppointmentDate = isMounted ? formatDate(
           appt.startsAtDate,
           {
             weekday: "long",
@@ -118,7 +125,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
             minute: "2-digit",
           },
           displayTimeZone
-        );
+        ) : "";
 
         const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
           firstName: appt.patient.firstName ?? "",
@@ -136,7 +143,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
           : statusCardBackgrounds[appt.status];
         const dayKey = getDateKey(appt.startsAtDate, displayTimeZone);
-        const dayLabel = formatDate(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone);
+        const dayLabel = isMounted ? formatDate(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone) : "";
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
         const prevDayKey = prevAppt ? getDateKey(prevAppt.startsAtDate, displayTimeZone) : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
@@ -147,7 +154,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
 
         return (
           <div key={appt.id}>
-            {showDivider ? (
+            {showDivider && isMounted ? (
               <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                 <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
                 <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
@@ -187,7 +194,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                         <span>
-                          {formatDate(
+                          {isMounted ? formatDate(
                             appt.startsAtDate,
                             {
                               weekday: "short",
@@ -195,8 +202,9 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                               month: "short",
                             },
                             displayTimeZone
-                          )}{" "}
-                          alle {formatDate(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)}
+                          ) : ""}
+                          {" "}
+                          alle {isMounted ? formatDate(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone) : ""}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
