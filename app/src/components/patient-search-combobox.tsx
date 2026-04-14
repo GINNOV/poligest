@@ -64,14 +64,14 @@ export function PatientSearchCombobox({
               return;
             }
 
+            const normalizedQuery = nextQuery.trim().toLowerCase();
             const match = patients.find(
-              (patient) => patient.fullName.toLowerCase() === nextQuery.trim().toLowerCase(),
+              (patient) => patient.fullName.toLowerCase() === normalizedQuery,
             );
+            
             const nextId = match?.id ?? "";
             setSelectedId(nextId);
-            if (nextId) {
-              onSelect?.(nextId);
-            }
+            onSelect?.(nextId);
           }}
           onBlur={() => {
             // If query doesn't match selectedId name, and not allowNew 'new', clear or reset?

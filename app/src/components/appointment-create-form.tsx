@@ -104,107 +104,100 @@ export function AppointmentCreateForm({
     return true;
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (checking) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    // Validation
+    if (!handleValidate(form)) return;
+
+    const patientId = formData.get("patientId") as string;
+    const title = formData.get("title") as string;
+    const startsAt = formData.get("startsAt") as string;
+    const endsAt = formData.get("endsAt") as string;
+    const doctorId = formData.get("doctorId") as string || "";
+
+    if (!patientId || !title || !startsAt || !endsAt) {
+      setError("Dati mancanti: seleziona un paziente e compila i campi obbligatori.");
+      return;
+    }
+
+    setChecking(true);
+    setError(null);
+    setConflictMessage(null);
+
+    // 1. Check for duplicates if it's a new patient
+    if (isNewPatient && !form.dataset.confirmedDuplicate) {
+      const firstName = formData.get("newFirstName") as string;
+      const lastName = formData.get("newLastName") as string;
+      const phone = formData.get("newPhone") as string;
+
+      if (firstName || lastName || phone) {
+        try {
+          const params = new URLSearchParams();
+          if (firstName) params.set("firstName", firstName);
+          if (lastName) params.set("lastName", lastName);
+          if (phone) params.set("phone", phone);
+
+          const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
+          const data = await res.json();
+          if (data.exists) {
+            setDuplicatePatient(data.patient);
+            setChecking(false);
+            return;
+          }
+        } catch (err) {
+          console.error("Duplicate check failed", err);
+        }
+      }
+    }
+
+    // 2. Check for scheduling warnings
+    if (!form.dataset.confirmedWarning) {
+      const warning = computeSchedulingWarning({
+        doctorId,
+        startsAt,
+        endsAt,
+        availabilityWindows,
+        practiceClosures,
+        practiceWeeklyClosures,
+      });
+
+      if (warning) {
+        setConflictMessage(warning);
+        setChecking(false);
+        return;
+      }
+    }
+
+    // 3. Perform action
+    try {
+      await action(formData);
+      onSuccess?.();
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
+        onSuccess?.();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Errore durante la creazione.");
+    } finally {
+      setChecking(false);
+      delete form.dataset.confirmedDuplicate;
+      delete form.dataset.confirmedWarning;
+    }
+  };
+
   return (
     <>
       <UnsavedChangesGuard formId={appointmentFormId} />
       <form
-      action={async (formData) => {
-        setChecking(true);
-        setError(null);
-        try {
-          await action(formData);
-          onSuccess?.();
-        } catch (err: unknown) {
-          if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
-            onSuccess?.();
-            return;
-          }
-          setError(err instanceof Error ? err.message : "Errore durante la creazione.");
-        } finally {
-          setChecking(false);
-        }
-      }}
-      className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
-      data-appointment-form="create"
-      id={appointmentFormId}
-      onSubmit={async (e) => {
-        const form = e.currentTarget;
-        const submitter = (e.nativeEvent as SubmitEvent).submitter as
-          | HTMLButtonElement
-          | HTMLInputElement
-          | null;
-
-        if (form.dataset.confirmedSubmit === "true") {
-          return;
-        }
-
-        e.preventDefault();
-        setError(null);
-        setConflictMessage(null);
-
-        if (!handleValidate(form)) return;
-
-        const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
-        const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
-        const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
-
-        // Check for duplicates if it's a new patient
-        if (isNewPatient) {
-          const firstName = (form.elements.namedItem("newFirstName") as HTMLInputElement | null)?.value;
-          const lastName = (form.elements.namedItem("newLastName") as HTMLInputElement | null)?.value;
-          const phone = (form.elements.namedItem("newPhone") as HTMLInputElement | null)?.value;
-
-          if (firstName || lastName || phone) {
-            setChecking(true);
-            try {
-              const params = new URLSearchParams();
-              if (firstName) params.set("firstName", firstName);
-              if (lastName) params.set("lastName", lastName);
-              if (phone) params.set("phone", phone);
-
-              const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
-              const data = await res.json();
-              if (data.exists) {
-                setDuplicatePatient(data.patient);
-                setChecking(false);
-                return;
-              }
-            } catch (err) {
-              console.error("Duplicate check failed", err);
-            }
-            setChecking(false);
-          }
-        }
-
-        const warning = computeSchedulingWarning({
-          doctorId,
-          startsAt: startsAt ?? "",
-          endsAt: endsAt ?? "",
-          availabilityWindows,
-          practiceClosures,
-          practiceWeeklyClosures,
-        });
-
-        if (warning) {
-          if (submitter) {
-            submitter.setAttribute("data-confirm", warning);
-          } else {
-            form.setAttribute("data-confirm", warning);
-          }
-          form.requestSubmit(submitter ?? undefined);
-          return;
-        } else {
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
-        }
-
-        form.dataset.confirmedSubmit = "true";
-        form.requestSubmit(submitter ?? undefined);
-        // Do NOT delete confirmedSubmit immediately to avoid loops if requestSubmit is async
-        setTimeout(() => {
-          delete form.dataset.confirmedSubmit;
-        }, 0);
-      }}
+        onSubmit={handleSubmit}
+        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        data-appointment-form="create"
+        id={appointmentFormId}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
@@ -220,14 +213,11 @@ export function AppointmentCreateForm({
             setIsNewPatient(isNew);
             if (isNew) {
               setTitle("Prima visita");
-              setServiceType(
-                serviceOptions.includes("Visita di controllo")
-                  ? "Visita di controllo"
-                  : serviceOptions[0] ?? ""
+              setServiceType((prev) => 
+                prev === "Richiamo" || !prev 
+                  ? (serviceOptions.includes("Visita di controllo") ? "Visita di controllo" : serviceOptions[0] ?? "")
+                  : prev
               );
-            } else if (id) {
-              setTitle("Richiamo");
-              setServiceType(serviceOptions[0] ?? "");
             }
           }}
         />
@@ -420,7 +410,18 @@ export function AppointmentCreateForm({
         </FormSubmitButton>
       </div>
       {conflictMessage ? (
-        <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
+        <ConflictDialog 
+          message={conflictMessage} 
+          onClose={() => setConflictMessage(null)} 
+          onProceed={() => {
+            setConflictMessage(null);
+            const form = document.getElementById(appointmentFormId) as HTMLFormElement;
+            if (form) {
+              form.dataset.confirmedWarning = "true";
+              form.requestSubmit();
+            }
+          }}
+        />
       ) : null}
       {duplicatePatient && (
         <DuplicatePatientDialog
@@ -430,10 +431,8 @@ export function AppointmentCreateForm({
             setDuplicatePatient(null);
             const form = document.getElementById(appointmentFormId) as HTMLFormElement;
             if (form) {
-              form.dataset.confirmedSubmit = "true";
-              const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-              submitBtn?.click();
-              delete form.dataset.confirmedSubmit;
+              form.dataset.confirmedDuplicate = "true";
+              form.requestSubmit();
             }
           }}
         />

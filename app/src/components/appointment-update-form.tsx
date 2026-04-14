@@ -88,74 +88,67 @@ export function AppointmentUpdateForm({
     return true;
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (checking) return;
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    if (!handleValidate(form)) return;
+
+    const appointmentId = formData.get("appointmentId") as string;
+    const patientId = formData.get("patientId") as string;
+    const startsAt = formData.get("startsAt") as string;
+    const endsAt = formData.get("endsAt") as string;
+    const doctorId = (formData.get("doctorId") as string) || "";
+
+    if (!appointmentId || !patientId || !startsAt || !endsAt) {
+      setError("Dati mancanti.");
+      return;
+    }
+
+    setChecking(true);
+    setError(null);
+    setConflictMessage(null);
+
+    if (!form.dataset.confirmedWarning) {
+      const warning = computeSchedulingWarning({
+        doctorId,
+        startsAt,
+        endsAt,
+        availabilityWindows,
+        practiceClosures,
+        practiceWeeklyClosures,
+      });
+
+      if (warning) {
+        setConflictMessage(warning);
+        setChecking(false);
+        return;
+      }
+    }
+
+    try {
+      await action(formData);
+      onSuccess?.();
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
+        onSuccess?.();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento.");
+    } finally {
+      setChecking(false);
+      delete form.dataset.confirmedWarning;
+    }
+  };
+
   return (
     <form
       className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
-      action={async (formData) => {
-        setChecking(true);
-        setError(null);
-        try {
-          await action(formData);
-          onSuccess?.();
-        } catch (err: unknown) {
-          if (err instanceof Error && err.message?.includes("NEXT_REDIRECT")) {
-            onSuccess?.();
-            return;
-          }
-          setError(err instanceof Error ? err.message : "Errore durante l'aggiornamento.");
-        } finally {
-          setChecking(false);
-        }
-      }}
-      onSubmit={async (e) => {
-        const form = e.currentTarget;
-        const submitter = (e.nativeEvent as SubmitEvent).submitter as
-          | HTMLButtonElement
-          | HTMLInputElement
-          | null;
-
-        if (form.dataset.confirmedSubmit === "true") {
-          return;
-        }
-
-        e.preventDefault();
-        setError(null);
-
-        if (!handleValidate(form)) return;
-
-        const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
-        const endsAt = (form.elements.namedItem("endsAt") as HTMLInputElement | null)?.value;
-        const doctorId = (form.elements.namedItem("doctorId") as HTMLSelectElement | null)?.value || "";
-
-        const warning = computeSchedulingWarning({
-          doctorId,
-          startsAt: startsAt ?? "",
-          endsAt: endsAt ?? "",
-          availabilityWindows,
-          practiceClosures,
-          practiceWeeklyClosures,
-        });
-
-        if (warning) {
-          if (submitter) {
-            submitter.setAttribute("data-confirm", warning);
-          } else {
-            form.setAttribute("data-confirm", warning);
-          }
-          form.requestSubmit(submitter ?? undefined);
-          return;
-        } else {
-          form.removeAttribute("data-confirm");
-          submitter?.removeAttribute("data-confirm");
-        }
-
-        // No warning: let the 'action' handle it via form submission
-        form.dataset.confirmedSubmit = "true";
-        form.requestSubmit(submitter ?? undefined);
-        setTimeout(() => {
-          delete form.dataset.confirmedSubmit;
-        }, 0);
-      }}
+      id={`appointment-update-form-${appointment.id}`}
+      onSubmit={handleSubmit}
     >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
@@ -293,7 +286,18 @@ export function AppointmentUpdateForm({
         </button>
       </div>
       {conflictMessage ? (
-        <ConflictDialog message={conflictMessage} onClose={() => setConflictMessage(null)} />
+        <ConflictDialog 
+          message={conflictMessage} 
+          onClose={() => setConflictMessage(null)} 
+          onProceed={() => {
+            setConflictMessage(null);
+            const form = document.getElementById(`appointment-update-form-${appointment.id}`) as HTMLFormElement;
+            if (form) {
+              form.dataset.confirmedWarning = "true";
+              form.requestSubmit();
+            }
+          }}
+        />
       ) : null}
     </form>
   );
