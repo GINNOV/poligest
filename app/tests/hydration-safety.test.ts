@@ -20,16 +20,23 @@ describe("Hydration Safety Checks", () => {
 
       for (const risk of risks) {
         if (content.includes(risk.pattern)) {
-          // If it uses isMounted or useEffect to wrap it, it might be safe.
-          // This is a coarse check.
-          const isGuarded = content.includes("isMounted") || content.includes("useEffect");
+          // Check if the component has an isMounted guard
+          const hasIsMounted = content.includes("isMounted");
+          const hasUseEffect = content.includes("useEffect");
           
-          // Specifically check for dangerous initialization in useState or top level
-          const dangerousAssignment = new RegExp(`const\\s+.*\\s*=\\s*useState\\([^)]*${risk.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^)]*\\)`, 'g').test(content) ||
-                                     new RegExp(`const\\s+.*\\s*=\\s*${risk.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g').test(content);
-
-          if (dangerousAssignment && !isGuarded) {
-            violations.push(`${file}: Potential hydration mismatch from ${risk.description}`);
+          // A simplified check: if the risky pattern is used in a way that is likely to cause a mismatch.
+          // e.g., in a useState initializer or directly in the JSX without a guard.
+          const inStateInitializer = new RegExp(`useState\\([^)]*${risk.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^)]*\\)`, 'g').test(content);
+          
+          // If it's in a state initializer and we don't have isMounted logic, it's a high risk.
+          if (inStateInitializer && !hasIsMounted) {
+             violations.push(`${file}: High risk - ${risk.description} used in useState initializer without isMounted guard.`);
+          }
+          
+          // Also check for direct usage in JSX (coarse check)
+          // If the pattern appears and there is no isMounted or useEffect to delay it.
+          if (!hasIsMounted && !hasUseEffect) {
+             violations.push(`${file}: Potential risk - ${risk.description} used without any mount-time synchronization.`);
           }
         }
       }

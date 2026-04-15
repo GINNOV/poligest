@@ -31,8 +31,7 @@ function parseBirthDateFromTaxId(taxId: string): string | null {
   if (dayValue < 1 || dayValue > 31) return null;
 
   const yearValue = Number.parseInt(yearRaw, 10);
-  const now = new Date();
-  const currentYear = now.getFullYear();
+  const currentYear = new Date().getFullYear();
   const currentTwoDigits = currentYear % 100;
   const centuryBase = yearValue <= currentTwoDigits ? Math.floor(currentYear / 100) : Math.floor(currentYear / 100) - 1;
   const fullYear = centuryBase * 100 + yearValue;

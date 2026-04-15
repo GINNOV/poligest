@@ -754,7 +754,12 @@ export function QuoteAccordion({
           {itemsWithTotals.map((item, index) => (
             <div
               key={`quote-item-${index}`}
-              className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-4 sm:grid-cols-2 lg:grid-cols-[2fr,1fr,1fr,1fr,1.2fr,auto]"
+              className={clsx(
+                "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[4fr,80px,1fr,1fr,1.5fr,auto]",
+                item.dentalRecordId 
+                  ? "border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20" 
+                  : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
+              )}
             >
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
                 Prestazione
@@ -782,7 +787,7 @@ export function QuoteAccordion({
                 </select>
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
-                Quantità
+                Qtà
                 <input
                   type="number"
                   min="1"
@@ -794,7 +799,7 @@ export function QuoteAccordion({
                     const nextValue = event.target.value.replace(/\D+/g, "");
                     updateItem(index, { quantity: nextValue });
                   }}
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">

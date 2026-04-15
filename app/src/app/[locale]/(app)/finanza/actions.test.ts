@@ -4,12 +4,13 @@ import { PatientPaymentMethod, Prisma, Role } from "@prisma/client";
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   revalidatePath: vi.fn(),
-  getOptionalPrismaModel: vi.fn(),
+  logAudit: vi.fn(),
   prisma: {
     patientPayment: {
       findUnique: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
+      create: vi.fn(),
     },
     quoteItem: {
       findFirst: vi.fn(),
@@ -45,8 +46,8 @@ vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
 }));
 
-vi.mock("@/lib/prisma-models", () => ({
-  getOptionalPrismaModel: mocks.getOptionalPrismaModel,
+vi.mock("@/lib/audit", () => ({
+  logAudit: mocks.logAudit,
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -90,8 +91,8 @@ describe("finanza actions", () => {
       occurredAt: new Date("2026-04-08"),
       doctorId: "doctor-1",
     });
-    mocks.prisma.financeEntry.create.mockResolvedValue(undefined);
-    mocks.prisma.cashAdvance.create.mockResolvedValue(undefined);
+    mocks.prisma.financeEntry.create.mockResolvedValue({ id: "finance-1" });
+    mocks.prisma.cashAdvance.create.mockResolvedValue({ id: "advance-1" });
     mocks.prisma.quoteItem.update.mockResolvedValue(undefined);
     mocks.prisma.quoteItem.findUnique.mockResolvedValue({
       id: "quote-item-1",
@@ -107,16 +108,10 @@ describe("finanza actions", () => {
     mocks.prisma.patientPayment.update.mockResolvedValue(undefined);
     mocks.prisma.patientPayment.findMany.mockResolvedValue([{ amount: new Prisma.Decimal(20) }]);
 
-    mocks.getOptionalPrismaModel.mockReturnValue({
-      create: vi.fn(),
-      deleteMany: vi.fn(),
-      findMany: vi.fn().mockResolvedValue([{ amount: new Prisma.Decimal(20) }]),
-    });
-
     mocks.prisma.$transaction.mockImplementation(async (callback) => {
       const tx = {
         patientPayment: {
-          create: vi.fn().mockResolvedValue(undefined),
+          create: vi.fn().mockResolvedValue({ id: "p-1" }),
           update: vi.fn().mockResolvedValue(undefined),
           findMany: vi.fn().mockResolvedValue([{ amount: new Prisma.Decimal(20) }]),
         },
@@ -129,7 +124,7 @@ describe("finanza actions", () => {
           }),
         },
         financeEntry: {
-          create: vi.fn().mockResolvedValue(undefined),
+          create: vi.fn().mockResolvedValue({ id: "f-1" }),
           update: vi.fn().mockResolvedValue(undefined),
         },
       };
@@ -169,11 +164,7 @@ describe("finanza actions", () => {
   });
 
   it("rejects patient payment when the amount exceeds the quote item residual", async () => {
-    const patientPaymentModel = {
-      create: vi.fn(),
-      findMany: vi.fn().mockResolvedValue([{ amount: new Prisma.Decimal(95) }]),
-    };
-    mocks.getOptionalPrismaModel.mockReturnValue(patientPaymentModel);
+    mocks.prisma.patientPayment.findMany.mockResolvedValue([{ amount: new Prisma.Decimal(95) }]);
 
     const formData = new FormData();
     formData.set("patientId", "patient-1");
