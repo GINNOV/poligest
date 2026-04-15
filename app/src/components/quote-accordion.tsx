@@ -537,7 +537,7 @@ export function QuoteAccordion({
   const [savedVersion, setSavedVersion] = useState(0);
   const dirtyVersionRef = useRef(0);
 
-  if (initialQuote !== prevInitialQuote || displayTimeZone !== prevDisplayTimeZone) {
+  if (JSON.stringify(initialQuote) !== JSON.stringify(prevInitialQuote) || displayTimeZone !== prevDisplayTimeZone) {
     setPrevInitialQuote(initialQuote);
     setPrevDisplayTimeZone(displayTimeZone);
     setItems(initialItems);
