@@ -35,6 +35,11 @@ export async function recordPatientPayment(formData: FormData) {
       quote: { patientId },
     },
     include: {
+      dentalRecord: {
+        select: {
+          updatedById: true,
+        },
+      },
       quote: {
         select: {
           patient: { select: { firstName: true, lastName: true } },
@@ -45,6 +50,26 @@ export async function recordPatientPayment(formData: FormData) {
 
   if (!quoteItem) {
     throw new Error("Prestazione del preventivo non trovata");
+  }
+
+  // Try to find the doctor responsible for this payment
+  let targetDoctorId: string | null = null;
+
+  if (quoteItem.dentalRecord?.updatedById) {
+    const doc = await prisma.doctor.findUnique({
+      where: { userId: quoteItem.dentalRecord.updatedById },
+      select: { id: true },
+    });
+    if (doc) targetDoctorId = doc.id;
+  }
+
+  if (!targetDoctorId) {
+    const lastAppt = await prisma.appointment.findFirst({
+      where: { patientId, doctorId: { not: null } },
+      orderBy: { startsAt: "desc" },
+      select: { doctorId: true },
+    });
+    if (lastAppt) targetDoctorId = lastAppt.doctorId;
   }
 
   const existingPayments = await prisma.patientPayment.findMany({
@@ -111,6 +136,7 @@ export async function recordPatientPayment(formData: FormData) {
           .join(" · "),
         amount: new Prisma.Decimal(amountNumber),
         occurredAt: new Date(paidAt),
+        doctorId: targetDoctorId,
         userId: user.id,
       },
     });
@@ -272,14 +298,44 @@ export async function createCashAdvance(formData: FormData) {
   const note = (formData.get("note") as string)?.trim() || null;
   if (!patientId || !amount || !issuedAt) throw new Error("Dati mancanti");
 
-  const advance = await prisma.cashAdvance.create({
-    data: {
-      patientId,
-      amount,
-      issuedAt: new Date(issuedAt),
-      note,
-      userId: user.id,
-    },
+  const [patient, lastAppt] = await Promise.all([
+    prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { firstName: true, lastName: true },
+    }),
+    prisma.appointment.findFirst({
+      where: { patientId, doctorId: { not: null } },
+      orderBy: { startsAt: "desc" },
+      select: { doctorId: true },
+    }),
+  ]);
+
+  const patientName = patient ? `${patient.lastName} ${patient.firstName}` : "Paziente";
+  const targetDoctorId = lastAppt?.doctorId ?? null;
+
+  const advance = await prisma.$transaction(async (tx) => {
+    const adv = await tx.cashAdvance.create({
+      data: {
+        patientId,
+        amount: new Prisma.Decimal(amount.replace(",", ".")),
+        issuedAt: new Date(issuedAt),
+        note,
+        userId: user.id,
+      },
+    });
+
+    await tx.financeEntry.create({
+      data: {
+        type: "INCOME",
+        description: [`Anticipo paziente ${patientName}`, note].filter(Boolean).join(" · "),
+        amount: new Prisma.Decimal(amount.replace(",", ".")),
+        occurredAt: new Date(issuedAt),
+        doctorId: targetDoctorId,
+        userId: user.id,
+      },
+    });
+
+    return adv;
   });
 
   await logAudit(user, {

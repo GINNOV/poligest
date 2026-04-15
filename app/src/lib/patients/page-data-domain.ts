@@ -10,6 +10,7 @@ export type PatientQuoteDraft = {
   signedAt?: string;
   items?: Array<{
     id?: string;
+    dentalRecordId?: string | null;
     serviceId?: string;
     serviceName?: string;
     serviceDate?: string;
@@ -27,6 +28,7 @@ type QuoteDraftScalar = number | string | { toString(): string } | null | undefi
 
 export type QuoteDraftItemInput = {
   id: string;
+  dentalRecordId?: string | null;
   serviceId: string | null;
   serviceName: string | null;
   serviceDate: Date | null;
@@ -120,6 +122,7 @@ export function serializePatientQuoteDraft(latestQuote: QuoteDraftInput): Patien
     items: Array.isArray(latestQuote.items)
       ? latestQuote.items.map((item) => ({
           id: item.id,
+          dentalRecordId: item.dentalRecordId ?? undefined,
           serviceId: item.serviceId ?? undefined,
           serviceName: item.serviceName ?? undefined,
           serviceDate: item.serviceDate?.toISOString?.() ?? undefined,

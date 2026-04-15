@@ -146,23 +146,30 @@ export default async function ReportGiornalieroPage({
                 <tr>
                   <th className="px-4 py-3 text-left">Ora</th>
                   <th className="px-4 py-3 text-left">Descrizione</th>
+                  <th className="px-4 py-3 text-left">Metodo</th>
                   <th className="px-4 py-3 text-left">Medico</th>
                   <th className="px-4 py-3 text-right">Importo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {entries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(entry.occurredAt)}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-900">{entry.description}</td>
-                    <td className="px-4 py-3 text-zinc-700">{entry.doctor?.fullName ?? "Generale"}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-800">
-                      {formatCurrency(Number(entry.amount))}
-                    </td>
-                  </tr>
-                ))}
+                {entries.map((entry) => {
+                  const methodMatch = entry.description.match(/Metodo: ([^·]+)/);
+                  const method = methodMatch ? methodMatch[1].trim() : "—";
+                  
+                  return (
+                    <tr key={entry.id}>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(entry.occurredAt)}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-900">{entry.description}</td>
+                      <td className="px-4 py-3 text-zinc-700 capitalize">{method}</td>
+                      <td className="px-4 py-3 text-zinc-700">{entry.doctor?.fullName ?? "Generale"}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-emerald-800">
+                        {formatCurrency(Number(entry.amount))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

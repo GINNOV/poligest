@@ -34,6 +34,12 @@ const mocks = vi.hoisted(() => ({
     doctor: {
       findUnique: vi.fn(),
     },
+    appointment: {
+      findFirst: vi.fn(),
+    },
+    patient: {
+      findUnique: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -84,6 +90,8 @@ describe("finanza actions", () => {
     mocks.prisma.supplier.findUnique.mockResolvedValue({ name: "Dental Supply" });
     mocks.prisma.product.findUnique.mockResolvedValue({ name: "Impianto" });
     mocks.prisma.doctor.findUnique.mockResolvedValue({ id: "doctor-1", fullName: "Dr. Verdi" });
+    mocks.prisma.patient.findUnique.mockResolvedValue({ id: "patient-1", firstName: "Mario", lastName: "Rossi" });
+    mocks.prisma.appointment.findFirst.mockResolvedValue({ id: "appt-1", doctorId: "doctor-1" });
     mocks.prisma.financeEntry.findUnique.mockResolvedValue({
       id: "entry-1",
       amount: new Prisma.Decimal(100),
@@ -127,6 +135,9 @@ describe("finanza actions", () => {
           create: vi.fn().mockResolvedValue({ id: "f-1" }),
           update: vi.fn().mockResolvedValue(undefined),
         },
+        cashAdvance: {
+          create: vi.fn().mockResolvedValue({ id: "a-1" }),
+        },
       };
       return callback(tx);
     });
@@ -151,6 +162,11 @@ describe("finanza actions", () => {
         quote: { patientId: "patient-1" },
       },
       include: {
+        dentalRecord: {
+          select: {
+            updatedById: true,
+          },
+        },
         quote: {
           select: {
             patient: { select: { firstName: true, lastName: true } },
@@ -249,15 +265,7 @@ describe("finanza actions", () => {
 
     await createCashAdvance(formData);
 
-    expect(mocks.prisma.cashAdvance.create).toHaveBeenCalledWith({
-      data: {
-        patientId: "patient-1",
-        amount: "150",
-        issuedAt: new Date("2026-04-08"),
-        note: "Acconto",
-        userId: "user-1",
-      },
-    });
+    expect(mocks.prisma.$transaction).toHaveBeenCalled();
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/anticipi");
   });

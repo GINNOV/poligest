@@ -755,13 +755,13 @@ export function QuoteAccordion({
             <div
               key={`quote-item-${index}`}
               className={clsx(
-                "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[4fr,80px,1fr,1fr,1.5fr,auto]",
+                "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[1fr_60px_100px_100px_140px_auto]",
                 item.dentalRecordId 
-                  ? "border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/20" 
+                  ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
                   : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
               )}
             >
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
                 Prestazione
                 <select
                   value={item.serviceId}
@@ -773,7 +773,7 @@ export function QuoteAccordion({
                       price: item.priceValue === 0 ? String(nextService?.costBasis ?? "") : item.price,
                     });
                   }}
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                   required
                 >
                   <option value="" disabled>
@@ -786,7 +786,7 @@ export function QuoteAccordion({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Qtà
                 <input
                   type="number"
@@ -799,30 +799,30 @@ export function QuoteAccordion({
                     const nextValue = event.target.value.replace(/\D+/g, "");
                     updateItem(index, { quantity: nextValue });
                   }}
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
-                Prezzo (€)
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+                Prezzo
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={item.price}
                   onChange={(event) => updateItem(index, { price: event.target.value })}
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
-                Totale (€)
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+                Totale
                 <input
                   type="text"
                   value={item.totalValue.toFixed(2)}
                   readOnly
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none"
                 />
               </label>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+              <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Data prestazione
                 <input
                   type="date"
