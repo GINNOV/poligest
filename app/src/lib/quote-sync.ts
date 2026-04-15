@@ -172,25 +172,126 @@ export async function syncAllDentalRecordsIntoQuote(
   patientId: string,
   quoteId: string
 ) {
-  const records = await tx.dentalRecord.findMany({
-    where: { patientId },
-    select: { id: true },
-    orderBy: [{ performedAt: "asc" }, { id: "asc" }],
-  });
+  // 1. Fetch everything we need in bulk
+  const [records, quote, allServices] = await Promise.all([
+    tx.dentalRecord.findMany({
+      where: { patientId },
+      select: {
+        id: true,
+        treated: true,
+        tooth: true,
+        procedure: true,
+        performedAt: true,
+      },
+      orderBy: [{ performedAt: "asc" }, { id: "asc" }],
+    }),
+    tx.quote.findUnique({
+      where: { id: quoteId },
+      include: {
+        items: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          include: {
+            payments: {
+              select: { amount: true },
+            },
+          },
+        },
+      },
+    }),
+    tx.service.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, costBasis: true },
+    }),
+  ]);
+
+  if (!quote || records.length === 0) {
+    return { synced: false, recordCount: records.length };
+  }
+
+  const serviceMap = new Map<string, typeof allServices[0]>();
+  for (const s of allServices) {
+    serviceMap.set(s.name.toLowerCase(), s);
+  }
+  const fallbackService = allServices[0];
 
   let changed = false;
 
+  // 2. Process records
   for (const record of records) {
-    const result = await syncDentalRecordIntoQuote(tx, quoteId, patientId, record.id, {
-      refreshSummary: false,
-    });
-    if (result.synced && result.reason !== "unchanged") {
+    const service = serviceMap.get(record.procedure.toLowerCase()) ?? fallbackService;
+    if (!service) continue;
+
+    const linkedItem = quote.items.find((item) => item.dentalRecordId === record.id);
+    const defaultPrice = toNumber(service.costBasis);
+
+    if (!linkedItem) {
+      await tx.quoteItem.create({
+        data: {
+          quoteId: quote.id,
+          dentalRecordId: record.id,
+          serviceId: service.id,
+          serviceName: record.procedure,
+          serviceDate: record.performedAt,
+          quantity: 1,
+          price: new Prisma.Decimal(defaultPrice),
+          total: new Prisma.Decimal(defaultPrice),
+          saldato: false,
+        },
+      });
       changed = true;
+    } else {
+      const paidAmount = linkedItem.payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
+      const nextAmount = paidAmount - defaultPrice > EPSILON ? toNumber(linkedItem.total) : defaultPrice;
+      const nextSaldato = paidAmount >= nextAmount - EPSILON;
+
+      const shouldUpdate =
+        linkedItem.serviceId !== service.id ||
+        linkedItem.serviceName !== record.procedure ||
+        linkedItem.quantity !== 1 ||
+        Math.abs(toNumber(linkedItem.price) - nextAmount) > EPSILON ||
+        Math.abs(toNumber(linkedItem.total) - nextAmount) > EPSILON ||
+        linkedItem.saldato !== nextSaldato;
+
+      if (shouldUpdate) {
+        await tx.quoteItem.update({
+          where: { id: linkedItem.id },
+          data: {
+            serviceId: service.id,
+            serviceName: record.procedure,
+            quantity: 1,
+            price: new Prisma.Decimal(nextAmount),
+            total: new Prisma.Decimal(nextAmount),
+            saldato: nextSaldato,
+          },
+        });
+        changed = true;
+      }
     }
   }
 
   if (changed) {
-    await refreshQuoteSummary(tx, quoteId);
+    // Refresh the local quote items list to get updated totals for the summary
+    const updatedItems = await tx.quoteItem.findMany({
+      where: { quoteId },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+
+    if (updatedItems.length > 0) {
+      const total = updatedItems.reduce((sum, item) => sum + toNumber(item.total), 0);
+      const primaryItem = updatedItems[0];
+
+      await tx.quote.update({
+        where: { id: quoteId },
+        data: {
+          serviceId: primaryItem.serviceId,
+          serviceName: primaryItem.serviceName,
+          serviceDate: primaryItem.serviceDate,
+          quantity: primaryItem.quantity,
+          price: primaryItem.price,
+          total: new Prisma.Decimal(total),
+        },
+      });
+    }
   }
 
   return { synced: changed, recordCount: records.length };

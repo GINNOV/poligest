@@ -371,7 +371,8 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
   const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
   const primaryItem = normalizedItems[0];
 
-  const quote = await prisma.$transaction(async (tx) => {
+  const quote = await prisma.$transaction(
+    async (tx) => {
     if (!quoteId) {
       const createdQuote = await tx.quote.create({
         data: {
@@ -510,7 +511,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
     return tx.quote.findUniqueOrThrow({
       where: { id: existingQuote.id },
     });
-  });
+  }, { timeout: 15000 });
 
   await logAudit(user, {
     action: "patient.quote_saved",
