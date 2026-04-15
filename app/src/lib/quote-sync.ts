@@ -64,7 +64,7 @@ async function syncDentalRecordIntoQuote(
     return { synced: false, reason: "record_not_found" as const };
   }
 
-  const service = await tx.service.findFirst({
+  let service = await tx.service.findFirst({
     where: {
       name: {
         equals: record.procedure,
@@ -77,6 +77,14 @@ async function syncDentalRecordIntoQuote(
       costBasis: true,
     },
   });
+
+  // If no exact service match, fallback to any service but keep the record's procedure name
+  if (!service) {
+    service = await tx.service.findFirst({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, costBasis: true },
+    });
+  }
 
   if (!service) {
     return { synced: false, reason: "service_not_found" as const };
@@ -109,7 +117,7 @@ async function syncDentalRecordIntoQuote(
         quoteId: quote.id,
         dentalRecordId: record.id,
         serviceId: service.id,
-        serviceName: service.name,
+        serviceName: record.procedure, // Always use the clinical name
         serviceDate: record.performedAt,
         quantity: 1,
         price: new Prisma.Decimal(defaultPrice),
@@ -127,9 +135,11 @@ async function syncDentalRecordIntoQuote(
   const paidAmount = linkedItem.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
   const nextAmount = paidAmount - defaultPrice > EPSILON ? toNumber(linkedItem.total) : defaultPrice;
   const nextSaldato = paidAmount >= nextAmount - EPSILON;
+  
+  // We check if the name matches the clinical record even if the service link is the same
   const shouldUpdate =
     linkedItem.serviceId !== service.id ||
-    linkedItem.serviceName !== service.name ||
+    linkedItem.serviceName !== record.procedure ||
     linkedItem.quantity !== 1 ||
     Math.abs(toNumber(linkedItem.price) - nextAmount) > EPSILON ||
     Math.abs(toNumber(linkedItem.total) - nextAmount) > EPSILON ||
@@ -143,7 +153,7 @@ async function syncDentalRecordIntoQuote(
     where: { id: linkedItem.id },
     data: {
       serviceId: service.id,
-      serviceName: service.name,
+      serviceName: record.procedure, // Ensure sync
       quantity: 1,
       price: new Prisma.Decimal(nextAmount),
       total: new Prisma.Decimal(nextAmount),
@@ -191,11 +201,46 @@ export async function syncDentalRecordIntoLatestQuote(
   patientId: string,
   dentalRecordId: string
 ) {
-  const quote = await tx.quote.findFirst({
+  let quote = await tx.quote.findFirst({
     where: { patientId },
     orderBy: { createdAt: "desc" },
     select: { id: true },
   });
+
+  // If no quote exists, create an initial "Clinical Diary" quote to house these items
+  if (!quote) {
+    const record = await tx.dentalRecord.findUnique({
+      where: { id: dentalRecordId },
+      select: { procedure: true, performedAt: true },
+    });
+    
+    if (record) {
+      const service = (await tx.service.findFirst({
+        where: { name: { equals: record.procedure, mode: "insensitive" } },
+        select: { id: true, costBasis: true },
+      })) || (await tx.service.findFirst({
+        orderBy: { createdAt: "asc" },
+        select: { id: true, costBasis: true },
+      }));
+
+      if (service) {
+        quote = await tx.quote.create({
+          data: {
+            patientId,
+            serviceId: service.id,
+            serviceName: record.procedure,
+            serviceDate: record.performedAt,
+            quantity: 1,
+            price: service.costBasis,
+            total: service.costBasis,
+            signatureUrl: "", // Mark as needs signature
+            signedAt: new Date(0), // Placeholder
+          },
+          select: { id: true },
+        });
+      }
+    }
+  }
 
   if (!quote) {
     return { synced: false, reason: "quote_not_found" as const };

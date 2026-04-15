@@ -137,12 +137,14 @@ type PatientPaymentFieldsProps = {
   patientId: string;
   quoteId: string;
   quoteItems: QuoteItemOption[];
+  diarioUrl?: string;
 };
 
 export function PatientPaymentFields({
   patientId,
   quoteId,
   quoteItems,
+  diarioUrl,
 }: PatientPaymentFieldsProps) {
   const defaultItemId = quoteItems.find((item) => item.remaining > 0)?.id ?? quoteItems[0]?.id ?? "";
   const [quoteItemId, setQuoteItemId] = useState<string>(defaultItemId);
@@ -157,34 +159,47 @@ export function PatientPaymentFields({
       <input type="hidden" name="patientId" value={patientId} />
       <input type="hidden" name="quoteId" value={quoteId} />
 
-      <div className="grid gap-3 lg:grid-cols-[1fr,auto]">
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:flex-1">
           Prestazione del preventivo
-          <select
-            name="quoteItemId"
-            value={quoteItemId}
-            onChange={(event) => setQuoteItemId(event.target.value)}
-            required
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-          >
-            <option value="" disabled>
-              Seleziona una prestazione
-            </option>
-            {quoteItems.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
+          <div className="flex gap-2">
+            <select
+              name="quoteItemId"
+              value={quoteItemId}
+              onChange={(event) => setQuoteItemId(event.target.value)}
+              required
+              className="h-11 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            >
+              <option value="" disabled>
+                Seleziona una prestazione
               </option>
-            ))}          </select>
+              {quoteItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            {diarioUrl && (
+              <a
+                href={diarioUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[10px] font-bold uppercase tracking-wider text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:hover:border-emerald-800"
+              >
+                DIARIO
+              </a>
+            )}
+          </div>
         </label>
 
         {selectedItem ? (
-          <div className="flex flex-col justify-end">
-            <div className="flex h-11 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 text-xs font-semibold text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
-              <div className="flex flex-wrap gap-x-4">
-                <span>Totale: € {selectedItem.total.toFixed(2)}</span>
-                <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
-                <span className="text-emerald-700 dark:text-emerald-300">Residuo: € {selectedItem.remaining.toFixed(2)}</span>
-              </div>
+          <div className="flex h-11 shrink-0 items-center rounded-xl border border-emerald-100 bg-emerald-50 px-4 text-xs font-semibold text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400">
+            <div className="flex flex-wrap gap-x-4">
+              <span>Totale: € {selectedItem.total.toFixed(2)}</span>
+              <span>Incassato: € {selectedItem.paid.toFixed(2)}</span>
+              <span className="text-emerald-700 dark:text-emerald-300">
+                Residuo: € {selectedItem.remaining.toFixed(2)}
+              </span>
             </div>
           </div>
         ) : null}

@@ -431,6 +431,7 @@ export default async function PagamentiPage({
                       patientId={selectedPatient.id}
                       quoteId={latestQuote.id}
                       quoteItems={quoteItemSummaries.filter((item) => item.remaining > 0)}
+                      diarioUrl={`/pazienti/${selectedPatient.id}`}
                     />
                     <FormSubmitButton variant="primary" className="w-full rounded-full shadow-sm">
                       Registra pagamento
