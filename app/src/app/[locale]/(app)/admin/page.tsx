@@ -81,6 +81,15 @@ export default async function AdminPage() {
       icon: "📅",
     },
     {
+      key: "instructions",
+      title: "Istruzioni funzionalità",
+      description: "Guide passo-passo contestuali per aiutare lo staff a usare l'app.",
+      href: "/admin/istruzioni",
+      badge: "Supporto",
+      tone: "primary",
+      icon: "❓",
+    },
+    {
       key: "updates",
       title: "Sistema: Nuovi Utenti",
       description: "Popup nuove funzionalità visibile allo staff una sola volta.",

@@ -11,6 +11,7 @@ import { getAppVersion, getDeployDate } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
+import { HelpButton } from "@/components/help-button";
 import { MobileNav } from "@/components/mobile-nav";
 import { logAudit } from "@/lib/audit";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
@@ -100,6 +101,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isPatientsAllowed = isStaff && isFeatureAllowed("patients");
   const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
+
+  const [instructions, userProgress] =
+    isStaff && user
+      ? await Promise.all([
+          prisma.featureInstruction.findMany({
+            where: { isActive: true },
+            include: { steps: { orderBy: { sortOrder: "asc" } } },
+          }),
+          prisma.userInstructionProgress.findMany({
+            where: { userId: user.id },
+          }),
+        ])
+      : [[], []];
+
   const allowedHomeScreens = [
     "/dashboard",
     ...(isAgendaAllowed ? ["/agenda"] : []),
@@ -196,6 +211,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </nav>
           </div>
           <div className="flex items-center gap-3">
+            {isStaff && user && (
+              <HelpButton
+                instructions={instructions}
+                userProgress={userProgress.map((p) => ({
+                  instructionId: p.instructionId,
+                  lastStepId: p.lastStepId,
+                  completedAt: p.completedAt,
+                }))}
+                userRole={user.role}
+              />
+            )}
             <MobileNav links={navLinks} />
             {user ? (
               <UserMenu

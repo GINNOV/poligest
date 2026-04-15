@@ -169,6 +169,54 @@ model SmsProviderConfig {
   @@index([createdAt])
 }
 
+model FeatureInstruction {
+  id           String   @id @default(cuid())
+  pathPattern  String   // regex or prefix to match current path, e.g. "/pazienti/[id]"
+  role         Role?    // optional: only show for this role
+  title        String
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  steps        FeatureInstructionStep[]
+  userProgress UserInstructionProgress[]
+
+  @@index([pathPattern])
+}
+
+model FeatureInstructionStep {
+  id            String   @id @default(cuid())
+  instructionId String
+  title         String
+  content       String   @db.Text
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  instruction  FeatureInstruction @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+  userProgress UserInstructionProgress[]
+
+  @@index([instructionId])
+}
+
+model UserInstructionProgress {
+  id             String   @id @default(cuid())
+  userId         String
+  instructionId  String
+  lastStepId     String?  // The last completed step
+  completedAt    DateTime?
+  updatedAt      DateTime @updatedAt
+
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instruction    FeatureInstruction     @relation(fields: [instructionId], references: [id], onDelete: Cascade)
+  lastStep       FeatureInstructionStep? @relation(fields: [lastStepId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, instructionId], name: "user_instruction_unique")
+  @@index([userId])
+  @@index([instructionId])
+}
+
 model User {
   id             String    @id @default(cuid())
   email          String    @unique
@@ -194,6 +242,7 @@ model User {
   featureUpdateDismissals FeatureUpdateDismissal[]
   awards                  UserAward[]
   dentalRecordUpdates     DentalRecord[] @relation("DentalRecordUpdatedBy")
+  instructionProgress     UserInstructionProgress[]
 }
 
 model Doctor {
