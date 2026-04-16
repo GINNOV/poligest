@@ -116,7 +116,7 @@ export function PaymentHistory({
                     </Button>
                   </form>
                   <span className="whitespace-nowrap rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                    {formatCurrency(Number(payment.amount.toString()))}
+                    {formatCurrency(payment.amount)}
                   </span>
                 </div>
               </div>

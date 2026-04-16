@@ -139,6 +139,7 @@ export default async function PagamentiPage({
     .flatMap((item) =>
       item.payments.map((payment) => ({
         ...payment,
+        amount: Number(payment.amount.toString()),
         quoteItem: { serviceName: item.serviceName },
       }))
     )
