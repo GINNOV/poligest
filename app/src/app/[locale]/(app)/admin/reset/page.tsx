@@ -50,11 +50,21 @@ async function resetSystem(formData: FormData) {
 
   // Wipe data respecting FK order
   await prisma.$transaction([
+    prisma.userInstructionProgress.deleteMany(),
+    prisma.featureInstructionStep.deleteMany(),
+    prisma.featureInstruction.deleteMany(),
+    prisma.featureUpdateDismissal.deleteMany(),
+    prisma.featureUpdate.deleteMany(),
+    prisma.roleFeatureAccess.deleteMany(),
+    prisma.userAward.deleteMany(),
     prisma.smsLog.deleteMany(),
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
+    prisma.emailTemplate.deleteMany(),
     prisma.practiceWeeklyReportLog.deleteMany(),
     prisma.practiceWeeklyReportConfig.deleteMany(),
+    prisma.recurringMessageLog.deleteMany(),
+    prisma.recurringMessageConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
     prisma.patientPayment.deleteMany(),
     prisma.quoteItem.deleteMany(),
@@ -63,19 +73,24 @@ async function resetSystem(formData: FormData) {
     prisma.service.deleteMany(),
     prisma.financeEntry.deleteMany(),
     prisma.cashAdvance.deleteMany(),
-    prisma.dentalRecord.deleteMany(),
     prisma.appointmentReminder.deleteMany(),
     prisma.appointmentReminderRule.deleteMany(),
     prisma.appointment.deleteMany(),
     prisma.clinicalNote.deleteMany(),
-    prisma.patientConsent.deleteMany(),
+    prisma.dentalRecord.deleteMany(),
     prisma.recall.deleteMany(),
     prisma.recallRule.deleteMany(),
-    prisma.patient.deleteMany(),
+    prisma.patientConsent.deleteMany(),
     prisma.consentModule.deleteMany(),
+    prisma.doctorAvailabilityWindow.deleteMany(),
     prisma.doctor.deleteMany(),
+    prisma.patient.deleteMany(),
     prisma.product.deleteMany(),
     prisma.supplier.deleteMany(),
+    prisma.practiceClosure.deleteMany(),
+    prisma.practiceWeeklyClosure.deleteMany(),
+    prisma.practiceSetting.deleteMany(),
+    prisma.anamnesisCondition.deleteMany(),
     prisma.user.deleteMany(),
   ]);
 
@@ -92,176 +107,223 @@ async function resetSystem(formData: FormData) {
       data[key] ?? [];
 
     await prisma.$transaction(async (tx) => {
+      // restore in correct FK order
       if (selected.includes("users")) {
         const entries = tableData("users") as Prisma.UserCreateManyInput[];
-        if (entries.length) {
-          await tx.user.createMany({ data: entries });
-        }
+        if (entries.length) await tx.user.createMany({ data: entries });
       }
 
       if (selected.includes("doctors")) {
         const entries = tableData("doctors") as Prisma.DoctorCreateManyInput[];
-        if (entries.length) {
-          await tx.doctor.createMany({ data: entries });
-        }
+        if (entries.length) await tx.doctor.createMany({ data: entries });
+      }
+
+      if (selected.includes("doctorAvailabilityWindows")) {
+        const entries = tableData("doctorAvailabilityWindows") as Prisma.DoctorAvailabilityWindowCreateManyInput[];
+        if (entries.length) await tx.doctorAvailabilityWindow.createMany({ data: entries });
       }
 
       if (selected.includes("patients")) {
         const entries = tableData("patients") as Prisma.PatientCreateManyInput[];
-        if (entries.length) {
-          await tx.patient.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("suppliers")) {
-        const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
-        if (entries.length) {
-          await tx.supplier.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("products")) {
-        const entries = (tableData("products") as Prisma.ProductCreateManyInput[]).map(
-          (p) => ({
-            ...p,
-            unitCost:
-              p.unitCost !== null && p.unitCost !== undefined ? toDecimal(p.unitCost) : null,
-          })
-        );
-        if (entries.length) {
-          await tx.product.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("recallRules")) {
-        const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
-        if (entries.length) {
-          await tx.recallRule.createMany({ data: entries });
-        }
+        if (entries.length) await tx.patient.createMany({ data: entries });
       }
 
       if (selected.includes("consentModules")) {
         const entries = tableData("consentModules") as Prisma.ConsentModuleCreateManyInput[];
-        if (entries.length) {
-          await tx.consentModule.createMany({ data: entries });
-        }
+        if (entries.length) await tx.consentModule.createMany({ data: entries });
+      }
+
+      if (selected.includes("recallRules")) {
+        const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
+        if (entries.length) await tx.recallRule.createMany({ data: entries });
+      }
+
+      if (selected.includes("appointmentReminderRules")) {
+        const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
+        if (entries.length) await tx.appointmentReminderRule.createMany({ data: entries });
+      }
+
+      if (selected.includes("suppliers")) {
+        const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
+        if (entries.length) await tx.supplier.createMany({ data: entries });
+      }
+
+      if (selected.includes("products")) {
+        const entries = (tableData("products") as Prisma.ProductCreateManyInput[]).map((p) => ({
+          ...p,
+          unitCost: p.unitCost !== null && p.unitCost !== undefined ? toDecimal(p.unitCost) : null,
+        }));
+        if (entries.length) await tx.product.createMany({ data: entries });
+      }
+
+      if (selected.includes("services")) {
+        const entries = (tableData("services") as Prisma.ServiceCreateManyInput[]).map((s) => ({
+          ...s,
+          costBasis: toDecimal(s.costBasis),
+        }));
+        if (entries.length) await tx.service.createMany({ data: entries });
+      }
+
+      if (selected.includes("practiceSettings")) {
+        const entries = tableData("practiceSettings") as Prisma.PracticeSettingCreateManyInput[];
+        if (entries.length) await tx.practiceSetting.createMany({ data: entries });
+      }
+
+      if (selected.includes("practiceWeeklyClosures")) {
+        const entries = tableData("practiceWeeklyClosures") as Prisma.PracticeWeeklyClosureCreateManyInput[];
+        if (entries.length) await tx.practiceWeeklyClosure.createMany({ data: entries });
+      }
+
+      if (selected.includes("practiceClosures")) {
+        const entries = tableData("practiceClosures") as Prisma.PracticeClosureCreateManyInput[];
+        if (entries.length) await tx.practiceClosure.createMany({ data: entries });
+      }
+
+      if (selected.includes("anamnesisConditions")) {
+        const entries = tableData("anamnesisConditions") as Prisma.AnamnesisConditionCreateManyInput[];
+        if (entries.length) await tx.anamnesisCondition.createMany({ data: entries });
+      }
+
+      if (selected.includes("emailTemplates")) {
+        const entries = tableData("emailTemplates") as Prisma.EmailTemplateCreateManyInput[];
+        if (entries.length) await tx.emailTemplate.createMany({ data: entries });
+      }
+
+      if (selected.includes("featureUpdates")) {
+        const entries = tableData("featureUpdates") as Prisma.FeatureUpdateCreateManyInput[];
+        if (entries.length) await tx.featureUpdate.createMany({ data: entries });
+      }
+
+      if (selected.includes("roleFeatureAccess")) {
+        const entries = tableData("roleFeatureAccess") as Prisma.RoleFeatureAccessCreateManyInput[];
+        if (entries.length) await tx.roleFeatureAccess.createMany({ data: entries });
+      }
+
+      if (selected.includes("recurringMessageConfigs")) {
+        const entries = tableData("recurringMessageConfigs") as Prisma.RecurringMessageConfigCreateManyInput[];
+        if (entries.length) await tx.recurringMessageConfig.createMany({ data: entries });
       }
 
       if (selected.includes("patientConsents")) {
         const entries = tableData("patientConsents") as Prisma.PatientConsentCreateManyInput[];
-        if (entries.length) {
-          await tx.patientConsent.createMany({ data: entries });
-        }
+        if (entries.length) await tx.patientConsent.createMany({ data: entries });
       }
 
       if (selected.includes("appointments")) {
         const entries = tableData("appointments") as Prisma.AppointmentCreateManyInput[];
-        if (entries.length) {
-          await tx.appointment.createMany({ data: entries });
-        }
+        if (entries.length) await tx.appointment.createMany({ data: entries });
       }
 
       if (selected.includes("clinicalNotes")) {
         const entries = tableData("clinicalNotes") as Prisma.ClinicalNoteCreateManyInput[];
-        if (entries.length) {
-          await tx.clinicalNote.createMany({ data: entries });
-        }
+        if (entries.length) await tx.clinicalNote.createMany({ data: entries });
       }
 
-      if (selected.includes("stockMovements")) {
-        const entries = tableData("stockMovements") as Prisma.StockMovementCreateManyInput[];
-        if (entries.length) {
-          await tx.stockMovement.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("financeEntries")) {
-        const entries = (tableData("financeEntries") as Prisma.FinanceEntryCreateManyInput[]).map(
-          (f) => ({
-            ...f,
-            amount: toDecimal(f.amount),
-          })
-        );
-        if (entries.length) {
-          await tx.financeEntry.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("patientPayments")) {
-        const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map(
-          (payment) => ({
-            ...payment,
-            amount: toDecimal(payment.amount),
-          })
-        );
-        if (entries.length) {
-          await tx.patientPayment.createMany({ data: entries });
-        }
-      }
-
-      if (selected.includes("cashAdvances")) {
-        const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
-          (c) => {
-            const candidatePatientId = (c as unknown as { patientId?: string; doctorId?: string }).patientId ?? (c as unknown as { doctorId?: string }).doctorId;
-            return {
-              ...c,
-              patientId: candidatePatientId ?? "",
-              amount: toDecimal(c.amount),
-            };
-          }
-        );
-        if (entries.length) {
-          await tx.cashAdvance.createMany({ data: entries });
-        }
+      if (selected.includes("dentalRecords")) {
+        const entries = tableData("dentalRecords") as Prisma.DentalRecordCreateManyInput[];
+        if (entries.length) await tx.dentalRecord.createMany({ data: entries });
       }
 
       if (selected.includes("recalls")) {
         const entries = tableData("recalls") as Prisma.RecallCreateManyInput[];
-        if (entries.length) {
-          await tx.recall.createMany({ data: entries });
-        }
+        if (entries.length) await tx.recall.createMany({ data: entries });
       }
 
-      if (selected.includes("smsProviderConfig")) {
-        const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
-        if (entries.length) {
-          await tx.smsProviderConfig.createMany({ data: entries });
-        }
+      if (selected.includes("stockMovements")) {
+        const entries = tableData("stockMovements") as Prisma.StockMovementCreateManyInput[];
+        if (entries.length) await tx.stockMovement.createMany({ data: entries });
+      }
+
+      if (selected.includes("financeEntries")) {
+        const entries = (tableData("financeEntries") as Prisma.FinanceEntryCreateManyInput[]).map((f) => ({
+          ...f,
+          amount: toDecimal(f.amount),
+        }));
+        if (entries.length) await tx.financeEntry.createMany({ data: entries });
+      }
+
+      if (selected.includes("cashAdvances")) {
+        const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map((c) => ({
+          ...c,
+          amount: toDecimal(c.amount),
+        }));
+        if (entries.length) await tx.cashAdvance.createMany({ data: entries });
+      }
+
+      if (selected.includes("quotes")) {
+        const entries = (tableData("quotes") as Prisma.QuoteCreateManyInput[]).map((q) => ({
+          ...q,
+          price: toDecimal(q.price),
+          total: toDecimal(q.total),
+        }));
+        if (entries.length) await tx.quote.createMany({ data: entries });
+      }
+
+      if (selected.includes("quoteItems")) {
+        const entries = (tableData("quoteItems") as Prisma.QuoteItemCreateManyInput[]).map((i) => ({
+          ...i,
+          price: toDecimal(i.price),
+          total: toDecimal(i.total),
+        }));
+        if (entries.length) await tx.quoteItem.createMany({ data: entries });
+      }
+
+      if (selected.includes("patientPayments")) {
+        const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map((p) => ({
+          ...p,
+          amount: toDecimal(p.amount),
+        }));
+        if (entries.length) await tx.patientPayment.createMany({ data: entries });
+      }
+
+      if (selected.includes("appointmentReminders")) {
+        const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
+        if (entries.length) await tx.appointmentReminders.createMany({ data: entries });
       }
 
       if (selected.includes("practiceWeeklyReportConfig")) {
         const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];
-        if (entries.length) {
-          await tx.practiceWeeklyReportConfig.createMany({ data: entries });
-        }
+        if (entries.length) await tx.practiceWeeklyReportConfig.createMany({ data: entries });
       }
 
       if (selected.includes("practiceWeeklyReportLogs")) {
         const entries = tableData("practiceWeeklyReportLogs") as Prisma.PracticeWeeklyReportLogCreateManyInput[];
-        if (entries.length) {
-          await tx.practiceWeeklyReportLog.createMany({ data: entries });
-        }
+        if (entries.length) await tx.practiceWeeklyReportLog.createMany({ data: entries });
+      }
+
+      if (selected.includes("recurringMessageLogs")) {
+        const entries = tableData("recurringMessageLogs") as Prisma.RecurringMessageLogCreateManyInput[];
+        if (entries.length) await tx.recurringMessageLog.createMany({ data: entries });
       }
 
       if (selected.includes("smsTemplates")) {
         const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
-        if (entries.length) {
-          await tx.smsTemplate.createMany({ data: entries });
-        }
+        if (entries.length) await tx.smsTemplate.createMany({ data: entries });
       }
 
       if (selected.includes("smsLogs")) {
         const entries = tableData("smsLogs") as Prisma.SmsLogCreateManyInput[];
-        if (entries.length) {
-          await tx.smsLog.createMany({ data: entries });
-        }
+        if (entries.length) await tx.smsLog.createMany({ data: entries });
       }
 
       if (selected.includes("auditLogs")) {
         const entries = tableData("auditLogs") as Prisma.AuditLogCreateManyInput[];
-        if (entries.length) {
-          await tx.auditLog.createMany({ data: entries });
-        }
+        if (entries.length) await tx.auditLog.createMany({ data: entries });
+      }
+
+      if (selected.includes("featureUpdateDismissals")) {
+        const entries = tableData("featureUpdateDismissals") as Prisma.FeatureUpdateDismissalCreateManyInput[];
+        if (entries.length) await tx.featureUpdateDismissal.createMany({ data: entries });
+      }
+
+      if (selected.includes("userAwards")) {
+        const entries = tableData("userAwards") as Prisma.UserAwardCreateManyInput[];
+        if (entries.length) await tx.userAward.createMany({ data: entries });
+      }
+
+      if (selected.includes("smsProviderConfig")) {
+        const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
+        if (entries.length) await tx.smsProviderConfig.createMany({ data: entries });
       }
     });
   }
@@ -278,6 +340,7 @@ async function resetSystem(formData: FormData) {
 const exportTables = [
   { key: "users", label: "Utenti" },
   { key: "doctors", label: "Medici" },
+  { key: "doctorAvailabilityWindows", label: "Orari medici" },
   { key: "patients", label: "Pazienti" },
   { key: "consentModules", label: "Moduli consenso" },
   { key: "patientConsents", label: "Consensi pazienti" },
@@ -285,11 +348,18 @@ const exportTables = [
   { key: "appointmentReminderRules", label: "Regole promemoria appuntamenti" },
   { key: "appointmentReminders", label: "Promemoria appuntamenti" },
   { key: "clinicalNotes", label: "Note cliniche" },
+  { key: "dentalRecords", label: "Cartella clinica" },
   { key: "smsTemplates", label: "Template SMS" },
   { key: "smsLogs", label: "Log SMS" },
   { key: "smsProviderConfig", label: "Config ClickSend" },
+  { key: "emailTemplates", label: "Template email" },
   { key: "practiceWeeklyReportConfig", label: "Config report settimanale" },
   { key: "practiceWeeklyReportLogs", label: "Log report settimanale" },
+  { key: "recurringMessageConfigs", label: "Config messaggi ricorrenti" },
+  { key: "recurringMessageLogs", label: "Log messaggi ricorrenti" },
+  { key: "practiceSettings", label: "Impostazioni clinica" },
+  { key: "practiceClosures", label: "Chiusure (ferie/permessi)" },
+  { key: "practiceWeeklyClosures", label: "Chiusure settimanali" },
   { key: "auditLogs", label: "Audit log" },
   { key: "suppliers", label: "Fornitori" },
   { key: "products", label: "Prodotti" },
@@ -302,6 +372,14 @@ const exportTables = [
   { key: "recalls", label: "Richiami" },
   { key: "quotes", label: "Preventivi" },
   { key: "quoteItems", label: "Righe preventivo" },
+  { key: "anamnesisConditions", label: "Condizioni anamnesi" },
+  { key: "featureUpdates", label: "Aggiornamenti sistema" },
+  { key: "featureUpdateDismissals", label: "Dismissal aggiornamenti" },
+  { key: "roleFeatureAccess", label: "Accesso funzionalità" },
+  { key: "userAwards", label: "Premi utenti" },
+  { key: "featureInstructions", label: "Istruzioni funzionalità" },
+  { key: "featureInstructionSteps", label: "Step istruzioni" },
+  { key: "userInstructionProgress", label: "Progresso istruzioni utenti" },
 ] as const;
 
 type ExportTableKey = (typeof exportTables)[number]["key"];
@@ -345,12 +423,22 @@ async function importData(formData: FormData) {
     data[key] ?? [];
 
   await prisma.$transaction(async (tx) => {
-    // wipe
+    // wipe respecting FK order
+    await tx.userInstructionProgress.deleteMany();
+    await tx.featureInstructionStep.deleteMany();
+    await tx.featureInstruction.deleteMany();
+    await tx.featureUpdateDismissal.deleteMany();
+    await tx.featureUpdate.deleteMany();
+    await tx.roleFeatureAccess.deleteMany();
+    await tx.userAward.deleteMany();
     await tx.smsLog.deleteMany();
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
+    await tx.emailTemplate.deleteMany();
     await tx.practiceWeeklyReportLog.deleteMany();
     await tx.practiceWeeklyReportConfig.deleteMany();
+    await tx.recurringMessageLog.deleteMany();
+    await tx.recurringMessageConfig.deleteMany();
     await tx.auditLog.deleteMany();
     await tx.patientPayment.deleteMany();
     await tx.quoteItem.deleteMany();
@@ -359,238 +447,258 @@ async function importData(formData: FormData) {
     await tx.service.deleteMany();
     await tx.financeEntry.deleteMany();
     await tx.cashAdvance.deleteMany();
-    await tx.dentalRecord.deleteMany();
     await tx.appointmentReminder.deleteMany();
     await tx.appointmentReminderRule.deleteMany();
     await tx.appointment.deleteMany();
     await tx.clinicalNote.deleteMany();
-    await tx.patientConsent.deleteMany();
+    await tx.dentalRecord.deleteMany();
     await tx.recall.deleteMany();
     await tx.recallRule.deleteMany();
-    await tx.patient.deleteMany();
+    await tx.patientConsent.deleteMany();
     await tx.consentModule.deleteMany();
+    await tx.doctorAvailabilityWindow.deleteMany();
     await tx.doctor.deleteMany();
+    await tx.patient.deleteMany();
     await tx.product.deleteMany();
     await tx.supplier.deleteMany();
+    await tx.practiceClosure.deleteMany();
+    await tx.practiceWeeklyClosure.deleteMany();
+    await tx.practiceSetting.deleteMany();
+    await tx.anamnesisCondition.deleteMany();
     await tx.user.deleteMany();
 
     // restore
     if (selected.includes("users")) {
       const entries = tableData("users") as Prisma.UserCreateManyInput[];
-      if (entries.length) {
-        await tx.user.createMany({ data: entries });
-      }
+      if (entries.length) await tx.user.createMany({ data: entries });
     }
 
     if (selected.includes("doctors")) {
       const entries = tableData("doctors") as Prisma.DoctorCreateManyInput[];
-      if (entries.length) {
-        await tx.doctor.createMany({ data: entries });
-      }
+      if (entries.length) await tx.doctor.createMany({ data: entries });
+    }
+
+    if (selected.includes("doctorAvailabilityWindows")) {
+      const entries = tableData("doctorAvailabilityWindows") as Prisma.DoctorAvailabilityWindowCreateManyInput[];
+      if (entries.length) await tx.doctorAvailabilityWindow.createMany({ data: entries });
     }
 
     if (selected.includes("patients")) {
       const entries = tableData("patients") as Prisma.PatientCreateManyInput[];
-      if (entries.length) {
-        await tx.patient.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("suppliers")) {
-      const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
-      if (entries.length) {
-        await tx.supplier.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("products")) {
-      const entries = (tableData("products") as Prisma.ProductCreateManyInput[]).map(
-        (p) => ({
-          ...p,
-          unitCost:
-            p.unitCost !== null && p.unitCost !== undefined ? toDecimal(p.unitCost) : null,
-        })
-      );
-      if (entries.length) {
-        await tx.product.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("services")) {
-      const entries = (tableData("services") as Prisma.ServiceCreateManyInput[]).map((service) => ({
-        ...service,
-        costBasis: toDecimal(service.costBasis),
-      }));
-      if (entries.length) {
-        await tx.service.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("recallRules")) {
-      const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
-      if (entries.length) {
-        await tx.recallRule.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("appointmentReminderRules")) {
-      const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
-      if (entries.length) {
-        await tx.appointmentReminderRule.createMany({ data: entries });
-      }
+      if (entries.length) await tx.patient.createMany({ data: entries });
     }
 
     if (selected.includes("consentModules")) {
       const entries = tableData("consentModules") as Prisma.ConsentModuleCreateManyInput[];
-      if (entries.length) {
-        await tx.consentModule.createMany({ data: entries });
-      }
+      if (entries.length) await tx.consentModule.createMany({ data: entries });
+    }
+
+    if (selected.includes("recallRules")) {
+      const entries = tableData("recallRules") as Prisma.RecallRuleCreateManyInput[];
+      if (entries.length) await tx.recallRule.createMany({ data: entries });
+    }
+
+    if (selected.includes("appointmentReminderRules")) {
+      const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
+      if (entries.length) await tx.appointmentReminderRule.createMany({ data: entries });
+    }
+
+    if (selected.includes("suppliers")) {
+      const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
+      if (entries.length) await tx.supplier.createMany({ data: entries });
+    }
+
+    if (selected.includes("products")) {
+      const entries = (tableData("products") as Prisma.ProductCreateManyInput[]).map((p) => ({
+        ...p,
+        unitCost: p.unitCost !== null && p.unitCost !== undefined ? toDecimal(p.unitCost) : null,
+      }));
+      if (entries.length) await tx.product.createMany({ data: entries });
+    }
+
+    if (selected.includes("services")) {
+      const entries = (tableData("services") as Prisma.ServiceCreateManyInput[]).map((s) => ({
+        ...s,
+        costBasis: toDecimal(s.costBasis),
+      }));
+      if (entries.length) await tx.service.createMany({ data: entries });
+    }
+
+    if (selected.includes("practiceSettings")) {
+      const entries = tableData("practiceSettings") as Prisma.PracticeSettingCreateManyInput[];
+      if (entries.length) await tx.practiceSetting.createMany({ data: entries });
+    }
+
+    if (selected.includes("practiceWeeklyClosures")) {
+      const entries = tableData("practiceWeeklyClosures") as Prisma.PracticeWeeklyClosureCreateManyInput[];
+      if (entries.length) await tx.practiceWeeklyClosure.createMany({ data: entries });
+    }
+
+    if (selected.includes("practiceClosures")) {
+      const entries = tableData("practiceClosures") as Prisma.PracticeClosureCreateManyInput[];
+      if (entries.length) await tx.practiceClosure.createMany({ data: entries });
+    }
+
+    if (selected.includes("anamnesisConditions")) {
+      const entries = tableData("anamnesisConditions") as Prisma.AnamnesisConditionCreateManyInput[];
+      if (entries.length) await tx.anamnesisCondition.createMany({ data: entries });
+    }
+
+    if (selected.includes("emailTemplates")) {
+      const entries = tableData("emailTemplates") as Prisma.EmailTemplateCreateManyInput[];
+      if (entries.length) await tx.emailTemplate.createMany({ data: entries });
+    }
+
+    if (selected.includes("featureInstructions")) {
+      const entries = tableData("featureInstructions") as Prisma.FeatureInstructionCreateManyInput[];
+      if (entries.length) await tx.featureInstruction.createMany({ data: entries });
+    }
+
+    if (selected.includes("featureInstructionSteps")) {
+      const entries = tableData("featureInstructionSteps") as Prisma.FeatureInstructionStepCreateManyInput[];
+      if (entries.length) await tx.featureInstructionStep.createMany({ data: entries });
+    }
+
+    if (selected.includes("featureUpdates")) {
+      const entries = tableData("featureUpdates") as Prisma.FeatureUpdateCreateManyInput[];
+      if (entries.length) await tx.featureUpdate.createMany({ data: entries });
+    }
+
+    if (selected.includes("roleFeatureAccess")) {
+      const entries = tableData("roleFeatureAccess") as Prisma.RoleFeatureAccessCreateManyInput[];
+      if (entries.length) await tx.roleFeatureAccess.createMany({ data: entries });
+    }
+
+    if (selected.includes("recurringMessageConfigs")) {
+      const entries = tableData("recurringMessageConfigs") as Prisma.RecurringMessageConfigCreateManyInput[];
+      if (entries.length) await tx.recurringMessageConfig.createMany({ data: entries });
     }
 
     if (selected.includes("patientConsents")) {
       const entries = tableData("patientConsents") as Prisma.PatientConsentCreateManyInput[];
-      if (entries.length) {
-        await tx.patientConsent.createMany({ data: entries });
-      }
+      if (entries.length) await tx.patientConsent.createMany({ data: entries });
     }
 
     if (selected.includes("appointments")) {
       const entries = tableData("appointments") as Prisma.AppointmentCreateManyInput[];
-      if (entries.length) {
-        await tx.appointment.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("appointmentReminders")) {
-      const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
-      if (entries.length) {
-        await tx.appointmentReminder.createMany({ data: entries });
-      }
+      if (entries.length) await tx.appointment.createMany({ data: entries });
     }
 
     if (selected.includes("clinicalNotes")) {
       const entries = tableData("clinicalNotes") as Prisma.ClinicalNoteCreateManyInput[];
-      if (entries.length) {
-        await tx.clinicalNote.createMany({ data: entries });
-      }
+      if (entries.length) await tx.clinicalNote.createMany({ data: entries });
     }
 
-    if (selected.includes("stockMovements")) {
-      const entries = tableData("stockMovements") as Prisma.StockMovementCreateManyInput[];
-      if (entries.length) {
-        await tx.stockMovement.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("financeEntries")) {
-      const entries = (tableData("financeEntries") as Prisma.FinanceEntryCreateManyInput[]).map(
-        (f) => ({
-          ...f,
-          amount: toDecimal(f.amount),
-        })
-      );
-      if (entries.length) {
-        await tx.financeEntry.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("patientPayments")) {
-      const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map(
-        (payment) => ({
-          ...payment,
-          amount: toDecimal(payment.amount),
-        })
-      );
-      if (entries.length) {
-        await tx.patientPayment.createMany({ data: entries });
-      }
-    }
-
-    if (selected.includes("cashAdvances")) {
-      const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map(
-        (c) => {
-          const candidatePatientId = (c as unknown as { patientId?: string; doctorId?: string }).patientId ?? (c as unknown as { doctorId?: string }).doctorId;
-          return {
-            ...c,
-            patientId: candidatePatientId ?? "",
-            amount: toDecimal(c.amount),
-          };
-        }
-      );
-      if (entries.length) {
-        await tx.cashAdvance.createMany({ data: entries });
-      }
+    if (selected.includes("dentalRecords")) {
+      const entries = tableData("dentalRecords") as Prisma.DentalRecordCreateManyInput[];
+      if (entries.length) await tx.dentalRecord.createMany({ data: entries });
     }
 
     if (selected.includes("recalls")) {
       const entries = tableData("recalls") as Prisma.RecallCreateManyInput[];
-      if (entries.length) {
-        await tx.recall.createMany({ data: entries });
-      }
+      if (entries.length) await tx.recall.createMany({ data: entries });
+    }
+
+    if (selected.includes("stockMovements")) {
+      const entries = tableData("stockMovements") as Prisma.StockMovementCreateManyInput[];
+      if (entries.length) await tx.stockMovement.createMany({ data: entries });
+    }
+
+    if (selected.includes("financeEntries")) {
+      const entries = (tableData("financeEntries") as Prisma.FinanceEntryCreateManyInput[]).map((f) => ({
+        ...f,
+        amount: toDecimal(f.amount),
+      }));
+      if (entries.length) await tx.financeEntry.createMany({ data: entries });
+    }
+
+    if (selected.includes("cashAdvances")) {
+      const entries = (tableData("cashAdvances") as Prisma.CashAdvanceCreateManyInput[]).map((c) => ({
+        ...c,
+        amount: toDecimal(c.amount),
+      }));
+      if (entries.length) await tx.cashAdvance.createMany({ data: entries });
     }
 
     if (selected.includes("quotes")) {
-      const entries = (tableData("quotes") as Prisma.QuoteCreateManyInput[]).map((quote) => ({
-        ...quote,
-        price: toDecimal(quote.price),
-        total: toDecimal(quote.total),
+      const entries = (tableData("quotes") as Prisma.QuoteCreateManyInput[]).map((q) => ({
+        ...q,
+        price: toDecimal(q.price),
+        total: toDecimal(q.total),
       }));
-      if (entries.length) {
-        await tx.quote.createMany({ data: entries });
-      }
+      if (entries.length) await tx.quote.createMany({ data: entries });
     }
 
     if (selected.includes("quoteItems")) {
-      const entries = (tableData("quoteItems") as Prisma.QuoteItemCreateManyInput[]).map((item) => ({
-        ...item,
-        price: toDecimal(item.price),
-        total: toDecimal(item.total),
+      const entries = (tableData("quoteItems") as Prisma.QuoteItemCreateManyInput[]).map((i) => ({
+        ...i,
+        price: toDecimal(i.price),
+        total: toDecimal(i.total),
       }));
-      if (entries.length) {
-        await tx.quoteItem.createMany({ data: entries });
-      }
+      if (entries.length) await tx.quoteItem.createMany({ data: entries });
     }
 
-    if (selected.includes("auditLogs")) {
-      const entries = tableData("auditLogs") as Prisma.AuditLogCreateManyInput[];
-      if (entries.length) {
-        await tx.auditLog.createMany({ data: entries });
-      }
+    if (selected.includes("patientPayments")) {
+      const entries = (tableData("patientPayments") as Prisma.PatientPaymentCreateManyInput[]).map((p) => ({
+        ...p,
+        amount: toDecimal(p.amount),
+      }));
+      if (entries.length) await tx.patientPayment.createMany({ data: entries });
     }
 
-    if (selected.includes("smsProviderConfig")) {
-      const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
-      if (entries.length) {
-        await tx.smsProviderConfig.createMany({ data: entries });
-      }
+    if (selected.includes("appointmentReminders")) {
+      const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
+      if (entries.length) await tx.appointmentReminders.createMany({ data: entries });
     }
 
     if (selected.includes("practiceWeeklyReportConfig")) {
       const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];
-      if (entries.length) {
-        await tx.practiceWeeklyReportConfig.createMany({ data: entries });
-      }
+      if (entries.length) await tx.practiceWeeklyReportConfig.createMany({ data: entries });
     }
 
     if (selected.includes("practiceWeeklyReportLogs")) {
       const entries = tableData("practiceWeeklyReportLogs") as Prisma.PracticeWeeklyReportLogCreateManyInput[];
-      if (entries.length) {
-        await tx.practiceWeeklyReportLog.createMany({ data: entries });
-      }
+      if (entries.length) await tx.practiceWeeklyReportLog.createMany({ data: entries });
+    }
+
+    if (selected.includes("recurringMessageLogs")) {
+      const entries = tableData("recurringMessageLogs") as Prisma.RecurringMessageLogCreateManyInput[];
+      if (entries.length) await tx.recurringMessageLog.createMany({ data: entries });
     }
 
     if (selected.includes("smsTemplates")) {
       const entries = tableData("smsTemplates") as Prisma.SmsTemplateCreateManyInput[];
-      if (entries.length) {
-        await tx.smsTemplate.createMany({ data: entries });
-      }
+      if (entries.length) await tx.smsTemplate.createMany({ data: entries });
     }
 
     if (selected.includes("smsLogs")) {
       const entries = tableData("smsLogs") as Prisma.SmsLogCreateManyInput[];
-      if (entries.length) {
-        await tx.smsLog.createMany({ data: entries });
-      }
+      if (entries.length) await tx.smsLog.createMany({ data: entries });
+    }
+
+    if (selected.includes("auditLogs")) {
+      const entries = tableData("auditLogs") as Prisma.AuditLogCreateManyInput[];
+      if (entries.length) await tx.auditLog.createMany({ data: entries });
+    }
+
+    if (selected.includes("featureUpdateDismissals")) {
+      const entries = tableData("featureUpdateDismissals") as Prisma.FeatureUpdateDismissalCreateManyInput[];
+      if (entries.length) await tx.featureUpdateDismissal.createMany({ data: entries });
+    }
+
+    if (selected.includes("userAwards")) {
+      const entries = tableData("userAwards") as Prisma.UserAwardCreateManyInput[];
+      if (entries.length) await tx.userAward.createMany({ data: entries });
+    }
+
+    if (selected.includes("userInstructionProgress")) {
+      const entries = tableData("userInstructionProgress") as Prisma.UserInstructionProgressCreateManyInput[];
+      if (entries.length) await tx.userInstructionProgress.createMany({ data: entries });
+    }
+
+    if (selected.includes("smsProviderConfig")) {
+      const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
+      if (entries.length) await tx.smsProviderConfig.createMany({ data: entries });
     }
   });
 
