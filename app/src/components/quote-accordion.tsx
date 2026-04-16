@@ -467,6 +467,19 @@ function SignaturePad({
   );
 }
 
+type QuoteItem = {
+  id: string;
+  dentalRecordId: string | null;
+  serviceId: string;
+  serviceDate: string;
+  quantity: string;
+  price: string;
+  treated: boolean;
+  tooth: number | null;
+  createdAt: string | null;
+  payments?: Array<{ amount: number }>;
+};
+
 export function QuoteAccordion({
   patientId,
   patientName,
@@ -495,7 +508,7 @@ export function QuoteAccordion({
     [services]
   );
 
-  const initialItems = useMemo(() => {
+  const initialItems = useMemo((): QuoteItem[] => {
     if (initialQuote?.items && initialQuote.items.length) {
       return initialQuote.items.map((item) => ({
         id: item.id ?? "",
@@ -525,13 +538,14 @@ export function QuoteAccordion({
           treated: false,
           tooth: null,
           createdAt: null,
+          payments: [],
         },
       ];
     }
     return [];
   }, [defaultServiceDate, displayTimeZone, initialQuote]);
 
-  const [items, setItems] = useState(initialItems);
+  const [items, setItems] = useState<QuoteItem[]>(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
   const [prevInitialQuote, setPrevInitialQuote] = useState(initialQuote);
   const [prevDisplayTimeZone, setPrevDisplayTimeZone] = useState(displayTimeZone);
@@ -597,6 +611,7 @@ export function QuoteAccordion({
         treated: false,
         tooth: null,
         createdAt: null,
+        payments: [],
       },
     ]);
     markDirty();
