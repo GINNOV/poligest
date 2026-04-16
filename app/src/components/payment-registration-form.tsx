@@ -3,6 +3,8 @@
 import { usePaymentState } from "./payment-state-provider";
 import { PatientPaymentFields } from "@/components/finance-forms";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect } from "react";
 
 export function PaymentRegistrationForm({
   patientId,
@@ -15,8 +17,23 @@ export function PaymentRegistrationForm({
   diarioUrl: string;
   recordPatientPaymentAction: (formData: FormData) => Promise<void>;
 }) {
+  const router = useRouter();
   const { items } = usePaymentState();
   const unsettledItems = items.filter((item) => item.remaining > 0);
+
+  const [state, formAction] = useActionState(
+    async (_: any, formData: FormData) => {
+      await recordPatientPaymentAction(formData);
+      return { success: true, timestamp: Date.now() };
+    },
+    { success: false, timestamp: 0 }
+  );
+
+  useEffect(() => {
+    if (state.success) {
+      router.refresh();
+    }
+  }, [state.timestamp, state.success, router]);
 
   return (
     <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
@@ -61,7 +78,7 @@ export function PaymentRegistrationForm({
             Tutte le prestazioni del preventivo risultano saldate.
           </div>
         ) : (
-          <form action={recordPatientPaymentAction} className="space-y-3 text-sm">
+          <form action={formAction} className="space-y-3 text-sm">
             <PatientPaymentFields
               patientId={patientId}
               quoteId={quoteId}

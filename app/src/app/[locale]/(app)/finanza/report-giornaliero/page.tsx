@@ -64,6 +64,27 @@ export default async function ReportGiornalieroPage({
 
   const totalIncome = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
+  // Group by payment method for the summary boxes
+  const totalsByMethod: Record<string, number> = {};
+  for (const entry of entries) {
+    const methodMatch = entry.description.match(/Metodo: ([^·]+)/);
+    const method = (methodMatch ? methodMatch[1].trim() : "elettronico").toLowerCase();
+    totalsByMethod[method] = (totalsByMethod[method] ?? 0) + Number(entry.amount);
+  }
+
+  const getRowColor = (method: string) => {
+    switch (method.toLowerCase()) {
+      case "contanti":
+        return "bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-900/5 dark:hover:bg-amber-900/10";
+      case "bonifico":
+        return "bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-900/5 dark:hover:bg-blue-900/10";
+      case "pagherò":
+        return "bg-zinc-100/50 hover:bg-zinc-100 dark:bg-zinc-800/20 dark:hover:bg-zinc-800/30";
+      default:
+        return "bg-emerald-50/30 hover:bg-emerald-50/50 dark:bg-emerald-900/5 dark:hover:bg-emerald-900/10";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -79,11 +100,21 @@ export default async function ReportGiornalieroPage({
             variant="primary"
             className="print:hidden"
           />
-          <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-              Totale incassato
-            </p>
-            <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(totalIncome)}</p>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            {Object.entries(totalsByMethod).map(([method, amount]) => (
+              <div key={method} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-right shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                  {method}
+                </p>
+                <p className="text-sm font-semibold text-zinc-900">{formatCurrency(amount)}</p>
+              </div>
+            ))}
+            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                Totale incassato
+              </p>
+              <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(totalIncome)}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -145,6 +176,7 @@ export default async function ReportGiornalieroPage({
               <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 <tr>
                   <th className="px-4 py-3 text-left">Ora</th>
+                  <th className="px-4 py-3 text-left">Paziente</th>
                   <th className="px-4 py-3 text-left">Descrizione</th>
                   <th className="px-4 py-3 text-left">Metodo</th>
                   <th className="px-4 py-3 text-left">Medico</th>
@@ -154,14 +186,20 @@ export default async function ReportGiornalieroPage({
               <tbody className="divide-y divide-zinc-100">
                 {entries.map((entry) => {
                   const methodMatch = entry.description.match(/Metodo: ([^·]+)/);
-                  const method = methodMatch ? methodMatch[1].trim() : "—";
+                  const method = (methodMatch ? methodMatch[1].trim() : "elettronico").toLowerCase();
+                  
+                  // Extract patient name from description if possible
+                  // Formats: "Pagamento paziente Rossi Mario", "Anticipo paziente Rossi Mario"
+                  const patientMatch = entry.description.match(/(?:Pagamento|Anticipo) paziente ([^·]+)/);
+                  const patientName = patientMatch ? patientMatch[1].trim() : "—";
                   
                   return (
-                    <tr key={entry.id}>
+                    <tr key={entry.id} className={`transition-colors ${getRowColor(method)}`}>
                       <td className="px-4 py-3 text-zinc-700">
                         {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(entry.occurredAt)}
                       </td>
-                      <td className="px-4 py-3 text-zinc-900">{entry.description}</td>
+                      <td className="px-4 py-3 font-medium text-zinc-900">{patientName}</td>
+                      <td className="px-4 py-3 text-zinc-700">{entry.description}</td>
                       <td className="px-4 py-3 text-zinc-700 capitalize">{method}</td>
                       <td className="px-4 py-3 text-zinc-700">{entry.doctor?.fullName ?? "Generale"}</td>
                       <td className="px-4 py-3 text-right font-semibold text-emerald-800">

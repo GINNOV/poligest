@@ -145,16 +145,15 @@ export function PatientPaymentFields({
   quoteId,
   quoteItems,
 }: PatientPaymentFieldsProps) {
-  const defaultItemId = quoteItems.find((item) => item.remaining > 0)?.id ?? quoteItems[0]?.id ?? "";
-  const [quoteItemId, setQuoteItemId] = useState<string>(defaultItemId);
+  const [quoteItemId, setQuoteItemId] = useState<string>("");
   const [prevQuoteItems, setPrevQuoteItems] = useState(quoteItems);
 
   if (quoteItems !== prevQuoteItems) {
     setPrevQuoteItems(quoteItems);
     // If current selected item is no longer in the list (e.g. fully paid and filtered out),
     // or its remaining amount changed and we want to ensure we're still pointing to a valid one.
-    if (!quoteItems.find((item) => item.id === quoteItemId)) {
-      setQuoteItemId(defaultItemId);
+    if (quoteItemId && !quoteItems.find((item) => item.id === quoteItemId)) {
+      setQuoteItemId("");
     }
   }
 
