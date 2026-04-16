@@ -133,16 +133,19 @@ async function syncDentalRecordIntoQuote(
   }
 
   const paidAmount = linkedItem.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-  const nextAmount = paidAmount - defaultPrice > EPSILON ? toNumber(linkedItem.total) : defaultPrice;
-  const nextSaldato = paidAmount >= nextAmount - EPSILON;
   
-  // We check if the name matches the clinical record even if the service link is the same
+  // Bug fix: Do NOT revert to defaultPrice if it was manually changed.
+  // We only force an update if paidAmount is greater than current total (to avoid negative remaining).
+  // Otherwise, we keep the current price/total.
+  const currentTotal = toNumber(linkedItem.total);
+  const nextTotal = paidAmount > currentTotal + EPSILON ? paidAmount : currentTotal;
+  const nextSaldato = paidAmount >= nextTotal - EPSILON;
+  
   const shouldUpdate =
     linkedItem.serviceId !== service.id ||
     linkedItem.serviceName !== record.procedure ||
     linkedItem.quantity !== 1 ||
-    Math.abs(toNumber(linkedItem.price) - nextAmount) > EPSILON ||
-    Math.abs(toNumber(linkedItem.total) - nextAmount) > EPSILON ||
+    Math.abs(toNumber(linkedItem.total) - nextTotal) > EPSILON ||
     linkedItem.saldato !== nextSaldato;
 
   if (!shouldUpdate) {
@@ -153,10 +156,11 @@ async function syncDentalRecordIntoQuote(
     where: { id: linkedItem.id },
     data: {
       serviceId: service.id,
-      serviceName: record.procedure, // Ensure sync
+      serviceName: record.procedure,
       quantity: 1,
-      price: new Prisma.Decimal(nextAmount),
-      total: new Prisma.Decimal(nextAmount),
+      // price stays as is (derived from total for quantity 1)
+      total: new Prisma.Decimal(nextTotal),
+      price: new Prisma.Decimal(nextTotal),
       saldato: nextSaldato,
     },
   });
@@ -241,15 +245,15 @@ export async function syncAllDentalRecordsIntoQuote(
       changed = true;
     } else {
       const paidAmount = linkedItem.payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
-      const nextAmount = paidAmount - defaultPrice > EPSILON ? toNumber(linkedItem.total) : defaultPrice;
-      const nextSaldato = paidAmount >= nextAmount - EPSILON;
+      const currentTotal = toNumber(linkedItem.total);
+      const nextTotal = paidAmount > currentTotal + EPSILON ? paidAmount : currentTotal;
+      const nextSaldato = paidAmount >= nextTotal - EPSILON;
 
       const shouldUpdate =
         linkedItem.serviceId !== service.id ||
         linkedItem.serviceName !== record.procedure ||
         linkedItem.quantity !== 1 ||
-        Math.abs(toNumber(linkedItem.price) - nextAmount) > EPSILON ||
-        Math.abs(toNumber(linkedItem.total) - nextAmount) > EPSILON ||
+        Math.abs(toNumber(linkedItem.total) - nextTotal) > EPSILON ||
         linkedItem.saldato !== nextSaldato;
 
       if (shouldUpdate) {
@@ -259,8 +263,8 @@ export async function syncAllDentalRecordsIntoQuote(
             serviceId: service.id,
             serviceName: record.procedure,
             quantity: 1,
-            price: new Prisma.Decimal(nextAmount),
-            total: new Prisma.Decimal(nextAmount),
+            total: new Prisma.Decimal(nextTotal),
+            price: new Prisma.Decimal(nextTotal),
             saldato: nextSaldato,
           },
         });

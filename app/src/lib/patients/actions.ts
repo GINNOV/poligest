@@ -490,7 +490,11 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
       const existingItem = existingItemMap.get(item.id);
       if (!existingItem) continue;
       const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
-      const legacySettledWithoutPayments = existingItem.saldato && paidAmount === 0;
+      
+      // We recalculate saldato based on the NEW total.
+      // If legacy settled (saldato=true but no payments), we try to keep it settled if total is same,
+      // but generally we should trust the math: paidAmount >= item.total - 0.009
+      const isSettled = paidAmount >= item.total - 0.009;
 
       await tx.quoteItem.update({
         where: { id: item.id },
@@ -501,7 +505,7 @@ export async function savePreventivoAction(_: { savedAt: number }, formData: For
           quantity: item.quantity,
           price: new Prisma.Decimal(item.price),
           total: new Prisma.Decimal(item.total),
-          saldato: legacySettledWithoutPayments || paidAmount >= item.total - 0.009,
+          saldato: isSettled,
         },
       });
     }

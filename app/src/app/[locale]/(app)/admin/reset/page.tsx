@@ -138,10 +138,11 @@ async function resetSystem(formData: FormData) {
         if (entries.length) await tx.recallRule.createMany({ data: entries });
       }
 
-      if (selected.includes("appointmentReminderRules")) {
-        const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
-        if (entries.length) await tx.appointmentReminderRule.createMany({ data: entries });
+      if (selected.includes("appointmentReminders")) {
+        const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
+        if (entries.length) await tx.appointmentReminder.createMany({ data: entries });
       }
+
 
       if (selected.includes("suppliers")) {
         const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
@@ -288,8 +289,9 @@ async function resetSystem(formData: FormData) {
 
       if (selected.includes("appointmentReminders")) {
         const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
-        if (entries.length) await tx.appointmentReminders.createMany({ data: entries });
+        if (entries.length) await tx.appointmentReminder.createMany({ data: entries });
       }
+
 
       if (selected.includes("practiceWeeklyReportConfig")) {
         const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];
@@ -513,10 +515,11 @@ async function importData(formData: FormData) {
       if (entries.length) await tx.recallRule.createMany({ data: entries });
     }
 
-    if (selected.includes("appointmentReminderRules")) {
-      const entries = tableData("appointmentReminderRules") as Prisma.AppointmentReminderRuleCreateManyInput[];
-      if (entries.length) await tx.appointmentReminderRule.createMany({ data: entries });
+    if (selected.includes("appointmentReminders")) {
+      const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
+      if (entries.length) await tx.appointmentReminder.createMany({ data: entries });
     }
+
 
     if (selected.includes("suppliers")) {
       const entries = tableData("suppliers") as Prisma.SupplierCreateManyInput[];
@@ -663,8 +666,9 @@ async function importData(formData: FormData) {
 
     if (selected.includes("appointmentReminders")) {
       const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
-      if (entries.length) await tx.appointmentReminders.createMany({ data: entries });
+      if (entries.length) await tx.appointmentReminder.createMany({ data: entries });
     }
+
 
     if (selected.includes("practiceWeeklyReportConfig")) {
       const entries = tableData("practiceWeeklyReportConfig") as Prisma.PracticeWeeklyReportConfigCreateManyInput[];

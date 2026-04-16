@@ -13,13 +13,6 @@ describe("Admin Export Sync", () => {
 
     // Extract models from schema
     const models = [...schemaContent.matchAll(/^model\s+(\w+)\s+\{/gm)].map(m => m[1]);
-    
-    // Convert PascalCase to camelCase (standard for tableQueries keys)
-    const expectedKeys = models.map(m => {
-        // Handle special cases or just pluralize/camelCase
-        // The current keys in tableQueries are mostly camelCase plurals or similar
-        return m.charAt(0).toLowerCase() + m.slice(1);
-    });
 
     // Extract keys from tableQueries in export route
     // Matches "key: () => prisma.model.findMany()"

@@ -9,6 +9,10 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
 import { QuoteAccordion } from "@/components/quote-accordion";
+import { PaymentStateProvider } from "@/components/payment-state-provider";
+import { PaymentsSummaryTiles } from "@/components/payments-summary-tiles";
+import { UnsettledItemsList } from "@/components/unsettled-items-list";
+import { PaymentRegistrationForm } from "@/components/payment-registration-form";
 import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { Button } from "@/components/ui/button";
@@ -262,21 +266,8 @@ export default async function PagamentiPage({
       </div>
 
       {!selectedPatient ? null : (
-        <>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">PRESTAZIONI</p>
-              <p className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{formatCurrency(totals.total)}</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Incassato</p>
-              <p className="mt-2 text-2xl font-semibold text-emerald-700 dark:text-emerald-500">{formatCurrency(totals.paid)}</p>
-            </div>
-            <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Residuo</p>
-              <p className="mt-2 text-2xl font-semibold text-amber-700 dark:text-amber-500">{formatCurrency(totals.remaining)}</p>
-            </div>
-          </div>
+        <PaymentStateProvider initialItems={quoteItemSummaries}>
+          <PaymentsSummaryTiles />
 
           <QuoteAccordion
             key={`${selectedPatient.id}:${parsedQuote?.id ?? "new"}:${parsedQuote?.signedAt ?? "unsigned"}`}
@@ -295,158 +286,14 @@ export default async function PagamentiPage({
           />
 
           <div className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
-            <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <svg
-                    className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <div>
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">2 - PRESTAZIONI NON ANCORA SALDATE</h2>
-                  </div>
-                </div>
-                <svg
-                  className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </summary>
-              <div className="space-y-4 p-6">
-                {!quoteItemSummaries.filter((i) => !i.saldato).length ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                    Tutte le prestazioni risultano saldate o non è presente un preventivo.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {quoteItemSummaries
-                      .filter((item) => !item.saldato)
-                      .map((item) => (
-                        <div
-                          key={item.id}
-                          className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                                {item.serviceName}
-                                {item.tooth ? (
-                                  <span className="ml-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 uppercase tracking-tighter">
-                                    Dente {item.tooth}
-                                  </span>
-                                ) : null}
-                              </p>
-                              <p className="text-xs text-zinc-600 dark:text-zinc-400">Quantità: {item.quantity}</p>
-                            </div>                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                                item.status === "in_progress"
-                                  ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
-                                  : item.status === "settled"
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                  : item.status === "partial"
-                                    ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-                              }`}
-                            >
-                              {item.status === "in_progress"
-                                ? "Lavori in corso"
-                                : item.status === "settled"
-                                ? "Saldato"
-                                : item.status === "partial"
-                                  ? "Parzialmente incassato"
-                                  : "Da incassare"}
-                            </span>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-3">
-                            <div>Totale: {formatCurrency(item.total)}</div>
-                            <div>Incassato: {formatCurrency(item.paid)}</div>
-                            <div className="font-bold text-rose-600 dark:text-rose-500">
-                              Residuo: {formatCurrency(item.remaining)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </details>
+            <UnsettledItemsList />
 
-            <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <svg
-                    className="h-8 w-8 text-emerald-600 dark:text-emerald-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <line x1="12" y1="1" x2="12" y2="23" />
-                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                      REGISTRA PAGAMENTO
-                    </p>
-                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">3 - AGGIUNGI INCASSO</h2>
-                  </div>
-                </div>
-                <svg
-                  className="h-5 w-5 text-zinc-600 dark:text-zinc-400 transition-transform duration-200 group-open:rotate-180"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </summary>
-              <div className="p-6">
-                {!latestQuote || !quoteItemSummaries.length ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                    Prima crea il preventivo del paziente.
-                  </div>
-                ) : quoteItemSummaries.every((item) => item.remaining < 0.01) ? (
-                  <div className="rounded-xl border border-dashed border-zinc-200 px-4 py-5 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                    Tutte le prestazioni del preventivo risultano saldate.
-                  </div>
-                ) : (
-                  <form action={recordPatientPayment} className="space-y-3 text-sm">
-                    <PatientPaymentFields
-                      patientId={selectedPatient.id}
-                      quoteId={latestQuote.id}
-                      quoteItems={quoteItemSummaries.filter((item) => item.remaining > 0)}
-                      diarioUrl={`/pazienti/${selectedPatient.id}`}
-                    />
-                    <FormSubmitButton variant="primary" className="w-full rounded-full shadow-sm">
-                      Registra pagamento
-                    </FormSubmitButton>
-                  </form>
-                )}
-              </div>
-            </details>
+            <PaymentRegistrationForm
+              patientId={selectedPatient.id}
+              quoteId={latestQuote?.id ?? ""}
+              diarioUrl={`/pazienti/${selectedPatient.id}`}
+              recordPatientPaymentAction={recordPatientPayment}
+            />
           </div>
 
           <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
@@ -542,7 +389,7 @@ export default async function PagamentiPage({
               )}
             </div>
           </details>
-        </>
+        </PaymentStateProvider>
       )}
     </div>
   );

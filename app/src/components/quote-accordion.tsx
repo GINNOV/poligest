@@ -8,6 +8,7 @@ import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 import { PrintLinkButton } from "@/components/print-link-button";
+import { usePaymentState } from "./payment-state-provider";
 import {
   formatDateInDisplayTimeZone,
   formatDateInputValueInTimeZone,
@@ -476,6 +477,7 @@ export function QuoteAccordion({
   printHref,
 }: Props) {
   const router = useRouter();
+  const { updateItemPrice } = usePaymentState();
   const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
   const [isMounted, setIsMounted] = useState(false);
 
@@ -561,7 +563,21 @@ export function QuoteAccordion({
   };
 
   const updateItem = (index: number, next: Partial<(typeof items)[number]>) => {
-    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...next } : item)));
+    setItems((prev) => {
+      const updated = prev.map((item, i) => (i === index ? { ...item, ...next } : item));
+      
+      // Update shared state if it's an existing item being updated
+      const item = updated[index];
+      if (item.id) {
+        const q = Number.parseInt(item.quantity, 10);
+        const quantity = Number.isNaN(q) || q <= 0 ? 1 : q;
+        const p = Number.parseFloat(String(item.price).replace(",", "."));
+        const price = Number.isNaN(p) ? 0 : p;
+        updateItemPrice(item.id, price, quantity);
+      }
+      
+      return updated;
+    });
     markDirty();
   };
 
