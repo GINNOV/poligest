@@ -109,8 +109,8 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
 
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-zinc-950 border dark:border-zinc-800 flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b dark:border-zinc-800 flex items-center justify-between">
+          <div className="w-full max-w-[90vw] md:max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-zinc-950 border dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b dark:border-zinc-800 flex items-center justify-between shrink-0">
               <div>
                 <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">{activeInstruction.title}</h2>
                 {activeInstruction.description && (
