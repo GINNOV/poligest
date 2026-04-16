@@ -78,6 +78,8 @@ export function UnsettledItemsList() {
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
                         : item.status === "partial"
                         ? "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400"
+                        : item.altro > 0.009
+                        ? "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400"
                         : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
                     }`}
                   >
@@ -87,13 +89,17 @@ export function UnsettledItemsList() {
                       ? "Saldato"
                       : item.status === "partial"
                       ? "Parzialmente incassato"
+                      : item.altro > 0.009
+                      ? "Promesso (Altro)"
                       : "Da incassare"}
                   </span>
                 </div>
-                <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-3">
+                <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-5">
                   <div>Totale: {formatCurrency(item.total)}</div>
                   <div>Incassato: {formatCurrency(item.paid)}</div>
-                  <div className="font-bold text-rose-600 dark:text-rose-500">
+                  <div className="text-zinc-600 dark:text-zinc-400">Pagherò: {formatCurrency(item.paghero)}</div>
+                  <div className="text-rose-600 dark:text-rose-400">Altro: {formatCurrency(item.altro)}</div>
+                  <div className="font-bold text-amber-600 dark:text-amber-500">
                     Residuo: {formatCurrency(item.remaining)}
                   </div>
                 </div>

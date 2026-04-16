@@ -84,6 +84,11 @@ export function PaymentHistory({
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                     {payment.quoteItem?.serviceName ?? "Pagamento paziente"}
+                    {payment.quoteItem?.tooth ? (
+                      <span className="ml-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 uppercase tracking-tighter">
+                        Dente {payment.quoteItem.tooth}
+                      </span>
+                    ) : null}
                   </p>
                   <div className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400">
                     <span>

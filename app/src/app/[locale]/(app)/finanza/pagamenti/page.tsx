@@ -51,7 +51,8 @@ type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid" | "in_progress";
 function getQuoteItemPaymentStatus(
   paid: number,
   remaining: number,
-  inProgress: boolean
+  inProgress: boolean,
+  paghero: number
 ): QuoteItemPaymentStatus {
   if (inProgress) return "in_progress";
   if (remaining < 0.01) return "settled";
@@ -131,6 +132,10 @@ export default async function PagamentiPage({
             ...item,
             treated: item.dentalRecord?.treated,
             tooth: item.dentalRecord?.tooth,
+            payments: item.payments.map(p => ({
+              ...p,
+              amount: Number(p.amount.toString())
+            }))
           })),
         }
       : null
@@ -140,7 +145,10 @@ export default async function PagamentiPage({
       item.payments.map((payment) => ({
         ...payment,
         amount: Number(payment.amount.toString()),
-        quoteItem: { serviceName: item.serviceName },
+        quoteItem: { 
+          serviceName: item.serviceName,
+          tooth: item.dentalRecord?.tooth
+        },
       }))
     )
     .sort((a, b) => {
@@ -157,20 +165,36 @@ export default async function PagamentiPage({
     const total = Number(item.total.toString());
     const paidFromPayments = item.payments.reduce(
       (sum, payment) =>
-        payment.method !== "PAY_LATER" ? sum + Number(payment.amount.toString()) : sum,
+        (payment.method !== "PAY_LATER" && payment.method !== "OTHER") ? sum + Number(payment.amount.toString()) : sum,
       0
     );
-    // Bug fix: Always prioritize paidFromPayments if there are any actual payments recorded.
+    const pagheroFromPayments = item.payments.reduce(
+      (sum, payment) =>
+        payment.method === "PAY_LATER" ? sum + Number(payment.amount.toString()) : sum,
+      0
+    );
+    const altroFromPayments = item.payments.reduce(
+      (sum, payment) =>
+        payment.method === "OTHER" ? sum + Number(payment.amount.toString()) : sum,
+      0
+    );
+
+    // Bug fix: Always prioritize paidFromPayments/pagheroFromPayments if there are any actual payments recorded.
     // Fall back to item.total only if item.saldato is true AND there are no actual payments.
-    const hasActualPayments = item.payments.some(p => p.method !== 'PAY_LATER');
-    const paid = (paidFromPayments > 0 || hasActualPayments)
+    const hasActualPayments = item.payments.length > 0;
+    const paid = (hasActualPayments)
       ? paidFromPayments 
       : item.saldato 
         ? total 
         : 0;
-    const remaining = Math.max(total - paid, 0);
+    
+    const paghero = pagheroFromPayments;
+    const altro = altroFromPayments;
+        
+    // Residuo = Total - Paid - Pagherò (Altro is excluded from subtraction)
+    const remaining = Math.max(total - paid - paghero, 0);
     const inProgress = Boolean(item.dentalRecord && !item.dentalRecord.treated);
-    const status = getQuoteItemPaymentStatus(paid, remaining, inProgress);
+    const status = getQuoteItemPaymentStatus(paid + paghero, remaining, inProgress, altro);
     const tooth = item.dentalRecord?.tooth;
     return {
       id: item.id,
@@ -179,6 +203,8 @@ export default async function PagamentiPage({
       quantity: item.quantity,
       total,
       paid,
+      paghero,
+      altro,
       remaining,
       saldato: status === "settled",
       status,
@@ -190,11 +216,17 @@ export default async function PagamentiPage({
     (acc, item) => {
       acc.total += item.total;
       acc.paid += item.paid;
+      acc.paghero += item.paghero;
       acc.remaining += item.remaining;
       return acc;
     },
-    { total: 0, paid: 0, remaining: 0 }
+    { total: 0, paid: 0, paghero: 0, remaining: 0 }
   );
+
+  const altroTotal = allPayments
+    .filter((p) => p.method === "OTHER")
+    .reduce((sum, p) => sum + p.amount, 0);
+
   const patientOptions = patients.map((patient) => ({
     id: patient.id,
     fullName: `${patient.lastName} ${patient.firstName}`,
@@ -268,7 +300,7 @@ export default async function PagamentiPage({
       </div>
 
       {!selectedPatient ? null : (
-        <PaymentStateProvider initialItems={quoteItemSummaries}>
+        <PaymentStateProvider initialItems={quoteItemSummaries} initialAltro={altroTotal}>
           <PaymentsSummaryTiles />
 
           <QuoteAccordion

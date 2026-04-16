@@ -44,6 +44,7 @@ type QuoteDraft = {
     treated?: boolean | null;
     tooth?: number | null;
     createdAt?: string | null;
+    payments?: Array<{ amount: number }>;
   }>;
 };
 
@@ -509,6 +510,7 @@ export function QuoteAccordion({
         treated: Boolean(item.treated),
         tooth: item.tooth ?? null,
         createdAt: item.createdAt ?? null,
+        payments: item.payments,
       }));
     }
     if (initialQuote?.serviceId) {
@@ -622,11 +624,17 @@ export function QuoteAccordion({
       const quantityValue = Number.isNaN(quantityParsed) || quantityParsed <= 0 ? 1 : quantityParsed;
       const priceParsed = Number.parseFloat(String(item.price).replace(",", "."));
       const priceValue = Number.isNaN(priceParsed) ? 0 : priceParsed;
+      const totalValue = quantityValue * priceValue;
+      const paidValue = item.payments?.reduce((sum, p) => sum + p.amount, 0) ?? 0;
+      const isSettled = totalValue > 0 && paidValue >= totalValue - 0.009;
+
       return {
         ...item,
         quantityValue,
         priceValue,
-        totalValue: quantityValue * priceValue,
+        totalValue,
+        paidValue,
+        isSettled,
         serviceDate: item.serviceDate,
         treated: item.treated,
         tooth: item.tooth,
@@ -757,15 +765,18 @@ export function QuoteAccordion({
               key={`quote-item-${index}`}
               className={clsx(
                 "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[1fr_60px_100px_100px_140px_auto]",
-                item.dentalRecordId 
-                  ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
-                  : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
+                item.isSettled
+                  ? "border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/20 dark:bg-emerald-950/10"
+                  : item.dentalRecordId 
+                    ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
+                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
               )}
             >
               <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
                 Prestazione
                 <select
                   value={item.serviceId}
+                  disabled={item.isSettled}
                   onChange={(event) => {
                     const nextServiceId = event.target.value;
                     const nextService = sortedServices.find((service) => service.id === nextServiceId);
@@ -774,7 +785,7 @@ export function QuoteAccordion({
                       price: item.priceValue === 0 ? String(nextService?.costBasis ?? "") : item.price,
                     });
                   }}
-                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
                   required
                 >
                   <option value="" disabled>
@@ -793,6 +804,7 @@ export function QuoteAccordion({
                   type="number"
                   min="1"
                   step="1"
+                  disabled={item.isSettled}
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={item.quantity}
@@ -800,7 +812,7 @@ export function QuoteAccordion({
                     const nextValue = event.target.value.replace(/\D+/g, "");
                     updateItem(index, { quantity: nextValue });
                   }}
-                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
                 />
               </label>
               <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
@@ -809,9 +821,10 @@ export function QuoteAccordion({
                   type="number"
                   min="0"
                   step="0.01"
+                  disabled={item.isSettled}
                   value={item.price}
                   onChange={(event) => updateItem(index, { price: event.target.value })}
-                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
                 />
               </label>
               <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
@@ -820,21 +833,28 @@ export function QuoteAccordion({
                   type="text"
                   value={item.totalValue.toFixed(2)}
                   readOnly
-                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none"
+                  className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none opacity-60"
                 />
               </label>
               <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
                 Data prestazione
                 <input
                   type="date"
+                  disabled={item.isSettled}
                   value={item.serviceDate}
                   onChange={(event) => updateItem(index, { serviceDate: event.target.value })}
-                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20"
+                  className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
                   required
                 />
               </label>
               <div className="flex items-end justify-start gap-2">
-                {!(item.treated || item.dentalRecordId) ? (
+                {item.isSettled ? (
+                  <div className="h-11 flex items-center px-4">
+                    <span className="rounded-full bg-blue-950 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-white shadow-sm ring-1 ring-blue-900">
+                      OKAY
+                    </span>
+                  </div>
+                ) : !(item.treated || item.dentalRecordId) ? (
                   <>
                     <button
                       type="button"

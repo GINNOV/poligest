@@ -180,7 +180,7 @@ export default async function ReportMensilePage({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                 Totale Periodo
               </p>
-              <p className="mt-1 text-lg font-semibold text-emerald-900 dark:text-emerald-200">
+              <p className="mt-1 text-lg font-bold font-mono tabular-nums text-emerald-900 dark:text-emerald-200">
                 {formatCurrency(periodTotal)}
               </p>
             </div>
@@ -188,7 +188,7 @@ export default async function ReportMensilePage({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
                 Anticipo
               </p>
-              <p className="mt-1 text-lg font-semibold text-amber-900 dark:text-amber-200">
+              <p className="mt-1 text-lg font-bold font-mono tabular-nums text-amber-900 dark:text-amber-200">
                 {formatCurrency(periodAnticipo)}
               </p>
             </div>
@@ -196,15 +196,15 @@ export default async function ReportMensilePage({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
                 Pagherò
               </p>
-              <p className="mt-1 text-lg font-semibold text-rose-900 dark:text-rose-200">
+              <p className="mt-1 text-lg font-bold font-mono tabular-nums text-rose-900 dark:text-rose-200">
                 {formatCurrency(periodPaghero)}
               </p>
             </div>
             <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-right dark:border-zinc-800 dark:bg-zinc-950">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                Due
+                Dovuto
               </p>
-              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              <p className="mt-1 text-lg font-bold font-mono tabular-nums text-zinc-900 dark:text-zinc-50">
                 {formatCurrency(periodDue)}
               </p>
             </div>
@@ -282,7 +282,7 @@ export default async function ReportMensilePage({
                   <th className="px-4 py-3 text-left">Movimenti</th>
                   <th className="px-4 py-3 text-right">Anticipo</th>
                   <th className="px-4 py-3 text-right">Pagherò</th>
-                  <th className="px-4 py-3 text-right">Due</th>
+                  <th className="px-4 py-3 text-right">Dovuto</th>
                   <th className="px-4 py-3 text-right">Totale incassato</th>
                 </tr>
               </thead>
