@@ -563,21 +563,19 @@ export function QuoteAccordion({
   };
 
   const updateItem = (index: number, next: Partial<(typeof items)[number]>) => {
-    setItems((prev) => {
-      const updated = prev.map((item, i) => (i === index ? { ...item, ...next } : item));
-      
-      // Update shared state if it's an existing item being updated
-      const item = updated[index];
-      if (item.id) {
-        const q = Number.parseInt(item.quantity, 10);
-        const quantity = Number.isNaN(q) || q <= 0 ? 1 : q;
-        const p = Number.parseFloat(String(item.price).replace(",", "."));
-        const price = Number.isNaN(p) ? 0 : p;
-        updateItemPrice(item.id, price, quantity);
-      }
-      
-      return updated;
-    });
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...next } : item)));
+
+    // Update shared state if it's an existing item being updated
+    // We do this outside of setItems to avoid React "update while rendering" warnings
+    const item = items[index];
+    if (item?.id) {
+      const mergedItem = { ...item, ...next };
+      const q = Number.parseInt(mergedItem.quantity, 10);
+      const quantity = Number.isNaN(q) || q <= 0 ? 1 : q;
+      const p = Number.parseFloat(String(mergedItem.price).replace(",", "."));
+      const price = Number.isNaN(p) ? 0 : p;
+      updateItemPrice(mergedItem.id, price, quantity);
+    }
     markDirty();
   };
 

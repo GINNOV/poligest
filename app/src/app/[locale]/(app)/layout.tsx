@@ -102,14 +102,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isInventoryAllowed = isStaff && isFeatureAllowed("inventory");
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
 
+  const instructionClient = getOptionalPrismaModel<{
+    findMany: (args: any) => Promise<any[]>;
+  }>("featureInstruction");
+  const progressClient = getOptionalPrismaModel<{
+    findMany: (args: any) => Promise<any[]>;
+  }>("userInstructionProgress");
+
   const [instructions, userProgress] =
-    isStaff && user
+    isStaff && user && instructionClient && progressClient
       ? await Promise.all([
-          prisma.featureInstruction.findMany({
+          instructionClient.findMany({
             where: { isActive: true },
             include: { steps: { orderBy: { sortOrder: "asc" } } },
           }),
-          prisma.userInstructionProgress.findMany({
+          progressClient.findMany({
             where: { userId: user.id },
           }),
         ])
