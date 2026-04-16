@@ -175,21 +175,39 @@ export default async function ReportMensilePage({
             variant="primary"
             className="print:hidden"
           />
-          <div className="grid gap-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right dark:border-emerald-900/40 dark:bg-emerald-950/20">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-              Totale del periodo
-            </p>
-            <p className="mt-1 text-xl font-semibold text-emerald-900 dark:text-emerald-200">{formatCurrency(periodTotal)}</p>
-          </div>
-          <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-right dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Anticipo / Pagherò / Due
-            </p>
-            <p className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              {formatCurrency(periodAnticipo)} / {formatCurrency(periodPaghero)} / {formatCurrency(periodDue)}
-            </p>
-          </div>
+          <div className="grid gap-2 grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right dark:border-emerald-900/40 dark:bg-emerald-950/20">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                Totale Periodo
+              </p>
+              <p className="mt-1 text-lg font-semibold text-emerald-900 dark:text-emerald-200">
+                {formatCurrency(periodTotal)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/50 px-4 py-3 text-right dark:border-amber-900/40 dark:bg-amber-950/20">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                Anticipo
+              </p>
+              <p className="mt-1 text-lg font-semibold text-amber-900 dark:text-amber-200">
+                {formatCurrency(periodAnticipo)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-dashed border-rose-300 bg-rose-50/50 px-4 py-3 text-right dark:border-rose-900/40 dark:bg-rose-950/20">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
+                Pagherò
+              </p>
+              <p className="mt-1 text-lg font-semibold text-rose-900 dark:text-rose-200">
+                {formatCurrency(periodPaghero)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-4 py-3 text-right dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                Due
+              </p>
+              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                {formatCurrency(periodDue)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
