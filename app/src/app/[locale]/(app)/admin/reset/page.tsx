@@ -189,6 +189,16 @@ async function resetSystem(formData: FormData) {
         if (entries.length) await tx.emailTemplate.createMany({ data: entries });
       }
 
+      if (selected.includes("featureInstructions")) {
+        const entries = tableData("featureInstructions") as Prisma.FeatureInstructionCreateManyInput[];
+        if (entries.length) await tx.featureInstruction.createMany({ data: entries });
+      }
+
+      if (selected.includes("featureInstructionSteps")) {
+        const entries = tableData("featureInstructionSteps") as Prisma.FeatureInstructionStepCreateManyInput[];
+        if (entries.length) await tx.featureInstructionStep.createMany({ data: entries });
+      }
+
       if (selected.includes("featureUpdates")) {
         const entries = tableData("featureUpdates") as Prisma.FeatureUpdateCreateManyInput[];
         if (entries.length) await tx.featureUpdate.createMany({ data: entries });
@@ -319,6 +329,11 @@ async function resetSystem(formData: FormData) {
       if (selected.includes("userAwards")) {
         const entries = tableData("userAwards") as Prisma.UserAwardCreateManyInput[];
         if (entries.length) await tx.userAward.createMany({ data: entries });
+      }
+
+      if (selected.includes("userInstructionProgress")) {
+        const entries = tableData("userInstructionProgress") as Prisma.UserInstructionProgressCreateManyInput[];
+        if (entries.length) await tx.userInstructionProgress.createMany({ data: entries });
       }
 
       if (selected.includes("smsProviderConfig")) {

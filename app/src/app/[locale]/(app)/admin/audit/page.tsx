@@ -3,28 +3,46 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import Link from "next/link";
+import { NextRecordButton } from "@/components/admin/NextRecordButton";
 
 export default async function AuditPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireUser([Role.ADMIN]);
+  const { locale } = await params;
   const t = await getTranslations("admin");
-  const params = await searchParams;
+  const searchParamsValue = await searchParams;
 
   const q =
-    typeof params.q === "string"
-      ? params.q.trim()
-      : Array.isArray(params.q)
-        ? params.q[0]?.trim()
+    typeof searchParamsValue.q === "string"
+      ? searchParamsValue.q.trim()
+      : Array.isArray(searchParamsValue.q)
+        ? searchParamsValue.q[0]?.trim()
         : "";
 
   const dateParam =
-    typeof params.date === "string"
-      ? params.date
-      : Array.isArray(params.date)
-        ? params.date[0]
+    typeof searchParamsValue.date === "string"
+      ? searchParamsValue.date
+      : Array.isArray(searchParamsValue.date)
+        ? searchParamsValue.date[0]
+        : undefined;
+
+  const userIdParam =
+    typeof searchParamsValue.userId === "string"
+      ? searchParamsValue.userId
+      : Array.isArray(searchParamsValue.userId)
+        ? searchParamsValue.userId[0]
+        : undefined;
+
+  const typeParam =
+    typeof searchParamsValue.type === "string"
+      ? searchParamsValue.type
+      : Array.isArray(searchParamsValue.type)
+        ? searchParamsValue.type[0]
         : undefined;
 
   let dateFilter:
@@ -63,13 +81,30 @@ export default async function AuditPage({
   if (dateFilter) {
     filters.push({ createdAt: dateFilter });
   }
+  if (userIdParam) {
+    filters.push({ userId: userIdParam });
+  }
+  if (typeParam) {
+    filters.push({ action: typeParam });
+  }
 
-  const logs = await prisma.auditLog.findMany({
-    where: filters.length ? { AND: filters } : undefined,
-    include: { user: { select: { name: true, email: true, role: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+  const [logs, users, actionTypes] = await Promise.all([
+    prisma.auditLog.findMany({
+      where: filters.length ? { AND: filters } : undefined,
+      include: { user: { select: { name: true, email: true, role: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+    prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.auditLog.findMany({
+      select: { action: true },
+      distinct: ["action"],
+      orderBy: { action: "asc" },
+    }),
+  ]);
 
   const formatDate = (date: Date) =>
     new Intl.DateTimeFormat("it-IT", {
@@ -102,6 +137,7 @@ export default async function AuditPage({
       "inventory.movement": "📦",
       "user.login": "🔑",
       "user.updated": "👤",
+      "error.reported": "🚨",
     };
     return map[action] ?? "ℹ️";
   };
@@ -129,7 +165,7 @@ export default async function AuditPage({
       </div>
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
-        <form className="grid grid-cols-1 gap-3 md:grid-cols-[2fr,1fr,auto]" method="get">
+        <form className="grid grid-cols-1 gap-3 md:grid-cols-[1.5fr,1.5fr,1.5fr,1fr,auto]" method="get">
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             {t("auditSearchLabel")}
             <input
@@ -148,6 +184,36 @@ export default async function AuditPage({
               defaultValue={dateParam ?? ""}
               className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
             />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Utente
+            <select
+              name="userId"
+              defaultValue={userIdParam ?? ""}
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
+            >
+              <option value="">Tutti</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Tipo
+            <select
+              name="type"
+              defaultValue={typeParam ?? ""}
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
+            >
+              <option value="">Tutti</option>
+              {actionTypes.map((at) => (
+                <option key={at.action} value={at.action}>
+                  {at.action}
+                </option>
+              ))}
+            </select>
           </label>
           <div className="flex items-end gap-2">
             <button
@@ -189,11 +255,39 @@ export default async function AuditPage({
                         log.user?.name ||
                         log.user?.email ||
                         t("auditUnknownUser");
+
+                      const metadataString = log.metadata ? JSON.stringify(log.metadata, null, 2) : "";
+                      const lineCount = metadataString.split("\n").length;
+
+                      const isErrorReported = log.action === "error.reported";
+
+                      // Extract patientId and quoteId for linking
+                      let patientId = log.entity === "patient" ? log.entityId : null;
+                      let quoteId = log.entity === "quote" ? log.entityId : null;
+
+                      if (log.metadata && typeof log.metadata === "object") {
+                        const meta = log.metadata as Record<string, any>;
+                        if (!patientId && meta.patientId) patientId = meta.patientId;
+                        if (!patientId && meta.patient_id) patientId = meta.patient_id;
+                        if (!quoteId && meta.quoteId) quoteId = meta.quoteId;
+                        if (!quoteId && meta.quote_id) quoteId = meta.quote_id;
+                      }
+
                       return (
-                        <div key={log.id} className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-[1.2fr,0.8fr]">
+                        <div
+                          key={log.id}
+                          id={`log-${log.id}`}
+                          className="audit-record grid grid-cols-1 gap-2 p-4 sm:grid-cols-[1.2fr,0.8fr]"
+                        >
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide ${
+                                  isErrorReported
+                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                }`}
+                              >
                                 <span>{actionEmoji(log.action)}</span>
                                 {log.action}
                               </span>
@@ -226,11 +320,36 @@ export default async function AuditPage({
                                 <span className="font-semibold text-zinc-800 dark:text-zinc-200">IP:</span>
                                 <span className="text-zinc-700 dark:text-zinc-300">{log.ip ?? "—"}</span>
                               </div>
+                              {patientId && (
+                                <div className="mt-2">
+                                  <Link
+                                    href={`/${locale}/pazienti/${patientId}/scheda`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400"
+                                  >
+                                    👤 Vedi Paziente
+                                  </Link>
+                                </div>
+                              )}
+                              {quoteId && patientId && (
+                                <div className="mt-1">
+                                  <Link
+                                    href={`/${locale}/pazienti/${patientId}/preventivo/${quoteId}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400"
+                                  >
+                                    📄 Vedi Preventivo
+                                  </Link>
+                                </div>
+                              )}
                             </div>
                             {log.metadata ? (
-                              <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-zinc-950 px-3 py-2 text-[11px] text-zinc-700 dark:text-zinc-300">
-                                {JSON.stringify(log.metadata, null, 2)}
-                              </pre>
+                              <>
+                                <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-zinc-950 px-3 py-2 text-[11px] text-zinc-700 dark:text-zinc-300">
+                                  {metadataString}
+                                </pre>
+                                {lineCount > 50 && <NextRecordButton containerId={`log-${log.id}`} />}
+                              </>
                             ) : null}
                           </div>
                         </div>

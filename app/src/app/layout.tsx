@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { getThemeInitScript } from "@/lib/theme";
 
@@ -43,17 +42,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <head />
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-50`}
-      >
-        <Script
+      <head>
+        <script
           id="theme-init"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: getThemeInitScript(),
           }}
         />
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-50`}
+      >
         {children}
       </body>
     </html>

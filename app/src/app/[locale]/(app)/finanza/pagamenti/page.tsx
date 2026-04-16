@@ -154,7 +154,14 @@ export default async function PagamentiPage({
         payment.method !== "PAY_LATER" ? sum + Number(payment.amount.toString()) : sum,
       0
     );
-    const paid = paidFromPayments > 0 ? paidFromPayments : item.saldato ? total : 0;
+    // Bug fix: Always prioritize paidFromPayments if there are any actual payments recorded.
+    // Fall back to item.total only if item.saldato is true AND there are no actual payments.
+    const hasActualPayments = item.payments.some(p => p.method !== 'PAY_LATER');
+    const paid = (paidFromPayments > 0 || hasActualPayments)
+      ? paidFromPayments 
+      : item.saldato 
+        ? total 
+        : 0;
     const remaining = Math.max(total - paid, 0);
     const inProgress = Boolean(item.dentalRecord && !item.dentalRecord.treated);
     const status = getQuoteItemPaymentStatus(paid, remaining, inProgress);
@@ -305,7 +312,7 @@ export default async function PagamentiPage({
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <div>
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PRESTAZIONI NON ANCORA SALDATE</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">2 - PRESTAZIONI NON ANCORA SALDATE</h2>
                   </div>
                 </div>
                 <svg
@@ -400,7 +407,7 @@ export default async function PagamentiPage({
                     <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                       REGISTRA PAGAMENTO
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">AGGIUNGI INCASSO</h2>
+                    <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">3 - AGGIUNGI INCASSO</h2>
                   </div>
                 </div>
                 <svg
@@ -463,7 +470,7 @@ export default async function PagamentiPage({
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
                 <div>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">STORICO PAGAMENTI</h2>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">4 - STORICO PAGAMENTI</h2>
                 </div>
               </div>
               <svg
