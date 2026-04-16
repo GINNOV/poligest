@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { Button } from "@/components/ui/button";
+import {
+  createAnamnesisConditionAction,
+  updateAnamnesisConditionAction,
+  deleteAnamnesisConditionAction,
+} from "@/lib/patients/actions";
 
 type AnamnesisConditionRecord = {
   id: string;
@@ -12,9 +17,6 @@ type AnamnesisConditionRecord = {
 };
 
 type AnamnesisClient = {
-  create: (args: { data: { label: string } }) => Promise<AnamnesisConditionRecord>;
-  update: (args: { where: { id: string }; data: { label: string } }) => Promise<AnamnesisConditionRecord>;
-  delete: (args: { where: { id: string } }) => Promise<unknown>;
   findMany: (args?: { orderBy?: { createdAt: "desc" | "asc" } }) => Promise<AnamnesisConditionRecord[]>;
 };
 
@@ -25,83 +27,6 @@ function getAnamnesisClient() {
     throw new Error("Anamnesi non configurata. Esegui migrazioni Prisma e rigenera il client.");
   }
   return client;
-}
-
-async function createAnamnesisCondition(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const label = (formData.get("label") as string)?.trim();
-
-  if (!label) {
-    throw new Error("Nome condizione obbligatorio");
-  }
-
-  const anamnesisClient = getAnamnesisClient();
-  const condition = await anamnesisClient.create({
-    data: { label },
-  });
-
-  await logAudit(admin, {
-    action: "anamnesis_condition.created",
-    entity: "AnamnesisCondition",
-    entityId: condition.id,
-    metadata: { label },
-  });
-
-  revalidatePath("/admin/anamnesi");
-  revalidatePath("/pazienti/nuovo");
-  revalidatePath("/pazienti/[id]", "page");
-}
-
-async function updateAnamnesisCondition(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const id = (formData.get("conditionId") as string) || "";
-  const label = (formData.get("label") as string)?.trim();
-
-  if (!id || !label) {
-    throw new Error("Dati condizione non validi");
-  }
-
-  const anamnesisClient = getAnamnesisClient();
-  const condition = await anamnesisClient.update({
-    where: { id },
-    data: { label },
-  });
-
-  await logAudit(admin, {
-    action: "anamnesis_condition.updated",
-    entity: "AnamnesisCondition",
-    entityId: condition.id,
-    metadata: { label },
-  });
-
-  revalidatePath("/admin/anamnesi");
-  revalidatePath("/pazienti/nuovo");
-  revalidatePath("/pazienti/[id]", "page");
-}
-
-async function deleteAnamnesisCondition(formData: FormData) {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN]);
-  const id = (formData.get("conditionId") as string) || "";
-  if (!id) throw new Error("Condizione non valida");
-
-  const anamnesisClient = getAnamnesisClient();
-  await anamnesisClient.delete({ where: { id } });
-
-  await logAudit(admin, {
-    action: "anamnesis_condition.deleted",
-    entity: "AnamnesisCondition",
-    entityId: id,
-  });
-
-  revalidatePath("/admin/anamnesi");
-  revalidatePath("/pazienti/nuovo");
-  revalidatePath("/pazienti/[id]", "page");
 }
 
 export default async function AnamnesisSettingsPage() {
@@ -132,7 +57,7 @@ export default async function AnamnesisSettingsPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t("anamnesisCreate")}</h2>
           <p className="text-sm text-zinc-600">{t("anamnesisCreateHint")}</p>
-          <form action={createAnamnesisCondition} className="mt-4 grid grid-cols-1 gap-4">
+          <form action={createAnamnesisConditionAction} className="mt-4 grid grid-cols-1 gap-4">
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800">
               {t("anamnesisName")}
               <input
@@ -169,7 +94,7 @@ export default async function AnamnesisSettingsPage() {
                   key={condition.id}
                   className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                 >
-                  <form action={updateAnamnesisCondition} className="flex flex-1 items-center gap-3">
+                  <form action={updateAnamnesisConditionAction} className="flex flex-1 items-center gap-3">
                     <input type="hidden" name="conditionId" value={condition.id} />
                     <input
                       name="label"
@@ -184,7 +109,7 @@ export default async function AnamnesisSettingsPage() {
                     </button>
                   </form>
                   <form
-                    action={deleteAnamnesisCondition}
+                    action={deleteAnamnesisConditionAction}
                     className="flex justify-start sm:justify-end"
                     data-confirm="Eliminare definitivamente questa condizione?"
                   >

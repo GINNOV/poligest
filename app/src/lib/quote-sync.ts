@@ -123,6 +123,7 @@ async function syncDentalRecordIntoQuote(
         price: new Prisma.Decimal(defaultPrice),
         total: new Prisma.Decimal(defaultPrice),
         saldato: false,
+        isManualAdjustment: false,
       },
     });
 
@@ -134,11 +135,24 @@ async function syncDentalRecordIntoQuote(
 
   const paidAmount = linkedItem.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
   
-  // Bug fix: Do NOT revert to defaultPrice if it was manually changed.
-  // We only force an update if paidAmount is greater than current total (to avoid negative remaining).
-  // Otherwise, we keep the current price/total.
-  const currentTotal = toNumber(linkedItem.total);
-  const nextTotal = paidAmount > currentTotal + EPSILON ? paidAmount : currentTotal;
+  // Logic: 
+  // 1. If it's a manual adjustment, WE PRESERVE IT unless paidAmount > currentTotal.
+  // 2. If it's NOT manual, we update it if the underlying service cost basis changed.
+  
+  const currentPrice = toNumber(linkedItem.price);
+  
+  let nextPrice = currentPrice;
+  
+  if (!linkedItem.isManualAdjustment) {
+    // If not manual, we follow the service's current cost basis
+    nextPrice = defaultPrice;
+  }
+  
+  // Safety: Total can't be less than what was already paid
+  const nextTotal = Math.max(nextPrice * linkedItem.quantity, paidAmount);
+  // Re-sync price if total was adjusted by safety
+  nextPrice = linkedItem.quantity > 0 ? nextTotal / linkedItem.quantity : nextPrice;
+
   const nextSaldato = paidAmount >= nextTotal - EPSILON;
   
   const shouldUpdate =
@@ -158,9 +172,8 @@ async function syncDentalRecordIntoQuote(
       serviceId: service.id,
       serviceName: record.procedure,
       quantity: 1,
-      // price stays as is (derived from total for quantity 1)
       total: new Prisma.Decimal(nextTotal),
-      price: new Prisma.Decimal(nextTotal),
+      price: new Prisma.Decimal(nextPrice),
       saldato: nextSaldato,
     },
   });
@@ -240,13 +253,22 @@ export async function syncAllDentalRecordsIntoQuote(
           price: new Prisma.Decimal(defaultPrice),
           total: new Prisma.Decimal(defaultPrice),
           saldato: false,
+          isManualAdjustment: false,
         },
       });
       changed = true;
     } else {
       const paidAmount = linkedItem.payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
-      const currentTotal = toNumber(linkedItem.total);
-      const nextTotal = paidAmount > currentTotal + EPSILON ? paidAmount : currentTotal;
+      const currentPrice = toNumber(linkedItem.price);
+      
+      let nextPrice = currentPrice;
+      if (!linkedItem.isManualAdjustment) {
+        nextPrice = defaultPrice;
+      }
+      
+      const nextTotal = Math.max(nextPrice * linkedItem.quantity, paidAmount);
+      nextPrice = linkedItem.quantity > 0 ? nextTotal / linkedItem.quantity : nextPrice;
+      
       const nextSaldato = paidAmount >= nextTotal - EPSILON;
 
       const shouldUpdate =
@@ -264,7 +286,7 @@ export async function syncAllDentalRecordsIntoQuote(
             serviceName: record.procedure,
             quantity: 1,
             total: new Prisma.Decimal(nextTotal),
-            price: new Prisma.Decimal(nextTotal),
+            price: new Prisma.Decimal(nextPrice),
             saldato: nextSaldato,
           },
         });

@@ -412,6 +412,7 @@ model Patient {
   cashAdvances   CashAdvance[]
   quotes         Quote[]
   patientPayments PatientPayment[]
+  financeEntries  FinanceEntry[]
 }
 
 model ConsentModule {
@@ -592,13 +593,18 @@ model FinanceEntry {
   occurredAt  DateTime
   doctorId    String?
   userId      String?
+  patientId   String?
+  method      PatientPaymentMethod?
+  metadata    Json?
   createdAt   DateTime @default(now())
 
-  doctor Doctor? @relation(fields: [doctorId], references: [id])
-  user   User?   @relation("FinanceEntryUser", fields: [userId], references: [id])
+  doctor  Doctor?  @relation(fields: [doctorId], references: [id])
+  user    User?    @relation("FinanceEntryUser", fields: [userId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id])
 
   @@index([occurredAt])
   @@index([doctorId])
+  @@index([patientId])
 }
 
 model EmailTemplate {
@@ -745,6 +751,7 @@ model QuoteItem {
   price       Decimal  @db.Decimal(12, 2)
   total       Decimal  @db.Decimal(12, 2)
   saldato     Boolean  @default(false)
+  isManualAdjustment Boolean @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

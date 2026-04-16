@@ -1,0 +1,395 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { put } from "@vercel/blob";
+import { ConsentStatus, Prisma, Role, StockMovementType } from "@prisma/client";
+import { logAudit } from "@/lib/audit";
+import { requireUser } from "@/lib/auth";
+import { getOptionalPrismaModel } from "@/lib/prisma-models";
+import { prisma } from "@/lib/prisma";
+import { syncAllDentalRecordsIntoQuote } from "@/lib/quote-sync";
+import { ASSISTANT_ROLE } from "@/lib/roles";
+
+const STAFF_ROLES = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY] as const;
+
+export async function addImplantAssociationAction(formData: FormData) {
+  const user = await requireUser([...STAFF_ROLES]);
+  const patientId = (formData.get("patientId") as string) || "";
+  const productId = (formData.get("productId") as string) || "";
+  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
+  const brand = (formData.get("brand") as string)?.trim() || null;
+  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
+  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
+  const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
+  const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
+  const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
+
+  if (!patientId || !productId) {
+    throw new Error("Dati impianto non validi");
+  }
+
+  const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
+  const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
+
+  await prisma.stockMovement.create({
+    data: {
+      productId,
+      quantity: 1,
+      movement: StockMovementType.OUT,
+      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null, udiDi ? `UDI-DI: ${udiDi}` : null]
+        .filter(Boolean)
+        .join(" · ") || null,
+      patientId,
+      udiPi,
+      interventionSite,
+      interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
+      purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
+    },
+  });
+
+  await logAudit(user, {
+    action: "patient.implant_added",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: { productId, udiPi, brand, deviceType, interventionSite },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
+export async function updateImplantAssociationAction(formData: FormData) {
+  const user = await requireUser([...STAFF_ROLES]);
+  const implantId = (formData.get("implantId") as string) || "";
+  const patientId = (formData.get("patientId") as string) || "";
+  const productId = (formData.get("productId") as string) || "";
+  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
+  const brand = (formData.get("brand") as string)?.trim() || null;
+  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
+  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
+  const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
+  const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
+  const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
+
+  if (!implantId || !patientId || !productId) {
+    throw new Error("Dati impianto non validi");
+  }
+
+  const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
+  const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
+
+  await prisma.stockMovement.update({
+    where: { id: implantId },
+    data: {
+      productId,
+      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null, udiDi ? `UDI-DI: ${udiDi}` : null]
+        .filter(Boolean)
+        .join(" · ") || null,
+      udiPi,
+      interventionSite,
+      interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
+      purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
+    },
+  });
+
+  await logAudit(user, {
+    action: "patient.implant_updated",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: { implantId, productId },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+}
+
+export async function savePreventivoAction(_: { savedAt: number }, formData: FormData) {
+  const user = await requireUser([...STAFF_ROLES]);
+  const patientId = (formData.get("patientId") as string) || "";
+  const quoteId = (formData.get("quoteId") as string)?.trim() || null;
+  const itemsRaw = (formData.get("itemsJson") as string) || "";
+  const signatureData = (formData.get("quoteSignatureData") as string)?.trim();
+  const existingSignatureUrl = (formData.get("existingQuoteSignatureUrl") as string)?.trim() || null;
+
+  if (!patientId || !itemsRaw) {
+    throw new Error("Preventivo non valido");
+  }
+
+  let itemsPayload: Array<{
+    id?: string;
+    serviceId: string;
+    serviceDate: string;
+    quantity: number;
+    price: number;
+    tooth?: number | null;
+  }> = [];
+  try {
+    itemsPayload = JSON.parse(itemsRaw);
+  } catch {
+    throw new Error("Dati preventivo non validi");
+  }
+
+  if (!Array.isArray(itemsPayload) || itemsPayload.length === 0) {
+    throw new Error("Inserisci almeno una prestazione");
+  }
+
+  if (!signatureData?.startsWith("data:image/png") && !existingSignatureUrl) {
+    throw new Error("Firma digitale obbligatoria");
+  }
+
+  const serviceClient = getOptionalPrismaModel<{
+    findMany?: (args?: {
+      where?: { id: { in: string[] } };
+      select?: { id: true; name: true; costBasis: true };
+    }) => Promise<{ id: string; name: string; costBasis: Prisma.Decimal }[]>;
+  }>("service");
+  const patientPaymentClient = getOptionalPrismaModel<{
+    findMany?: (args: {
+      where: { quoteItemId: { in: string[] } };
+      select: { quoteItemId: true; amount: true };
+    }) => Promise<Array<{ quoteItemId: string | null; amount: { toString(): string } }>>;
+  }>("patientPayment");
+  const serviceIds = itemsPayload.map((item) => item.serviceId).filter(Boolean);
+  const services =
+    serviceClient?.findMany && serviceIds.length
+      ? await serviceClient.findMany({
+          where: { id: { in: serviceIds } },
+          select: { id: true, name: true, costBasis: true },
+        })
+      : [];
+  const serviceMap = new Map(services.map((service) => [service.id, service]));
+
+  const normalizedItems = itemsPayload.map((item) => {
+    const quantityParsed = Number.parseInt(String(item.quantity), 10);
+    const quantity = Number.isNaN(quantityParsed) || quantityParsed <= 0 ? 1 : quantityParsed;
+    const priceParsed = Number.parseFloat(String(item.price).replace(",", "."));
+    if (Number.isNaN(priceParsed)) {
+      throw new Error("Prezzo non valido");
+    }
+    const service = serviceMap.get(item.serviceId);
+    const serviceName = service?.name ?? "Prestazione";
+    const total = Number((priceParsed * quantity).toFixed(2));
+    
+    // Check if user manually changed the price from default
+    const defaultPrice = service ? Number(service.costBasis.toString()) : 0;
+    const isManualAdjustment = Math.abs(priceParsed - defaultPrice) > 0.009;
+
+    return {
+      id: item.id?.trim() || null,
+      serviceId: item.serviceId,
+      serviceName,
+      serviceDate: (() => {
+        const serviceDate = new Date(`${String(item.serviceDate).trim()}T12:00:00.000Z`);
+        if (Number.isNaN(serviceDate.getTime())) {
+          throw new Error("Data prestazione non valida");
+        }
+        return serviceDate;
+      })(),
+      quantity,
+      price: priceParsed,
+      total,
+      tooth: item.tooth,
+      saldato: false,
+      isManualAdjustment,
+    };
+  });
+
+  let signatureUrl = existingSignatureUrl;
+  if (signatureData?.startsWith("data:image/png")) {
+    const signatureBuffer = Buffer.from(signatureData.replace(/^data:image\/png;base64,/, ""), "base64");
+    const signatureName = `signatures/quotes/${patientId}/quote-${Date.now()}.png`;
+    const signatureBlob = await put(signatureName, signatureBuffer, { access: "public", addRandomSuffix: false });
+    signatureUrl = signatureBlob.url;
+  }
+
+  const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
+  const primaryItem = normalizedItems[0];
+
+  const quote = await prisma.$transaction(
+    async (tx) => {
+    if (!quoteId) {
+      const createdQuote = await tx.quote.create({
+        data: {
+          patientId,
+          serviceId: primaryItem.serviceId,
+          serviceName: primaryItem.serviceName,
+          serviceDate: primaryItem.serviceDate,
+          quantity: primaryItem.quantity,
+          price: new Prisma.Decimal(primaryItem.price),
+          total: new Prisma.Decimal(totalSum),
+          signatureUrl: signatureUrl ?? "",
+          signedAt: new Date(),
+          items: {
+            create: normalizedItems.map((item) => ({
+              serviceId: item.serviceId,
+              serviceName: item.serviceName,
+              serviceDate: item.serviceDate,
+              quantity: item.quantity,
+              price: new Prisma.Decimal(item.price),
+              total: new Prisma.Decimal(item.total),
+              saldato: item.saldato,
+              isManualAdjustment: item.isManualAdjustment,
+            })),
+          },        },
+      });
+
+      await syncAllDentalRecordsIntoQuote(tx, patientId, createdQuote.id);
+
+      return tx.quote.findUniqueOrThrow({
+        where: { id: createdQuote.id },
+      });
+    }
+
+    const existingQuote = await tx.quote.findFirst({
+      where: { id: quoteId, patientId },
+      include: { items: true },
+    });
+
+    if (!existingQuote) {
+      throw new Error("Preventivo non trovato");
+    }
+
+    const existingPayments = patientPaymentClient?.findMany
+      ? await patientPaymentClient.findMany({
+          where: { quoteItemId: { in: existingQuote.items.map((item) => item.id) } },
+          select: { quoteItemId: true, amount: true },
+        })
+      : [];
+    const paidByQuoteItemId = new Map<string, number>();
+    for (const payment of existingPayments) {
+      if (!payment.quoteItemId) continue;
+      paidByQuoteItemId.set(
+        payment.quoteItemId,
+        (paidByQuoteItemId.get(payment.quoteItemId) ?? 0) + Number(payment.amount.toString())
+      );
+    }
+
+    const existingItemMap = new Map(existingQuote.items.map((item) => [item.id, item]));
+    const incomingIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
+    const removableItems = existingQuote.items.filter((item) => !incomingIds.has(item.id));
+    const lockedRemovedItem = removableItems.find((item) => (paidByQuoteItemId.get(item.id) ?? 0) > 0);
+
+    if (lockedRemovedItem) {
+      throw new Error("Non puoi rimuovere una prestazione con pagamenti già registrati");
+    }
+
+    for (const item of normalizedItems) {
+      if (!item.id) continue;
+      const existingItem = existingItemMap.get(item.id);
+      if (!existingItem) {
+        throw new Error("Una riga del preventivo non è valida");
+      }
+
+      const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
+      if (paidAmount - item.total > 0.009) {
+        throw new Error("Una prestazione ha pagamenti superiori al nuovo totale");
+      }
+    }
+
+    await tx.quote.update({
+      where: { id: existingQuote.id },
+      data: {
+        serviceId: primaryItem.serviceId,
+        serviceName: primaryItem.serviceName,
+        serviceDate: primaryItem.serviceDate,
+        quantity: primaryItem.quantity,
+        price: new Prisma.Decimal(primaryItem.price),
+        total: new Prisma.Decimal(totalSum),
+        signatureUrl: signatureUrl ?? "",
+        signedAt: new Date(),
+      },
+    });
+
+    for (const item of removableItems) {
+      await tx.quoteItem.delete({ where: { id: item.id } });
+    }
+
+    for (const item of normalizedItems) {
+      if (!item.id) {
+        await tx.quoteItem.create({
+          data: {
+            quoteId: existingQuote.id,
+            serviceId: item.serviceId,
+            serviceName: item.serviceName,
+            serviceDate: item.serviceDate,
+            quantity: item.quantity,
+            price: new Prisma.Decimal(item.price),
+            total: new Prisma.Decimal(item.total),
+            saldato: false,
+          },
+        });
+        continue;
+      }
+
+      const existingItem = existingItemMap.get(item.id);
+      if (!existingItem) continue;
+      const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
+      
+      const isSettled = paidAmount >= item.total - 0.009;
+
+      await tx.quoteItem.update({
+        where: { id: item.id },
+        data: {
+          serviceId: item.serviceId,
+          serviceName: item.serviceName,
+          serviceDate: item.serviceDate,
+          quantity: item.quantity,
+          price: new Prisma.Decimal(item.price),
+          total: new Prisma.Decimal(item.total),
+          saldato: isSettled,
+          isManualAdjustment: item.isManualAdjustment,
+        },
+      });
+    }
+
+    await syncAllDentalRecordsIntoQuote(tx, patientId, existingQuote.id);
+
+    return tx.quote.findUniqueOrThrow({
+      where: { id: existingQuote.id },
+    });
+  }, { timeout: 15000 });
+
+  await logAudit(user, {
+    action: "patient.quote_saved",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: {
+      quoteId: quote.id,
+      serviceId: primaryItem.serviceId,
+      serviceName: primaryItem.serviceName,
+      quantity: primaryItem.quantity,
+      price: primaryItem.price,
+      total: totalSum,
+    },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+  revalidatePath("/finanza/pagamenti");
+  return { savedAt: Date.now() };
+}
+
+export async function revokeConsentAction(formData: FormData) {
+  const user = await requireUser([...STAFF_ROLES]);
+  const consentId = (formData.get("consentId") as string) ?? "";
+  if (!consentId) throw new Error("Dati consenso non validi");
+
+  const existing = await prisma.patientConsent.findUnique({
+    where: { id: consentId },
+    select: { patientId: true },
+  });
+  if (!existing) throw new Error("Consenso non trovato");
+
+  await prisma.patientConsent.update({
+    where: { id: consentId },
+    data: { status: ConsentStatus.REVOKED, revokedAt: new Date() },
+  });
+
+  await logAudit(user, {
+    action: "consent.revoked",
+    entity: "Patient",
+    entityId: existing.patientId,
+    metadata: { consentId },
+  });
+
+  revalidatePath(`/pazienti/${existing.patientId}`);
+  redirect(`/pazienti/${existing.patientId}?consentSuccess=${encodeURIComponent("Consenso revocato.")}`);
+}

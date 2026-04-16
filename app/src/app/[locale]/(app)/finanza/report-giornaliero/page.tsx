@@ -3,13 +3,13 @@ import { eachDayOfInterval, endOfWeek, format, isWithinInterval, startOfWeek } f
 import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
+import { PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-const ARCHIVE_PREFIX = "ARCHIVIATO:";
+const ARCHIVE_PREFIX = "[ARCHIVIO] ";
 
 type ReportGiornalieroPageProps = {
   searchParams?: Promise<{ day?: string }>;
@@ -59,27 +59,38 @@ export default async function ReportGiornalieroPage({
     orderBy: { occurredAt: "asc" },
     include: {
       doctor: { select: { fullName: true } },
+      patient: { select: { firstName: true, lastName: true } },
     },
   });
 
   const totalIncome = entries.reduce((sum, entry) => sum + Number(entry.amount), 0);
 
+  const paymentMethodLabels: Record<PatientPaymentMethod, string> = {
+    CASH: "Contanti",
+    ELECTRONIC: "Elettronico",
+    BANK_TRANSFER: "Bonifico",
+    PAY_LATER: "Pagherò",
+    OTHER: "Altro",
+  };
+
   // Group by payment method for the summary boxes
   const totalsByMethod: Record<string, number> = {};
   for (const entry of entries) {
-    const methodMatch = entry.description.match(/Metodo: ([^·]+)/);
-    const method = (methodMatch ? methodMatch[1].trim() : "elettronico").toLowerCase();
-    totalsByMethod[method] = (totalsByMethod[method] ?? 0) + Number(entry.amount);
+    const methodKey = entry.method ?? PatientPaymentMethod.ELECTRONIC;
+    const label = paymentMethodLabels[methodKey].toLowerCase();
+    totalsByMethod[label] = (totalsByMethod[label] ?? 0) + Number(entry.amount);
   }
 
-  const getRowColor = (method: string) => {
-    switch (method.toLowerCase()) {
-      case "contanti":
+  const getRowColor = (methodKey: PatientPaymentMethod | null) => {
+    switch (methodKey) {
+      case "CASH":
         return "bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-900/5 dark:hover:bg-amber-900/10";
-      case "bonifico":
+      case "BANK_TRANSFER":
         return "bg-blue-50/50 hover:bg-blue-50 dark:bg-blue-900/5 dark:hover:bg-blue-900/10";
-      case "pagherò":
+      case "PAY_LATER":
         return "bg-zinc-100/50 hover:bg-zinc-100 dark:bg-zinc-800/20 dark:hover:bg-zinc-800/30";
+      case "OTHER":
+        return "bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-900/5 dark:hover:bg-rose-900/10";
       default:
         return "bg-emerald-50/30 hover:bg-emerald-50/50 dark:bg-emerald-900/5 dark:hover:bg-emerald-900/10";
     }
@@ -185,22 +196,19 @@ export default async function ReportGiornalieroPage({
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {entries.map((entry) => {
-                  const methodMatch = entry.description.match(/Metodo: ([^·]+)/);
-                  const method = (methodMatch ? methodMatch[1].trim() : "elettronico").toLowerCase();
-                  
-                  // Extract patient name from description if possible
-                  // Formats: "Pagamento paziente Rossi Mario", "Anticipo paziente Rossi Mario"
-                  const patientMatch = entry.description.match(/(?:Pagamento|Anticipo) paziente ([^·]+)/);
-                  const patientName = patientMatch ? patientMatch[1].trim() : "—";
+                  const methodLabel = entry.method ? paymentMethodLabels[entry.method] : "Elettronico";
+                  const patientName = entry.patient 
+                    ? `${entry.patient.lastName} ${entry.patient.firstName}`
+                    : "—";
                   
                   return (
-                    <tr key={entry.id} className={`transition-colors ${getRowColor(method)}`}>
+                    <tr key={entry.id} className={`transition-colors ${getRowColor(entry.method)}`}>
                       <td className="px-4 py-3 text-zinc-700">
                         {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(entry.occurredAt)}
                       </td>
                       <td className="px-4 py-3 font-medium text-zinc-900">{patientName}</td>
                       <td className="px-4 py-3 text-zinc-700">{entry.description}</td>
-                      <td className="px-4 py-3 text-zinc-700 capitalize">{method}</td>
+                      <td className="px-4 py-3 text-zinc-700 capitalize">{methodLabel}</td>
                       <td className="px-4 py-3 text-zinc-700">{entry.doctor?.fullName ?? "Generale"}</td>
                       <td className="px-4 py-3 text-right font-semibold text-emerald-800">
                         {formatCurrency(Number(entry.amount))}

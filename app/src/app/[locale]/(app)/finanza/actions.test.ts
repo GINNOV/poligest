@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      findFirst: vi.fn(),
     },
     supplier: {
       findUnique: vi.fn(),
@@ -134,6 +135,7 @@ describe("finanza actions", () => {
         financeEntry: {
           create: vi.fn().mockResolvedValue({ id: "f-1" }),
           update: vi.fn().mockResolvedValue(undefined),
+          findFirst: vi.fn().mockResolvedValue(null),
         },
         cashAdvance: {
           create: vi.fn().mockResolvedValue({ id: "a-1" }),
@@ -323,7 +325,7 @@ describe("finanza actions", () => {
     });
     expect(mocks.prisma.financeEntry.update).toHaveBeenCalledWith({
       where: { id: "entry-1" },
-      data: { description: "ARCHIVIATO: Pagamento medico · Metodo: elettronico · Test" },
+      data: { description: "[ARCHIVIO] Pagamento medico · Metodo: elettronico · Test" },
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/anticipi");

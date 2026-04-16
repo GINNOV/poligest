@@ -1,21 +1,11 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
-
-type QuoteItemSummary = {
-  id: string;
-  serviceName: string;
-  tooth?: number | null;
-  quantity: number;
-  total: number;
-  paid: number;
-  paghero: number;
-  altro: number;
-  remaining: number;
-  saldato: boolean;
-  status: "settled" | "partial" | "unpaid" | "in_progress";
-  label: string;
-};
+import { 
+  getQuoteItemPaymentStatus, 
+  type QuoteItemSummary,
+  calculateRemaining
+} from "@/lib/finance/domain-logic";
 
 type PaymentContextType = {
   items: QuoteItemSummary[];
@@ -46,24 +36,22 @@ export function PaymentStateProvider({
       prev.map((item) => {
         if (item.id === id) {
           const newTotal = newPrice * newQuantity;
-          // Residuo = Total - Paid - Pagherò
-          const newRemaining = Math.max(newTotal - item.paid - item.paghero, 0);
-          const newSaldato = newRemaining < 0.01;
-          const newStatus = item.status === "in_progress" 
-            ? "in_progress" 
-            : newSaldato 
-              ? "settled" 
-              : (item.paid > 0.009 || item.paghero > 0.009)
-                ? "partial" 
-                : "unpaid";
+          const status = getQuoteItemPaymentStatus({
+            total: newTotal,
+            paid: item.paid,
+            paghero: item.paghero,
+            altro: item.altro,
+            inProgress: item.status === "in_progress",
+          });
+          const remaining = calculateRemaining(newTotal, item.paid, item.paghero);
 
           return {
             ...item,
             quantity: newQuantity,
             total: newTotal,
-            remaining: newRemaining,
-            saldato: newSaldato,
-            status: newStatus,
+            remaining,
+            saldato: status === "settled",
+            status,
           };
         }
         return item;

@@ -138,6 +138,13 @@ export async function recordPatientPayment(formData: FormData) {
         occurredAt: new Date(paidAt),
         doctorId: targetDoctorId,
         userId: user.id,
+        patientId: patientId,
+        method: method,
+        metadata: {
+          paymentId: p.id,
+          quoteId,
+          quoteItemId,
+        },
       },
     });
 
@@ -188,11 +195,34 @@ export async function archivePatientPayment(formData: FormData) {
     return;
   }
 
+  const ARCHIVE_PREFIX = "[ARCHIVIO] ";
+
+  // Find associated FinanceEntry if it exists in metadata
+  // We do this OUTSIDE the transaction because findFirst on JSON fields 
+  // might have different support in transaction proxies/mocks.
+  const relatedEntry = await prisma.financeEntry.findFirst({
+    where: {
+      metadata: {
+        path: ["paymentId"],
+        equals: payment.id,
+      },
+    },
+  });
+
   await prisma.$transaction(async (tx) => {
     await tx.patientPayment.update({
       where: { id: payment.id },
       data: { archivedAt: new Date() },
     });
+
+    if (relatedEntry && !relatedEntry.description.startsWith(ARCHIVE_PREFIX)) {
+      await tx.financeEntry.update({
+        where: { id: relatedEntry.id },
+        data: {
+          description: `${ARCHIVE_PREFIX}${relatedEntry.description}`,
+        },
+      });
+    }
 
     if (payment.quoteItemId) {
       const [quoteItem, activePayments] = await Promise.all([
@@ -332,6 +362,10 @@ export async function createCashAdvance(formData: FormData) {
         occurredAt: new Date(issuedAt),
         doctorId: targetDoctorId,
         userId: user.id,
+        patientId: patientId,
+        metadata: {
+          advanceId: adv.id,
+        },
       },
     });
 
@@ -501,20 +535,33 @@ export async function amendDoctorPayment(formData: FormData) {
 
 export async function archiveDoctorPayment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
-  const entryId = formData.get("entryId") as string;
-  if (!entryId) return;
+  const entryId = (formData.get("entryId") as string) || "";
+  const ARCHIVE_PREFIX = "[ARCHIVIO] ";
+
+  if (!entryId) {
+    throw new Error("Movimento non valido");
+  }
 
   const entry = await prisma.financeEntry.findUnique({
     where: { id: entryId },
     select: { description: true },
   });
 
-  const ARCHIVE_PREFIX = "ARCHIVIATO:";
-  if (!entry || entry.description.startsWith(ARCHIVE_PREFIX)) return;
+  if (!entry) {
+    throw new Error("Movimento non trovato");
+  }
+
+  if (entry.description.startsWith(ARCHIVE_PREFIX)) {
+    revalidatePath("/finanza");
+    revalidatePath("/finanza/anticipi");
+    return;
+  }
 
   await prisma.financeEntry.update({
     where: { id: entryId },
-    data: { description: `${ARCHIVE_PREFIX} ${entry.description}` },
+    data: {
+      description: `${ARCHIVE_PREFIX}${entry.description}`,
+    },
   });
 
   await logAudit(user, {

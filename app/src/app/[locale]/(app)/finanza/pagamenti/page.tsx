@@ -14,17 +14,15 @@ import { PaymentsSummaryTiles } from "@/components/payments-summary-tiles";
 import { UnsettledItemsList } from "@/components/unsettled-items-list";
 import { PaymentRegistrationForm } from "@/components/payment-registration-form";
 import { PaymentHistory } from "@/components/payment-history";
-import { PatientPaymentFields } from "@/components/finance-forms";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { Button } from "@/components/ui/button";
-import { FormSubmitButton } from "@/components/form-submit-button";
 import { savePreventivoAction } from "@/lib/patients/actions";
 import { archivePatientPayment, recordPatientPayment } from "../actions";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import {
-  formatDateInDisplayTimeZone,
   formatDateInputValueInTimeZone,
 } from "@/lib/user-display-time-zone";
+import { summarizeQuoteItem } from "@/lib/finance/domain-logic";
 
 export const dynamic = "force-dynamic";
 
@@ -39,26 +37,6 @@ const paymentMethodLabels: Record<PatientPaymentMethod, string> = {
   PAY_LATER: "Pagherò",
   OTHER: "Altro",
 };
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("it-IT", {
-    style: "currency",
-    currency: "EUR",
-  }).format(value);
-
-type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid" | "in_progress";
-
-function getQuoteItemPaymentStatus(
-  paid: number,
-  remaining: number,
-  inProgress: boolean,
-  paghero: number
-): QuoteItemPaymentStatus {
-  if (inProgress) return "in_progress";
-  if (remaining < 0.01) return "settled";
-  if (paid > 0.009) return "partial";
-  return "unpaid";
-}
 
 export default async function PagamentiPage({
   searchParams,
@@ -191,39 +169,20 @@ export default async function PagamentiPage({
     const paghero = pagheroFromPayments;
     const altro = altroFromPayments;
         
-    // Residuo = Total - Paid - Pagherò (Altro is excluded from subtraction)
-    const remaining = Math.max(total - paid - paghero, 0);
-    const inProgress = Boolean(item.dentalRecord && !item.dentalRecord.treated);
-    const status = getQuoteItemPaymentStatus(paid + paghero, remaining, inProgress, altro);
-    const tooth = item.dentalRecord?.tooth;
-    return {
+    return summarizeQuoteItem({
       id: item.id,
       serviceName: item.serviceName,
-      tooth,
+      tooth: item.dentalRecord?.tooth,
       quantity: item.quantity,
       total,
       paid,
       paghero,
       altro,
-      remaining,
-      saldato: status === "settled",
-      status,
-      label: `${item.serviceName}${tooth ? ` (Dente ${tooth})` : ""} · residuo ${formatCurrency(remaining)}`,
-    };
-  });
+      inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
+    });
+    });
 
-  const totals = quoteItemSummaries.reduce(
-    (acc, item) => {
-      acc.total += item.total;
-      acc.paid += item.paid;
-      acc.paghero += item.paghero;
-      acc.remaining += item.remaining;
-      return acc;
-    },
-    { total: 0, paid: 0, paghero: 0, remaining: 0 }
-  );
-
-  const altroTotal = allPayments
+    const altroTotal = allPayments
     .filter((p) => p.method === "OTHER")
     .reduce((sum, p) => sum + p.amount, 0);
 
