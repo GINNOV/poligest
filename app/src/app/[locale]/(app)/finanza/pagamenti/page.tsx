@@ -35,7 +35,7 @@ const paymentMethodLabels: Record<PatientPaymentMethod, string> = {
   ELECTRONIC: "Elettronico",
   BANK_TRANSFER: "Bonifico",
   PAY_LATER: "Pagherò",
-  OTHER: "Altro",
+  OTHER: "insolvente",
 };
 
 export default async function PagamentiPage({

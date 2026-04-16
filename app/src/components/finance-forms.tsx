@@ -226,7 +226,7 @@ export function PatientPaymentFields({
             <option value="PAY_LATER" className="text-rose-600 dark:text-rose-400">
               Pagherò
             </option>
-            <option value="OTHER">Altro</option>
+            <option value="OTHER">insolvente</option>
           </select>
         </label>
 

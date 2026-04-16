@@ -99,7 +99,7 @@ export async function recordPatientPayment(formData: FormData) {
         : method === PatientPaymentMethod.PAY_LATER
           ? "pagherò"
         : method === PatientPaymentMethod.OTHER
-          ? "altro"
+          ? "insolvente"
           : "elettronico";
 
   const payment = await prisma.$transaction(async (tx) => {
@@ -423,7 +423,7 @@ export async function createDoctorPayment(formData: FormData) {
         : method === PatientPaymentMethod.PAY_LATER
           ? "pagherò"
         : method === PatientPaymentMethod.OTHER
-          ? "altro"
+          ? "insolvente"
           : "elettronico";
 
   const entry = await prisma.financeEntry.create({
@@ -488,7 +488,7 @@ export async function amendDoctorPayment(formData: FormData) {
         : method === PatientPaymentMethod.PAY_LATER
           ? "pagherò"
         : method === PatientPaymentMethod.OTHER
-          ? "altro"
+          ? "insolvente"
           : "elettronico";
 
   const CORRETTO_MARKER = "(CORRETTO)";

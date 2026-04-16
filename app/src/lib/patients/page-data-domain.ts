@@ -21,6 +21,7 @@ export type PatientQuoteDraft = {
     treated?: boolean;
     tooth?: number;
     createdAt?: string;
+    payments?: Array<{ amount: number }>;
   }>;
 } | null;
 
@@ -39,6 +40,7 @@ export type QuoteDraftItemInput = {
   treated?: boolean | null;
   tooth?: number | null;
   createdAt: Date | null;
+  payments?: Array<{ amount: number }>;
 };
 
 export type QuoteDraftInput = {
@@ -133,6 +135,7 @@ export function serializePatientQuoteDraft(latestQuote: QuoteDraftInput): Patien
           treated: item.treated != null ? Boolean(item.treated) : undefined,
           tooth: item.tooth ?? undefined,
           createdAt: item.createdAt?.toISOString?.() ?? undefined,
+          payments: Array.isArray(item.payments) ? item.payments.map(p => ({ amount: toNumericValue(p.amount) })) : undefined,
         }))
       : undefined,
   };

@@ -46,13 +46,13 @@ export function QuoteItemRow({
       className={clsx(
         "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[1fr_60px_100px_100px_140px_auto]",
         item.isSettled
-          ? "border-emerald-200 bg-emerald-50/30 dark:border-emerald-900/20 dark:bg-emerald-950/10"
+          ? "border-emerald-500 bg-emerald-500/10 dark:border-emerald-400 dark:bg-emerald-400/5"
           : item.dentalRecordId 
             ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
             : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
       )}
     >
-      <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300 lg:col-span-1">
+      <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300 lg:col-span-1">
         Prestazione
         <select
           value={item.serviceId}
@@ -65,7 +65,7 @@ export function QuoteItemRow({
               price: Number(item.price) === 0 ? String(nextService?.costBasis ?? "") : item.price,
             });
           }}
-          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
+          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 uppercase"
           required
         >
           <option value="" disabled>
@@ -78,7 +78,7 @@ export function QuoteItemRow({
           ))}
         </select>
       </label>
-      <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+      <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
         Qtà
         <input
           type="number"
@@ -92,10 +92,10 @@ export function QuoteItemRow({
             const nextValue = event.target.value.replace(/\D+/g, "");
             onUpdate(index, { quantity: nextValue });
           }}
-          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
+          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-1 text-center text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 font-mono"
         />
       </label>
-      <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+      <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
         Prezzo
         <input
           type="number"
@@ -104,26 +104,27 @@ export function QuoteItemRow({
           disabled={item.isSettled}
           value={item.price}
           onChange={(event) => onUpdate(index, { price: event.target.value })}
-          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
+          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 font-mono"
         />
       </label>
-      <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+      <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
         Totale
         <input
           type="text"
           value={item.totalValue.toFixed(2)}
           readOnly
-          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none opacity-60"
+          className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 font-mono"
+          disabled={item.isSettled}
         />
       </label>
-      <label className="flex min-w-0 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+      <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
         Data prestazione
         <input
           type="date"
           disabled={item.isSettled}
           value={item.serviceDate}
           onChange={(event) => onUpdate(index, { serviceDate: event.target.value })}
-          className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-50 dark:disabled:bg-zinc-950"
+          className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 uppercase"
           required
         />
       </label>
@@ -160,7 +161,7 @@ export function QuoteItemRow({
           </div>
         )}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           {(() => {
             const d = formatItemDate(item.createdAt);
@@ -169,7 +170,7 @@ export function QuoteItemRow({
           {item.tooth != null ? (
             <>
               <span className="text-zinc-300 dark:text-zinc-700">•</span>
-              <span>Dente: {item.tooth === 0 ? "Bocca intera" : item.tooth}</span>
+              <span>Dente: <span className="text-blue-900 dark:text-blue-400 font-black">{item.tooth === 0 ? "Bocca intera" : item.tooth}</span></span>
             </>
           ) : null}
           <span className="text-zinc-300 dark:text-zinc-700">•</span>

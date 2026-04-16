@@ -18,7 +18,7 @@ export function PaymentRegistrationForm({
   recordPatientPaymentAction: (formData: FormData) => Promise<void>;
 }) {
   const router = useRouter();
-  const { items } = usePaymentState();
+  const { items, openAccordion, setOpenAccordion } = usePaymentState();
   const unsettledItems = items.filter((item) => item.remaining > 0);
 
   const [state, formAction] = useActionState(
@@ -36,7 +36,17 @@ export function PaymentRegistrationForm({
   }, [state.timestamp, state.success, router]);
 
   return (
-    <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
+    <details
+      open={openAccordion === "payment"}
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) {
+          setOpenAccordion("payment");
+        } else if (openAccordion === "payment") {
+          setOpenAccordion(null);
+        }
+      }}
+      className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden"
+    >
       <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <svg

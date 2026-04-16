@@ -26,7 +26,7 @@ export function PaymentsSummaryTiles() {
         <p className="mt-2 text-2xl font-bold font-mono tabular-nums text-rose-700 dark:text-rose-500">{formatCurrency(totals.paghero)}</p>
       </div>
       <div className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100 p-4 shadow-sm dark:border-rose-900/30 dark:from-rose-950/20 dark:to-rose-900/20">
-        <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">totale Altro</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">totale insolvente</p>
         <p className="mt-2 text-2xl font-bold font-mono tabular-nums text-rose-700 dark:text-rose-500">{formatCurrency(totals.altro)}</p>
       </div>
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">

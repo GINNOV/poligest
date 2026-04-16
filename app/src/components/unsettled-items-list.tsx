@@ -3,7 +3,7 @@
 import { usePaymentState } from "./payment-state-provider";
 
 export function UnsettledItemsList() {
-  const { items } = usePaymentState();
+  const { items, openAccordion, setOpenAccordion } = usePaymentState();
   const unsettled = items.filter((i) => !i.saldato);
 
   const formatCurrency = (value: number) =>
@@ -13,7 +13,17 @@ export function UnsettledItemsList() {
     }).format(value);
 
   return (
-    <details className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden">
+    <details
+      open={openAccordion === "unsettled"}
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) {
+          setOpenAccordion("unsettled");
+        } else if (openAccordion === "unsettled") {
+          setOpenAccordion(null);
+        }
+      }}
+      className="group rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950 [&_summary::-webkit-details-marker]:hidden"
+    >
       <summary className="flex cursor-pointer items-center justify-between gap-3 px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-3">
           <svg
@@ -90,17 +100,40 @@ export function UnsettledItemsList() {
                       : item.status === "partial"
                       ? "Parzialmente incassato"
                       : item.altro > 0.009
-                      ? "Promesso (Altro)"
+                      ? "Promesso (insolvente)"
                       : "Da incassare"}
                   </span>
                 </div>
-                <div className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-5">
-                  <div>Totale: {formatCurrency(item.total)}</div>
-                  <div>Incassato: {formatCurrency(item.paid)}</div>
-                  <div className="text-zinc-600 dark:text-zinc-400">Pagherò: {formatCurrency(item.paghero)}</div>
-                  <div className="text-rose-600 dark:text-rose-400">Altro: {formatCurrency(item.altro)}</div>
-                  <div className="font-bold text-amber-600 dark:text-amber-500">
-                    Residuo: {formatCurrency(item.remaining)}
+                <div className="mt-4 grid gap-3 text-[11px] font-semibold uppercase tracking-wider sm:grid-cols-5">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-zinc-500 dark:text-zinc-400">Totale</span>
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 font-mono text-sm text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+                      {formatCurrency(item.total)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-emerald-700 dark:text-emerald-400">Incassato</span>
+                    <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 px-2.5 py-1.5 font-mono text-sm text-emerald-900 shadow-sm dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+                      {formatCurrency(item.paid)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-zinc-600 dark:text-zinc-400">Pagherò</span>
+                    <div className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 font-mono text-sm text-zinc-700 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                      {formatCurrency(item.paghero)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-rose-700 dark:text-rose-400">insolvente</span>
+                    <div className="rounded-lg border border-rose-100 bg-rose-50/50 px-2.5 py-1.5 font-mono text-sm text-rose-900 shadow-sm dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-300">
+                      {formatCurrency(item.altro)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-amber-700 dark:text-amber-400 font-bold">Residuo</span>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 font-mono text-sm font-bold text-amber-900 shadow-sm dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-400">
+                      {formatCurrency(item.remaining)}
+                    </div>
                   </div>
                 </div>
               </div>

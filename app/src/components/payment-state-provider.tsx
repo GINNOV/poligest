@@ -7,10 +7,14 @@ import {
   calculateRemaining
 } from "@/lib/finance/domain-logic";
 
+export type AccordionId = "quote" | "unsettled" | "payment" | null;
+
 type PaymentContextType = {
   items: QuoteItemSummary[];
   updateItemPrice: (id: string, newPrice: number, newQuantity: number) => void;
   totals: { total: number; paid: number; paghero: number; altro: number; remaining: number };
+  openAccordion: AccordionId;
+  setOpenAccordion: (id: AccordionId) => void;
 };
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -25,6 +29,7 @@ export function PaymentStateProvider({
   children: ReactNode;
 }) {
   const [items, setItems] = useState(initialItems);
+  const [openAccordion, setOpenAccordion] = useState<AccordionId>("quote");
 
   // Sync with server data if it changes (e.g. after save)
   useEffect(() => {
@@ -74,7 +79,7 @@ export function PaymentStateProvider({
   }, [items, initialAltro]);
 
   return (
-    <PaymentContext.Provider value={{ items, updateItemPrice, totals }}>
+    <PaymentContext.Provider value={{ items, updateItemPrice, totals, openAccordion, setOpenAccordion }}>
       {children}
     </PaymentContext.Provider>
   );

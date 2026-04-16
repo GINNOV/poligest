@@ -95,7 +95,7 @@ export function QuoteAccordion({
   printHref,
 }: Props) {
   const router = useRouter();
-  const { updateItemPrice } = usePaymentState();
+  const { updateItemPrice, openAccordion, setOpenAccordion } = usePaymentState();
   const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
   const [isMounted, setIsMounted] = useState(false);
 
@@ -289,7 +289,14 @@ export function QuoteAccordion({
 
   return (
     <details
-      open
+      open={openAccordion === "quote"}
+      onToggle={(e) => {
+        if ((e.target as HTMLDetailsElement).open) {
+          setOpenAccordion("quote");
+        } else if (openAccordion === "quote") {
+          setOpenAccordion(null);
+        }
+      }}
       className={clsx(
         "group rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm [&_summary::-webkit-details-marker]:hidden",
         className
@@ -365,9 +372,9 @@ export function QuoteAccordion({
         <div className="flex flex-wrap items-center justify-end gap-3">
           <FormSubmitButton
             disabled={!signatureReady || items.length === 0}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-emerald-600"
           >
-            Aggiorna contabilità
+            AGGIORNA
           </FormSubmitButton>
         </div>
       </form>
