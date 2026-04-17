@@ -11,11 +11,13 @@ export function PaymentRegistrationForm({
   quoteId,
   diarioUrl,
   recordPatientPaymentAction,
+  doctors,
 }: {
   patientId: string;
   quoteId: string;
   diarioUrl: string;
   recordPatientPaymentAction: (formData: FormData) => Promise<void>;
+  doctors: { id: string; fullName: string }[];
 }) {
   const router = useRouter();
   const { items, openAccordion, setOpenAccordion } = usePaymentState();
@@ -94,6 +96,7 @@ export function PaymentRegistrationForm({
               quoteId={quoteId}
               quoteItems={unsettledItems}
               diarioUrl={diarioUrl}
+              doctors={doctors}
             />
             <FormSubmitButton variant="primary" className="w-full rounded-full shadow-sm">
               Registra pagamento

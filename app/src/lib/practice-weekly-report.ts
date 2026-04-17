@@ -59,6 +59,7 @@ type ChannelSummary = {
   records: number;
   emailTouches: number;
   smsTouches: number;
+  whatsappTouches: number;
   bothChannelRecords: number;
 };
 
@@ -332,6 +333,7 @@ function createChannelSummary(): ChannelSummary {
     records: 0,
     emailTouches: 0,
     smsTouches: 0,
+    whatsappTouches: 0,
     bothChannelRecords: 0,
   };
 }
@@ -367,7 +369,7 @@ function formatPercent(value: number) {
 }
 
 async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyReportMetrics> {
-  const [appointments, newPatients, paymentsAggregate, quotesSigned, appointmentReminders, recalls, upcomingAppointments] =
+  const [appointments, newPatients, paymentsAggregate, quotesSigned, appointmentReminders, recalls, upcomingAppointments, whatsappAuditLogs] =
     await Promise.all([
       prisma.appointment.findMany({
         where: {
@@ -451,6 +453,22 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
           },
         },
       }),
+      prisma.auditLog.findMany({
+        where: {
+          action: {
+            in: ["appointment.whatsapp_reminder_clicked", "patient.whatsapp_reminder_sent"],
+          },
+          createdAt: {
+            gte: period.start,
+            lt: period.endExclusive,
+          },
+        },
+        select: {
+          action: true,
+          metadata: true,
+          entityId: true,
+        },
+      }),
     ]);
 
   const completedAppointments = appointments.filter(
@@ -509,10 +527,36 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
   const appointmentReminderSummary = summarizeChannels(
     appointmentReminders.map((reminder) => reminder.rule.channel),
   );
+
+  // Add WhatsApp touches from AuditLogs
+  for (const log of whatsappAuditLogs) {
+    if (log.action === "appointment.whatsapp_reminder_clicked") {
+      appointmentReminderSummary.whatsappTouches += 1;
+      appointmentReminderSummary.records += 1;
+    }
+  }
+
   const recallReminderSummary = summarizeChannels(recalls.map((recall) => recall.rule.channel));
-  const uniquePatientsReminded = new Set(
-    [...appointmentReminders, ...recalls].map((reminder) => reminder.patientId),
-  ).size;
+
+  for (const log of whatsappAuditLogs) {
+    if (log.action === "patient.whatsapp_reminder_sent") {
+      recallReminderSummary.whatsappTouches += 1;
+      recallReminderSummary.records += 1;
+    }
+  }
+
+  const uniquePatientsReminded = new Set([
+    ...appointmentReminders.map((r) => r.patientId),
+    ...recalls.map((r) => r.patientId),
+    ...whatsappAuditLogs
+      .map((log) => {
+        if (log.metadata && typeof log.metadata === "object" && !Array.isArray(log.metadata)) {
+          return (log.metadata as any).patientId as string | undefined;
+        }
+        return undefined;
+      })
+      .filter((id): id is string => !!id),
+  ]).size;
 
   return {
     completedAppointments: completedAppointments.length,
@@ -542,8 +586,10 @@ function buildTextBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
   const totalReminderTouches =
     metrics.appointmentReminders.emailTouches +
     metrics.appointmentReminders.smsTouches +
+    metrics.appointmentReminders.whatsappTouches +
     metrics.recallReminders.emailTouches +
-    metrics.recallReminders.smsTouches;
+    metrics.recallReminders.smsTouches +
+    metrics.recallReminders.whatsappTouches;
   const completionRate =
     metrics.scheduledAppointments > 0
       ? (metrics.completedAppointments / metrics.scheduledAppointments) * 100
@@ -620,8 +666,10 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
   const totalReminderTouches =
     metrics.appointmentReminders.emailTouches +
     metrics.appointmentReminders.smsTouches +
+    metrics.appointmentReminders.whatsappTouches +
     metrics.recallReminders.emailTouches +
-    metrics.recallReminders.smsTouches;
+    metrics.recallReminders.smsTouches +
+    metrics.recallReminders.whatsappTouches;
 
   const dailyReportUrl = `${siteOrigin}/finanza/report-giornaliero`;
 
@@ -730,13 +778,13 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
               <tr>
                 <td style="padding:10px 0;font-size:14px;line-height:20px;color:#52525b;">Promemoria appuntamenti consegnati</td>
                 <td style="padding:10px 0;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">
-                  ${metrics.appointmentReminders.records} record · ${metrics.appointmentReminders.emailTouches} email · ${metrics.appointmentReminders.smsTouches} SMS
+                  ${metrics.appointmentReminders.records} record · ${metrics.appointmentReminders.emailTouches} email · ${metrics.appointmentReminders.smsTouches} SMS · ${metrics.appointmentReminders.whatsappTouches} WhatsApp
                 </td>
               </tr>
               <tr>
                 <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#52525b;">Richiami automatici consegnati</td>
                 <td style="padding:10px 0;border-top:1px solid #f4f4f5;font-size:14px;line-height:20px;color:#18181b;font-weight:600;text-align:right;">
-                  ${metrics.recallReminders.records} record · ${metrics.recallReminders.emailTouches} email · ${metrics.recallReminders.smsTouches} SMS
+                  ${metrics.recallReminders.records} record · ${metrics.recallReminders.emailTouches} email · ${metrics.recallReminders.smsTouches} SMS · ${metrics.recallReminders.whatsappTouches} WhatsApp
                 </td>
               </tr>
               <tr>

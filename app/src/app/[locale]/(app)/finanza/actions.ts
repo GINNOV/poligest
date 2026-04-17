@@ -11,6 +11,7 @@ export async function recordPatientPayment(formData: FormData) {
   const patientId = (formData.get("patientId") as string) || "";
   const quoteId = (formData.get("quoteId") as string) || "";
   const quoteItemId = (formData.get("quoteItemId") as string) || "";
+  const explicitDoctorId = (formData.get("doctorId") as string) || null;
   const amountRaw = (formData.get("amount") as string)?.trim();
   const paidAt = (formData.get("paidAt") as string) || "";
   const note = ((formData.get("note") as string) || "").trim() || null;
@@ -53,9 +54,9 @@ export async function recordPatientPayment(formData: FormData) {
   }
 
   // Try to find the doctor responsible for this payment
-  let targetDoctorId: string | null = null;
+  let targetDoctorId: string | null = explicitDoctorId;
 
-  if (quoteItem.dentalRecord?.updatedById) {
+  if (!targetDoctorId && quoteItem.dentalRecord?.updatedById) {
     const doc = await prisma.doctor.findUnique({
       where: { userId: quoteItem.dentalRecord.updatedById },
       select: { id: true },
@@ -70,6 +71,18 @@ export async function recordPatientPayment(formData: FormData) {
       select: { doctorId: true },
     });
     if (lastAppt) targetDoctorId = lastAppt.doctorId;
+  }
+
+  // Final fallback: most frequent doctor for this patient
+  if (!targetDoctorId) {
+    const agg = await prisma.appointment.groupBy({
+      by: ["doctorId"],
+      where: { patientId, doctorId: { not: null } },
+      _count: { doctorId: true },
+      orderBy: { _count: { doctorId: "desc" } },
+      take: 1,
+    });
+    if (agg.length > 0) targetDoctorId = agg[0].doctorId;
   }
 
   const existingPayments = await prisma.patientPayment.findMany({
@@ -157,6 +170,7 @@ export async function recordPatientPayment(formData: FormData) {
     entityId: payment.id,
     metadata: {
       patientId,
+      quoteId,
       amount: amountNumber,
       method,
       quoteItemId,

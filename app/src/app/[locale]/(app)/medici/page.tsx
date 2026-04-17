@@ -14,6 +14,7 @@ async function createDoctor(formData: FormData) {
   const specialty = (formData.get("specialty") as string)?.trim() || "Odontoiatra";
   const phone = (formData.get("phone") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const userId = (formData.get("userId") as string) || null;
 
   if (!name || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
@@ -25,6 +26,7 @@ async function createDoctor(formData: FormData) {
       specialty,
       phone,
       notes,
+      userId,
     },
   });
 
@@ -40,6 +42,7 @@ async function updateDoctor(formData: FormData) {
   const specialty = (formData.get("specialty") as string)?.trim() || "Odontoiatra";
   const phone = (formData.get("phone") as string)?.trim() || null;
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const userId = (formData.get("userId") as string) || null;
 
   if (!id || !fullName) {
     throw new Error("Dati medico non validi");
@@ -47,7 +50,7 @@ async function updateDoctor(formData: FormData) {
 
   await prisma.doctor.update({
     where: { id },
-    data: { fullName, specialty, phone, notes },
+    data: { fullName, specialty, phone, notes, userId },
   });
 
   revalidatePath("/medici");
@@ -78,10 +81,20 @@ export default async function MediciPage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const t = await getTranslations("doctors");
 
-  const doctors = await prisma.doctor.findMany({
-    orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true, specialty: true, phone: true, notes: true },
-  });
+  const [doctors, users] = await Promise.all([
+    prisma.doctor.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, specialty: true, phone: true, notes: true, userId: true },
+    }),
+    prisma.user.findMany({
+      where: {
+        role: { in: [Role.ADMIN, Role.MANAGER, Role.ASSISTANT] },
+        isActive: true,
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -128,6 +141,21 @@ export default async function MediciPage() {
                 placeholder="+39..."
               />
             </label>
+            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+              Utente associato
+              <select
+                name="userId"
+                className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                defaultValue=""
+              >
+                <option value="">— Nessuno —</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:col-span-3">
               {t("notes")}
               <textarea
@@ -162,67 +190,94 @@ export default async function MediciPage() {
               doctors.map((doc) => (
                 <div
                   key={doc.id}
-                  className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between"
+                  className="flex flex-col gap-4 py-4"
                 >
                   <form
                     action={updateDoctor}
-                    className="flex flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3"
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
                   >
                     <input type="hidden" name="doctorId" value={doc.id} />
-                    <input
-                      name="fullName"
-                      defaultValue={doc.fullName}
-                      className="h-10 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                      placeholder={t("name")}
-                    />
-                    <select
-                      name="specialty"
-                      defaultValue={doc.specialty ?? "Odontoiatra"}
-                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                    >
-                      <option value="Odontoiatra">{t("odontoiatra")}</option>
-                      <option value="Cardiologo">{t("cardiologo")}</option>
-                      <option value="Igenista">{t("igenista")}</option>
-                    </select>
-                    <input
-                      name="phone"
-                      defaultValue={doc.phone ?? ""}
-                      className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                      placeholder={t("phone")}
-                    />
-                    <textarea
-                      name="notes"
-                      defaultValue={doc.notes ?? ""}
-                      rows={1}
-                      className="min-h-[40px] flex-1 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                      placeholder={t("notes")}
-                    />
-                    <button
-                      type="submit"
-                      className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                    >
-                      Aggiorna
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold uppercase text-zinc-400">Nome completo</span>
+                      <input
+                        name="fullName"
+                        defaultValue={doc.fullName}
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold uppercase text-zinc-400">Specializzazione</span>
+                      <select
+                        name="specialty"
+                        defaultValue={doc.specialty ?? "Odontoiatra"}
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                      >
+                        <option value="Odontoiatra">{t("odontoiatra")}</option>
+                        <option value="Cardiologo">{t("cardiologo")}</option>
+                        <option value="Igenista">{t("igenista")}</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold uppercase text-zinc-400">Telefono</span>
+                      <input
+                        name="phone"
+                        defaultValue={doc.phone ?? ""}
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-bold uppercase text-zinc-400">Utente associato</span>
+                      <select
+                        name="userId"
+                        defaultValue={doc.userId || ""}
+                        className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                      >
+                        <option value="">— Nessuno —</option>
+                        {users.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name || u.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1 lg:col-span-3">
+                      <span className="text-[10px] font-bold uppercase text-zinc-400">Note</span>
+                      <textarea
+                        name="notes"
+                        defaultValue={doc.notes ?? ""}
+                        rows={1}
+                        className="min-h-[40px] rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        type="submit"
+                        className="h-10 flex-1 rounded-full bg-zinc-900 px-4 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                      >
+                        Aggiorna
+                      </button>
+                    </div>
                   </form>
-                  <form
-                    action={deleteDoctor}
-                    className="flex justify-end sm:pt-1"
-                    data-confirm="Eliminare definitivamente questo medico e le relative informazioni?"
-                  >
-                    <input type="hidden" name="doctorId" value={doc.id} />
-                    <button
-                      type="submit"
-                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 dark:border-rose-900/50 dark:bg-zinc-950 dark:text-rose-400 dark:hover:border-rose-800"
+                  <div className="flex justify-end border-t border-zinc-50 pt-2 dark:border-zinc-800/50">
+                    <form
+                      action={deleteDoctor}
+                      data-confirm="Eliminare definitivamente questo medico e le relative informazioni?"
                     >
-                      Elimina
-                    </button>
-                  </form>
+                      <input type="hidden" name="doctorId" value={doc.id} />
+                      <button
+                        type="submit"
+                        className="text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300"
+                      >
+                        Elimina medico
+                      </button>
+                    </form>
+                  </div>
                 </div>
               ))
           )}
         </div>
       </div>
     </div>
-    </div>
+  </div>
   );
 }

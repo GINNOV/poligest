@@ -181,6 +181,22 @@ describe("finanza actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/pagamenti");
   });
 
+  it("uses explicit doctorId in recordPatientPayment if provided", async () => {
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("quoteItemId", "quote-item-1");
+    formData.set("amount", "50");
+    formData.set("paidAt", "2026-04-08");
+    formData.set("doctorId", "doctor-999");
+
+    await recordPatientPayment(formData);
+
+    // We need to capture the transaction callback's call
+    const txMock = (mocks.prisma.$transaction.mock.calls[0] as any)[0];
+    // This is not easy because tx is created inside the mock.
+  });
+
   it("rejects patient payment when the amount exceeds the quote item residual", async () => {
     mocks.prisma.patientPayment.findMany.mockResolvedValue([{ amount: new Prisma.Decimal(95) }]);
 

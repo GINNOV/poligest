@@ -113,18 +113,18 @@ export default async function ReportGiornalieroPage({
           />
           <div className="flex flex-wrap gap-2 sm:justify-end">
             {Object.entries(totalsByMethod).map(([method, amount]) => (
-              <div key={method} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-right shadow-sm">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+              <div key={method} className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-right shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                   {method}
                 </p>
-                <p className="text-sm font-semibold text-zinc-900">{formatCurrency(amount)}</p>
+                <p className="mt-1 text-lg font-bold font-mono tabular-nums text-zinc-900 dark:text-zinc-50">{formatCurrency(amount)}</p>
               </div>
             ))}
-            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right shadow-sm">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right shadow-sm dark:border-emerald-800 dark:bg-emerald-950/20">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                 Totale incassato
               </p>
-              <p className="mt-1 text-xl font-semibold text-emerald-900">{formatCurrency(totalIncome)}</p>
+              <p className="mt-1 text-xl font-bold font-mono tabular-nums text-emerald-900 dark:text-emerald-200">{formatCurrency(totalIncome)}</p>
             </div>
           </div>
         </div>
@@ -197,10 +197,9 @@ export default async function ReportGiornalieroPage({
               <tbody className="divide-y divide-zinc-100">
                 {entries.map((entry) => {
                   const methodLabel = entry.method ? paymentMethodLabels[entry.method] : "Elettronico";
-                  const patientName = entry.patient 
+                  const patientName = entry.patient
                     ? `${entry.patient.lastName} ${entry.patient.firstName}`
-                    : "—";
-                  
+                    : (entry.description.match(/Pagamento paziente ([^·]+)/)?.[1]?.trim() || "—");                  
                   return (
                     <tr key={entry.id} className={`transition-colors ${getRowColor(entry.method)}`}>
                       <td className="px-4 py-3 text-zinc-700">

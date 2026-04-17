@@ -28,6 +28,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = {
   patientId?: string;
+  q?: string;
 };
 
 const paymentMethodLabels: Record<PatientPaymentMethod, string> = {
@@ -47,19 +48,32 @@ export default async function PagamentiPage({
   const displayTimeZone = await getUserDisplayTimeZone();
 
   const resolvedSearchParams = (await searchParams) ?? {};
+
+  let selectedPatientId = resolvedSearchParams.patientId?.trim() ?? "";
+
+  // If we have a search query (likely a quoteItemId from audit), try to resolve the patient
+  if (!selectedPatientId && resolvedSearchParams.q) {
+    const quoteItem = await prisma.quoteItem.findUnique({
+      where: { id: resolvedSearchParams.q },
+      select: { quote: { select: { patientId: true } } },
+    });
+    if (quoteItem?.quote.patientId) {
+      selectedPatientId = quoteItem.quote.patientId;
+    }
+  }
+
   const patients = await prisma.patient.findMany({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     select: { id: true, firstName: true, lastName: true },
   });
 
-  const selectedPatientId = resolvedSearchParams.patientId?.trim() ?? "";
   const selectedPatient = selectedPatientId
     ? await prisma.patient.findUnique({
         where: { id: selectedPatientId },
         select: { id: true, firstName: true, lastName: true, email: true, phone: true },
       })
     : null;
-  const [services, latestQuote] =
+  const [services, latestQuote, doctors] =
     selectedPatientId && selectedPatient
       ? await Promise.all([
           prisma.service.findMany({
@@ -70,6 +84,20 @@ export default async function PagamentiPage({
             where: { patientId: selectedPatientId },
             orderBy: { createdAt: "desc" },
             include: {
+              payments: {
+                where: { archivedAt: null },
+                select: {
+                  id: true,
+                  amount: true,
+                  paidAt: true,
+                  method: true,
+                  note: true,
+                  quoteItemId: true,
+                  user: {
+                    select: { name: true, email: true },
+                  },
+                },
+              },
               items: {
                 orderBy: { createdAt: "asc" },
                 include: {
@@ -99,8 +127,12 @@ export default async function PagamentiPage({
               },
             },
           }),
+          prisma.doctor.findMany({
+            orderBy: { fullName: "asc" },
+            select: { id: true, fullName: true },
+          }),
         ])
-      : [[], null];
+      : [[], null, []];
 
   const parsedQuote = serializePatientQuoteDraft(
     latestQuote
@@ -108,67 +140,33 @@ export default async function PagamentiPage({
           ...latestQuote,
           items: latestQuote.items.map((item) => ({
             ...item,
-            treated: item.dentalRecord?.treated,
-            tooth: item.dentalRecord?.tooth,
-            payments: item.payments.map(p => ({
+            treated: item.dentalRecord?.treated ?? false,
+            tooth: item.dentalRecord?.tooth ?? null,
+            dentalRecordId: item.dentalRecordId,
+            payments: item.payments.map((p) => ({
               ...p,
-              amount: Number(p.amount.toString())
-            }))
+              amount: Number(p.amount.toString()),
+            })),
           })),
         }
       : null
   );
-  const allPayments = (latestQuote?.items ?? [])
-    .flatMap((item) =>
-      item.payments.map((payment) => ({
-        ...payment,
-        amount: Number(payment.amount.toString()),
-        quoteItem: { 
-          serviceName: item.serviceName,
-          tooth: item.dentalRecord?.tooth
-        },
-      }))
-    )
-    .sort((a, b) => {
-      const paidAtDiff = b.paidAt.getTime() - a.paidAt.getTime();
-      if (paidAtDiff !== 0) return paidAtDiff;
-      return b.id.localeCompare(a.id, "it");
-    });
-
-  // effective payments exclude PAY_LATER
-  const payments = allPayments.filter((p) => p.method !== "PAY_LATER");
-  const historicalPayments = allPayments;
 
   const quoteItemSummaries = (latestQuote?.items ?? []).map((item) => {
     const total = Number(item.total.toString());
-    const paidFromPayments = item.payments.reduce(
-      (sum, payment) =>
-        (payment.method !== "PAY_LATER" && payment.method !== "OTHER") ? sum + Number(payment.amount.toString()) : sum,
+    const paid = item.payments.reduce(
+      (sum, p) => (p.method !== "PAY_LATER" && p.method !== "OTHER") ? sum + Number(p.amount.toString()) : sum,
       0
     );
-    const pagheroFromPayments = item.payments.reduce(
-      (sum, payment) =>
-        payment.method === "PAY_LATER" ? sum + Number(payment.amount.toString()) : sum,
+    const paghero = item.payments.reduce(
+      (sum, p) => p.method === "PAY_LATER" ? sum + Number(p.amount.toString()) : sum,
       0
     );
-    const altroFromPayments = item.payments.reduce(
-      (sum, payment) =>
-        payment.method === "OTHER" ? sum + Number(payment.amount.toString()) : sum,
+    const altro = item.payments.reduce(
+      (sum, p) => p.method === "OTHER" ? sum + Number(p.amount.toString()) : sum,
       0
     );
 
-    // Bug fix: Always prioritize paidFromPayments/pagheroFromPayments if there are any actual payments recorded.
-    // Fall back to item.total only if item.saldato is true AND there are no actual payments.
-    const hasActualPayments = item.payments.length > 0;
-    const paid = (hasActualPayments)
-      ? paidFromPayments 
-      : item.saldato 
-        ? total 
-        : 0;
-    
-    const paghero = pagheroFromPayments;
-    const altro = altroFromPayments;
-        
     return summarizeQuoteItem({
       id: item.id,
       serviceName: item.serviceName,
@@ -180,22 +178,58 @@ export default async function PagamentiPage({
       altro,
       inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
     });
-    });
+  });
+  const altroTotal = latestQuote?.payments
+    .filter(p => !p.quoteItemId)
+    .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
 
-    const altroTotal = allPayments
-    .filter((p) => p.method === "OTHER")
-    .reduce((sum, p) => sum + p.amount, 0);
-
-  const patientOptions = patients.map((patient) => ({
-    id: patient.id,
-    fullName: `${patient.lastName} ${patient.firstName}`,
+  const patientOptions = patients.map((p) => ({
+    id: p.id,
+    fullName: `${p.lastName} ${p.firstName}`,
   }));
+
+  const itemHistoricalPayments = latestQuote?.items.flatMap((item) =>
+    item.payments.map((p) => ({
+      id: p.id,
+      amount: Number(p.amount.toString()),
+      paidAt: p.paidAt,
+      method: p.method,
+      note: p.note,
+      user: p.user,
+      quoteItem: {
+        serviceName: item.serviceName,
+        tooth: item.dentalRecord?.tooth,
+      },
+    }))
+  ) ?? [];
+
+  const generalHistoricalPayments = latestQuote?.payments
+    .filter(p => !p.quoteItemId)
+    .map(p => ({
+      id: p.id,
+      amount: Number(p.amount.toString()),
+      paidAt: p.paidAt,
+      method: p.method,
+      note: p.note,
+      user: p.user,
+      quoteItem: null,
+    })) ?? [];
+
+  const historicalPayments = [...itemHistoricalPayments, ...generalHistoricalPayments].sort(
+    (a, b) => b.paidAt.getTime() - a.paidAt.getTime()
+  );
+
   const defaultServiceDate = formatDateInputValueInTimeZone(new Date(), displayTimeZone);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Pagamenti pazienti</h1>
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 uppercase">Finanza</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Gestisci preventivi, incassi e contabilità pazienti
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
@@ -286,6 +320,7 @@ export default async function PagamentiPage({
               quoteId={latestQuote?.id ?? ""}
               diarioUrl={`/pazienti/${selectedPatient.id}`}
               recordPatientPaymentAction={recordPatientPayment}
+              doctors={doctors}
             />
           </div>
 

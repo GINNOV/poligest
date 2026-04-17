@@ -176,7 +176,7 @@ export default async function ReportMensilePage({
             className="print:hidden"
           />
           <div className="grid gap-2 grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <div className="rounded-xl border border-dashed border-emerald-300 bg-emerald-50 px-4 py-3 text-right dark:border-emerald-800 dark:bg-emerald-950/20">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                 Totale Periodo
               </p>

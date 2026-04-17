@@ -18,6 +18,7 @@ type QuoteItemOption = {
   remaining: number;
   tooth?: number | null;
 };
+type DoctorOption = { id: string; fullName: string };
 
 type IncomeProps = {
   patients: PatientOption[];
@@ -138,12 +139,14 @@ type PatientPaymentFieldsProps = {
   quoteId: string;
   quoteItems: QuoteItemOption[];
   diarioUrl?: string;
+  doctors: DoctorOption[];
 };
 
 export function PatientPaymentFields({
   patientId,
   quoteId,
   quoteItems,
+  doctors,
 }: PatientPaymentFieldsProps) {
   const [quoteItemId, setQuoteItemId] = useState<string>("");
   const [prevQuoteItems, setPrevQuoteItems] = useState(quoteItems);
@@ -201,7 +204,7 @@ export function PatientPaymentFields({
         ) : null}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-5">
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Data pagamento
           <input
@@ -211,6 +214,22 @@ export function PatientPaymentFields({
             defaultValue={new Date().toISOString().slice(0, 10)}
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          Medico
+          <select
+            name="doctorId"
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            defaultValue=""
+          >
+            <option value="">(Automatico)</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.fullName}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">

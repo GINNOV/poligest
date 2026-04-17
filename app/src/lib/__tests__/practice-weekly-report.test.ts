@@ -28,6 +28,7 @@ describe("practice weekly report helpers", () => {
       records: 4,
       emailTouches: 3,
       smsTouches: 2,
+      whatsappTouches: 0,
       bothChannelRecords: 1,
     });
   });

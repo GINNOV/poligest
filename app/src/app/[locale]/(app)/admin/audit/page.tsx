@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import Link from "next/link";
-import { NextRecordButton } from "@/components/admin/NextRecordButton";
+import { AuditRecordNav } from "@/components/admin/AuditRecordNav";
 
 export default async function AuditPage({
   params,
@@ -37,6 +37,20 @@ export default async function AuditPage({
       : Array.isArray(searchParamsValue.userId)
         ? searchParamsValue.userId[0]
         : undefined;
+
+  const roleParam =
+    typeof searchParamsValue.role === "string"
+      ? searchParamsValue.role
+      : Array.isArray(searchParamsValue.role)
+        ? searchParamsValue.role[0]
+        : undefined;
+
+  const uq =
+    typeof searchParamsValue.uq === "string"
+      ? searchParamsValue.uq.trim()
+      : Array.isArray(searchParamsValue.uq)
+        ? searchParamsValue.uq[0]?.trim()
+        : "";
 
   const typeParam =
     typeof searchParamsValue.type === "string"
@@ -83,6 +97,23 @@ export default async function AuditPage({
   }
   if (userIdParam) {
     filters.push({ userId: userIdParam });
+  }
+  if (roleParam) {
+    filters.push({
+      user: {
+        role: roleParam as Role,
+      },
+    });
+  }
+  if (uq) {
+    filters.push({
+      user: {
+        OR: [
+          { email: { contains: uq, mode: Prisma.QueryMode.insensitive } },
+          { name: { contains: uq, mode: Prisma.QueryMode.insensitive } },
+        ],
+      },
+    });
   }
   if (typeParam) {
     filters.push({ action: typeParam });
@@ -142,6 +173,44 @@ export default async function AuditPage({
     return map[action] ?? "ℹ️";
   };
 
+  const renderMetadata = (metadata: Prisma.JsonValue, logId: string) => {
+    if (!metadata) return null;
+    const metadataString = JSON.stringify(metadata, null, 2);
+    const lineCount = metadataString.split("\n").length;
+
+    // Check if metadata contains a base64 image (specifically for consent signatures or photos)
+    let base64Image: string | null = null;
+    if (typeof metadata === "object" && metadata !== null) {
+      const meta = metadata as Record<string, any>;
+      // Common fields for images in our system
+      const imageValue = meta.signature || meta.photo || meta.imageData || meta.image;
+      if (typeof imageValue === "string" && imageValue.startsWith("data:image/")) {
+        base64Image = imageValue;
+      }
+    }
+
+    return (
+      <>
+        {base64Image && (
+          <div className="mt-2 mb-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-2 inline-block">
+            <p className="text-[10px] font-bold uppercase text-zinc-400 mb-1">Immagine acquisita:</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={base64Image} alt="Audit attachment" className="max-h-48 rounded shadow-sm" />
+          </div>
+        )}
+        <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-zinc-950 px-3 py-2 text-[11px] text-zinc-700 dark:text-zinc-300">
+          {metadataString}
+        </pre>
+        {lineCount > 50 && (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-zinc-800 px-3 py-1 text-[10px] font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-zinc-300">
+            <span>Prossimo record</span>
+            <AuditRecordNav containerId={`log-${logId}`} showLabels={false} />
+          </div>
+        )}
+      </>
+    );
+  };
+
   const groupedByDay = logs.reduce<Record<string, typeof logs>>((acc, log) => {
     const key = log.createdAt.toISOString().split("T")[0];
     if (!acc[key]) acc[key] = [];
@@ -165,7 +234,7 @@ export default async function AuditPage({
       </div>
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
-        <form className="grid grid-cols-1 gap-3 md:grid-cols-[1.5fr,1.5fr,1.5fr,1fr,auto]" method="get">
+        <form className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[1.5fr,1fr,1.5fr,1fr,1.5fr,1fr,auto]" method="get">
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             {t("auditSearchLabel")}
             <input
@@ -184,6 +253,31 @@ export default async function AuditPage({
               defaultValue={dateParam ?? ""}
               className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
             />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Cerca utente
+            <input
+              type="text"
+              name="uq"
+              defaultValue={uq}
+              placeholder="Nome o email"
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Ruolo utente
+            <select
+              name="role"
+              defaultValue={roleParam ?? ""}
+              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
+            >
+              <option value="">Tutti</option>
+              {Object.values(Role).map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Utente
@@ -256,14 +350,14 @@ export default async function AuditPage({
                         log.user?.email ||
                         t("auditUnknownUser");
 
-                      const metadataString = log.metadata ? JSON.stringify(log.metadata, null, 2) : "";
-                      const lineCount = metadataString.split("\n").length;
-
                       const isErrorReported = log.action === "error.reported";
 
                       // Extract patientId and quoteId for linking
-                      let patientId = log.entity === "patient" ? log.entityId : null;
-                      let quoteId = log.entity === "quote" ? log.entityId : null;
+                      const entityLower = log.entity.toLowerCase();
+                      let patientId = entityLower === "patient" ? log.entityId : null;
+                      let quoteId = entityLower === "quote" ? log.entityId : null;
+                      let appointmentId = entityLower === "appointment" ? log.entityId : null;
+                      let quoteItemId = null;
 
                       if (log.metadata && typeof log.metadata === "object") {
                         const meta = log.metadata as Record<string, any>;
@@ -271,6 +365,10 @@ export default async function AuditPage({
                         if (!patientId && meta.patient_id) patientId = meta.patient_id;
                         if (!quoteId && meta.quoteId) quoteId = meta.quoteId;
                         if (!quoteId && meta.quote_id) quoteId = meta.quote_id;
+                        if (!appointmentId && meta.appointmentId) appointmentId = meta.appointmentId;
+                        if (!appointmentId && meta.appointment_id) appointmentId = meta.appointment_id;
+                        if (meta.quoteItemId) quoteItemId = meta.quoteItemId;
+                        if (meta.quote_item_id) quoteItemId = meta.quote_item_id;
                       }
 
                       return (
@@ -280,20 +378,25 @@ export default async function AuditPage({
                           className="audit-record grid grid-cols-1 gap-2 p-4 sm:grid-cols-[1.2fr,0.8fr]"
                         >
                           <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide ${
-                                  isErrorReported
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                    : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                                }`}
-                              >
-                                <span>{actionEmoji(log.action)}</span>
-                                {log.action}
-                              </span>
-                              <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-                                by user: {actor} · {formatDate(log.createdAt)}
-                              </span>
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide ${
+                                    isErrorReported
+                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                      : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                  }`}
+                                >
+                                  <span>{actionEmoji(log.action)}</span>
+                                  {log.action}
+                                </span>
+                                <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+                                  by user: {actor} · {formatDate(log.createdAt)}
+                                </span>
+                              </div>
+                              <div className="shrink-0">
+                                <AuditRecordNav containerId={`log-${log.id}`} />
+                              </div>
                             </div>
                             <p className="text-sm text-zinc-800 dark:text-zinc-200">&nbsp;</p>
                           </div>
@@ -342,15 +445,30 @@ export default async function AuditPage({
                                   </Link>
                                 </div>
                               )}
+                              {quoteItemId && !quoteId && (
+                                <div className="mt-1">
+                                  <Link
+                                    href={`/${locale}/finanza/pagamenti?q=${quoteItemId}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400"
+                                  >
+                                    🔍 Cerca Voce Preventivo
+                                  </Link>
+                                </div>
+                              )}
+                              {appointmentId && (
+                                <div className="mt-1">
+                                  <Link
+                                    href={`/${locale}/agenda/appuntamenti?q=${appointmentId}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 text-emerald-600 hover:underline dark:text-emerald-400"
+                                  >
+                                    📅 Vedi Appuntamento
+                                  </Link>
+                                </div>
+                              )}
                             </div>
-                            {log.metadata ? (
-                              <>
-                                <pre className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-zinc-950 px-3 py-2 text-[11px] text-zinc-700 dark:text-zinc-300">
-                                  {metadataString}
-                                </pre>
-                                {lineCount > 50 && <NextRecordButton containerId={`log-${log.id}`} />}
-                              </>
-                            ) : null}
+                            {renderMetadata(log.metadata, log.id)}
                           </div>
                         </div>
                       );

@@ -45,7 +45,27 @@ This document outlines the strategic plan to resolve identified architectural fr
 
 ---
 
-## Success Metrics
+# Calendar Management & Architecture
+
+The calendar is currently the most complex UI module in the project, leading to high "thinking" time for AI and a higher risk of side effects during modifications.
+
+## 6. Calendar View Decomposition
+**Problem:** `CalendarPage` (900+ lines) and `CalendarWeekView` (500+ lines) are monolithic. They mix data orchestration, complex layout math (appointment overlap algorithms), and multiple forms (Create/Update/Delete) in single large files.
+
+### Strategy:
+- **Style Centralization**: Extract `SERVICE_STYLES` from view components into a shared utility in `src/lib/calendar/styles.ts` to prevent duplication.
+- **Layout Logic Extraction**: Move the `buildPositionedAppointments` overlap algorithm and `AvailabilityWindow` mapping from `CalendarWeekView.tsx` into `src/lib/calendar/layout-engine.ts`.
+- **Atomize View Components**: Break down the grid into `DayColumn`, `TimeGutter`, and `AppointmentCard` components.
+- **Dialog Orchestration**: Create a standalone `AppointmentDialog` that encapsulates both `AppointmentCreateForm` and `AppointmentUpdateForm`, reducing the footprint of the main views.
+- **Action Decoupling**: Move the massive server actions (create/update/delete) from `page.tsx` into a dedicated `src/app/[locale]/(app)/calendar/actions.ts`.
+
+## 7. Date Handling Consistency
+**Problem:** Multiple date libraries (`date-fns`, `Intl`, native `Date`) are used concurrently with varying timezone handling, making date arithmetic and filtering difficult to track.
+
+### Strategy:
+- Standardize on `src/lib/calendar/domain.ts` for all calendar-related date conversions.
+- Ensure all components use the same timezone-aware helpers to calculate week starts and month boundaries.
+
 - **AI Turn Efficiency**: Reduction in the number of tool calls needed for a typical UI change.
 - **File Size**: No component or action file exceeds 300 lines.
 - **Regression Rate**: Zero "reverted change" bugs after synchronization events.
