@@ -8,7 +8,7 @@ import { ConsentStatus, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Stampa consensi",

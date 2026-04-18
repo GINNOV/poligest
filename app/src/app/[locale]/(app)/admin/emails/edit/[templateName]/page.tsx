@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { EmailTemplateForm } from "@/components/EmailTemplateForm";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function EmailTemplateEditPage({
   params,

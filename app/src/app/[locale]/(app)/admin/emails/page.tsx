@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function AdminEmailsPage() {
   await requireUser([Role.ADMIN]);

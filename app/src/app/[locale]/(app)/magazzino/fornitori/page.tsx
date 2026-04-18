@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 import { createSupplier, deleteSupplier, updateSupplier } from "../actions";
 import { PhoneInput } from "@/components/phone-input";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function FornitoriPage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);

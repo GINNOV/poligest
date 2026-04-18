@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "MAGAZZINO",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type MagazzinoPageProps = {
   searchParams?: Promise<{ q?: string; mq?: string; from?: string; to?: string }>;

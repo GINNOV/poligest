@@ -10,7 +10,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Stampa diario",

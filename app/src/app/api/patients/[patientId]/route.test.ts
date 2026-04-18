@@ -170,14 +170,9 @@ describe("DELETE /api/patients/[patientId]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(mocks.prisma.quote.findMany).toHaveBeenCalledWith({
-      where: { patientId: "patient-1" },
-      select: { id: true },
+    expect(mocks.prisma.patient.delete).toHaveBeenCalledWith({
+      where: { id: "patient-1" },
     });
-    expect(mocks.prisma.quoteItem.deleteMany).toHaveBeenCalledWith({
-      where: { quoteId: { in: ["quote-1"] } },
-    });
-    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mocks.logAudit).toHaveBeenCalledTimes(2);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti");
   });

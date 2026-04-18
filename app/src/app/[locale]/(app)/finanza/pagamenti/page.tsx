@@ -24,7 +24,7 @@ import {
 } from "@/lib/user-display-time-zone";
 import { summarizeQuoteItem } from "@/lib/finance/domain-logic";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type SearchParams = {
   patientId?: string;

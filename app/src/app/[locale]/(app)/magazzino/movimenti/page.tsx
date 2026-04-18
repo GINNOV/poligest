@@ -5,7 +5,7 @@ import { Prisma, Role } from "@prisma/client";
 import { addStockMovement, deleteStockMovement, updateStockMovement } from "../actions";
 import { format } from "date-fns";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type MovimentiPageProps = {
   searchParams?: Promise<{ mq?: string; from?: string; to?: string }>;

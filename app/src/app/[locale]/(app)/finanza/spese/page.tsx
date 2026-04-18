@@ -10,7 +10,7 @@ import { FinanceExpenseFields } from "@/components/finance-forms";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { recordExpense } from "../actions";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function SpesePage() {
   await requireUser([Role.ADMIN, Role.MANAGER]);

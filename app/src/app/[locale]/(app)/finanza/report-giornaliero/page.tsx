@@ -7,7 +7,7 @@ import { PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const ARCHIVE_PREFIX = "[ARCHIVIO] ";
 

@@ -5,7 +5,7 @@ import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Lista prodotti",

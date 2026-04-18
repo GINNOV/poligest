@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import { createProduct, deleteProduct, updateProduct } from "../actions";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 type ProdottiPageProps = {
   searchParams?: Promise<{ impianti?: string; q?: string }>;

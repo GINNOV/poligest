@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { stackServerApp } from "@/lib/stack-app";
 import { getRandomAvatarUrl } from "@/lib/avatars";
@@ -84,7 +85,7 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
   });
 }
 
-async function getUserFromStack(allowImpersonation = true): Promise<AppUser | null> {
+const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUser | null> => {
   const stackUser = await stackServerApp.getUser();
   if (!stackUser) return null;
 
@@ -194,7 +195,7 @@ async function getUserFromStack(allowImpersonation = true): Promise<AppUser | nu
   }
 
   return baseUser;
-}
+});
 
 export async function getCurrentUser(): Promise<AppUser | null> {
   return getUserFromStack();

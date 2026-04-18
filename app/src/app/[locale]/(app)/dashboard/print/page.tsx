@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { Role } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Lista appuntamenti del giorno",

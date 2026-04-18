@@ -151,7 +151,7 @@ model SmsLog {
   createdAt  DateTime @default(now())
 
   template SmsTemplate? @relation(fields: [templateId], references: [id])
-  patient  Patient?     @relation(fields: [patientId], references: [id])
+  patient  Patient?     @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user     User?        @relation(fields: [userId], references: [id])
 
   @@index([to])
@@ -380,7 +380,7 @@ model RecurringMessageLog {
   sentAt       DateTime?
   createdAt    DateTime             @default(now())
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([kind, scheduledFor])
   @@index([patientId])
@@ -445,7 +445,7 @@ model PatientConsent {
   doctorName  String?
   patientId String
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   module  ConsentModule @relation(fields: [moduleId], references: [id])
 
   @@unique([patientId, moduleId], name: "patientId_moduleId")
@@ -465,7 +465,7 @@ model Appointment {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor  Doctor? @relation(fields: [doctorId], references: [id])
   appointmentReminders AppointmentReminder[]
 
@@ -482,7 +482,7 @@ model ClinicalNote {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor  Doctor? @relation(fields: [doctorId], references: [id])
 
   @@index([patientId])
@@ -500,7 +500,7 @@ model DentalRecord {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   updatedBy User?   @relation("DentalRecordUpdatedBy", fields: [updatedById], references: [id])
   quoteItem QuoteItem?
 
@@ -578,7 +578,7 @@ model StockMovement {
 
   product Product  @relation(fields: [productId], references: [id])
   user    User?    @relation("StockMovementUser", fields: [userId], references: [id])
-  patient Patient? @relation(fields: [patientId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([movement])
@@ -600,7 +600,7 @@ model FinanceEntry {
 
   doctor  Doctor?  @relation(fields: [doctorId], references: [id])
   user    User?    @relation("FinanceEntryUser", fields: [userId], references: [id])
-  patient Patient? @relation(fields: [patientId], references: [id])
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([occurredAt])
   @@index([doctorId])
@@ -627,7 +627,7 @@ model CashAdvance {
   note      String?
   userId    String?
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   user    User?   @relation("CashAdvanceUser", fields: [userId], references: [id])
 
   @@index([patientId])
@@ -658,7 +658,7 @@ model Recall {
   notes         String?
   createdAt     DateTime     @default(now())
 
-  patient Patient    @relation(fields: [patientId], references: [id])
+  patient Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
   rule    RecallRule @relation(fields: [ruleId], references: [id])
 
   @@index([dueAt])
@@ -732,7 +732,7 @@ model Quote {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  patient Patient @relation(fields: [patientId], references: [id])
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
   service Service @relation(fields: [serviceId], references: [id])
   items   QuoteItem[]
   payments PatientPayment[]
@@ -755,7 +755,7 @@ model QuoteItem {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  quote        Quote         @relation(fields: [quoteId], references: [id])
+  quote        Quote         @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   dentalRecord DentalRecord? @relation(fields: [dentalRecordId], references: [id])
   service      Service       @relation(fields: [serviceId], references: [id])
   payments PatientPayment[]
@@ -777,7 +777,7 @@ model PatientPayment {
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
-  patient   Patient   @relation(fields: [patientId], references: [id])
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   quote     Quote?    @relation(fields: [quoteId], references: [id])
   quoteItem QuoteItem? @relation(fields: [quoteItemId], references: [id])
   user      User?     @relation("PatientPaymentUser", fields: [userId], references: [id])

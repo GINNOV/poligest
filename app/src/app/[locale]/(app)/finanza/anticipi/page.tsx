@@ -7,7 +7,7 @@ import { AmendDoctorPaymentButton } from "@/components/amend-doctor-payment-butt
 import { ArchiveDoctorPaymentButton } from "@/components/archive-doctor-payment-button";
 import { Button } from "@/components/ui/button";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const ARCHIVE_PREFIX = "ARCHIVIATO:";
 const DOCTOR_PAYMENT_PREFIX = "Pagamento medico";

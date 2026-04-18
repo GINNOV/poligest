@@ -48,28 +48,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ patie
       });
     }
 
-    const patientQuotes = await prisma.quote.findMany({
-      where: { patientId },
-      select: { id: true },
-    });
-    const quoteIds = patientQuotes.map((quote) => quote.id);
-
-    await prisma.$transaction([
-      prisma.appointmentReminder.deleteMany({ where: { patientId } }),
-      prisma.dentalRecord.deleteMany({ where: { patientId } }),
-      prisma.clinicalNote.deleteMany({ where: { patientId } }),
-      prisma.recall.deleteMany({ where: { patientId } }),
-      prisma.recurringMessageLog.deleteMany({ where: { patientId } }),
-      prisma.appointment.deleteMany({ where: { patientId } }),
-      prisma.stockMovement.deleteMany({ where: { patientId } }),
-      prisma.patientConsent.deleteMany({ where: { patientId } }),
-      prisma.smsLog.deleteMany({ where: { patientId } }),
-      prisma.cashAdvance.deleteMany({ where: { patientId } }),
-      prisma.patientPayment.deleteMany({ where: { patientId } }),
-      prisma.quoteItem.deleteMany({ where: { quoteId: { in: quoteIds } } }),
-      prisma.quote.deleteMany({ where: { patientId } }),
-      prisma.patient.delete({ where: { id: patientId } }),
-    ]);
+    await prisma.patient.delete({ where: { id: patientId } });
 
     await logAudit(user, {
       action: "patient.deleted",
