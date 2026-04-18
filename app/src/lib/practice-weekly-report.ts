@@ -225,31 +225,48 @@ export function addPracticeDays(date: Date, days: number, timeZone = REPORT_TIME
   return toUtcForPracticeTime(shifted.year, shifted.month, shifted.day, 0, 0, 0, timeZone);
 }
 
-export function getCompletedPracticeWeekPeriod(now = new Date(), timeZone = REPORT_TIME_ZONE): WeeklyReportPeriod {
+export function getCurrentPracticeWeekPeriod(now = new Date(), timeZone = REPORT_TIME_ZONE): WeeklyReportPeriod {
   const today = getTimeZoneDateParts(now, timeZone);
   const currentWeekStartDate = shiftCalendarDate(today.year, today.month, today.day, -(today.weekday - 1));
-  
-  // By default, the most recently completed week is the previous one (Mon-Sun)
-  const periodStartDate = shiftCalendarDate(
-    currentWeekStartDate.year,
-    currentWeekStartDate.month,
-    currentWeekStartDate.day,
-    -7,
-  );
 
-  // If it's Friday or later, and we've already sent the report for the previous week,
-  // we might want to show the current (ongoing) week as the "next" target for manual/next run.
-  // However, traditionally, a weekly report covers a FULL week.
-  // Let's keep it simple: if the user explicitly asks for "completed", it's the last full Mon-Sun.
-  // But if today is late in the week (e.g. Friday), and we are looking for the "next" logical period to send,
-  // and the previous one is done, we don't want to keep suggesting the old one.
-  
-  const previousWeekEndDate = shiftCalendarDate(
+  const start = toUtcForPracticeTime(
     currentWeekStartDate.year,
     currentWeekStartDate.month,
     currentWeekStartDate.day,
-    -1,
+    0,
+    0,
+    0,
+    timeZone,
   );
+  const endExclusive = addPracticeDays(start, 7, timeZone);
+
+  const dateKeyFormatter = getDateKeyFormatter(timeZone);
+  const dateLabelFormatter = getDateLabelFormatter(timeZone);
+  const startKey = dateKeyFormatter.format(start);
+  const inclusiveEnd = new Date(endExclusive.getTime() - 1000);
+  const endKey = dateKeyFormatter.format(inclusiveEnd);
+
+  return {
+    start,
+    endExclusive,
+    dedupeKey: `practice-weekly-report:${startKey}`,
+    label: `${dateLabelFormatter.format(start)} - ${dateLabelFormatter.format(inclusiveEnd)}`,
+    startKey,
+    endKey,
+  };
+}
+
+export function getCompletedPracticeWeekPeriod(now = new Date(), timeZone = REPORT_TIME_ZONE): WeeklyReportPeriod {
+  const today = getTimeZoneDateParts(now, timeZone);
+  
+  // If we are at the end of the week (Saturday or Sunday), or very early Monday,
+  // we likely want the report for the week that is just finishing.
+  // Otherwise (mid-week), we report on the previous full week.
+  const isWeekendRun = today.weekday >= 6; // Saturday=6, Sunday=7
+
+  const periodStartDate = isWeekendRun
+    ? shiftCalendarDate(today.year, today.month, today.day, -(today.weekday - 1))
+    : shiftCalendarDate(today.year, today.month, today.day, -(today.weekday - 1) - 7);
   
   const start = toUtcForPracticeTime(
     periodStartDate.year,
@@ -260,34 +277,19 @@ export function getCompletedPracticeWeekPeriod(now = new Date(), timeZone = REPO
     0,
     timeZone,
   );
-  const endExclusive = toUtcForPracticeTime(
-    currentWeekStartDate.year,
-    currentWeekStartDate.month,
-    currentWeekStartDate.day,
-    0,
-    0,
-    0,
-    timeZone,
-  );
+  const endExclusive = addPracticeDays(start, 7, timeZone);
 
   const dateKeyFormatter = getDateKeyFormatter(timeZone);
   const dateLabelFormatter = getDateLabelFormatter(timeZone);
   const startKey = dateKeyFormatter.format(start);
-  const endKey = dateKeyFormatter.format(toUtcForPracticeTime(
-    previousWeekEndDate.year,
-    previousWeekEndDate.month,
-    previousWeekEndDate.day,
-    0,
-    0,
-    0,
-    timeZone,
-  ));
+  const inclusiveEnd = new Date(endExclusive.getTime() - 1000);
+  const endKey = dateKeyFormatter.format(inclusiveEnd);
 
   return {
     start,
     endExclusive,
     dedupeKey: `practice-weekly-report:${startKey}`,
-    label: `${dateLabelFormatter.format(start)} - ${dateLabelFormatter.format(new Date(endExclusive.getTime() - 1000))}`,
+    label: `${dateLabelFormatter.format(start)} - ${dateLabelFormatter.format(inclusiveEnd)}`,
     startKey,
     endKey,
   };

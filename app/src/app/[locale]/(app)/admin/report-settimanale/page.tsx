@@ -9,6 +9,7 @@ import {
   addPracticeDays,
   createPracticeWeeklyReportPeriod,
   getCompletedPracticeWeekPeriod,
+  getCurrentPracticeWeekPeriod,
   parseRecipientEmails,
   sendPracticeWeeklyReport,
 } from "@/lib/practice-weekly-report";
@@ -170,18 +171,10 @@ export default async function AdminWeeklyReportPage() {
     const weeklyReportAvailable = configResult.available && logResult.available;
 
     const recipients = parseRecipientEmails(config?.recipientEmails ?? "");
-    let nextPeriod = getCompletedPracticeWeekPeriod();
-
-    const isAlreadySent = recentLogs.some(
-      (log) => log.status === "SENT" && log.periodStart && log.periodStart.toISOString() === nextPeriod.start.toISOString(),
-    );
-
-    if (isAlreadySent) {
-      nextPeriod = createPracticeWeeklyReportPeriod(
-        addPracticeDays(nextPeriod.start, 7),
-        addPracticeDays(nextPeriod.endExclusive, 7),
-      );
-    }
+    
+    // Default preview to current week if looking at the admin page,
+    // as it is usually what users want to "check" manually.
+    const nextPeriod = getCurrentPracticeWeekPeriod();
 
     const nextPreviewHref = `/admin/report-settimanale/preview?start=${encodeURIComponent(nextPeriod.start.toISOString())}&endExclusive=${encodeURIComponent(nextPeriod.endExclusive.toISOString())}`;
 
@@ -228,8 +221,8 @@ export default async function AdminWeeklyReportPage() {
               <div className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400">
                 <p className="font-semibold text-zinc-900 dark:text-zinc-200">Programmazione</p>
                 <p className="mt-1">
-                  Se abilitato, il report viene inviato automaticamente ogni **Lunedì mattina alle 08:00**. 
-                  Il report copre l&apos;attività della settimana precedente (Lunedì - Domenica).
+                  Se abilitato, il report viene inviato automaticamente ogni **Sabato pomeriggio alle 14:00**. 
+                  Il report copre l&apos;attività della settimana in corso (Lunedì - Domenica).
                 </p>
               </div>
 
