@@ -225,6 +225,14 @@ export default async function AdminWeeklyReportPage() {
                 Abilita l&apos;invio automatico del report settimanale
               </label>
 
+              <div className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400">
+                <p className="font-semibold text-zinc-900 dark:text-zinc-200">Programmazione</p>
+                <p className="mt-1">
+                  Se abilitato, il report viene inviato automaticamente ogni **Lunedì mattina alle 08:00**. 
+                  Il report copre l&apos;attività della settimana precedente (Lunedì - Domenica).
+                </p>
+              </div>
+
               <label className="flex flex-col gap-2 text-sm font-medium">
                 Lista email
                 <textarea

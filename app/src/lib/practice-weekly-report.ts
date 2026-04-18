@@ -369,7 +369,7 @@ function formatPercent(value: number) {
 }
 
 async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyReportMetrics> {
-  const [appointments, newPatients, paymentsAggregate, quotesSigned, appointmentReminders, recalls, upcomingAppointments, whatsappAuditLogs] =
+  const [appointments, newPatients, incomeAggregate, quotesSigned, appointmentReminders, recalls, upcomingAppointments, whatsappAuditLogs] =
     await Promise.all([
       prisma.appointment.findMany({
         where: {
@@ -393,11 +393,15 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
           },
         },
       }),
-      prisma.patientPayment.aggregate({
+      prisma.financeEntry.aggregate({
         where: {
-          paidAt: {
+          type: "INCOME",
+          occurredAt: {
             gte: period.start,
             lt: period.endExclusive,
+          },
+          NOT: {
+            description: { startsWith: "[ARCHIVIO] " },
           },
         },
         _count: { _all: true },
@@ -568,8 +572,8 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
     noShows,
     cancelledAppointments,
     upcomingAppointments,
-    paymentsCollectedCount: paymentsAggregate._count._all,
-    paymentsCollectedTotal: Number((paymentsAggregate._sum.amount as Prisma.Decimal | null)?.toString() ?? "0"),
+    paymentsCollectedCount: incomeAggregate._count._all,
+    paymentsCollectedTotal: Number((incomeAggregate._sum.amount as Prisma.Decimal | null)?.toString() ?? "0"),
     quotesSigned,
     appointmentReminders: appointmentReminderSummary,
     recallReminders: recallReminderSummary,
