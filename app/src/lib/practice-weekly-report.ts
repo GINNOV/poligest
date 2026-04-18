@@ -741,7 +741,7 @@ function buildHtmlBody(period: WeeklyReportPeriod, metrics: WeeklyReportMetrics)
               ${buildKpiCard(
                 "Incassi registrati",
                 formatCurrency(metrics.paymentsCollectedTotal),
-                `${metrics.paymentsCollectedCount} pagamenti registrati`,
+                `${metrics.paymentsCollectedCount} pagamenti (Settimana scorsa)`,
                 {
                   background: "#dcfce7",
                   borderColor: "#86efac",

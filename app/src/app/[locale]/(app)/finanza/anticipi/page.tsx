@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 export const revalidate = 60;
 
-const ARCHIVE_PREFIX = "ARCHIVIATO:";
+const ARCHIVE_PREFIX = "[ARCHIVIO] ";
 const DOCTOR_PAYMENT_PREFIX = "Pagamento medico";
 
 function toDateInputValue(date: Date) {
