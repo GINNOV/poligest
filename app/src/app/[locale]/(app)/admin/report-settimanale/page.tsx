@@ -232,13 +232,18 @@ export default async function AdminWeeklyReportPage() {
                   name="recipientEmails"
                   defaultValue={config?.recipientEmails ?? ""}
                   rows={8}
-                  className="input-base"
+                  className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-950/50 min-h-[120px]"
                   placeholder={"studio@example.com\nmanager@example.com"}
                 />
               </label>
 
-              <div className="pg-card-flat px-4 py-3 text-xs">
-                Destinatari validi rilevati: <span className="font-semibold">{recipients.length}</span>
+              <div className="pg-card-flat flex items-center justify-between px-4 py-3 text-xs">
+                <span>Destinatari validi rilevati: <span className="font-semibold">{recipients.length}</span></span>
+                {config?.enabled && (
+                   <span className="text-zinc-500 dark:text-zinc-400 italic">
+                     Prossimo invio automatico: Sabato ore 14:00
+                   </span>
+                )}
               </div>
 
               <Button
