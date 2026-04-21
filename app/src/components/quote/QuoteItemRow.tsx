@@ -56,7 +56,6 @@ export function QuoteItemRow({
         Prestazione
         <select
           value={item.serviceId}
-          disabled={item.isSettled}
           onChange={(event) => {
             const nextServiceId = event.target.value;
             const nextService = sortedServices.find((service) => service.id === nextServiceId);
@@ -84,7 +83,6 @@ export function QuoteItemRow({
           type="number"
           min="1"
           step="1"
-          disabled={item.isSettled}
           inputMode="numeric"
           pattern="[0-9]*"
           value={item.quantity}
@@ -101,7 +99,6 @@ export function QuoteItemRow({
           type="number"
           min="0"
           step="0.01"
-          disabled={item.isSettled}
           value={item.price}
           onChange={(event) => onUpdate(index, { price: event.target.value })}
           className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 font-mono"
@@ -114,14 +111,12 @@ export function QuoteItemRow({
           value={item.totalValue.toFixed(2)}
           readOnly
           className="h-11 w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 font-mono"
-          disabled={item.isSettled}
         />
       </label>
       <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
         Data prestazione
         <input
           type="date"
-          disabled={item.isSettled}
           value={item.serviceDate}
           onChange={(event) => onUpdate(index, { serviceDate: event.target.value })}
           className="h-11 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/20 disabled:opacity-60 disabled:bg-zinc-100 dark:disabled:bg-zinc-950 uppercase"

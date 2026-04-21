@@ -122,6 +122,13 @@ export async function GET(req: Request) {
     const timeZone = await getPracticeTimeZone();
     let weeklyReport: Awaited<ReturnType<typeof sendPracticeWeeklyReport>> | null = null;
     const autoCompletedAppointments = await autoCompletePastAppointments(now);
+
+    try {
+      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON", timeZone, syncAppointments: false });
+    } catch (err) {
+      console.error("[practice_weekly_report] failed during recalls cron", { err });
+    }
+
     await enqueueRecurringRecalls(now);
     await enqueueAppointmentReminders(now, timeZone);
     const dueRecalls = await prisma.recall.findMany({
@@ -264,12 +271,6 @@ export async function GET(req: Request) {
           },
         });
       }
-    }
-
-    try {
-      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON", timeZone });
-    } catch (err) {
-      console.error("[practice_weekly_report] failed during recalls cron", { err });
     }
 
     return NextResponse.json({

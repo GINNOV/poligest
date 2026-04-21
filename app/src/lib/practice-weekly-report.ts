@@ -833,12 +833,14 @@ export async function sendPracticeWeeklyReport(params?: {
   trigger?: "CRON" | "MANUAL" | "API";
   actor?: AuditActor | null;
   timeZone?: string;
+  syncAppointments?: boolean;
 }) {
   const now = params?.now ?? new Date();
   const timeZone = params?.timeZone ?? REPORT_TIME_ZONE;
   const force = params?.force ?? false;
   const trigger = params?.trigger ?? "CRON";
   const actor = params?.actor ?? null;
+  const syncAppointments = params?.syncAppointments ?? true;
   const period = getCompletedPracticeWeekPeriod(now, timeZone);
 
   const config = await prisma.practiceWeeklyReportConfig.findUnique({
@@ -846,11 +848,23 @@ export async function sendPracticeWeeklyReport(params?: {
   });
 
   if (!config?.enabled) {
+    await logAudit(actor, {
+      action: "practice.weekly_report_skipped",
+      entity: "System",
+      entityId: period.dedupeKey,
+      metadata: { trigger, reason: "disabled" },
+    });
     return { status: "skipped", reason: "disabled", dedupeKey: period.dedupeKey, periodLabel: period.label } satisfies PracticeWeeklyReportResult;
   }
 
   const recipients = parseRecipientEmails(config.recipientEmails);
   if (recipients.length === 0) {
+    await logAudit(actor, {
+      action: "practice.weekly_report_skipped",
+      entity: "System",
+      entityId: period.dedupeKey,
+      metadata: { trigger, reason: "no_recipients" },
+    });
     return { status: "skipped", reason: "no_recipients", dedupeKey: period.dedupeKey, periodLabel: period.label } satisfies PracticeWeeklyReportResult;
   }
 
@@ -865,11 +879,17 @@ export async function sendPracticeWeeklyReport(params?: {
     });
 
     if (existingSent) {
+      await logAudit(actor, {
+        action: "practice.weekly_report_skipped",
+        entity: "System",
+        entityId: period.dedupeKey,
+        metadata: { trigger, reason: "already_sent" },
+      });
       return { status: "skipped", reason: "already_sent", dedupeKey: period.dedupeKey, periodLabel: period.label } satisfies PracticeWeeklyReportResult;
     }
   }
 
-  const { subject, text, html } = await generatePracticeWeeklyReportPreview(period, { now, syncAppointments: true });
+  const { subject, text, html } = await generatePracticeWeeklyReportPreview(period, { now, syncAppointments });
 
   try {
     for (const recipient of recipients) {
