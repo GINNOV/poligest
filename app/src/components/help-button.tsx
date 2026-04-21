@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
 import { markStepAsDoneAction, resetProgressAction } from "@/lib/instructions/actions";
 import { clsx } from "clsx";
-import { FeatureUpdateMarkdownPreview } from "@/components/feature-update-markdown";
+import { FeatureUpdateMarkdownPreview, renderInline } from "@/components/feature-update-markdown";
 
 type Step = {
   id: string;
@@ -103,7 +103,9 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
       <div className="relative w-full max-w-[90vw] md:max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-zinc-950 border dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden">
         <div className="p-6 border-b dark:border-zinc-800 flex items-center justify-between shrink-0">
           <div className="min-w-0">
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">{activeInstruction.title}</h2>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 truncate">
+              {renderInline(activeInstruction.title)}
+            </h2>
             {activeInstruction.description && (
               <p className="text-sm text-zinc-500 mt-1 truncate">{activeInstruction.description}</p>
             )}
@@ -155,7 +157,7 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
                     "font-semibold text-base",
                     isDone ? "text-zinc-500 line-through" : "text-zinc-900 dark:text-zinc-50"
                   )}>
-                    {step.title}
+                    {renderInline(step.title)}
                   </h3>
                   {!isLocked && (
                     <div className="text-sm text-zinc-600 dark:text-zinc-300 prose dark:prose-invert max-w-none">

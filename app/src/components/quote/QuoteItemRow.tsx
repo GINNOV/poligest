@@ -124,13 +124,7 @@ export function QuoteItemRow({
         />
       </label>
       <div className="flex items-end justify-start gap-2">
-        {item.isSettled ? (
-          <div className="h-11 flex items-center px-4">
-            <span className="rounded-full bg-blue-950 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-white shadow-sm ring-1 ring-blue-900">
-              OKAY
-            </span>
-          </div>
-        ) : !(item.treated || item.dentalRecordId) ? (
+        {!(item.treated || item.dentalRecordId) ? (
           <>
             <button
               type="button"

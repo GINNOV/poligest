@@ -99,7 +99,7 @@ export function PaymentRegistrationForm({
               doctors={doctors}
             />
             <FormSubmitButton variant="primary" className="w-full rounded-full shadow-sm">
-              Registra pagamento
+              Registra incasso
             </FormSubmitButton>
           </form>
         )}

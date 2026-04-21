@@ -174,7 +174,7 @@ export function QuoteAccordion({
     }
   }, [dirtyVersion, savedVersion]);
 
-  const [, formAction] = useActionState(onSave, { savedAt: 0 });
+  const [state, formAction] = useActionState(onSave, { savedAt: 0 });
   const isDirty = dirtyVersion > savedVersion;
   const markDirty = () =>
     setDirtyVersion((prev) => {
@@ -182,11 +182,13 @@ export function QuoteAccordion({
       dirtyVersionRef.current = next;
       return next;
     });
-  const handleFormAction = async (formData: FormData) => {
-    await formAction(formData);
-    setSavedVersion(dirtyVersionRef.current);
-    router.refresh();
-  };
+
+  useEffect(() => {
+    if (state.savedAt > 0) {
+      setSavedVersion(dirtyVersionRef.current);
+      router.refresh();
+    }
+  }, [state.savedAt, router]);
 
   const updateItem = (index: number, next: Partial<QuoteItem>) => {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...next } : item)));
@@ -308,7 +310,7 @@ export function QuoteAccordion({
         isDirty={isDirty}
         printHref={printHref}
       />
-      <form action={handleFormAction} className="space-y-6 p-6">
+      <form action={formAction} className="space-y-6 p-6">
         <input type="hidden" name="patientId" value={patientId} />
         <input type="hidden" name="quoteId" value={initialQuote?.id ?? ""} />
         <input type="hidden" name="itemsJson" value={itemsJson} readOnly />

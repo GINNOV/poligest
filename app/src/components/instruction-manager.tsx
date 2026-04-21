@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { upsertInstructionAction, deleteInstructionAction } from "@/lib/instructions/actions";
 import { Button } from "@/components/ui/button";
 import { clsx } from "clsx";
+import { renderInline } from "@/components/feature-update-markdown";
 
 type Step = {
   id?: string;
@@ -78,7 +79,7 @@ export function InstructionManager({ instructions }: Props) {
             className="p-4 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 flex items-center justify-between"
           >
             <div>
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{ins.title}</h3>
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">{renderInline(ins.title)}</h3>
               <p className="text-sm text-zinc-500">{ins.pathPattern} • {ins.role || "Tutti i ruoli"}</p>
               <p className="text-xs text-zinc-400">{ins.steps.length} passaggi</p>
             </div>

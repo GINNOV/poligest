@@ -2,20 +2,29 @@ type UpdateMarkdownProps = {
   markdown: string;
 };
 
-const renderInline = (text: string) =>
-  text
-    .split(/(\*\*[^*]+\*\*)/g)
-    .filter(Boolean)
-    .map((segment, idx) => {
-      if (segment.startsWith("**") && segment.endsWith("**")) {
-        return (
-          <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">
-            {segment.slice(2, -2)}
-          </strong>
-        );
-      }
-      return <span key={idx}>{segment}</span>;
-    });
+export const renderInline = (text: string) => {
+  // Split by bold (**text**) or italic (*text* or _text_)
+  // Using a simpler approach to handle multiple inline styles
+  const segments = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|_[^_]+_)/g).filter(Boolean);
+  
+  return segments.map((segment, idx) => {
+    if (segment.startsWith("**") && segment.endsWith("**")) {
+      return (
+        <strong key={idx} className="font-semibold text-zinc-900 dark:text-zinc-50">
+          {segment.slice(2, -2)}
+        </strong>
+      );
+    }
+    if ((segment.startsWith("*") && segment.endsWith("*")) || (segment.startsWith("_") && segment.endsWith("_"))) {
+      return (
+        <em key={idx} className="italic">
+          {segment.slice(1, -1)}
+        </em>
+      );
+    }
+    return <span key={idx}>{segment}</span>;
+  });
+};
 
 const normalizeUpdateImageSrc = (src: string) => {
   const trimmed = src.trim();

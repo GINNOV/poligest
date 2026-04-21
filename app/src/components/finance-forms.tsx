@@ -204,74 +204,76 @@ export function PatientPaymentFields({
         ) : null}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-5">
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Data pagamento
-          <input
-            type="date"
-            name="paidAt"
-            required
-            defaultValue={new Date().toISOString().slice(0, 10)}
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-          />
-        </label>
+      {quoteItemId && (
+        <div className="grid gap-3 md:grid-cols-5 animate-in fade-in slide-in-from-top-2 duration-300">
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Data incasso
+            <input
+              type="date"
+              name="paidAt"
+              required
+              defaultValue={new Date().toISOString().slice(0, 10)}
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Medico
-          <select
-            name="doctorId"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-            defaultValue=""
-          >
-            <option value="">(Automatico)</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.fullName}
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Medico
+            <select
+              name="doctorId"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+              defaultValue=""
+            >
+              <option value="">(Automatico)</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Metodo
+            <select
+              name="paymentMethod"
+              defaultValue="ELECTRONIC"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            >
+              <option value="CASH">Contanti</option>
+              <option value="ELECTRONIC">Elettronico</option>
+              <option value="BANK_TRANSFER">Bonifico</option>
+              <option value="PAY_LATER" className="text-rose-600 dark:text-rose-400">
+                Pagherò
               </option>
-            ))}
-          </select>
-        </label>
+              <option value="OTHER">insolvente</option>
+            </select>
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Metodo
-          <select
-            name="paymentMethod"
-            defaultValue="ELECTRONIC"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-          >
-            <option value="CASH">Contanti</option>
-            <option value="ELECTRONIC">Elettronico</option>
-            <option value="BANK_TRANSFER">Bonifico</option>
-            <option value="PAY_LATER" className="text-rose-600 dark:text-rose-400">
-              Pagherò
-            </option>
-            <option value="OTHER">insolvente</option>
-          </select>
-        </label>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500 italic uppercase tracking-tighter">Importo</span>
+            <input
+              name="amount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500 italic uppercase tracking-tighter">Importo</span>
-          <input
-            name="amount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            required
-            max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          Nota
-          <input
-            name="note"
-            type="text"
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
-            placeholder="Es. acconto, saldo finale..."
-          />
-        </label>
-      </div>
+          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            Nota
+            <input
+              name="note"
+              type="text"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
+              placeholder="Es. acconto, saldo finale..."
+            />
+          </label>
+        </div>
+      )}
     </div>
   );
 }
