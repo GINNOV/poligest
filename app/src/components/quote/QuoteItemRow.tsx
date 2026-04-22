@@ -21,6 +21,7 @@ interface QuoteItemRowProps {
     tooth: number | null;
     createdAt: string | null;
     totalValue: number;
+    paidValue: number;
     isSettled: boolean;
   };
   sortedServices: ServiceOption[];
@@ -41,15 +42,19 @@ export function QuoteItemRow({
   canRemove,
   formatItemDate,
 }: QuoteItemRowProps) {
+  const isOverpaid = item.totalValue < item.paidValue - 0.009;
+
   return (
     <div
       className={clsx(
         "grid grid-cols-1 gap-3 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-[1fr_60px_100px_100px_140px_auto]",
-        item.isSettled
-          ? "border-emerald-500 bg-emerald-500/10 dark:border-emerald-400 dark:bg-emerald-400/5"
-          : item.dentalRecordId 
-            ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
-            : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
+        isOverpaid
+          ? "border-rose-500 bg-rose-500/10 dark:border-rose-400 dark:bg-rose-400/5"
+          : item.isSettled
+            ? "border-emerald-300 dark:border-emerald-800 bg-zinc-50 dark:bg-zinc-900/50"
+            : item.dentalRecordId 
+              ? "border-sky-300 bg-sky-100/50 dark:border-sky-800 dark:bg-sky-900/20" 
+              : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50"
       )}
     >
       <label className="flex min-w-0 flex-col gap-2 text-[11px] font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300 lg:col-span-1">
@@ -152,6 +157,11 @@ export function QuoteItemRow({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 sm:col-span-2 lg:col-span-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          {isOverpaid && (
+            <span className="inline-flex items-center rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm">
+              ERRORE: TOTALE {item.totalValue.toFixed(2)}€ &lt; INCASSATO {item.paidValue.toFixed(2)}€
+            </span>
+          )}
           {(() => {
             const d = formatItemDate(item.createdAt);
             return d ? <span>Aggiunto: {d}</span> : null;

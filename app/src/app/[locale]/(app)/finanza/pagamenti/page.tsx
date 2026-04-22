@@ -297,7 +297,7 @@ export default async function PagamentiPage({
           <PaymentsSummaryTiles />
 
           <QuoteAccordion
-            key={`${selectedPatient.id}:${parsedQuote?.id ?? "new"}:${parsedQuote?.signedAt ?? "unsigned"}`}
+            key={selectedPatient.id}
             patientId={selectedPatient.id}
             patientName={`${selectedPatient.lastName} ${selectedPatient.firstName}`.trim() || "Paziente"}
             defaultServiceDate={defaultServiceDate}
@@ -316,6 +316,7 @@ export default async function PagamentiPage({
             <UnsettledItemsList />
 
             <PaymentRegistrationForm
+              key={selectedPatient.id}
               patientId={selectedPatient.id}
               quoteId={latestQuote?.id ?? ""}
               diarioUrl={`/pazienti/${selectedPatient.id}`}
@@ -325,6 +326,7 @@ export default async function PagamentiPage({
           </div>
 
           <PaymentHistory
+            key={selectedPatient.id}
             historicalPayments={historicalPayments}
             paymentMethodLabels={paymentMethodLabels}
             displayTimeZone={displayTimeZone}

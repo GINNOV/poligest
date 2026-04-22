@@ -10,21 +10,23 @@ type Props = {
   disabled?: boolean;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "black" | "destructive" | "destructive-outline";
   size?: "default" | "sm" | "xs" | "lg";
+  loading?: boolean;
 };
 
-export function FormSubmitButton({ children, className, pendingLabel, disabled, variant = "primary", size = "default" }: Props) {
+export function FormSubmitButton({ children, className, pendingLabel, disabled, variant = "primary", size = "default", loading }: Props) {
   const { pending } = useFormStatus();
+  const isLoading = loading ?? pending;
 
   return (
     <Button
       type="submit"
       className={className}
-      disabled={disabled}
+      disabled={disabled || isLoading}
       variant={variant}
       size={size}
-      loading={pending}
+      loading={isLoading}
       loadingLabel={pendingLabel}
-      aria-busy={pending || undefined}
+      aria-busy={isLoading || undefined}
     >
       {children}
     </Button>

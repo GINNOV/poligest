@@ -66,7 +66,7 @@ export function PaymentRegistrationForm({
           </svg>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              REGISTRA PAGAMENTO
+              REGISTRA INCASSO
             </p>
             <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">3 - AGGIUNGI INCASSO</h2>
           </div>

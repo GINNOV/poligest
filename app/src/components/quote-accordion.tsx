@@ -151,7 +151,7 @@ export function QuoteAccordion({
 
   const [items, setItems] = useState<QuoteItem[]>(initialItems);
   const [signatureReady, setSignatureReady] = useState(Boolean(initialQuote?.signatureUrl));
-  const [prevInitialQuote, setPrevInitialQuote] = useState(initialQuote);
+  const [prevInitialQuoteId, setPrevInitialQuoteId] = useState(initialQuote?.id);
   const [prevDisplayTimeZone, setPrevDisplayTimeZone] = useState(displayTimeZone);
   const [removeDialog, setRemoveDialog] = useState<{ index: number; type: "warning" | "confirm" } | null>(null);
 
@@ -159,8 +159,8 @@ export function QuoteAccordion({
   const [savedVersion, setSavedVersion] = useState(0);
   const dirtyVersionRef = useRef(0);
 
-  if (JSON.stringify(initialQuote) !== JSON.stringify(prevInitialQuote) || displayTimeZone !== prevDisplayTimeZone) {
-    setPrevInitialQuote(initialQuote);
+  if (initialQuote?.id !== prevInitialQuoteId || displayTimeZone !== prevDisplayTimeZone) {
+    setPrevInitialQuoteId(initialQuote?.id);
     setPrevDisplayTimeZone(displayTimeZone);
     setItems(initialItems);
     setSignatureReady(Boolean(initialQuote?.signatureUrl));
@@ -174,7 +174,8 @@ export function QuoteAccordion({
     }
   }, [dirtyVersion, savedVersion]);
 
-  const [state, formAction] = useActionState(onSave, { savedAt: 0 });
+  const [isPending, setIsPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const isDirty = dirtyVersion > savedVersion;
   const markDirty = () =>
     setDirtyVersion((prev) => {
@@ -183,25 +184,48 @@ export function QuoteAccordion({
       return next;
     });
 
-  useEffect(() => {
-    if (state.savedAt > 0) {
-      setSavedVersion(dirtyVersionRef.current);
-      router.refresh();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setErrorMessage(null);
+
+    const overpaidItem = itemsWithTotals.find(item => item.totalValue < item.paidValue - 0.009);
+    if (overpaidItem) {
+      setErrorMessage(`Errore: ${overpaidItem.serviceName} ha già ${overpaidItem.paidValue.toFixed(2)}€ di pagamenti registrati. Non puoi abbassare il totale al di sotto di questa cifra.`);
+      return;
     }
-  }, [state.savedAt, router]);
+
+    const formData = new FormData(event.currentTarget);
+    
+    setIsPending(true);
+    try {
+      const result = await onSave({ savedAt: 0 }, formData);
+      if (result.error) {
+        setErrorMessage(result.error);
+      } else {
+        setSavedVersion(dirtyVersionRef.current);
+        router.refresh();
+      }
+    } catch (err) {
+      console.error("[QuoteAccordion] save failed", err);
+      setErrorMessage("Errore imprevisto durante il salvataggio.");
+    } finally {
+      setIsPending(false);
+    }
+  };
 
   const updateItem = (index: number, next: Partial<QuoteItem>) => {
-    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...next } : item)));
-
-    const item = items[index];
-    if (item?.id) {
-      const mergedItem = { ...item, ...next };
-      const q = Number.parseInt(mergedItem.quantity, 10);
-      const quantity = Number.isNaN(q) || q <= 0 ? 1 : q;
-      const p = Number.parseFloat(String(mergedItem.price).replace(",", "."));
-      const price = Number.isNaN(p) ? 0 : p;
-      updateItemPrice(mergedItem.id, price, quantity);
-    }
+    setItems((prev) => {
+      const updated = prev.map((item, i) => (i === index ? { ...item, ...next } : item));
+      const item = updated[index];
+      if (item?.id) {
+        const q = Number.parseInt(item.quantity, 10);
+        const quantity = Number.isNaN(q) || q <= 0 ? 1 : q;
+        const p = Number.parseFloat(String(item.price).replace(",", "."));
+        const price = Number.isNaN(p) ? 0 : p;
+        updateItemPrice(item.id, price, quantity);
+      }
+      return updated;
+    });
     markDirty();
   };
 
@@ -310,7 +334,7 @@ export function QuoteAccordion({
         isDirty={isDirty}
         printHref={printHref}
       />
-      <form action={formAction} className="space-y-6 p-6">
+      <form onSubmit={handleSubmit} className="space-y-6 p-6">
         <input type="hidden" name="patientId" value={patientId} />
         <input type="hidden" name="quoteId" value={initialQuote?.id ?? ""} />
         <input type="hidden" name="itemsJson" value={itemsJson} readOnly />
@@ -372,9 +396,15 @@ export function QuoteAccordion({
         />
 
         <div className="flex flex-wrap items-center justify-end gap-3">
+          {errorMessage && (
+            <p className="flex-1 text-sm font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-4 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 animate-in fade-in slide-in-from-right-2">
+              {errorMessage}
+            </p>
+          )}
           <FormSubmitButton
             disabled={!signatureReady || items.length === 0}
             className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-emerald-600"
+            loading={isPending}
           >
             AGGIORNA
           </FormSubmitButton>
