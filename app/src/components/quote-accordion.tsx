@@ -48,7 +48,7 @@ type QuoteDraft = {
   }>;
 };
 
-type SaveState = { savedAt: number };
+type SaveState = { savedAt: number; error?: string | null };
 
 type Props = {
   patientId: string;
@@ -75,6 +75,7 @@ type QuoteItem = {
   id: string;
   dentalRecordId: string | null;
   serviceId: string;
+  serviceName: string;
   serviceDate: string;
   quantity: string;
   price: string;
@@ -118,6 +119,7 @@ export function QuoteAccordion({
         id: item.id ?? "",
         dentalRecordId: item.dentalRecordId ?? null,
         serviceId: item.serviceId ?? "",
+        serviceName: item.serviceName ?? "Prestazione",
         serviceDate: getDefaultServiceDate(
           item.serviceDate ?? initialQuote.serviceDate ?? defaultServiceDate,
           displayTimeZone
@@ -136,6 +138,7 @@ export function QuoteAccordion({
           id: "",
           dentalRecordId: null,
           serviceId: initialQuote.serviceId,
+          serviceName: initialQuote.serviceName ?? "Prestazione",
           serviceDate: getDefaultServiceDate(initialQuote.serviceDate ?? defaultServiceDate, displayTimeZone),
           quantity: initialQuote.quantity ? String(initialQuote.quantity) : "1",
           price: initialQuote.price != null ? String(initialQuote.price) : "",
@@ -230,17 +233,18 @@ export function QuoteAccordion({
   };
 
   const addItem = () => {
-    const fallbackService = sortedServices[0]?.id ?? "";
+    const fallbackService = sortedServices[0];
     setItems((prev) => [
       ...prev,
       {
         id: "",
         dentalRecordId: null,
-        serviceId: fallbackService,
+        serviceId: fallbackService?.id ?? "",
+        serviceName: fallbackService?.name ?? "Prestazione",
         serviceDate: defaultServiceDate,
         quantity: "1",
         price: fallbackService
-          ? String(sortedServices.find((service) => service.id === fallbackService)?.costBasis ?? "")
+          ? String(fallbackService.costBasis)
           : "",
         treated: false,
         tooth: null,
@@ -281,6 +285,7 @@ export function QuoteAccordion({
         totalValue,
         paidValue,
         isSettled,
+        serviceName: item.serviceName,
       };
     });
   }, [items]);
