@@ -212,7 +212,6 @@ export function PatientPaymentFields({
               type="date"
               name="paidAt"
               required
-              defaultValue={new Date().toISOString().slice(0, 10)}
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>

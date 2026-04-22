@@ -1,4 +1,3 @@
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
@@ -33,7 +32,6 @@ export default async function AnticipiPage({
   await requireUser([Role.ADMIN, Role.MANAGER]);
 
   const resolvedSearchParams = (await searchParams) ?? {};
-  const today = toDateInputValue(new Date());
   const advanceQuery = (resolvedSearchParams.aq ?? "").trim();
   const advanceFromValue = (resolvedSearchParams.afrom ?? "").trim();
   const advanceToValue = (resolvedSearchParams.ato ?? "").trim();
@@ -207,7 +205,6 @@ export default async function AnticipiPage({
               type="date"
               name="occurredAt"
               required
-              defaultValue={today}
               className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>
