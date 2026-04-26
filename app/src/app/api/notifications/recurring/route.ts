@@ -14,6 +14,7 @@ import {
 } from "@/lib/recurring-messages/domain";
 import { logAudit } from "@/lib/audit";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
+import { unauthorizedCronResponse, validateCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 
@@ -69,21 +70,26 @@ async function buildCandidates(now: Date, timeZone: string): Promise<RecurringCa
 }
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const providedSecret = req.headers.get("x-cron-secret");
-  if (!secret || providedSecret !== secret) {
-    return errorResponse({
-      message: "Unauthorized",
-      status: 401,
-      source: "recurring_notifications",
-      path: new URL(req.url).pathname,
-    });
+  const isAuthorized = await validateCronSecret(req);
+  if (!isAuthorized) {
+    return unauthorizedCronResponse(req, "recurring_notifications");
   }
 
   try {
     const now = new Date();
     const timeZone = await getPracticeTimeZone();
     const candidates = await buildCandidates(now, timeZone);
+
+    if (candidates.length > 0) {
+      await logAudit(null, {
+        action: "recurring_notifications.candidates_found",
+        entity: "System",
+        metadata: {
+          count: candidates.length,
+          triggeredBy: "CRON",
+        },
+      });
+    }
     const siteOrigin = resolveSiteOrigin();
     const adminResetUrl = siteOrigin ? `${siteOrigin}/admin/reset` : "/admin/reset";
     const monthKey = getAdminBackupReminderMonthKey(now);

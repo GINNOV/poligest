@@ -15,6 +15,10 @@ import {
 } from "@/lib/recalls/send-domain";
 import { sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
+import { unauthorizedCronResponse, validateCronSecret } from "@/lib/cron-auth";
+import { logAudit } from "@/lib/audit";
+
+export const runtime = "nodejs";
 
 const HORIZON_DAYS = 30;
 
@@ -27,6 +31,7 @@ function addDays(date: Date, days: number) {
 async function enqueueRecurringRecalls(now: Date) {
   const horizon = addDays(now, HORIZON_DAYS);
   const rules = await prisma.recallRule.findMany();
+  let totalCreated = 0;
 
   for (const rule of rules) {
     const ruleServiceType = rule.serviceType === "ANY" ? null : rule.serviceType;
@@ -72,14 +77,17 @@ async function enqueueRecurringRecalls(now: Date) {
 
     if (pendingCreates.length > 0) {
       await prisma.recall.createMany({ data: pendingCreates });
+      totalCreated += pendingCreates.length;
     }
   }
+
+  return totalCreated;
 }
 
 async function enqueueAppointmentReminders(now: Date, timeZone: string) {
   const horizon = addDays(now, HORIZON_DAYS);
   const rule = await prisma.appointmentReminderRule.findFirst({ where: { enabled: true } });
-  if (!rule) return;
+  if (!rule) return 0;
 
   const timingType = rule.timingType === "DAYS_BEFORE" ? "DAYS_BEFORE" : "SAME_DAY_TIME";
   const timeOfDayMinutes = typeof rule.timeOfDayMinutes === "number" ? rule.timeOfDayMinutes : 540;
@@ -101,20 +109,17 @@ async function enqueueAppointmentReminders(now: Date, timeZone: string) {
   });
 
   if (pendingCreates.length > 0) {
-    await prisma.appointmentReminder.createMany({ data: pendingCreates, skipDuplicates: true });
+    const result = await prisma.appointmentReminder.createMany({ data: pendingCreates, skipDuplicates: true });
+    return result.count;
   }
+
+  return 0;
 }
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const providedSecret = req.headers.get("x-cron-secret");
-  if (!secret || providedSecret !== secret) {
-    return errorResponse({
-      message: "Unauthorized",
-      status: 401,
-      source: "recalls_send",
-      path: new URL(req.url).pathname,
-    });
+  const isAuthorized = await validateCronSecret(req);
+  if (!isAuthorized) {
+    return unauthorizedCronResponse(req, "recalls_send");
   }
 
   try {
@@ -129,8 +134,21 @@ export async function GET(req: Request) {
       console.error("[practice_weekly_report] failed during recalls cron", { err });
     }
 
-    await enqueueRecurringRecalls(now);
-    await enqueueAppointmentReminders(now, timeZone);
+    const enqueuedRecalls = await enqueueRecurringRecalls(now);
+    const enqueuedReminders = await enqueueAppointmentReminders(now, timeZone);
+
+    if (enqueuedRecalls > 0 || enqueuedReminders > 0) {
+      await logAudit(null, {
+        action: "recalls.enqueued",
+        entity: "System",
+        metadata: {
+          enqueuedRecalls,
+          enqueuedReminders,
+          triggeredBy: "CRON",
+        },
+      });
+    }
+
     const dueRecalls = await prisma.recall.findMany({
       where: { status: RecallStatus.PENDING, dueAt: { lte: now } },
       include: {

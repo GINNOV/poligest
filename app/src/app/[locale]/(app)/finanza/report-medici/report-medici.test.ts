@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
     financeEntry: {
       findMany: vi.fn(),
     },
+    appointment: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -64,6 +67,23 @@ describe("ReportMediciPage", () => {
         doctorId: "doc-2",
         doctor: { fullName: "Dr. Watson" },
         occurredAt: new Date(),
+      },
+    ]);
+
+    mocks.prisma.appointment.findMany.mockResolvedValue([
+      {
+        id: "a1",
+        doctorId: "doc-1",
+        patientId: "p1",
+        serviceType: "Igiene",
+        doctor: { fullName: "Dr. House" },
+      },
+      {
+        id: "a2",
+        doctorId: "doc-2",
+        patientId: "p2",
+        serviceType: "Chirurgia",
+        doctor: { fullName: "Dr. Watson" },
       },
     ]);
 

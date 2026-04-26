@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/recalls/send",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/notifications/recurring",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/reports/weekly",
+      "schedule": "0 5 * * 1"
+    }
+  ]
+}
