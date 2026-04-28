@@ -85,7 +85,18 @@ export default async function FeatureAccessPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-zinc-500">{t("featureAccessRoleLabel")}</p>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{roleLabels[role]}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{roleLabels[role]}</h2>
+                    {role === Role.SECRETARY && (
+                      <div className="group relative">
+                        <span className="flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400">?</span>
+                        <div className="invisible absolute left-full top-1/2 ml-2 w-48 -translate-y-1/2 rounded-lg bg-zinc-900 p-2 text-[10px] font-medium text-white opacity-0 transition-all group-hover:visible group-hover:opacity-100 dark:bg-zinc-800 z-50">
+                          Questo ruolo non ha permessi di eliminazione dell&apos;intera anagrafica paziente per preservare l&apos;integrità dei dati storici.
+                          <div className="absolute -left-1 top-1/2 -mt-1 h-2 w-2 rotate-45 bg-zinc-900 dark:bg-zinc-800" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold uppercase text-emerald-800">
                   {FALLBACK_PERMISSIONS[role]?.size ?? 0} predefiniti

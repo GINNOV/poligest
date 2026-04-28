@@ -527,7 +527,9 @@ export default async function CalendarPage({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Calendario medici
+            {selectedDoctorId && !showAllDoctors 
+              ? `Calendario di ${doctors.find(d => d.id === selectedDoctorId)?.fullName}`
+              : "Calendario medici"}
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Seleziona un medico o tutto lo staff per vedere la pianificazione del periodo selezionato.

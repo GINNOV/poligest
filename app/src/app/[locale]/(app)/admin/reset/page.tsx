@@ -12,10 +12,14 @@ import {
   RESET_CONFIRMATION_TEXT,
   assertBulkDestructiveActionEnabled,
   hasTypedConfirmation,
+  isBulkDestructiveActionEnabled,
 } from "@/lib/destructive-action-guard";
 import type { JsonObject } from "@/lib/json-types";
 import fs from "fs/promises";
 import path from "path";
+import { Button } from "@/components/ui/button";
+import { exportTables, ExportTableKey, isExportTableKey, exportTableKeys } from "@/lib/admin/export-tables";
+import { ConfigExportForm } from "@/components/admin/config-export-form";
 
 type ExportJson = {
   data?: Partial<Record<ExportTableKey, JsonObject[]>>;
@@ -61,6 +65,8 @@ async function resetSystem(formData: FormData) {
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
     prisma.emailTemplate.deleteMany(),
+    prisma.dailyReminderLog.deleteMany(),
+    prisma.dailyReminderConfig.deleteMany(),
     prisma.practiceWeeklyReportLog.deleteMany(),
     prisma.practiceWeeklyReportConfig.deleteMany(),
     prisma.recurringMessageLog.deleteMany(),
@@ -353,55 +359,6 @@ async function resetSystem(formData: FormData) {
 
   revalidatePath("/admin/reset");
 }
-
-const exportTables = [
-  { key: "users", label: "Utenti" },
-  { key: "doctors", label: "Medici" },
-  { key: "doctorAvailabilityWindows", label: "Orari medici" },
-  { key: "patients", label: "Pazienti" },
-  { key: "consentModules", label: "Moduli consenso" },
-  { key: "patientConsents", label: "Consensi pazienti" },
-  { key: "appointments", label: "Appuntamenti" },
-  { key: "appointmentReminderRules", label: "Regole promemoria appuntamenti" },
-  { key: "appointmentReminders", label: "Promemoria appuntamenti" },
-  { key: "clinicalNotes", label: "Note cliniche" },
-  { key: "dentalRecords", label: "Cartella clinica" },
-  { key: "smsTemplates", label: "Template SMS" },
-  { key: "smsLogs", label: "Log SMS" },
-  { key: "smsProviderConfig", label: "Config ClickSend" },
-  { key: "emailTemplates", label: "Template email" },
-  { key: "practiceWeeklyReportConfig", label: "Config report settimanale" },
-  { key: "practiceWeeklyReportLogs", label: "Log report settimanale" },
-  { key: "recurringMessageConfigs", label: "Config messaggi ricorrenti" },
-  { key: "recurringMessageLogs", label: "Log messaggi ricorrenti" },
-  { key: "practiceSettings", label: "Impostazioni clinica" },
-  { key: "practiceClosures", label: "Chiusure (ferie/permessi)" },
-  { key: "practiceWeeklyClosures", label: "Chiusure settimanali" },
-  { key: "auditLogs", label: "Audit log" },
-  { key: "suppliers", label: "Fornitori" },
-  { key: "products", label: "Prodotti" },
-  { key: "services", label: "Prestazioni" },
-  { key: "stockMovements", label: "Movimenti magazzino" },
-  { key: "financeEntries", label: "Finanza" },
-  { key: "patientPayments", label: "Pagamenti pazienti" },
-  { key: "cashAdvances", label: "Anticipi" },
-  { key: "recallRules", label: "Regole richiami" },
-  { key: "recalls", label: "Richiami" },
-  { key: "quotes", label: "Preventivi" },
-  { key: "quoteItems", label: "Righe preventivo" },
-  { key: "anamnesisConditions", label: "Condizioni anamnesi" },
-  { key: "featureUpdates", label: "Aggiornamenti sistema" },
-  { key: "featureUpdateDismissals", label: "Dismissal aggiornamenti" },
-  { key: "roleFeatureAccess", label: "Accesso funzionalità" },
-  { key: "userAwards", label: "Premi utenti" },
-  { key: "featureInstructions", label: "Istruzioni funzionalità" },
-  { key: "featureInstructionSteps", label: "Step istruzioni" },
-  { key: "userInstructionProgress", label: "Progresso istruzioni utenti" },
-] as const;
-
-type ExportTableKey = (typeof exportTables)[number]["key"];
-const exportTableKeys = new Set<ExportTableKey>(exportTables.map((table) => table.key));
-const isExportTableKey = (value: string): value is ExportTableKey => exportTableKeys.has(value as ExportTableKey);
 
 async function importData(formData: FormData) {
   "use server";
@@ -731,187 +688,235 @@ async function importData(formData: FormData) {
   revalidatePath("/admin/reset");
 }
 
-export default async function ResetPage() {
+export default async function ResetPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
+  const isBulkEnabled = isBulkDestructiveActionEnabled();
+  const { tab: activeTab = "export" } = await searchParams;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-2xl border border-rose-200 bg-rose-50 p-6 shadow-sm dark:border-rose-900/30 dark:bg-rose-950/10">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-rose-700 dark:text-rose-400">
-                {t("reset")}
-              </p>
-              <h1 className="text-xl font-semibold text-rose-900 dark:text-rose-200">
-                {t("resetTitle")}
-              </h1>
-            </div>
-            <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:ring-rose-900/30">
-              {t("dangerZone")}
-            </span>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">Manutenzione Sistema</h1>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Gestisci i dati, backup e ripristino del database.</p>
           </div>
-          <p className="text-sm text-rose-900 dark:text-rose-200">{t("resetDescription")}</p>
-          <p className="text-sm font-semibold text-rose-800 dark:text-rose-300">
-            {t("resetWarning")}
-          </p>
-          <form action={resetSystem} className="space-y-3">
-            <label className="flex flex-col gap-2 text-sm font-medium text-rose-900 dark:text-rose-200">
-              {t("resetConfirmLabel")}
-              <input
-                name="confirm"
-                placeholder={t("resetConfirmPlaceholder")}
-                className="h-11 rounded-xl border border-rose-200 bg-white px-3 text-base text-rose-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100 dark:border-rose-900/50 dark:bg-rose-950/20 dark:text-rose-100 dark:placeholder:text-rose-900/50 dark:focus:border-rose-700 dark:focus:ring-rose-900/20"
-                autoComplete="off"
-              />
-            </label>
-            <p className="text-xs text-rose-900 dark:text-rose-400">
-              Questa azione richiede la variabile ambiente
-              <code className="ml-1 rounded bg-white/70 px-1 py-0.5 dark:bg-rose-900/40 dark:text-rose-200">
-                ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
-              </code>
-              .
-            </p>
-            <label className="flex items-center gap-2 text-sm font-semibold text-rose-900 dark:text-rose-200">
-              <input
-                type="checkbox"
-                name="seedDemo"
-                defaultChecked
-                className="h-4 w-4 rounded border-rose-300 dark:border-rose-800 dark:bg-rose-950"
-              />
-              Ripristina anche i dati demo
-            </label>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-rose-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500"
-            >
-              {t("resetButton")}
-            </button>
-            <p className="text-xs text-rose-900 dark:text-rose-400">{t("resetFooterHint")}</p>
-          </form>
-        </section>
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+            isBulkEnabled 
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300"
+              : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${isBulkEnabled ? "bg-emerald-500" : "bg-amber-500"}`} />
+            Bulk Actions: {isBulkEnabled ? "Abilitate" : "Disabilitate"}
+          </div>
+        </div>
 
-        <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                  {t("export")}
-                </p>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-                  {t("exportTitle")}
-                </h2>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400">
-                JSON
-              </span>
-            </div>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("exportDescription")}</p>
-          </div>
-          <form
-            method="GET"
-            action="/api/admin/export"
-            className="space-y-4 text-sm text-zinc-800 dark:text-zinc-200"
+        <div className="mt-8 flex gap-1 rounded-xl bg-zinc-100 p-1 dark:bg-zinc-900">
+          <Link
+            href="/admin/reset?tab=export"
+            className={`flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold transition ${
+              activeTab === "export"
+                ? "bg-white text-emerald-800 shadow-sm dark:bg-zinc-800 dark:text-emerald-400"
+                : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+            }`}
           >
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {exportTables.map((table) => (
-                <label
-                  key={table.key}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+            Esportazione
+          </Link>
+          <Link
+            href="/admin/reset?tab=import"
+            className={`flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold transition ${
+              activeTab === "import"
+                ? "bg-white text-amber-800 shadow-sm dark:bg-zinc-800 dark:text-amber-400"
+                : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+            }`}
+          >
+            Importazione
+          </Link>
+          <Link
+            href="/admin/reset?tab=reset"
+            className={`flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold transition ${
+              activeTab === "reset"
+                ? "bg-white text-rose-800 shadow-sm dark:bg-zinc-800 dark:text-rose-400"
+                : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+            }`}
+          >
+            Reset Totale
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        {activeTab === "export" && (
+          <section className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Configura Esportazione</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Scarica i dati del database in formato JSON per backup o migrazione.</p>
+              </div>
+              <div className="flex gap-2">
+                <Link
+                  href="/api/magazzino/export"
+                  className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
-                  <input
-                    type="checkbox"
-                    name="tables"
-                    value={table.key}
-                    defaultChecked
-                    className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950"
-                  />
-                  <span>{table.label}</span>
-                </label>
-              ))}
+                  Esporta Magazzino (CSV)
+                </Link>
+              </div>
             </div>
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
-            >
-              {t("exportButton")}
-            </button>
-          </form>
 
-          <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                  {t("import")}
-                </p>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  {t("importTitle")}
-                </h3>
-              </div>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                JSON
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t("importDescription")}</p>
-            <form action={importData} className="mt-3 space-y-3 text-sm text-zinc-800 dark:text-zinc-200">
-              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                {t("importLabel")}
-                <LocalizedFileInput name="file" accept="application/json" required />
-              </div>
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Digita <span className="font-semibold dark:text-zinc-50">{IMPORT_CONFIRMATION_TEXT}</span> per
-                confermare l&apos;import che sovrascrive i dati esistenti
-                <input
-                  name="confirmImport"
-                  placeholder={IMPORT_CONFIRMATION_TEXT}
-                  autoComplete="off"
-                  className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-zinc-700 dark:focus:ring-zinc-900"
-                  required
-                />
-              </label>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t("importHint")}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                L&apos;import distruttivo richiede anche
-                <code className="ml-1 rounded bg-zinc-100 px-1 py-0.5 dark:bg-zinc-900 dark:text-zinc-300">
-                  ALLOW_BULK_DESTRUCTIVE_ACTIONS=true
-                </code>
-                .
-              </p>
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
-              >
-                {t("importButton")}
-              </button>
-            </form>
-          </div>
+            <ConfigExportForm />
+          </section>
+        )}
 
-          <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                  Magazzino
-                </p>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Import/Export magazzino
-                </h3>
+        {activeTab === "import" && (
+          <section className="space-y-6">
+             {!isBulkEnabled && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">⚠️</div>
+                    <div>
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Importazione Disabilitata</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">L&apos;importazione massiva richiede l&apos;impostazione di <code>ALLOW_BULK_DESTRUCTIVE_ACTIONS=true</code> nel server.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Ripristino da Backup</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">Sostituisci i dati attuali con quelli contenuti in un file JSON esportato in precedenza.</p>
               </div>
-              <Link
-                href="/api/magazzino/export"
-                className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                Esporta CSV
-              </Link>
+              
+              <div className="mt-6 rounded-xl bg-rose-50 p-4 text-xs text-rose-800 dark:bg-rose-950/20 dark:text-rose-300">
+                <p className="font-bold uppercase tracking-wider">Pericolo: Azione Distruttiva</p>
+                <p className="mt-1 font-medium">L&apos;importazione cancellerà TUTTI i dati attuali nelle tabelle coinvolte prima di inserire quelli nuovi. Assicurati di avere una copia dei dati correnti.</p>
+              </div>
+
+              <form action={importData} className="mt-8 space-y-6">
+                <div className="flex flex-col gap-3">
+                  <label className="text-sm font-bold text-zinc-900 dark:text-zinc-50 pl-1">Seleziona file backup (.json)</label>
+                  <LocalizedFileInput name="file" accept="application/json" required />
+                </div>
+
+                <div className="space-y-3">
+                   <label className="flex flex-col gap-2 text-sm font-bold text-zinc-900 dark:text-zinc-50 pl-1">
+                    Conferma l&apos;operazione
+                    <p className="text-xs font-medium text-zinc-500 italic">Digita &quot;{IMPORT_CONFIRMATION_TEXT}&quot; per sbloccare l&apos;import.</p>
+                    <input
+                      name="confirmImport"
+                      placeholder={IMPORT_CONFIRMATION_TEXT}
+                      autoComplete="off"
+                      disabled={!isBulkEnabled}
+                      className="h-12 rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-base text-zinc-900 outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-700"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  variant="black" 
+                  disabled={!isBulkEnabled}
+                  size="lg"
+                  className="w-full rounded-full font-bold shadow-lg"
+                >
+                  Avvia Importazione Massiva
+                </Button>
+              </form>
             </div>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Carica un file CSV con movimenti o scarica lo stato attuale dell&apos;inventario.
-            </p>
-            <div className="mt-3">
-              <ImportForm />
+
+            <div className="pg-card-base">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-zinc-900 dark:text-zinc-50">Importazione Magazzino (CSV)</h3>
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-bold text-zinc-500 uppercase dark:bg-zinc-800">Parziale</span>
+              </div>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Aggiorna le quantità o i prezzi dell&apos;inventario senza cancellare le anagrafiche.</p>
+              <div className="mt-4">
+                <ImportForm />
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
+
+        {activeTab === "reset" && (
+          <section className="space-y-6">
+            {!isBulkEnabled && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">⚠️</div>
+                    <div>
+                      <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Reset Disabilitato</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400">Il reset richiede l&apos;impostazione di <code>ALLOW_BULK_DESTRUCTIVE_ACTIONS=true</code>.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            <div className="rounded-2xl border border-rose-200 bg-rose-50/30 p-8 shadow-sm dark:border-rose-900/30 dark:bg-rose-950/10">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-rose-900 dark:text-rose-200">Reset Totale Sistema</h2>
+                  <p className="mt-2 text-sm text-rose-800 dark:text-rose-300/80">Questa è l&apos;azione più pericolosa. Cancella ogni dato presente nel database.</p>
+                </div>
+                <div className="rounded-full bg-rose-600 px-4 py-1 text-[10px] font-extrabold uppercase tracking-[0.2em] text-white">Danger</div>
+              </div>
+
+              <div className="mt-8 grid gap-6 md:grid-cols-2">
+                <div className="space-y-3 rounded-2xl bg-white/60 p-5 dark:bg-zinc-950/40">
+                  <h3 className="text-sm font-bold text-rose-900 dark:text-rose-300">Cosa verrà rimosso:</h3>
+                  <ul className="space-y-2 text-xs font-medium text-rose-800 dark:text-rose-400/80">
+                    <li className="flex items-center gap-2">❌ Tutti gli Utenti (tranne te)</li>
+                    <li className="flex items-center gap-2">❌ Tutte le Schede Paziente</li>
+                    <li className="flex items-center gap-2">❌ Tutti gli Appuntamenti</li>
+                    <li className="flex items-center gap-2">❌ Tutta la Contabilità e Fatture</li>
+                    <li className="flex items-center gap-2">❌ Tutte le Configurazioni Clinica</li>
+                  </ul>
+                </div>
+
+                <form action={resetSystem} className="space-y-6">
+                  <label className="flex flex-col gap-2 text-sm font-bold text-rose-900 dark:text-rose-300">
+                    Conferma con testo
+                    <p className="text-[11px] font-medium opacity-70 italic">Digita &quot;{RESET_CONFIRMATION_TEXT}&quot;</p>
+                    <input
+                      name="confirm"
+                      placeholder={RESET_CONFIRMATION_TEXT}
+                      disabled={!isBulkEnabled}
+                      className="h-12 rounded-xl border border-rose-200 bg-white px-4 text-base text-rose-900 outline-none transition focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 dark:border-rose-900/50 dark:bg-zinc-900 dark:text-rose-100"
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-rose-100 bg-white/50 px-4 py-3 transition hover:bg-white dark:border-rose-900/30 dark:bg-zinc-950/50 dark:hover:bg-zinc-950">
+                    <input
+                      type="checkbox"
+                      name="seedDemo"
+                      defaultChecked
+                      disabled={!isBulkEnabled}
+                      className="h-5 w-5 rounded border-rose-300 text-rose-600 focus:ring-rose-500 dark:border-rose-900 dark:bg-zinc-900"
+                    />
+                    <span className="text-sm font-bold text-rose-900 dark:text-rose-300">Ripristina Dati Demo (Setup Iniziale)</span>
+                  </label>
+
+                  <Button 
+                    type="submit" 
+                    variant="destructive" 
+                    size="lg"
+                    disabled={!isBulkEnabled}
+                    className="w-full rounded-full h-14 text-lg font-black shadow-xl shadow-rose-200 dark:shadow-none"
+                  >
+                    WIPE DATABASE & RESET
+                  </Button>
+                </form>
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

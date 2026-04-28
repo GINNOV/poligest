@@ -220,6 +220,39 @@ async function updateUserDetails(formData: FormData) {
   revalidatePath("/admin/utenti");
 }
 
+async function linkUserToDoctor(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const userId = formData.get("userId") as string;
+  const doctorId = formData.get("doctorId") as string;
+
+  if (!userId) throw new Error("Utente non valido");
+
+  // 1. Remove any existing links for this user
+  await prisma.doctor.updateMany({
+    where: { userId },
+    data: { userId: null },
+  });
+
+  // 2. Add the new link
+  if (doctorId) {
+    await prisma.doctor.update({
+      where: { id: doctorId },
+      data: { userId },
+    });
+  }
+
+  await logAudit(admin, {
+    action: "admin.user.link_doctor",
+    entity: "User",
+    entityId: userId,
+    metadata: { doctorId: doctorId || null },
+  });
+
+  revalidatePath("/admin/utenti");
+}
+
 async function startImpersonation(formData: FormData) {
   "use server";
 
@@ -499,21 +532,28 @@ export default async function AdminUsersPage({
     ? { AND: whereConditions }
     : undefined;
 
-  const users = await prisma.user.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      isActive: true,
-      locale: true,
-      createdAt: true,
-      lastLoginAt: true,
-      avatarUrl: true,
-    },
-  });
+  const [users, allDoctors] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        locale: true,
+        createdAt: true,
+        lastLoginAt: true,
+        avatarUrl: true,
+        doctor: { select: { id: true } },
+      },
+    }),
+    prisma.doctor.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true },
+    }),
+  ]);
 
   const roleLabels: Record<Role, string> = {
     [Role.ADMIN]: "Admin",
@@ -855,6 +895,39 @@ export default async function AdminUsersPage({
                         </Button>
                       </div>
                     </form>
+
+                    {/* Linking Section */}
+                    {user.role !== Role.PATIENT && (
+                      <form action={linkUserToDoctor} className="col-span-full border-t border-zinc-100 pt-3 dark:border-zinc-800 flex flex-col gap-2">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Profilo Medico (per Agenda/Reminders)</label>
+                          <div className="h-px flex-1 bg-zinc-100 dark:bg-zinc-800" />
+                        </div>
+                        <div className="flex gap-2">
+                          <select
+                            name="doctorId"
+                            defaultValue={user.doctor?.id ?? ""}
+                            className="h-9 flex-1 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900/30"
+                          >
+                            <option value="">Nessun profilo collegato</option>
+                            {allDoctors.map((doc) => (
+                              <option key={doc.id} value={doc.id}>
+                                {doc.fullName}
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            type="submit"
+                            size="sm"
+                            variant="secondary"
+                            className="h-9 px-3"
+                          >
+                            Collega
+                          </Button>
+                        </div>
+                      </form>
+                    )}
                   </div>
                 </div>
               ))

@@ -365,6 +365,12 @@ export default async function AgendaPage({
                               </span>
                             </div>
                           </div>
+                          <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800/50">
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Note</p>
+                            <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 italic">
+                              {appt.notes?.trim() ? appt.notes : "Nessuna nota."}
+                            </p>
+                          </div>
                         </div>
                         <div className="grid w-full grid-cols-1 gap-2 text-xs sm:w-auto">
                           <AgendaReminderButton

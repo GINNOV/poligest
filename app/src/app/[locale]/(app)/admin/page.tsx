@@ -30,13 +30,6 @@ export default async function AdminPage() {
     findUnique?: (args: { where: { id: string } }) => Promise<{ id: string } | null>;
   }>("practiceWeeklyReportConfig");
 
-  const weeklyReportAvailability = await runOptionalPrismaQuery(
-    weeklyReportConfigClient?.findUnique
-      ? () => weeklyReportConfigClient.findUnique!({ where: { id: "default" } })
-      : undefined,
-    null,
-  );
-
   const [
     usersCount,
     doctorsCount,
@@ -48,6 +41,7 @@ export default async function AdminPage() {
     consentModulesCount,
     emailTemplatesCount,
     errorCount,
+    weeklyReportAvailability,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.doctor.count(),
@@ -59,6 +53,12 @@ export default async function AdminPage() {
     consentModuleClient?.count ? consentModuleClient.count() : Promise.resolve(0),
     emailTemplateClient?.count ? emailTemplateClient.count() : Promise.resolve(0),
     prisma.auditLog.count({ where: { action: "error.reported" } }),
+    runOptionalPrismaQuery(
+      weeklyReportConfigClient?.findUnique
+        ? () => weeklyReportConfigClient.findUnique!({ where: { id: "default" } })
+        : undefined,
+      null,
+    ),
   ]);
 
   const shortcuts: AdminShortcut[] = [
@@ -125,6 +125,15 @@ export default async function AdminPage() {
       tone: weeklyReportAvailability.available ? "primary" : "warning",
       disabled: !weeklyReportAvailability.available,
       icon: "📈",
+    },
+    {
+      key: "daily-reminder",
+      title: "Promemoria quotidiano",
+      description: "Invio automatico a tutto lo staff dell'agenda del giorno successivo.",
+      href: "/admin/promemoria-quotidiano",
+      badge: "Staff",
+      tone: "primary",
+      icon: "🔔",
     },
     {
       key: "users",

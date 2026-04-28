@@ -377,7 +377,7 @@ export default async function DashboardPage({
       lastName: appt.patient.lastName,
       phone: appt.patient.phone,
     },
-    doctor: appt.doctor?.fullName ? { fullName: appt.doctor.fullName } : null,
+    doctor: appt.doctor?.fullName ? { id: appt.doctorId || "", fullName: appt.doctor.fullName } : null,
     reminderSent: false,
   }));
   const todayStart = startOfDay(today);

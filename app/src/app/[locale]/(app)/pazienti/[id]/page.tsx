@@ -737,7 +737,7 @@ export default async function PatientDetailPage({
                                   Scarica dati
                                 </a>
                               ) : null}
-                              {isAdmin ? <PatientDeleteButton patientId={patient.id} /> : null}
+                              {isAdmin ? <PatientDeleteButton patientId={patient.id} role={user.role} /> : null}
                             </div>
                           </div>
                         ) : null}

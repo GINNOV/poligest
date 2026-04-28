@@ -2,12 +2,12 @@
 
 In SORRIDI la sezione **Agenda** e divisa in due parti:
 
-- **Appuntamenti esistenti**
-- **Aggiungi appuntamenti**
+- **APPUNTAMENTI ESISTENTI**
+- **CALENDARIO MEDICI**
 
 Usa la prima per controllare e aggiornare quello che e gia prenotato. Usa la seconda per vedere il calendario completo e inserire nuovi appuntamenti.
 
-## Quando usare "Aggiungi appuntamenti"
+## Quando usare "CALENDARIO MEDICI"
 
 Apri questa schermata quando devi:
 
@@ -18,7 +18,7 @@ Apri questa schermata quando devi:
 
 ## Come creare un appuntamento
 
-1. Apri `Agenda` > `Aggiungi appuntamenti`.
+1. Apri `Agenda` > `CALENDARIO MEDICI`.
 2. Scegli il giorno.
 3. Premi sullo spazio orario libero oppure usa il modulo di creazione.
 4. Seleziona il paziente.

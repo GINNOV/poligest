@@ -48,7 +48,7 @@ describe("crash-context", () => {
             type: "click",
             at: "2026-03-28T10:00:01.000Z",
             path: "/agenda",
-            detail: "a: Appuntamenti esistenti",
+            detail: "a: APPUNTAMENTI ESISTENTI",
           },
         ],
       },
@@ -56,7 +56,7 @@ describe("crash-context", () => {
 
     expect(href).toContain("mailto:support@example.com");
     expect(decodeURIComponent(href)).toContain("ERR-123");
-    expect(decodeURIComponent(href)).toContain("Appuntamenti esistenti");
+    expect(decodeURIComponent(href)).toContain("APPUNTAMENTI ESISTENTI");
   });
 });
 

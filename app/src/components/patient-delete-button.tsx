@@ -1,15 +1,20 @@
 "use client";
 
+import { Role } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DELETE_CONFIRMATION_TEXT } from "@/lib/destructive-action-guard";
 import { emitToast } from "./global-toasts";
 
-export function PatientDeleteButton({ patientId }: { patientId: string }) {
+export function PatientDeleteButton({ patientId, role }: { patientId: string; role?: string }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmation, setConfirmation] = useState("");
+
+  if (role === Role.SECRETARY) {
+    return null;
+  }
 
   const close = () => {
     setShowConfirm(false);

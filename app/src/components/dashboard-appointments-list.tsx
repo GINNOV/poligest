@@ -7,7 +7,11 @@ import { AppointmentStatus } from "@prisma/client";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
 import { Button } from "./ui/button";
-import { getBrowserUserDisplayTimeZone } from "@/lib/user-display-time-zone";
+import { getBrowserUserDisplayTimeZone, formatDateInDisplayTimeZone, formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
+import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
+import { AgendaReminderButton } from "@/components/agenda-reminder-button";
+import { updateAppointmentStatusAction } from "@/lib/appointments/agenda-actions";
+import { formatCalendarLocalInput } from "@/lib/calendar/domain";
 
 type AppointmentItem = {
   id: string;
@@ -23,7 +27,7 @@ type AppointmentItem = {
     lastName?: string | null;
     phone?: string | null;
   };
-  doctor?: { fullName?: string | null } | null;
+  doctor?: { id: string; fullName?: string | null } | null;
   reminderSent?: boolean;
 };
 
@@ -34,16 +38,20 @@ type Props = {
   emptyLabel: string;
 };
 
-const LOCALE = "it-IT";
-const formatDate = (date: Date, options: Intl.DateTimeFormatOptions, timeZone: string) =>
-  new Intl.DateTimeFormat(LOCALE, { ...options, timeZone }).format(date);
-const getDateKey = (date: Date, timeZone: string) =>
-  new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
+const statusLabels: Record<AppointmentStatus, string> = {
+  TO_CONFIRM: "Da confermare",
+  CONFIRMED: "Confermato",
+  IN_WAITING: "In attesa",
+  IN_PROGRESS: "In corso",
+  COMPLETED: "Completato",
+  CANCELLED: "Annullato",
+  NO_SHOW: "No-show",
+};
+
+const statusOptions = Object.entries(statusLabels).map(([value, label]) => ({
+  value: value as AppointmentStatus,
+  label,
+}));
 
 const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "border-amber-200 bg-gradient-to-r from-amber-50 via-white to-amber-50 dark:border-amber-800/60 dark:from-amber-900/20 dark:via-zinc-950 dark:to-amber-900/20",
@@ -54,8 +62,6 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   CANCELLED: "border-rose-200 bg-gradient-to-r from-rose-50 via-white to-rose-50 dark:border-rose-800/60 dark:from-rose-900/20 dark:via-zinc-950 dark:to-rose-900/20",
   NO_SHOW: "border-violet-200 bg-gradient-to-r from-violet-50 via-white to-violet-50 dark:border-violet-800/60 dark:from-violet-900/20 dark:via-zinc-950 dark:to-violet-900/20",
 };
-
-const PAGE_SIZE = 10;
 
 const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
   const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
@@ -78,25 +84,28 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
   }, []);
 
   const orderedAppointments = useMemo(() => {
-    const isSameDay = (date: Date, target: Date) =>
-      getDateKey(date, displayTimeZone) === getDateKey(target, displayTimeZone);
     const parsed = appointments.map((appt) => ({
       ...appt,
       startsAtDate: new Date(appt.startsAt),
       endsAtDate: new Date(appt.endsAt),
     }));
-    return [
-      ...parsed
-        .filter((appt) => isSameDay(appt.startsAtDate, now))
-        .sort((a, b) => a.startsAtDate.getTime() - b.startsAtDate.getTime()),
-      ...parsed
-        .filter((appt) => appt.startsAtDate > now && !isSameDay(appt.startsAtDate, now))
-        .sort((a, b) => a.startsAtDate.getTime() - b.startsAtDate.getTime()),
-      ...parsed
-        .filter((appt) => appt.startsAtDate < now && !isSameDay(appt.startsAtDate, now))
-        .sort((a, b) => b.startsAtDate.getTime() - a.startsAtDate.getTime()),
-    ];
-  }, [appointments, displayTimeZone, now]);
+
+    return parsed.sort((a, b) => {
+      const dateA = a.startsAtDate.toISOString().split("T")[0];
+      const dateB = b.startsAtDate.toISOString().split("T")[0];
+
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA); // Latest date first
+      }
+
+      const nameA = `${a.patient.lastName} ${a.patient.firstName}`.toLowerCase();
+      const nameB = `${b.patient.lastName} ${b.patient.firstName}`.toLowerCase();
+
+      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
+    });
+  }, [appointments]);
+
+  const PAGE_SIZE = 10;
   const totalPages = Math.max(1, Math.ceil(orderedAppointments.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(page, totalPages);
   const paginatedAppointments = useMemo(() => {
@@ -114,7 +123,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
         const patientPhone = normalizeItalianPhone(appt.patient.phone);
         const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
         const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-        const whatsappAppointmentDate = isMounted ? formatDate(
+        const whatsappAppointmentDate = isMounted ? formatDateInDisplayTimeZone(
           appt.startsAtDate,
           {
             weekday: "long",
@@ -139,20 +148,24 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
           ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
           : null;
         const isPast = appt.endsAtDate < now;
+        
         const cardClass = isPast
           ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
           : statusCardBackgrounds[appt.status];
-        const dayKey = isMounted ? getDateKey(appt.startsAtDate, displayTimeZone) : appt.startsAt.slice(0, 10);
-        const dayLabel = isMounted ? formatDate(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone) : "";
+
+        const dayKey = isMounted ? formatDateInputValueInTimeZone(appt.startsAtDate, displayTimeZone) : appt.startsAt.slice(0, 10);
+        const dayLabel = isMounted ? formatDateInDisplayTimeZone(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone) : "";
         const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
         const prevDayKey = prevAppt 
-          ? (isMounted ? getDateKey(prevAppt.startsAtDate, displayTimeZone) : prevAppt.startsAt.slice(0, 10))
+          ? (isMounted ? formatDateInputValueInTimeZone(prevAppt.startsAtDate, displayTimeZone) : prevAppt.startsAt.slice(0, 10))
           : null;
         const showDivider = !prevDayKey || prevDayKey !== dayKey;
-        const reminderSent = appt.reminderSent;
+
         const outerCardClass = index % 2 === 0
           ? "border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-950/90"
           : "border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/80";
+
+        const startsAtLocal = formatCalendarLocalInput(appt.startsAtDate, displayTimeZone);
 
         return (
           <div key={appt.id}>
@@ -196,7 +209,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                         <span>
-                          {isMounted ? formatDate(
+                          {isMounted ? formatDateInDisplayTimeZone(
                             appt.startsAtDate,
                             {
                               weekday: "short",
@@ -206,7 +219,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                             displayTimeZone
                           ) : ""}
                           {" "}
-                          alle {isMounted ? formatDate(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone) : ""}
+                          alle {isMounted ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone) : ""}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -222,31 +235,33 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                         </span>
                       </div>
                     </div>
+                    <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800/50">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Note</p>
+                      <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 italic">
+                        {appt.notes?.trim() ? appt.notes : "Nessuna nota."}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-end">
-                    <Button
-                      disabled={!whatsappHref}
-                      onClick={() => {
-                        if (!whatsappHref) return;
-                        const clickLogUrl = `/api/appointments/${appt.id}/whatsapp-reminder-click`;
-                        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
-                          navigator.sendBeacon(clickLogUrl, new Blob(["{}"], { type: "application/json" }));
-                        } else {
-                          void fetch(clickLogUrl, {
-                            method: "POST",
-                            keepalive: true,
-                            headers: { "content-type": "application/json" },
-                            body: "{}",
-                          });
-                        }
-                        window.location.href = whatsappHref;
-                      }}
-                      variant={reminderSent ? "primary" : "destructive"}
-                      className="h-9 w-full gap-2 sm:w-auto"
+                  <div className="grid w-full grid-cols-1 gap-2 text-xs sm:w-auto">
+                    <AgendaReminderButton
+                      appointmentId={appt.id}
+                      whatsappHref={whatsappHref}
+                      initialReminderSent={appt.reminderSent}
+                    />
+                    <AppointmentStatusAutoSubmit
+                      appointmentId={appt.id}
+                      defaultValue={appt.status}
+                      options={statusOptions}
+                      action={updateAppointmentStatusAction}
+                      returnTo="/dashboard"
+                      className="w-full"
+                    />
+                    <Link
+                      href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctor?.id ? `&doctor=${appt.doctor.id}` : ""}`}
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
                     >
-                      <Image src="/whatsapp.png" alt="" width={18} height={18} />
-                      Promemoria
-                    </Button>
+                      MODIFICA / CALENDARIO 🗓️
+                    </Link>
                   </div>
                 </div>
               </div>

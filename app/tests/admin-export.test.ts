@@ -53,6 +53,8 @@ describe("Admin Export Sync", () => {
         StockMovement: "stockMovements",
         FinanceEntry: "financeEntries",
         EmailTemplate: "emailTemplates",
+        DailyReminderConfig: "dailyReminderConfig",
+        DailyReminderLog: "dailyReminderLogs",
         CashAdvance: "cashAdvances",
         RecallRule: "recallRules",
         Recall: "recalls",
@@ -76,15 +78,16 @@ describe("Admin Export Sync", () => {
 
   it("should include all exported tables in the Admin Reset page UI", () => {
     const exportContent = fs.readFileSync(exportRoutePath, "utf-8");
-    const resetPageContent = fs.readFileSync(resetPagePath, "utf-8");
+    const exportTablesPath = path.join(process.cwd(), "src/lib/admin/export-tables.ts");
+    const exportTablesContent = fs.readFileSync(exportTablesPath, "utf-8");
 
     const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+\(\)\s+=>\s+prisma\.\w+\.findMany\(\),/gm)].map(m => m[1]);
     
-    // Extract keys from exportTables in reset page
-    const exportTableKeys = [...resetPageContent.matchAll(/key:\s+"(\w+)"/gm)].map(m => m[1]);
+    // Extract keys from exportTables in lib
+    const exportTableKeys = [...exportTablesContent.matchAll(/key:\s+"(\w+)"/gm)].map(m => m[1]);
 
     for (const key of tableQueryKeys) {
-        expect(exportTableKeys, `Table key ${key} is missing from exportTables in ${resetPagePath}`).toContain(key);
+        expect(exportTableKeys, `Table key ${key} is missing from exportTables in ${exportTablesPath}`).toContain(key);
     }
   });
 
@@ -111,6 +114,8 @@ describe("Admin Export Sync", () => {
         smsLogs: "smsLog",
         smsProviderConfig: "smsProviderConfig",
         emailTemplates: "emailTemplate",
+        dailyReminderConfig: "dailyReminderConfig",
+        dailyReminderLogs: "dailyReminderLog",
         practiceWeeklyReportConfig: "practiceWeeklyReportConfig",
         practiceWeeklyReportLogs: "practiceWeeklyReportLog",
         recurringMessageConfigs: "recurringMessageConfig",

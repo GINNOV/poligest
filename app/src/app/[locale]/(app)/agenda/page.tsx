@@ -34,7 +34,7 @@ export default async function AgendaPage() {
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Apputamenti esistenti</h2>
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 uppercase tracking-wide">APPUNTAMENTI ESISTENTI</h2>
               <p className="text-sm text-zinc-600 dark:text-zinc-300">
                 Gestisci gli appuntamenti correnti e aggiorna le loro informazioni.
               </p>
@@ -51,14 +51,14 @@ export default async function AgendaPage() {
               <div className="relative aspect-[2752/1536] overflow-hidden rounded-2xl border border-zinc-100 dark:border-zinc-800">
                 <Image
                   src="/tiles/calendar.png"
-                  alt="Aggiungi appuntamenti"
+                  alt="CALENDARIO MEDICI"
                   fill
                   sizes="(min-width: 1024px) 320px, 100vw"
                   className="h-44 w-full object-cover"
                 />
               </div>
               <div className="space-y-2">
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Aggiungi appuntamenti</h2>
+                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50 uppercase tracking-wide">CALENDARIO MEDICI</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-300">
                   Visualizza la pianificazione mensile, le disponibilita e crea nuovi appuntamenti.
                 </p>

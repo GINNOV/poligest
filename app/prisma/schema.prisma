@@ -243,6 +243,31 @@ model User {
   awards                  UserAward[]
   dentalRecordUpdates     DentalRecord[] @relation("DentalRecordUpdatedBy")
   instructionProgress     UserInstructionProgress[]
+  dailyReminderLogs       DailyReminderLog[]
+}
+
+model DailyReminderConfig {
+  id              String   @id @default("default")
+  enabled         Boolean  @default(true)
+  sendTimeMinutes Int      @default(1230) // 20:30 is 20*60 + 30 = 1230
+  targetRoles     Role[]   @default([ADMIN, MANAGER, ASSISTANT, SECRETARY])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DailyReminderLog {
+  id        String                 @id @default(cuid())
+  userId    String
+  date      DateTime // The date the reminder is for
+  status    RecurringMessageStatus
+  error     String?
+  sentAt    DateTime?
+  createdAt DateTime               @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([createdAt])
 }
 
 model Doctor {
