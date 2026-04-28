@@ -18,6 +18,7 @@ type AvailabilityWindow = {
 
 type WeekDay = {
   date: string;
+  label: string;
   isToday: boolean;
   isPracticeClosed?: boolean;
   availabilityWindows: AvailabilityWindow[];
@@ -139,7 +140,7 @@ const toLocalInput = (date: string, minutes: number) => {
 
 type Props = {
   weekDays: WeekDay[];
-  patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
+  patients: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; taxId?: string | null }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   services: { id: string; name: string }[];
@@ -152,6 +153,7 @@ type Props = {
   selectedDoctorId?: string;
   returnTo: string;
   searchQuery?: string;
+  initialAppointmentId?: string;
 };
 
 export function CalendarWeekView({
@@ -169,11 +171,26 @@ export function CalendarWeekView({
   selectedDoctorId,
   returnTo,
   searchQuery,
+  initialAppointmentId,
 }: Props) {
   const [selectedSlot, setSelectedSlot] = useState<{ startsAt: string; endsAt: string } | null>(
     null
   );
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+
+  useEffect(() => {
+    if (initialAppointmentId) {
+      const found = weekDays.flatMap(d => d.appointments).find((a) => a.id === initialAppointmentId);
+      if (found) {
+        setSelectedAppointment(found);
+        // Scroll into view
+        setTimeout(() => {
+          const el = document.querySelector(`[data-appt-id="${initialAppointmentId}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 500);
+      }
+    }
+  }, [initialAppointmentId, weekDays]);
 
   const filteredWeekDays = useMemo(() => {
     if (!searchQuery) return weekDays;
@@ -199,10 +216,8 @@ export function CalendarWeekView({
         maxMinute = Math.max(maxMinute, win.endMinute);
       });
       day.appointments.forEach((appt) => {
-        const start = new Date(appt.startsAt);
-        const end = new Date(appt.endsAt);
-        minMinute = Math.min(minMinute, start.getHours() * 60 + start.getMinutes());
-        maxMinute = Math.max(maxMinute, end.getHours() * 60 + end.getMinutes());
+        minMinute = Math.min(minMinute, appt.hStart * 60 + appt.mStart);
+        maxMinute = Math.max(maxMinute, appt.hEnd * 60 + appt.mEnd);
       });
     });
     const roundedStart = Math.max(0, Math.floor(minMinute / 60) * 60 - 60);
@@ -252,11 +267,6 @@ export function CalendarWeekView({
           <div className="grid grid-cols-[70px_repeat(7,minmax(140px,1fr))] gap-2 text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">
             <div />
             {filteredWeekDays.map((day) => {
-              const date = new Date(day.date);
-              const label = new Intl.DateTimeFormat("it-IT", {
-                weekday: "short",
-                day: "numeric",
-              }).format(date);
               return (
                 <div key={day.date} className="flex items-center justify-between px-2">
                   <span
@@ -264,7 +274,7 @@ export function CalendarWeekView({
                       day.isToday ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200" : ""
                     }`}
                   >
-                    {label}
+                    {day.label}
                   </span>
                   <span className="rounded-full bg-white px-2 py-0.5 text-[10px] text-zinc-600 shadow-sm dark:bg-zinc-900 dark:text-zinc-300 dark:ring-1 dark:ring-zinc-700">
                     {day.appointments.length}
@@ -363,7 +373,7 @@ export function CalendarWeekView({
 
                   <div className="absolute inset-0">
                     {positionedAppointments.map((appt) => {
-                      const start = new Date(appt.startsAt);
+                      const timeStr = `${padTime(appt.hStart)}:${padTime(appt.mStart)}`;
                       const startMinute = appt.startMinute;
                       const endMinute = appt.endMinute;
                       if (endMinute <= timeStartMinute || startMinute >= timeEndMinute) return null;
@@ -384,6 +394,7 @@ export function CalendarWeekView({
                         <div
                           key={appt.id}
                           className="absolute z-10 group/appt"
+                          data-appt-id={appt.id}
                           style={{ top, height, left, width: `calc(${width} + ${clickGutter}px)` }}
                         >
                           <div 
@@ -408,7 +419,7 @@ export function CalendarWeekView({
                                 {appt.serviceType}
                               </span>
                               <span className="shrink-0 text-[9px] font-semibold text-zinc-600 dark:text-zinc-300">
-                                {start.toLocaleTimeString("it-IT", { timeStyle: "short" })}
+                                {timeStr}
                               </span>
                             </div>
                             {!isCompact ? (

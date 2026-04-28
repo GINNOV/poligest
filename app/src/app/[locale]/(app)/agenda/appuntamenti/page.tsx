@@ -2,7 +2,6 @@ import Link from "next/link";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
-import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 import { AgendaFilters } from "@/components/agenda-filters";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
@@ -10,13 +9,12 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { renderWhatsappTemplate } from "@/lib/whatsapp-template";
 import { AgendaReminderButton } from "@/components/agenda-reminder-button";
 import {
-  deleteAppointmentAction,
-  updateAppointmentAction,
   updateAppointmentStatusAction,
 } from "@/lib/appointments/agenda-actions";
 import {
   getAgendaPageData,
 } from "@/lib/appointments/agenda";
+import { formatCalendarLocalInput } from "@/lib/calendar/domain";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import {
   formatDateInDisplayTimeZone,
@@ -24,13 +22,6 @@ import {
 } from "@/lib/user-display-time-zone";
 
 export const revalidate = 0;
-
-const formatLocalInput = (date: Date, timeZone: string) =>
-  `${formatDateInputValueInTimeZone(date, timeZone)}T${formatDateInDisplayTimeZone(
-    date,
-    { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
-    timeZone
-  )}`;
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -260,6 +251,8 @@ export default async function AgendaPage({
             <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun appuntamento.</p>
           ) : (
             orderedAppointments.map((appt, index) => {
+              const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
+              const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
               const patientPhone = normalizeItalianPhone(appt.patient.phone);
               const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
               const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
@@ -373,7 +366,7 @@ export default async function AgendaPage({
                             </div>
                           </div>
                         </div>
-                        <div className="grid w-full grid-cols-2 gap-2 text-xs sm:w-auto">
+                        <div className="grid w-full grid-cols-1 gap-2 text-xs sm:w-auto">
                           <AgendaReminderButton
                             appointmentId={appt.id}
                             whatsappHref={whatsappHref}
@@ -387,46 +380,15 @@ export default async function AgendaPage({
                             returnTo={returnTo}
                             className="w-full"
                           />
+                          <Link
+                            href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctorId ? `&doctor=${appt.doctorId}` : ""}`}
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+                          >
+                            MODIFICA / CALENDARIO 🗓️
+                          </Link>
                         </div>
                       </div>
                     </div>
-                    <details className="mt-4 rounded-xl border border-zinc-200 bg-white/70 p-3 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/70 dark:text-zinc-300">
-                      <summary className="cursor-pointer font-semibold text-emerald-800 dark:text-emerald-400">
-                        Modifica appuntamento
-                      </summary>
-                      <AppointmentUpdateForm
-                        appointment={{
-                          id: appt.id,
-                          title: appt.title,
-                          serviceType: appt.serviceType,
-                          startsAt: formatLocalInput(appt.startsAt, displayTimeZone),
-                          endsAt: formatLocalInput(appt.endsAt, displayTimeZone),
-                          patientId: appt.patientId,
-                          doctorId: appt.doctorId,
-                          status: appt.status,
-                        }}
-                        patients={patients}
-                        doctors={doctors}
-                        services={serviceOptionObjects}
-                        availabilityWindows={availabilityWindows}
-                        practiceClosures={practiceClosures}
-                        practiceWeeklyClosures={practiceWeeklyClosures}
-                        action={updateAppointmentAction}
-                      />
-                      <form
-                        action={deleteAppointmentAction}
-                        className="mt-3 flex justify-end"
-                        data-confirm="Eliminare definitivamente questo appuntamento?"
-                      >
-                        <input type="hidden" name="appointmentId" value={appt.id} />
-                        <button
-                          type="submit"
-                          className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50"
-                        >
-                          Elimina appuntamento
-                        </button>
-                      </form>
-                    </details>
                   </div>
                 </div>
               );

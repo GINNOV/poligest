@@ -9,6 +9,10 @@ type CalendarAppointment = {
   title: string;
   startsAt: string;
   endsAt: string;
+  hStart: number;
+  mStart: number;
+  hEnd: number;
+  mEnd: number;
   serviceType: string;
   patientName: string;
   patientId: string;
@@ -131,7 +135,7 @@ function getServiceStyle(serviceType: string) {
 
 type Props = {
   days: CalendarDay[];
-  patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
+  patients: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; taxId?: string | null }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   services: { id: string; name: string }[];
@@ -144,10 +148,13 @@ type Props = {
   selectedDoctorId?: string;
   returnTo: string;
   searchQuery?: string;
+  initialAppointmentId?: string;
 };
 
 const DEFAULT_START_TIME = "09:00";
 const DEFAULT_END_TIME = "10:00";
+
+const padTime = (value: number) => value.toString().padStart(2, "0");
 
 export function CalendarMonthView({
   days,
@@ -164,9 +171,24 @@ export function CalendarMonthView({
   selectedDoctorId,
   returnTo,
   searchQuery,
+  initialAppointmentId,
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+
+  useEffect(() => {
+    if (initialAppointmentId) {
+      const found = days.flatMap(d => d.appointments).find((a) => a.id === initialAppointmentId);
+      if (found) {
+        setSelectedAppointment(found);
+        // Scroll into view
+        setTimeout(() => {
+          const el = document.querySelector(`[data-appt-id="${initialAppointmentId}"]`);
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 500);
+      }
+    }
+  }, [initialAppointmentId, days]);
 
   const filteredDays = useMemo(() => {
     if (!searchQuery) return days;
@@ -318,15 +340,11 @@ export function CalendarMonthView({
                 <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Nessun appuntamento</p>
               ) : (
                 day.appointments.map((appt) => {
-                  const startTime = new Intl.DateTimeFormat("it-IT", {
-                    timeStyle: "short",
-                  }).format(new Date(appt.startsAt));
-                  const endTime = new Intl.DateTimeFormat("it-IT", {
-                    timeStyle: "short",
-                  }).format(new Date(appt.endsAt));
+                  const startTime = `${padTime(appt.hStart)}:${padTime(appt.mStart)}`;
+                  const endTime = `${padTime(appt.hEnd)}:${padTime(appt.mEnd)}`;
                   const styles = getServiceStyle(appt.serviceType);
                   return (
-                    <div key={appt.id} className="relative group/appt flex items-center gap-1.5">
+                    <div key={appt.id} data-appt-id={appt.id} className="relative group/appt flex items-center gap-1.5">
                       <div className="w-1.5 h-6 rounded-full bg-emerald-400 opacity-0 group-hover/appt:opacity-100 transition-opacity shrink-0" />
                       <button
                         type="button"

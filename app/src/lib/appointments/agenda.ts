@@ -176,10 +176,25 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
     )
   ).sort();
 
-  const appointmentsWithStatus = appointments.map((appt) => ({
-    ...appt,
-    reminderSent: false,
-  }));
+  const appointmentsWithStatus = appointments
+    .sort((a, b) => {
+      const dateA = a.startsAt.toISOString().split("T")[0];
+      const dateB = b.startsAt.toISOString().split("T")[0];
+
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA); // Latest date first
+      }
+
+      // Same day, sort by name
+      const nameA = `${a.patient.lastName} ${a.patient.firstName}`.toLowerCase();
+      const nameB = `${b.patient.lastName} ${b.patient.firstName}`.toLowerCase();
+
+      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
+    })
+    .map((appt) => ({
+      ...appt,
+      reminderSent: false,
+    }));
 
   const serviceOptions = Array.from(new Set([...services.map((s) => s.name), ...FALLBACK_APPOINTMENT_SERVICES]).values());
 

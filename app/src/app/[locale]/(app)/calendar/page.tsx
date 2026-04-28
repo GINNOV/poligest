@@ -2,10 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-export const metadata: Metadata = {
-  title: "AGENDA",
-};
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
@@ -43,6 +39,18 @@ import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync"
 import { CalendarWeekView } from "@/components/calendar-week-view";
 import { CalendarWeekPicker } from "@/components/calendar-week-picker";
 import { CalendarSearch } from "@/components/calendar-search";
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import * as TZ from "@/lib/user-display-time-zone";
+import {
+  createAppointment,
+  updateAppointment,
+  deleteAppointment,
+} from "./actions";
+
+export const metadata: Metadata = {
+  title: "AGENDA",
+};
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -105,16 +113,6 @@ function isNextRedirectError(err: unknown): err is { digest: string } {
   );
 }
 
-import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
-import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
-import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
-
-import {
-  createAppointment,
-  updateAppointment,
-  deleteAppointment,
-} from "./actions";
-
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -143,23 +141,52 @@ export default async function CalendarPage({
       : Array.isArray(params.view)
         ? params.view[0]
         : undefined;
-  const searchQuery =
+  const initialAppointmentId =
+    typeof params.edit === "string"
+      ? params.edit
+      : Array.isArray(params.edit)
+        ? params.edit[0]
+        : undefined;
+
+  const searchQueryRaw =
     typeof params.q === "string"
       ? params.q
       : Array.isArray(params.q)
         ? params.q[0]
         : undefined;
+
+  // Clear search if we are targeting a specific appointment to ensure it's visible
+  const searchQuery = initialAppointmentId ? undefined : searchQueryRaw;
+
   const view = viewParam === "week" ? "week" : "month";
+
+  const weekBase = (() => {
+    if (typeof weekParam === "string") {
+      const d = TZ.parseDateAtMidnightInTimeZone(weekParam, displayTimeZone);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return TZ.getNowInTimeZone(displayTimeZone);
+  })();
+  const weekIntervalDays = TZ.getWeekDaysInTimeZone(weekBase, displayTimeZone);
+  const weekStart = weekIntervalDays[0];
+  const weekEnd = new Date(weekIntervalDays[6].getTime() + 24 * 60 * 60 * 1000 - 1);
+
   const monthMatch = monthParam?.match(/^(\d{4})-(\d{2})$/);
   let baseMonth = monthMatch
-    ? new Date(Number(monthMatch[1]), Number(monthMatch[2]) - 1, 1)
+    ? TZ.parseDateAtMidnightInTimeZone(`${monthParam}-01`, displayTimeZone)
     : new Date();
-  const weekBase = parseCalendarDateParam(weekParam) ?? new Date();
-  const weekStart = startOfWeek(weekBase, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+  
   if (!monthMatch && view === "week") {
-    baseMonth = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+    baseMonth = weekStart;
   }
+
+  const monthRange = TZ.getMonthRangeInTimeZone(baseMonth, displayTimeZone);
+  const monthStart = monthRange.start;
+  const monthEnd = monthRange.end;
+
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
   const doctors = await prisma.doctor.findMany({
     orderBy: { fullName: "asc" },
@@ -178,11 +205,6 @@ export default async function CalendarPage({
     ? undefined
     : doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
 
-  const monthStart = startOfMonth(baseMonth);
-  const monthEnd = endOfMonth(baseMonth);
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
   const appointmentRangeStart = view === "week" ? weekStart : monthStart;
   const appointmentRangeEnd = view === "week" ? weekEnd : monthEnd;
   const closureRangeStart = view === "week" ? weekStart : calendarStart;
@@ -280,7 +302,7 @@ export default async function CalendarPage({
       : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
-  const patients = patientsRaw.map((p) => {
+  const mappedPatients = patientsRaw.map((p) => {
     const { parsedTaxId } = parsePatientStructuredNotes(p.notes);
     return {
       id: p.id,
@@ -318,7 +340,7 @@ export default async function CalendarPage({
 
   const appointmentsByDay = new Map<string, CalendarAppointmentRecord[]>();
   appointments.forEach((appt) => {
-    const key = formatDateInputValueInTimeZone(appt.startsAt, displayTimeZone);
+    const key = TZ.formatDateInputValueInTimeZone(appt.startsAt, displayTimeZone);
     if (!appointmentsByDay.has(key)) {
       appointmentsByDay.set(key, []);
     }
@@ -329,12 +351,14 @@ export default async function CalendarPage({
     month: "long",
     year: "numeric",
   }).format(baseMonth);
+  const currentMonthKey = TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone).slice(0, 7);
+  const selectedMonthKey = TZ.formatDateInputValueInTimeZone(baseMonth, displayTimeZone).slice(0, 7);
   const prevMonth = format(addMonths(baseMonth, -1), "yyyy-MM");
   const nextMonth = format(addMonths(baseMonth, 1), "yyyy-MM");
-  const currentMonthKey = format(new Date(), "yyyy-MM");
-  const weekKey = format(weekStart, "yyyy-MM-dd");
-  const prevWeekKey = format(addDays(weekStart, -7), "yyyy-MM-dd");
-  const nextWeekKey = format(addDays(weekStart, 7), "yyyy-MM-dd");
+  
+  const weekKey = TZ.formatDateInputValueInTimeZone(weekStart, displayTimeZone);
+  const prevWeekKey = TZ.formatDateInputValueInTimeZone(addDays(weekStart, -7), displayTimeZone);
+  const nextWeekKey = TZ.formatDateInputValueInTimeZone(addDays(weekStart, 7), displayTimeZone);
   const doctorOptionList = doctors.map((doc) => ({
     id: doc.id,
     label: doc.fullName,
@@ -362,12 +386,11 @@ export default async function CalendarPage({
     if (params.week) {
       nextParams.set("week", params.week);
     }
-    if (searchQuery) {
-      nextParams.set("q", searchQuery);
+    if (searchQueryRaw) {
+      nextParams.set("q", searchQueryRaw);
     }
     return `/calendar?${nextParams.toString()}`;
   };
-  const selectedMonthKey = format(baseMonth, "yyyy-MM");
   const returnParams = new URLSearchParams();
   if (showAllDoctors) {
     returnParams.set("doctor", "all");
@@ -380,12 +403,12 @@ export default async function CalendarPage({
   } else {
     returnParams.set("month", selectedMonthKey);
   }
-  if (searchQuery) {
-    returnParams.set("q", searchQuery);
+  if (searchQueryRaw) {
+    returnParams.set("q", searchQueryRaw);
   }
   const returnTo = `/calendar?${returnParams.toString()}`;
   const calendarDays = days.map((day) => {
-    const key = formatDateInputValueInTimeZone(day, displayTimeZone);
+    const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
     const dayWindows = showAllDoctors
       ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
@@ -411,22 +434,37 @@ export default async function CalendarPage({
       isToday: isToday(day),
       availabilityColors,
       isPracticeClosed,
-      appointments: dayAppointments.map((appt) => ({
-        id: appt.id,
-        title: appt.title,
-        startsAt: formatCalendarLocalInput(appt.startsAt, displayTimeZone),
-        endsAt: formatCalendarLocalInput(appt.endsAt, displayTimeZone),
-        serviceType: appt.serviceType,
-        patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
-        patientId: appt.patientId,
-        doctorId: appt.doctorId,
-        status: appt.status,
-        notes: appt.notes ?? null,
-      })),
+      appointments: dayAppointments.map((appt) => {
+        const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
+        const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
+        const tStart = startsAtLocal.split("T")[1];
+        const tEnd = endsAtLocal.split("T")[1];
+
+        const [hStart, mStart] = tStart.split(":").map(Number);
+        const [hEnd, mEnd] = tEnd.split(":").map(Number);
+
+        return {
+          id: appt.id,
+          title: appt.title,
+          startsAt: startsAtLocal,
+          endsAt: endsAtLocal,
+          hStart,
+          mStart,
+          hEnd,
+          mEnd,
+          serviceType: appt.serviceType,
+          patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
+          patientId: appt.patientId,
+          doctorId: appt.doctorId,
+          status: appt.status,
+          notes: appt.notes ?? null,
+        };
+      }),
     };
   });
-  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => {
-    const key = formatDateInputValueInTimeZone(day, displayTimeZone);
+
+  const weekDays = weekIntervalDays.map((day) => {
+    const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
     const dayWindows = showAllDoctors
       ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
@@ -450,21 +488,36 @@ export default async function CalendarPage({
     }));
     return {
       date: key,
+      label: TZ.formatDateInDisplayTimeZone(day, { weekday: "short", day: "numeric" }, displayTimeZone),
       isToday: isToday(day),
       isPracticeClosed,
       availabilityWindows,
-      appointments: dayAppointments.map((appt) => ({
-        id: appt.id,
-        title: appt.title,
-        startsAt: formatCalendarLocalInput(appt.startsAt, displayTimeZone),
-        endsAt: formatCalendarLocalInput(appt.endsAt, displayTimeZone),
-        serviceType: appt.serviceType,
-        patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
-        patientId: appt.patientId,
-        doctorId: appt.doctorId,
-        status: appt.status,
-        notes: appt.notes ?? null,
-      })),
+      appointments: dayAppointments.map((appt) => {
+        const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
+        const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
+        const tStart = startsAtLocal.split("T")[1];
+        const tEnd = endsAtLocal.split("T")[1];
+
+        const [hStart, mStart] = tStart.split(":").map(Number);
+        const [hEnd, mEnd] = tEnd.split(":").map(Number);
+
+        return {
+          id: appt.id,
+          title: appt.title,
+          startsAt: startsAtLocal,
+          endsAt: endsAtLocal,
+          hStart,
+          mStart,
+          hEnd,
+          mEnd,
+          serviceType: appt.serviceType,
+          patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
+          patientId: appt.patientId,
+          doctorId: appt.doctorId,
+          status: appt.status,
+          notes: appt.notes ?? null,
+        };
+      }),
     };
   });
 
@@ -528,15 +581,7 @@ export default async function CalendarPage({
                   monthLabel
                 ) : (
                   <CalendarWeekPicker
-                    label={`${new Intl.DateTimeFormat("it-IT", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }).format(weekStart)} - ${new Intl.DateTimeFormat("it-IT", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    }).format(weekEnd)}`}
+                    label={`${TZ.formatDateInDisplayTimeZone(weekStart, { day: "numeric", month: "short" }, displayTimeZone)} - ${TZ.formatDateInDisplayTimeZone(weekEnd, { day: "numeric", month: "short", year: "numeric" }, displayTimeZone)}`}
                     weekKey={weekKey}
                   />
                 )}
@@ -578,7 +623,7 @@ export default async function CalendarPage({
                     ← Settimana precedente
                   </Link>
                   <Link
-                    href={buildCalendarLink({ view: "week", week: format(new Date(), "yyyy-MM-dd") })}
+                    href={buildCalendarLink({ view: "week", week: TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone) })}
                     className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
                   >
                     Settimana corrente
@@ -600,7 +645,7 @@ export default async function CalendarPage({
           {view === "month" ? (
             <CalendarMonthView
               days={calendarDays}
-              patients={patients}
+              patients={mappedPatients}
               doctors={doctors}
               serviceOptions={serviceOptions}
               services={serviceOptionObjects}
@@ -618,11 +663,12 @@ export default async function CalendarPage({
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
               searchQuery={searchQuery}
+              initialAppointmentId={initialAppointmentId}
             />
           ) : (
             <CalendarWeekView
               weekDays={weekDays}
-              patients={patients}
+              patients={mappedPatients}
               doctors={doctors}
               serviceOptions={serviceOptions}
               services={serviceOptionObjects}
@@ -640,6 +686,7 @@ export default async function CalendarPage({
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
               searchQuery={searchQuery}
+              initialAppointmentId={initialAppointmentId}
             />
           )}
         </div>

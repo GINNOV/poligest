@@ -1,17 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { buildPositionedAppointments, CalendarAppointment } from "../layout-engine";
 
-const mockAppt = (id: string, start: string, end: string): CalendarAppointment => ({
-  id,
-  title: `Appt ${id}`,
-  startsAt: start,
-  endsAt: end,
-  serviceType: "visita",
-  patientName: "Patient X",
-  patientId: "p1",
-  doctorId: "d1",
-  status: "CONFIRMED",
-});
+const mockAppt = (id: string, start: string, end: string): CalendarAppointment => {
+  const [d1, t1] = start.split("T");
+  const [h1, m1] = t1.split(":").map(Number);
+  const [d2, t2] = end.split("T");
+  const [h2, m2] = t2.split(":").map(Number);
+
+  return {
+    id,
+    title: `Appt ${id}`,
+    startsAt: start,
+    endsAt: end,
+    hStart: h1,
+    mStart: m1,
+    hEnd: h2,
+    mEnd: m2,
+    serviceType: "visita",
+    patientName: "Patient X",
+    patientId: "p1",
+    doctorId: "d1",
+    status: "CONFIRMED",
+  };
+};
 
 describe("Calendar Layout Engine", () => {
   it("handles a single appointment correctly", () => {

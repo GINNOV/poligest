@@ -5,6 +5,10 @@ export type CalendarAppointment = {
   title: string;
   startsAt: string;
   endsAt: string;
+  hStart: number;
+  mStart: number;
+  hEnd: number;
+  mEnd: number;
   serviceType: string;
   patientName: string;
   patientId: string;
@@ -25,10 +29,8 @@ export const overlaps = (a: { startMinute: number; endMinute: number }, b: { sta
 
 export const buildPositionedAppointments = (appointments: CalendarAppointment[]): PositionedAppointment[] => {
   const items = appointments.map((appt, index) => {
-    const start = new Date(appt.startsAt);
-    const end = new Date(appt.endsAt);
-    const startMinute = start.getHours() * 60 + start.getMinutes();
-    const endMinute = end.getHours() * 60 + end.getMinutes();
+    const startMinute = appt.hStart * 60 + appt.mStart;
+    const endMinute = appt.hEnd * 60 + appt.mEnd;
     return { appt, index, startMinute, endMinute };
   });
 
