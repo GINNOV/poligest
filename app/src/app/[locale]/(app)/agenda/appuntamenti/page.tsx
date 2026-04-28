@@ -71,6 +71,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const statusParam = params.status;
   const dateParam = params.date;
+  const letterParam = params.letter;
   const errorParam = params.error;
   const successParam = params.success;
   const errorMessage =
@@ -90,6 +91,13 @@ export default async function AgendaPage({
       ? dateParam
       : Array.isArray(dateParam)
         ? dateParam[0]
+        : undefined;
+
+  const letterValue =
+    typeof letterParam === "string"
+      ? letterParam
+      : Array.isArray(letterParam)
+        ? letterParam[0]
         : undefined;
 
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -116,6 +124,7 @@ export default async function AgendaPage({
     practiceClosures,
     practiceWeeklyClosures,
     totalCount,
+    availableLetters,
     totalPages,
     showingFrom,
     showingTo,
@@ -124,11 +133,13 @@ export default async function AgendaPage({
     dateValue: dateFilter,
     searchValue,
     pageParam,
+    letter: letterValue,
   });
   const basePath = "/agenda/appuntamenti";
   const returnParams = new URLSearchParams();
   if (statusValue) returnParams.set("status", statusValue);
   if (dateValue) returnParams.set("date", dateValue);
+  if (letterValue) returnParams.set("letter", letterValue);
   if (searchValue) returnParams.set("q", searchValue);
   if (pageParam && pageParam !== "1") returnParams.set("page", pageParam);
   const returnTo = returnParams.toString() ? `${basePath}?${returnParams.toString()}` : basePath;
@@ -136,6 +147,7 @@ export default async function AgendaPage({
     const query = new URLSearchParams();
     if (statusValue) query.set("status", statusValue);
     if (dateValue) query.set("date", dateValue);
+    if (letterValue) query.set("letter", letterValue);
     if (searchValue) query.set("q", searchValue);
     query.set("page", String(targetPage));
     return `/agenda/appuntamenti?${query.toString()}`;
@@ -149,20 +161,7 @@ export default async function AgendaPage({
     return "🗓️";
   };
   const now = new Date();
-  const isSameDay = (date: Date, target: Date) =>
-    formatDateInDisplayTimeZone(date, { dateStyle: "short" }, displayTimeZone) ===
-    formatDateInDisplayTimeZone(target, { dateStyle: "short" }, displayTimeZone);
-  const orderedAppointments = [
-    ...appointments
-      .filter((appt) => isSameDay(appt.startsAt, now))
-      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    ...appointments
-      .filter((appt) => appt.startsAt > now && !isSameDay(appt.startsAt, now))
-      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    ...appointments
-      .filter((appt) => appt.startsAt < now && !isSameDay(appt.startsAt, now))
-      .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()),
-  ];
+  const orderedAppointments = appointments;
   const statusOptions = Object.values(AppointmentStatus).map((status) => ({
     value: status,
     label: statusLabels[status],
@@ -171,7 +170,7 @@ export default async function AgendaPage({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Appuntamenti</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">APPUNTAMENTI ESISTENTI</h2>
         {successMessage ? (
           <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
             {successMessage}
@@ -204,6 +203,58 @@ export default async function AgendaPage({
             Passato ✅
           </span>
         </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-1 text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+          {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
+            const isAvailable = availableLetters.includes(letter);
+            const isSelected = letterValue === letter;
+            
+            const query = new URLSearchParams();
+            if (statusValue) query.set("status", statusValue);
+            if (dateValue) query.set("date", dateValue);
+            if (searchValue) query.set("q", searchValue);
+            if (!isSelected) query.set("letter", letter);
+            
+            const href = `${basePath}?${query.toString()}`;
+
+            if (!isAvailable && !isSelected) {
+              return (
+                <span key={letter} className="px-1.5 py-1 text-zinc-300 dark:text-zinc-800 cursor-default">
+                  {letter}
+                </span>
+              );
+            }
+
+            return (
+              <Link
+                key={letter}
+                href={href}
+                className={`rounded px-1.5 py-1 transition-all ${
+                  isSelected
+                    ? "bg-emerald-700 text-white shadow-sm ring-1 ring-emerald-600"
+                    : "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                }`}
+              >
+                {letter}
+              </Link>
+            );
+          })}
+          {letterValue && (
+            <Link
+              href={(() => {
+                const query = new URLSearchParams();
+                if (statusValue) query.set("status", statusValue);
+                if (dateValue) query.set("date", dateValue);
+                if (searchValue) query.set("q", searchValue);
+                return `${basePath}?${query.toString()}`;
+              })()}
+              className="ml-2 rounded-full bg-zinc-100 px-2 py-1 text-[10px] font-semibold text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            >
+              Rimuovi filtro
+            </Link>
+          )}
+        </div>
+
         <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
           {orderedAppointments.length === 0 ? (
             <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun appuntamento.</p>

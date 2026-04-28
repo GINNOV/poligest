@@ -5,6 +5,8 @@ import { useMemo, useRef, useState } from "react";
 type PatientOption = {
   id: string;
   fullName: string;
+  phone?: string | null;
+  taxId?: string | null;
 };
 
 type Props = {
@@ -114,9 +116,11 @@ export function PatientSearchCombobox({
       </div>
       <datalist id={listId}>
         {allowNew && <option value="+ Nuovo cliente" />}
-        {patients.map((patient) => (
-          <option key={patient.id} value={patient.fullName} />
-        ))}
+        {patients.map((patient) => {
+          const details = [patient.phone, patient.taxId].filter(Boolean).join(" - ");
+          const label = details ? `${patient.fullName} (${details})` : patient.fullName;
+          return <option key={patient.id} value={patient.fullName} label={label} />;
+        })}
       </datalist>
     </>
   );

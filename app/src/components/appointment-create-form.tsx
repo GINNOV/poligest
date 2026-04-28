@@ -14,7 +14,7 @@ import {
 } from "@/lib/scheduling-warnings";
 
 type Props = {
-  patients: { id: string; firstName: string; lastName: string; email?: string | null }[];
+  patients: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; taxId?: string | null }[];
   doctors: { id: string; fullName: string; specialty: string | null }[];
   serviceOptions: string[];
   availabilityWindows: AvailabilityWindow[];
@@ -204,7 +204,12 @@ export function AppointmentCreateForm({
         <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
         <PatientSearchCombobox
           name="patientId"
-          patients={patients.map((p) => ({ id: p.id, fullName: `${p.lastName} ${p.firstName}` }))}
+          patients={patients.map((p) => ({
+            id: p.id,
+            fullName: `${p.lastName} ${p.firstName}`,
+            phone: p.phone,
+            taxId: p.taxId,
+          }))}
           placeholder="Cerca paziente..."
           allowNew
           className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"

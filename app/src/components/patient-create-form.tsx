@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
-import { Gender, type Role } from "@prisma/client";
+import { useState, useRef } from "react";
+import { Gender, type ConsentModule } from "@prisma/client";
 import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
@@ -16,7 +16,7 @@ import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
 type Props = {
   action: (formData: FormData) => Promise<void>;
   doctors: { id: string; fullName: string }[];
-  consentModules: any[];
+  consentModules: ConsentModule[];
   conditionsList: string[];
 };
 
@@ -28,12 +28,11 @@ export function PatientCreateForm({
 }: Props) {
   const formId = "patient-create-form";
   const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
-  const [allowSubmit, setAllowSubmit] = useState(false);
+  const bypassRef = useRef(false);
   const [isChecking, setIsChecking] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    if (allowSubmit) {
-      setAllowSubmit(false);
+    if (bypassRef.current) {
       return;
     }
 
@@ -44,7 +43,11 @@ export function PatientCreateForm({
     const lastName = formData.get("lastName") as string;
     const phone = formData.get("phone") as string;
 
-    if (!firstName || !lastName || !phone) return;
+    if (!firstName || !lastName || !phone) {
+      // Browser validation should normally catch this, but if not, 
+      // we must prevent default if we want to stop the submission.
+      return;
+    }
 
     e.preventDefault();
     setIsChecking(true);
@@ -68,13 +71,15 @@ export function PatientCreateForm({
     }
 
     setIsChecking(false);
-    setAllowSubmit(true);
+    bypassRef.current = true;
     
-    // Trigger form submission
+    // Trigger form submission via requestSubmit() which is compatible with React/Next.js Server Actions
+    form.requestSubmit();
+    
+    // Reset bypass after a short delay in case submission fails or is interrupted
     setTimeout(() => {
-      const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-      submitBtn?.click();
-    }, 0);
+      bypassRef.current = false;
+    }, 1000);
   };
 
   return (
@@ -255,14 +260,11 @@ export function PatientCreateForm({
           patient={duplicatePatient}
           onClose={() => setDuplicatePatient(null)}
           onProceed={() => {
-            setAllowSubmit(true);
+            bypassRef.current = true;
             setDuplicatePatient(null);
             const form = document.getElementById(formId) as HTMLFormElement;
             if (form) {
-              setTimeout(() => {
-                const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-                submitBtn?.click();
-              }, 0);
+              form.requestSubmit();
             }
           }}
         />

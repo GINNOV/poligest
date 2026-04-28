@@ -177,14 +177,16 @@ export function CalendarWeekView({
 
   const filteredWeekDays = useMemo(() => {
     if (!searchQuery) return weekDays;
-    const q = searchQuery.toLowerCase();
+    const tokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return weekDays;
+
     return weekDays.map((day) => ({
       ...day,
-      appointments: day.appointments.filter(
-        (appt) =>
-          appt.patientName.toLowerCase().includes(q) ||
-          (appt.notes && appt.notes.toLowerCase().includes(q))
-      ),
+      appointments: day.appointments.filter((appt) => {
+        const name = appt.patientName.toLowerCase();
+        const notes = (appt.notes || "").toLowerCase();
+        return tokens.every((token) => name.includes(token) || notes.includes(token));
+      }),
     }));
   }, [weekDays, searchQuery]);
 

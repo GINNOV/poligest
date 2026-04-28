@@ -1,3 +1,5 @@
+import { formatDateInDisplayTimeZone, formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
+
 export function weekdayIso(date: Date) {
   const jsDay = date.getDay();
   return jsDay === 0 ? 7 : jsDay;
@@ -18,7 +20,16 @@ export function parseCalendarDateParam(value: string | undefined) {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
 
-export function formatCalendarLocalInput(date: Date) {
+export function formatCalendarLocalInput(date: Date, timeZone?: string) {
+  if (timeZone) {
+    const datePart = formatDateInputValueInTimeZone(date, timeZone);
+    const timePart = formatDateInDisplayTimeZone(date, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }, timeZone);
+    return `${datePart}T${timePart}`;
+  }
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
     date.getHours(),

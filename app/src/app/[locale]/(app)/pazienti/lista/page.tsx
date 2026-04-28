@@ -29,6 +29,7 @@ export default async function PazientiListaPage({
 
   const qParam = params.get("q") ?? undefined;
   const searchQuery = qParam?.toLowerCase();
+  const searchTokens = searchQuery ? searchQuery.split(/\s+/).filter(Boolean) : [];
 
   const sortRaw = params.get("sort") ?? undefined;
   const sortOption =
@@ -38,14 +39,16 @@ export default async function PazientiListaPage({
   const requestedPage = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
 
   const where: Prisma.PatientWhereInput =
-    searchQuery && searchQuery.length > 0
+    searchTokens.length > 0
       ? {
-          OR: [
-            { firstName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-            { lastName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-            { email: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-            { phone: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-          ],
+          AND: searchTokens.map((token) => ({
+            OR: [
+              { firstName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+              { lastName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+              { email: { contains: token, mode: Prisma.QueryMode.insensitive } },
+              { phone: { contains: token, mode: Prisma.QueryMode.insensitive } },
+            ],
+          })),
         }
       : {};
 

@@ -10,7 +10,7 @@ import {
   type PracticeWeeklyClosure,
 } from "@/lib/scheduling-warnings";
 
-type Person = { id: string; firstName: string; lastName: string; email?: string | null };
+type Person = { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; taxId?: string | null };
 type Doctor = { id: string; fullName: string; specialty: string | null };
 type ServiceOption = { id: string; name: string };
 
@@ -157,7 +157,12 @@ export function AppointmentUpdateForm({
         <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
         <PatientSearchCombobox
           name="patientId"
-          patients={patients.map((p) => ({ id: p.id, fullName: `${p.lastName} ${p.firstName}` }))}
+          patients={patients.map((p) => ({
+            id: p.id,
+            fullName: `${p.lastName} ${p.firstName}`,
+            phone: p.phone,
+            taxId: p.taxId,
+          }))}
           defaultValue={appointment.patientId}
           placeholder="Cerca paziente..."
           className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"

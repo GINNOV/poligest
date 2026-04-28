@@ -55,6 +55,7 @@ type AgendaQueryInput = {
   dateValue?: string;
   searchValue: string;
   pageParam?: string;
+  letter?: string;
 };
 
 type AgendaAppointment = Prisma.AppointmentGetPayload<{
@@ -64,13 +65,14 @@ type AgendaAppointment = Prisma.AppointmentGetPayload<{
   };
 }> & { reminderSent?: boolean };
 
-export async function getAgendaPageData({ statusValue, dateValue, searchValue, pageParam }: AgendaQueryInput) {
+export async function getAgendaPageData({ statusValue, dateValue, searchValue, pageParam, letter }: AgendaQueryInput) {
   const statusFilter =
     statusValue && isAppointmentStatus(statusValue)
       ? (statusValue as AppointmentStatus)
       : undefined;
 
   const searchQuery = normalizeAgendaSearchValue(searchValue);
+  const searchTokens = searchQuery ? searchQuery.split(/\s+/).filter(Boolean) : [];
   const dateRange = parseAgendaDateRange(dateValue);
   const page = parseAgendaPageNumber(pageParam);
   const skip = (page - 1) * AGENDA_PAGE_SIZE;
@@ -88,7 +90,7 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
     findMany?: (args: { where: { isActive: true }; orderBy: Array<{ dayOfWeek: "asc" }> }) => Promise<PracticeWeeklyClosureRow[]>;
   }>("practiceWeeklyClosure");
 
-  const where: Prisma.AppointmentWhereInput = {
+  const baseWhere: Prisma.AppointmentWhereInput = {
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(dateRange ? { startsAt: dateRange } : {}),
     ...(searchQuery
@@ -97,30 +99,43 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
             { title: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
             { serviceType: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
             {
-              patient: {
-                OR: [
-                  { firstName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-                  { lastName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-                ],
-              },
+              AND: searchTokens.map((token) => ({
+                patient: {
+                  OR: [
+                    { firstName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                    { lastName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                  ],
+                },
+              })),
             },
             {
-              doctor: {
-                OR: [
-                  { fullName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-                  { specialty: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
-                ],
-              },
+              AND: searchTokens.map((token) => ({
+                doctor: {
+                  OR: [
+                    { fullName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                    { specialty: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                  ],
+                },
+              })),
             },
           ],
         }
       : {}),
   };
 
-  const [appointments, patients, doctors, services, totalCount, whatsappTemplate, availabilityWindowsRaw, practiceClosuresRaw, practiceWeeklyClosuresRaw] =
+  const where: Prisma.AppointmentWhereInput = {
+    ...baseWhere,
+    ...(letter ? { patient: { lastName: { startsWith: letter, mode: Prisma.QueryMode.insensitive } } } : {}),
+  };
+
+  const [appointments, patients, doctors, services, totalCount, whatsappTemplate, availabilityWindowsRaw, practiceClosuresRaw, practiceWeeklyClosuresRaw, appointmentsForLetters] =
     await Promise.all([
       prisma.appointment.findMany({
-        orderBy: { startsAt: "asc" },
+        orderBy: [
+          { startsAt: "desc" },
+          { patient: { lastName: "asc" } },
+          { patient: { firstName: "asc" } },
+        ],
         take: AGENDA_PAGE_SIZE,
         skip,
         include: {
@@ -146,7 +161,20 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
       weeklyClosureClient?.findMany
         ? weeklyClosureClient.findMany({ where: { isActive: true }, orderBy: [{ dayOfWeek: "asc" }] })
         : Promise.resolve([]),
+      // Fetch letters based on the base filters (status, date, search) but NOT the letter itself
+      prisma.appointment.findMany({
+        where: baseWhere,
+        select: { patient: { select: { lastName: true } } },
+      }),
     ]);
+
+  const availableLetters = Array.from(
+    new Set(
+      appointmentsForLetters
+        .map((a) => a.patient.lastName?.trim().charAt(0).toUpperCase())
+        .filter((l): l is string => Boolean(l))
+    )
+  ).sort();
 
   const appointmentsWithStatus = appointments.map((appt) => ({
     ...appt,
@@ -178,6 +206,7 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
       title: row.title,
     })),
     totalCount,
+    availableLetters,
     page,
     skip,
     totalPages: Math.max(1, Math.ceil(totalCount / AGENDA_PAGE_SIZE)),

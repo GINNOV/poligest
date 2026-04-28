@@ -170,14 +170,16 @@ export function CalendarMonthView({
 
   const filteredDays = useMemo(() => {
     if (!searchQuery) return days;
-    const q = searchQuery.toLowerCase();
+    const tokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return days;
+
     return days.map((day) => ({
       ...day,
-      appointments: day.appointments.filter(
-        (appt) =>
-          appt.patientName.toLowerCase().includes(q) ||
-          (appt.notes && appt.notes.toLowerCase().includes(q))
-      ),
+      appointments: day.appointments.filter((appt) => {
+        const name = appt.patientName.toLowerCase();
+        const notes = (appt.notes || "").toLowerCase();
+        return tokens.every((token) => name.includes(token) || notes.includes(token));
+      }),
     }));
   }, [days, searchQuery]);
 

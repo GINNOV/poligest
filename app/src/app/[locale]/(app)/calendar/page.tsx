@@ -105,6 +105,10 @@ function isNextRedirectError(err: unknown): err is { digest: string } {
   );
 }
 
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
+
 import {
   createAppointment,
   updateAppointment,
@@ -118,6 +122,7 @@ export default async function CalendarPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "calendar");
+  const displayTimeZone = await getUserDisplayTimeZone();
   const params = await searchParams;
 
   const monthParam =
@@ -200,7 +205,7 @@ export default async function CalendarPage({
 
   const [
     appointmentsRaw,
-    patients,
+    patientsRaw,
     servicesRaw,
     availabilityWindowsRaw,
     practiceClosuresRaw,
@@ -249,7 +254,7 @@ export default async function CalendarPage({
         : Promise.resolve([] as CalendarAppointmentRecord[]),
     prisma.patient.findMany({
       orderBy: { lastName: "asc" },
-      select: { id: true, firstName: true, lastName: true, email: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, notes: true },
     }),
     serviceClient?.findMany ? serviceClient.findMany({ orderBy: { name: "asc" } }) : Promise.resolve([]),
     availabilityClient?.findMany && doctors.length
@@ -275,6 +280,17 @@ export default async function CalendarPage({
       : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
+  const patients = patientsRaw.map((p) => {
+    const { parsedTaxId } = parsePatientStructuredNotes(p.notes);
+    return {
+      id: p.id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      email: p.email,
+      phone: p.phone,
+      taxId: parsedTaxId,
+    };
+  });
   const services = servicesRaw;
   const windows = availabilityWindowsRaw;
   const closures = practiceClosuresRaw;
@@ -302,7 +318,7 @@ export default async function CalendarPage({
 
   const appointmentsByDay = new Map<string, CalendarAppointmentRecord[]>();
   appointments.forEach((appt) => {
-    const key = format(appt.startsAt, "yyyy-MM-dd");
+    const key = formatDateInputValueInTimeZone(appt.startsAt, displayTimeZone);
     if (!appointmentsByDay.has(key)) {
       appointmentsByDay.set(key, []);
     }
@@ -369,7 +385,7 @@ export default async function CalendarPage({
   }
   const returnTo = `/calendar?${returnParams.toString()}`;
   const calendarDays = days.map((day) => {
-    const key = format(day, "yyyy-MM-dd");
+    const key = formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
     const dayWindows = showAllDoctors
       ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
@@ -398,8 +414,8 @@ export default async function CalendarPage({
       appointments: dayAppointments.map((appt) => ({
         id: appt.id,
         title: appt.title,
-        startsAt: formatCalendarLocalInput(appt.startsAt),
-        endsAt: formatCalendarLocalInput(appt.endsAt),
+        startsAt: formatCalendarLocalInput(appt.startsAt, displayTimeZone),
+        endsAt: formatCalendarLocalInput(appt.endsAt, displayTimeZone),
         serviceType: appt.serviceType,
         patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
         patientId: appt.patientId,
@@ -410,7 +426,7 @@ export default async function CalendarPage({
     };
   });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd }).map((day) => {
-    const key = format(day, "yyyy-MM-dd");
+    const key = formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
     const dayWindows = showAllDoctors
       ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
@@ -440,8 +456,8 @@ export default async function CalendarPage({
       appointments: dayAppointments.map((appt) => ({
         id: appt.id,
         title: appt.title,
-        startsAt: formatCalendarLocalInput(appt.startsAt),
-        endsAt: formatCalendarLocalInput(appt.endsAt),
+        startsAt: formatCalendarLocalInput(appt.startsAt, displayTimeZone),
+        endsAt: formatCalendarLocalInput(appt.endsAt, displayTimeZone),
         serviceType: appt.serviceType,
         patientName: `${appt.patient.lastName} ${appt.patient.firstName}`,
         patientId: appt.patientId,
