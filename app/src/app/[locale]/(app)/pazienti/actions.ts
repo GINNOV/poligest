@@ -189,6 +189,7 @@ export async function createPatient(formData: FormData) {
     conditions.length > 0 ? `Anamnesi: ${conditions.join(", ")}` : null,
     medications ? `Farmaci: ${medications}` : null,
     extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
+    hasPaperConsentForRequired ? "ATTENZIONE: Firma acquisita su supporto cartaceo per i moduli obbligatori." : null,
     ...consentNotes,
     consentsToCreate.length > 0 ? "Firma digitale acquisita." : null,
   ]

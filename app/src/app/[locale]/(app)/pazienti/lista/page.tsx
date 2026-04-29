@@ -6,6 +6,8 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { PatientListFilters } from "@/components/patient-list-filters";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { formatPhone } from "@/lib/phone";
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 
 const PAGE_SIZE = 20;
 
@@ -61,6 +63,8 @@ export default async function PazientiListaPage({
         email: true,
         phone: true,
         photoUrl: true,
+        birthDate: true,
+        notes: true,
         hasPaperConsentForRequired: true,
         consents: {
           select: {
@@ -280,6 +284,15 @@ export default async function PazientiListaPage({
                 </span>
               ));
 
+              const { parsedTaxId } = parsePatientStructuredNotes(patient.notes);
+              const birthDateLabel = patient.birthDate
+                ? new Intl.DateTimeFormat("it-IT", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  }).format(new Date(patient.birthDate))
+                : null;
+
               return (
                 <div
                   key={patient.id}
@@ -297,9 +310,28 @@ export default async function PazientiListaPage({
                       <span className="mr-2 inline-flex items-center gap-1 align-middle">{badge}</span>
                       {patient.lastName} {patient.firstName}
                     </Link>
-                    <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                      {patient.email ?? "—"} · {patient.phone ?? "—"}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                      {patient.email ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-[10px]">📧</span> {patient.email}
+                        </span>
+                      ) : null}
+                      {patient.phone ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-[10px]">☎️</span> {formatPhone(patient.phone)}
+                        </span>
+                      ) : null}
+                      {birthDateLabel ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-[10px]">🎂</span> {birthDateLabel}
+                        </span>
+                      ) : null}
+                      {parsedTaxId ? (
+                        <span className="inline-flex items-center gap-1 font-mono uppercase">
+                          <span className="text-[10px]">📄</span> {parsedTaxId}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
                     {activeConsents.map((consent) => (

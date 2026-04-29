@@ -33,6 +33,14 @@ export function PatientCreateSubmitButton({ className, label, pendingLabel, disa
       setIsComplete(Boolean(detail?.complete));
     };
     window.addEventListener(CONSENT_REQUIRED_EVENT, handler as EventListener);
+
+    // Re-check initial value after adding listener to catch events missed during mount
+    const initialValue = (window as typeof window & { __consentRequiredComplete?: boolean })
+      .__consentRequiredComplete;
+    if (typeof initialValue === "boolean") {
+      setIsComplete(initialValue);
+    }
+
     return () => window.removeEventListener(CONSENT_REQUIRED_EVENT, handler as EventListener);
   }, []);
 
@@ -42,6 +50,14 @@ export function PatientCreateSubmitButton({ className, label, pendingLabel, disa
       setHasPaperConsentOverride(Boolean(detail?.enabled));
     };
     window.addEventListener(PAPER_CONSENT_OVERRIDE_EVENT, handler as EventListener);
+
+    // Re-check initial value after adding listener to catch events missed during mount
+    const initialValue = (window as typeof window & { __paperConsentOverride?: boolean })
+      .__paperConsentOverride;
+    if (typeof initialValue === "boolean") {
+      setHasPaperConsentOverride(initialValue);
+    }
+
     return () => window.removeEventListener(PAPER_CONSENT_OVERRIDE_EVENT, handler as EventListener);
   }, []);
 
