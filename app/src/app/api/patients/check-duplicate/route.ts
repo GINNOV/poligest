@@ -11,38 +11,32 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const firstName = searchParams.get("firstName")?.trim();
     const lastName = searchParams.get("lastName")?.trim();
-    const phone = searchParams.get("phone")?.trim();
+    const birthDateStr = searchParams.get("birthDate")?.trim();
 
-    if (!firstName && !lastName && !phone) {
+    if (!firstName || !lastName || !birthDateStr) {
       return NextResponse.json({ exists: false });
     }
 
-    const conditions: any[] = [];
-    if (firstName && lastName) {
-      conditions.push({
+    const birthDate = new Date(birthDateStr);
+    if (isNaN(birthDate.getTime())) {
+      return NextResponse.json({ exists: false });
+    }
+
+    // Match all three: firstName, lastName, and birthDate
+    const existingPatient = await prisma.patient.findFirst({
+      where: {
         AND: [
           { firstName: { equals: firstName, mode: "insensitive" } },
           { lastName: { equals: lastName, mode: "insensitive" } },
+          { birthDate: { equals: birthDate } },
         ],
-      });
-    }
-    if (phone) {
-      conditions.push({ phone: { equals: phone } });
-    }
-
-    if (conditions.length === 0) {
-      return NextResponse.json({ exists: false });
-    }
-
-    const existingPatient = await prisma.patient.findFirst({
-      where: {
-        OR: conditions,
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         phone: true,
+        birthDate: true,
       },
     });
 

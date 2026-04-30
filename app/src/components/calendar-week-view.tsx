@@ -6,7 +6,6 @@ import { AppointmentUpdateForm } from "@/components/appointment-update-form";
 import {
   buildPositionedAppointments,
   type CalendarAppointment,
-  type PositionedAppointment,
 } from "@/lib/calendar/layout-engine";
 
 type AvailabilityWindow = {
@@ -179,15 +178,32 @@ export function CalendarWeekView({
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
 
   useEffect(() => {
+    if (initialAppointmentId === "new") {
+      const today = new Date();
+      const todayKey = new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(today);
+      setTimeout(() => {
+        setSelectedSlot({
+          startsAt: `${todayKey}T09:00`,
+          endsAt: `${todayKey}T10:00`,
+        });
+        setSelectedAppointment(null);
+      }, 0);
+      return;
+    }
+
     if (initialAppointmentId) {
       const found = weekDays.flatMap(d => d.appointments).find((a) => a.id === initialAppointmentId);
       if (found) {
-        setSelectedAppointment(found);
-        // Scroll into view
         setTimeout(() => {
+          setSelectedAppointment(found);
+          // Scroll into view
           const el = document.querySelector(`[data-appt-id="${initialAppointmentId}"]`);
           el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 500);
+        }, 0);
       }
     }
   }, [initialAppointmentId, weekDays]);

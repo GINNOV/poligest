@@ -24,7 +24,7 @@ export function PaymentRegistrationForm({
   const unsettledItems = items.filter((item) => item.remaining > 0);
 
   const [state, formAction] = useActionState(
-    async (_: any, formData: FormData) => {
+    async (_: { success: boolean; timestamp: number }, formData: FormData) => {
       await recordPatientPaymentAction(formData);
       return { success: true, timestamp: Date.now() };
     },

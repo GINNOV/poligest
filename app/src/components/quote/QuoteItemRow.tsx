@@ -25,7 +25,7 @@ interface QuoteItemRowProps {
     isSettled: boolean;
   };
   sortedServices: ServiceOption[];
-  onUpdate: (index: number, next: any) => void;
+  onUpdate: (index: number, next: Partial<QuoteItemRowProps["item"]>) => void;
   onRemove: (index: number) => void;
   onAdd: () => void;
   canRemove: boolean;

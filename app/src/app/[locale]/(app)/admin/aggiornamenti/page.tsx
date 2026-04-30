@@ -22,10 +22,6 @@ async function saveFeatureUpdate(formData: FormData) {
     throw new Error("Aggiornamenti non configurati. Esegui migrazioni Prisma e rigenera il client.");
   }
 
-  const dismissalClient = getOptionalPrismaModel<{
-    deleteMany?: (args: unknown) => Promise<unknown>;
-  }>("featureUpdateDismissal");
-
   const id = (formData.get("updateId") as string) || "";
   const title = (formData.get("title") as string)?.trim();
   const bodyMarkdown = (formData.get("bodyMarkdown") as string)?.trim();

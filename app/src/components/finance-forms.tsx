@@ -27,11 +27,11 @@ type IncomeProps = {
 
 export function FinanceIncomeFields({ patients, diaryOptions }: IncomeProps) {
   const [patientId, setPatientId] = useState<string>("");
-  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
+  const [displayTimeZone] = useState(() => getBrowserUserDisplayTimeZone());
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 

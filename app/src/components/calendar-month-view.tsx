@@ -28,6 +28,7 @@ type CalendarDay = {
   isToday: boolean;
   availabilityColors?: string[];
   isPracticeClosed?: boolean;
+  dayOfWeek?: number;
   appointments: CalendarAppointment[];
 };
 
@@ -177,15 +178,28 @@ export function CalendarMonthView({
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
 
   useEffect(() => {
+    if (initialAppointmentId === "new") {
+      const todayKey = new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      setTimeout(() => {
+        setSelectedDate(todayKey);
+        setSelectedAppointment(null);
+      }, 0);
+      return;
+    }
+
     if (initialAppointmentId) {
       const found = days.flatMap(d => d.appointments).find((a) => a.id === initialAppointmentId);
       if (found) {
-        setSelectedAppointment(found);
-        // Scroll into view
         setTimeout(() => {
+          setSelectedAppointment(found);
+          // Scroll into view
           const el = document.querySelector(`[data-appt-id="${initialAppointmentId}"]`);
           el?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 500);
+        }, 0);
       }
     }
   }, [initialAppointmentId, days]);
@@ -249,7 +263,7 @@ export function CalendarMonthView({
       </div>
 
       <div className="mt-2 grid grid-cols-7 gap-2">
-        {filteredDays.map((day) => (
+        {filteredDays.map((day, index) => (
           <div
             key={day.date}
             role="button"
@@ -268,6 +282,7 @@ export function CalendarMonthView({
                 setSelectedDate(day.date);
               }
             }}
+            style={index === 0 ? { gridColumnStart: day.dayOfWeek } : undefined}
             className={`group relative flex min-h-[140px] flex-col rounded-xl border p-2 text-left transition ${
               day.inMonth
                 ? day.isPracticeClosed
@@ -275,24 +290,22 @@ export function CalendarMonthView({
                   : day.availabilityColors?.length
                     ? "cursor-pointer border-emerald-200 bg-gradient-to-b from-white to-emerald-50/30 hover:border-emerald-300 hover:to-emerald-50/50 dark:border-emerald-900 dark:from-zinc-950 dark:to-emerald-950/20 dark:hover:border-emerald-700 dark:hover:to-emerald-950/35"
                     : "cursor-pointer border-zinc-200 bg-zinc-50 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:border-zinc-600"
-                : "cursor-default border-zinc-100 bg-zinc-50 text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-500"
+                : "cursor-pointer border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-zinc-200 dark:border-zinc-800 dark:bg-zinc-950/70 dark:text-zinc-500 dark:hover:border-zinc-700"
             }`}
           >
-            {day.inMonth ? (
-              <button
-                type="button"
-                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs font-semibold text-zinc-600 opacity-0 pointer-events-none shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 group-hover:pointer-events-auto group-hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
-                aria-label="Crea nuovo appuntamento"
-                title="Nuovo appuntamento"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setSelectedAppointment(null);
-                  setSelectedDate(day.date);
-                }}
-              >
-                +
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs font-semibold text-zinc-600 opacity-0 pointer-events-none shadow-sm transition hover:border-emerald-200 hover:text-emerald-700 group-hover:pointer-events-auto group-hover:opacity-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:text-emerald-300"
+              aria-label="Crea nuovo appuntamento"
+              title="Nuovo appuntamento"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedAppointment(null);
+                setSelectedDate(day.date);
+              }}
+            >
+              +
+            </button>
             {day.inMonth ? (
               <div className="mb-2 flex h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                 {day.isPracticeClosed ? (

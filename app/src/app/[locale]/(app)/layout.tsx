@@ -11,7 +11,7 @@ import { getAppVersion, getDeployDate } from "@/lib/version";
 import { prisma } from "@/lib/prisma";
 import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
-import { HelpButton } from "@/components/help-button";
+import { HelpButton, type Instruction } from "@/components/help-button";
 import { MobileNav } from "@/components/mobile-nav";
 import { logAudit } from "@/lib/audit";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
@@ -103,10 +103,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const isFinanceAllowed = isStaff && isFeatureAllowed("finance");
 
   const instructionClient = getOptionalPrismaModel<{
-    findMany: (args: any) => Promise<any[]>;
+    findMany: (args: unknown) => Promise<Instruction[]>;
   }>("featureInstruction");
   const progressClient = getOptionalPrismaModel<{
-    findMany: (args: any) => Promise<any[]>;
+    findMany: (args: unknown) => Promise<Array<{ instructionId: string; lastStepId: string | null; completedAt: Date | null }>>;
   }>("userInstructionProgress");
 
   const [instructions, userProgress] =

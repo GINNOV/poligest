@@ -26,12 +26,7 @@ function isNextRedirectError(err: unknown): err is { digest: string } {
   );
 }
 
-async function hasDoctorConflict(params: {
-  doctorId: string | null;
-  startsAt: Date;
-  endsAt: Date;
-  excludeId?: string;
-}) {
+async function hasDoctorConflict() {
   // Allow concurrent appointments for the same doctor
   return false;
 }
@@ -133,11 +128,7 @@ export async function createAppointment(formData: FormData) {
         ? new Date(startsAtDate.getTime() + 60 * 60 * 1000)
         : endsAtDate;
 
-    const hasConflict = await hasDoctorConflict({
-      doctorId,
-      startsAt: startsAtDate,
-      endsAt: adjustedEndsAt,
-    });
+    const hasConflict = await hasDoctorConflict();
     if (hasConflict) {
       throw new Error(
         "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."
@@ -242,12 +233,7 @@ export async function updateAppointment(formData: FormData) {
       Math.abs(current.endsAt.getTime() - adjustedEndsAt.getTime()) < 1000;
 
     if (!isSameSlot) {
-      const hasConflict = await hasDoctorConflict({
-        doctorId,
-        startsAt: startsAtDate,
-        endsAt: adjustedEndsAt,
-        excludeId: appointmentId,
-      });
+      const hasConflict = await hasDoctorConflict();
       if (hasConflict) {
         throw new Error(
           "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."

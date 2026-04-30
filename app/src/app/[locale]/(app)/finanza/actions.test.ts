@@ -193,7 +193,7 @@ describe("finanza actions", () => {
     await recordPatientPayment(formData);
 
     // We need to capture the transaction callback's call
-    const txMock = (mocks.prisma.$transaction.mock.calls[0] as any)[0];
+    // (mocks.prisma.$transaction.mock.calls[0][0])
     // This is not easy because tx is created inside the mock.
   });
 

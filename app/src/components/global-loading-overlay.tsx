@@ -147,10 +147,6 @@ export function GlobalLoadingOverlay() {
 
     window.fetch = (async (...args: Parameters<typeof originalFetch>) => {
       const [input, init] = args;
-      const requestHeaders = new Headers(
-        init?.headers ||
-          (typeof input === "object" && "headers" in input ? input.headers : undefined)
-      );
       const requestUrl =
         typeof input === "string"
           ? input

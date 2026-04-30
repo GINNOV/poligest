@@ -762,7 +762,7 @@ export default async function DashboardPage({
         </div>
         <details className="group mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 sm:hidden">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            <span>Legenda colori</span>
+            <span>LEGENDA COLORI</span>
             <svg
               aria-hidden="true"
               viewBox="0 0 20 20"
@@ -783,29 +783,29 @@ export default async function DashboardPage({
                 className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold ${statusClasses[status]}`}
               >
                 <span className="h-2 w-2 rounded-full bg-current" />
-                {label}
+                {label.toUpperCase()}
               </span>
             ))}
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
               <span className="h-2 w-2 rounded-full bg-amber-600" />
-              Passato ✅
+              PASSATO ✅
             </span>
           </div>
         </details>
         <div className="mt-3 hidden flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 sm:flex">
-          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Legenda colori</span>
+          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">LEGENDA COLORI</span>
           {statusLegendItems.map(([status, label]) => (
             <span
               key={status}
               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold ${statusClasses[status]}`}
             >
               <span className="h-2 w-2 rounded-full bg-current" />
-              {label}
+              {label.toUpperCase()}
             </span>
           ))}
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
             <span className="h-2 w-2 rounded-full bg-amber-600" />
-            Passato ✅
+            PASSATO ✅
           </span>        </div>
         <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
           <DashboardAppointmentsList

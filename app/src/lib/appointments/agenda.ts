@@ -40,12 +40,7 @@ export function isNextRedirectError(err: unknown): err is { digest: string } {
   );
 }
 
-export async function hasDoctorConflict(params: {
-  doctorId: string | null;
-  startsAt: Date;
-  endsAt: Date;
-  excludeId?: string;
-}) {
+export async function hasDoctorConflict() {
   // Allow concurrent appointments for the same doctor
   return false;
 }

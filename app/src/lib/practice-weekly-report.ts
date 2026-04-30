@@ -556,8 +556,10 @@ async function collectWeeklyMetrics(period: WeeklyReportPeriod): Promise<WeeklyR
     ...recalls.map((r) => r.patientId),
     ...whatsappAuditLogs
       .map((log) => {
-        if (log.metadata && typeof log.metadata === "object" && !Array.isArray(log.metadata)) {
-          return (log.metadata as any).patientId as string | undefined;
+        const metadata = log.metadata;
+        if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+          const m = metadata as Record<string, unknown>;
+          return m.patientId as string | undefined;
         }
         return undefined;
       })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -8,14 +8,14 @@ import { markStepAsDoneAction, resetProgressAction } from "@/lib/instructions/ac
 import { clsx } from "clsx";
 import { FeatureUpdateMarkdownPreview, renderInline } from "@/components/feature-update-markdown";
 
-type Step = {
+export type Step = {
   id: string;
   title: string;
   content: string;
   sortOrder: number;
 };
 
-type Instruction = {
+export type Instruction = {
   id: string;
   title: string;
   description?: string | null;
@@ -34,11 +34,7 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [progress, setProgress] = useState(userProgress);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted] = useState(() => typeof window !== "undefined");
 
   // Match current path with instructions
   const activeInstruction = useMemo(() => {

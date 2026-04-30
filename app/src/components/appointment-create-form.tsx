@@ -138,14 +138,14 @@ export function AppointmentCreateForm({
     if (isNewPatient && !form.dataset.confirmedDuplicate) {
       const firstName = formData.get("newFirstName") as string;
       const lastName = formData.get("newLastName") as string;
-      const phone = formData.get("newPhone") as string;
+      const birthDate = formData.get("newBirthDate") as string;
 
-      if (firstName || lastName || phone) {
+      if (firstName && lastName && birthDate) {
         try {
           const params = new URLSearchParams();
-          if (firstName) params.set("firstName", firstName);
-          if (lastName) params.set("lastName", lastName);
-          if (phone) params.set("phone", phone);
+          params.set("firstName", firstName);
+          params.set("lastName", lastName);
+          params.set("birthDate", birthDate);
 
           const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
           const data = await res.json();
@@ -285,7 +285,16 @@ export function AppointmentCreateForm({
               required
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-3">
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Data di Nascita</span>
+            <input
+              name="newBirthDate"
+              type="date"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+              required
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
             <span className="font-bold">Email (facoltativa, consigliata per l&apos;accesso)</span>
             <input
               name="newEmail"

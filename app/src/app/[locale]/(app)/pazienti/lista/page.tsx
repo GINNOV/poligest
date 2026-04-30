@@ -188,27 +188,66 @@ export default async function PazientiListaPage({
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
         <PatientListFilters initialQuery={qParam ?? ""} sortValue={sortRaw ?? sortOption} />
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">Legenda:</span>
-          <span className="inline-flex items-center gap-1">
+        <details className="group mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 sm:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            <span>LEGENDA</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 transition group-open:rotate-180"
+            >
+              <path d="m5 7 5 6 5-6" />
+            </svg>
+          </summary>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 font-semibold text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200">
+              <span className="text-rose-600 dark:text-rose-400">▲</span>
+              CONSENSI OBBLIGATORI MANCANTI
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 font-semibold text-violet-700 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300">
+              <span className="text-violet-600 dark:text-violet-400">●</span>
+              DA CARTACEO
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <span className="text-zinc-500 dark:text-zinc-400">📧</span>
+              EMAIL MANCANTE
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+              <span className="text-zinc-500 dark:text-zinc-400">☎️</span>
+              TELEFONO MANCANTE
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-200">
+              <span className="text-emerald-600 dark:text-emerald-400">✓</span>
+              DATI COMPLETI
+            </span>
+          </div>
+        </details>
+        <div className="mt-3 hidden flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300 sm:flex">
+          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">LEGENDA</span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 font-semibold text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200">
             <span className="text-rose-600 dark:text-rose-400">▲</span>
-            Consensi obbligatori mancanti
+            CONSENSI OBBLIGATORI MANCANTI
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 font-semibold text-violet-700 dark:border-violet-800/60 dark:bg-violet-900/20 dark:text-violet-300">
             <span className="text-violet-600 dark:text-violet-400">●</span>
-            Consensi obbligatori presenti su scheda cartacea
+            DA CARTACEO
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
             <span className="text-zinc-500 dark:text-zinc-400">📧</span>
-            Email mancante
+            EMAIL MANCANTE
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-1 font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
             <span className="text-zinc-500 dark:text-zinc-400">☎️</span>
-            Telefono mancante
+            TELEFONO MANCANTE
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/20 dark:text-emerald-200">
             <span className="text-emerald-600 dark:text-emerald-400">✓</span>
-            Dati completi
+            DATI COMPLETI
           </span>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-center gap-1 text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400">
@@ -232,12 +271,23 @@ export default async function PazientiListaPage({
             );
           })}
         </div>
-        <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="mt-4 divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+          <div className="hidden lg:grid grid-cols-[2fr_1fr_1.5fr_2fr_1.5fr] gap-4 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+            <div>Paziente</div>
+            <div>Nascita</div>
+            <div>Cod. Fiscale</div>
+            <div>TELEFONO</div>
+            <div className="text-right">Azioni</div>
+          </div>
           {paginatedPatients.length === 0 ? (
-            <p className="px-4 py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun paziente registrato.</p>
+            <p className="px-4 py-8 text-center text-sm text-zinc-600 dark:text-zinc-400">Nessun paziente registrato.</p>
           ) : (
             paginatedPatients.map((patient) => {
-              const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
+              const activeConsents = patient.consents.filter(
+                (consent) =>
+                  consent.status === "GRANTED" &&
+                  !["privacy", "trattamento"].includes(consent.module?.name?.toLowerCase() || ""),
+              );
               const missingEmail = !patient.email;
               const missingPhone = !patient.phone;
               const hasMissingRequired = requiredModules.some(
@@ -247,7 +297,7 @@ export default async function PazientiListaPage({
               if (hasMissingRequired) {
                 indicators.push({
                   title: patient.hasPaperConsentForRequired
-                    ? "Consensi obbligatori presenti su scheda cartacea"
+                    ? "DA CARTACEO"
                     : "Consensi obbligatori mancanti",
                   className: patient.hasPaperConsentForRequired ? "text-violet-600 dark:text-violet-400" : "text-rose-600 dark:text-rose-400",
                   icon: patient.hasPaperConsentForRequired ? "●" : "▲",
@@ -264,7 +314,7 @@ export default async function PazientiListaPage({
                 indicators.push({
                   title: "Telefono mancante",
                   className: "text-zinc-500 dark:text-zinc-400",
-                  icon: "☎️",
+                  icon: "📞",
                 });
               }
               if (indicators.length === 0) {
@@ -297,20 +347,19 @@ export default async function PazientiListaPage({
                 <div
                   key={patient.id}
                   id={`patient-${patient.id}`}
-                  className="flex flex-col gap-2 py-3 pl-4 pr-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="grid grid-cols-1 lg:grid-cols-[2fr_1fr_1.5fr_2fr_1.5fr] gap-x-4 gap-y-2 py-4 lg:py-3 px-4 transition hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20"
                 >
-                  <div className="flex items-center gap-2 text-lg sm:hidden" aria-hidden={!badge}>
-                    {badge}
-                  </div>
-                  <div className="flex flex-col">
+                  {/* Column 1: Patient Name & Indicators */}
+                  <div className="flex flex-col min-w-0">
                     <Link
                       href={`/pazienti/${patient.id}`}
-                      className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-900"
+                      className="text-sm font-semibold text-emerald-800 underline decoration-emerald-200 underline-offset-2 dark:text-emerald-400 dark:decoration-emerald-900 truncate"
                     >
                       <span className="mr-2 inline-flex items-center gap-1 align-middle">{badge}</span>
                       {patient.lastName} {patient.firstName}
                     </Link>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                    {/* Mobile-only contact block */}
+                    <div className="lg:hidden mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
                       {patient.email ? (
                         <span className="inline-flex items-center gap-1">
                           <span className="text-[10px]">📧</span> {patient.email}
@@ -318,7 +367,7 @@ export default async function PazientiListaPage({
                       ) : null}
                       {patient.phone ? (
                         <span className="inline-flex items-center gap-1">
-                          <span className="text-[10px]">☎️</span> {formatPhone(patient.phone)}
+                          <span className="text-[10px]">📞</span> {formatPhone(patient.phone)}
                         </span>
                       ) : null}
                       {birthDateLabel ? (
@@ -333,15 +382,63 @@ export default async function PazientiListaPage({
                       ) : null}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-                    {activeConsents.map((consent) => (
-                      <span
-                        key={consent.moduleId}
-                        className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
-                      >
-                        {consent.module?.name ?? "Modulo"}
+
+                  {/* Column 2: Birth Date (Desktop) */}
+                  <div className="hidden lg:flex items-center text-sm text-zinc-700 dark:text-zinc-300">
+                    {birthDateLabel ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-xs opacity-70">🎂</span> {birthDateLabel}
                       </span>
-                    ))}
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )}
+                  </div>
+
+                  {/* Column 3: Tax ID (Desktop) */}
+                  <div className="hidden lg:flex items-center text-xs font-mono uppercase text-zinc-600 dark:text-zinc-400">
+                    {parsedTaxId ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="text-xs opacity-70">📄</span> {parsedTaxId}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )}
+                  </div>
+
+                  {/* Column 4: Contacts (Desktop) */}
+                  <div className="hidden lg:flex flex-col justify-center gap-0.5 min-w-0">
+                    {patient.email ? (
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 truncate">
+                        <span className="text-[10px] opacity-70">📧</span>
+                        <span className="truncate">{patient.email}</span>
+                      </div>
+                    ) : null}
+                    {patient.phone ? (
+                      <div className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300">
+                        <span className="text-[10px] opacity-70">📞</span>
+                        {formatPhone(patient.phone)}
+                      </div>
+                    ) : null}
+                    {!patient.email && !patient.phone ? (
+                      <span className="text-zinc-400 text-xs">—</span>
+                    ) : null}
+                  </div>
+
+                  {/* Column 5: Actions */}
+                  <div className="flex flex-wrap items-center justify-start lg:justify-end gap-2">
+                    <div className="hidden sm:flex flex-wrap items-center justify-end gap-1.5 mr-2">
+                      {activeConsents.slice(0, 2).map((consent) => (
+                        <span
+                          key={consent.moduleId}
+                          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        >
+                          {consent.module?.name?.slice(0, 10) ?? "Modulo"}
+                        </span>
+                      ))}
+                      {activeConsents.length > 2 && (
+                        <span className="text-[10px] font-bold text-zinc-400">+{activeConsents.length - 2}</span>
+                      )}
+                    </div>
                     <Link
                       href={`/pazienti/${patient.id}`}
                       className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:text-emerald-300"

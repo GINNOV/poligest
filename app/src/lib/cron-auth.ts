@@ -1,5 +1,4 @@
 
-import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/error-response";
 
 /**

@@ -6,9 +6,6 @@ import { logAudit } from "@/lib/audit";
 import { Button } from "@/components/ui/button";
 import {
   REPORT_CONFIG_ID,
-  addPracticeDays,
-  createPracticeWeeklyReportPeriod,
-  getCompletedPracticeWeekPeriod,
   getCurrentPracticeWeekPeriod,
   parseRecipientEmails,
   sendPracticeWeeklyReport,

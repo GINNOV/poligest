@@ -32,9 +32,12 @@ export default async function PreviewDailyReminderPage({ searchParams }: Preview
     );
   }
 
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const tomorrow = new Date(now + 24 * 60 * 60 * 1000);
   const targetDate = dateParam 
     ? parseDateAtMidnightInTimeZone(dateParam, timeZone)
-    : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    : tomorrow;
 
   const result = await generateDailyReminderPreview(userId, targetDate, timeZone);
 

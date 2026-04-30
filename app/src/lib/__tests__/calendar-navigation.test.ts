@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { 
   formatDateInputValueInTimeZone, 
-  getWeekRangeInTimeZone, 
-  parseDateAtMidnightInTimeZone 
+  getWeekRangeInTimeZone
 } from "../user-display-time-zone";
 
 describe("Calendar Navigation Logic", () => {

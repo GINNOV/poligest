@@ -1,7 +1,6 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -18,7 +17,7 @@ import type { JsonObject } from "@/lib/json-types";
 import fs from "fs/promises";
 import path from "path";
 import { Button } from "@/components/ui/button";
-import { exportTables, ExportTableKey, isExportTableKey, exportTableKeys } from "@/lib/admin/export-tables";
+import { ExportTableKey, isExportTableKey, exportTableKeys } from "@/lib/admin/export-tables";
 import { ConfigExportForm } from "@/components/admin/config-export-form";
 
 type ExportJson = {
@@ -694,7 +693,6 @@ export default async function ResetPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   await requireUser([Role.ADMIN]);
-  const t = await getTranslations("admin");
   const isBulkEnabled = isBulkDestructiveActionEnabled();
   const { tab: activeTab = "export" } = await searchParams;
 

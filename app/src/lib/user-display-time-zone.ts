@@ -176,3 +176,72 @@ export function getMonthRangeInTimeZone(baseDate: Date, timeZone: string) {
   
   return { start, end };
 }
+
+/**
+ * Returns the day of week (1=Mon, ..., 7=Sun) for a given date in the target timeZone.
+ */
+export function weekdayIsoInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "narrow", // S, M, T, W, T, F, S
+  }).formatToParts(date);
+  
+  // Actually, narrow weekday is not reliable for mapping to 1-7 easily due to duplicates.
+  // Better to get the day of week index via numeric format if possible, 
+  // but Intl doesn't have a direct "day of week index" part.
+  
+  // Use a safer approach: get the day string and map it
+  const dayName = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  }).format(date);
+  
+  const map: Record<string, number> = {
+    'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6, 'Sun': 7
+  };
+  return map[dayName] || 1;
+}
+
+/**
+ * Performs month arithmetic on a "YYYY-MM" key.
+ */
+export function getRelativeMonthKey(monthKey: string, offset: number) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1 + offset, 1));
+  const newYear = d.getUTCFullYear();
+  const newMonth = d.getUTCMonth() + 1;
+  return `${newYear}-${newMonth.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Returns exactly 42 dates (6 weeks) representing the month grid for the month 
+ * containing baseDate in the specified timeZone.
+ * The grid starts on Monday of the week containing the 1st of the month.
+ */
+export function getMonthGridInTimeZone(baseDate: Date, timeZone: string) {
+  // 1. Get the month and year in the target timezone
+  const dateStr = formatDateInputValueInTimeZone(baseDate, timeZone);
+  const [y, m] = dateStr.split("-").map(Number);
+  
+  // 2. Use a "pure" UTC date to represent this calendar day for arithmetic
+  const utcFirst = new Date(Date.UTC(y, m - 1, 1));
+  
+  // 3. Find the day of week in UTC (0=Sun, 1=Mon, ..., 6=Sat)
+  const utcDay = utcFirst.getUTCDay();
+  
+  // 4. Calculate how many days to go back to reach Monday
+  // If utcDay is 0 (Sun), go back 6 days
+  // If utcDay is 1 (Mon), go back 0 days
+  // If utcDay is 2 (Tue), go back 1 day
+  const diffToMonday = utcDay === 0 ? -6 : 1 - utcDay;
+  
+  // 5. Generate exactly 42 days (6 full weeks)
+  const days: Date[] = [];
+  for (let i = 0; i < 42; i++) {
+    // Start from Monday in UTC
+    const currentUtc = new Date(utcFirst.getTime() + (diffToMonday + i) * 24 * 60 * 60 * 1000);
+    const targetStr = currentUtc.toISOString().split("T")[0];
+    days.push(parseDateAtMidnightInTimeZone(targetStr, timeZone));
+  }
+  return days;
+}

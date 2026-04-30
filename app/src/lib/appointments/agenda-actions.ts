@@ -100,12 +100,7 @@ export async function updateAppointmentAction(formData: FormData) {
     });
 
     if (!isSameSlot) {
-      const conflict = await hasDoctorConflict({
-        doctorId,
-        startsAt: startsAtDate,
-        endsAt: adjustedEndsAt,
-        excludeId: appointmentId,
-      });
+      const conflict = await hasDoctorConflict();
       if (conflict) {
         throw new Error(
           "Il medico selezionato ha già un appuntamento in questo intervallo. Scegli un orario diverso."

@@ -1,13 +1,28 @@
 "use client";
 
-import { usePaymentState } from "./payment-state-provider";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 import { PatientPaymentMethod } from "@prisma/client";
 
+type HistoricalPayment = {
+  id: string;
+  paidAt: Date;
+  amount: number;
+  method: PatientPaymentMethod;
+  note: string | null;
+  quoteItem?: {
+    serviceName: string;
+    tooth: number | null | undefined;
+  } | null;
+  user?: {
+    name: string | null;
+    email: string | null;
+  } | null;
+};
+
 type PaymentHistoryProps = {
-  historicalPayments: any[];
+  historicalPayments: HistoricalPayment[];
   paymentMethodLabels: Record<string, string>;
   displayTimeZone: string;
   archivePatientPaymentAction: (formData: FormData) => Promise<void>;

@@ -86,8 +86,15 @@ const formatDateTime = (value: Date | string | null | undefined, timeZone: strin
   );
 };
 
-const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
-  actor?.name ?? actor?.email ?? "—";
+const formatAuditActor = (
+  log: {
+    user?: { name: string | null; email: string | null } | null;
+    role?: string | null;
+  } | null | undefined
+) => {
+  if (!log) return "Sistema";
+  return log.user?.name ?? log.user?.email ?? log.role ?? "Sistema";
+};
 
 export default async function PatientDetailPage({
   params,
@@ -174,8 +181,8 @@ export default async function PatientDetailPage({
   }
 
   const activeConsents = patient.consents.filter((consent) => consent.status === "GRANTED");
-  const createdBy = formatAuditActor(createdLog?.user);
-  const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
+  const createdBy = formatAuditActor(createdLog);
+  const updatedBy = updatedLog ? formatAuditActor(updatedLog) : createdBy;
   const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt, displayTimeZone);
   const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt, displayTimeZone);
 

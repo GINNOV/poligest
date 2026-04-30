@@ -18,7 +18,6 @@ import { formatCalendarLocalInput } from "@/lib/calendar/domain";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import {
   formatDateInDisplayTimeZone,
-  formatDateInputValueInTimeZone,
 } from "@/lib/user-display-time-zone";
 
 export const revalidate = 0;
@@ -107,13 +106,7 @@ export default async function AgendaPage({
   const page = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
   const {
     appointments,
-    patients,
-    doctors,
-    serviceOptionObjects,
     whatsappTemplateBody,
-    availabilityWindows,
-    practiceClosures,
-    practiceWeeklyClosures,
     totalCount,
     availableLetters,
     totalPages,
@@ -179,19 +172,19 @@ export default async function AgendaPage({
           searchValue={searchValue}
         />
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
-          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Legenda colori</span>
+          <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">LEGENDA COLORI</span>
           {statusLegendItems.map(([status, label]) => (
             <span
               key={status}
               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-semibold ${statusClasses[status]}`}
             >
               <span className="h-2 w-2 rounded-full bg-current" />
-              {label}
+              {label.toUpperCase()}
             </span>
           ))}
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 font-semibold text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-200">
             <span className="h-2 w-2 rounded-full bg-amber-600" />
-            Passato ✅
+            PASSATO ✅
           </span>
         </div>
 
@@ -252,7 +245,6 @@ export default async function AgendaPage({
           ) : (
             orderedAppointments.map((appt, index) => {
               const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
-              const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
               const patientPhone = normalizeItalianPhone(appt.patient.phone);
               const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
               const appointmentDoctor = appt.doctor?.fullName ?? "da definire";

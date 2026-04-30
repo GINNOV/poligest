@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   logAudit: vi.fn(),
   redirect: vi.fn((url: string) => {
     const err = new Error("NEXT_REDIRECT");
-    (err as any).digest = `NEXT_REDIRECT;${url}`;
+    (err as unknown as { digest: string }).digest = `NEXT_REDIRECT;${url}`;
     throw err;
   }),
   prisma: {
@@ -83,8 +83,8 @@ describe("calendar actions", () => {
 
       try {
         await createAppointment(formData);
-      } catch (err: any) {
-        expect(err.digest).toContain("/calendar?view=week");
+      } catch (err: unknown) {
+        expect((err as { digest: string }).digest).toContain("/calendar?view=week");
       }
 
       expect(mocks.prisma.appointment.create).toHaveBeenCalledWith(expect.objectContaining({
@@ -102,8 +102,8 @@ describe("calendar actions", () => {
 
       try {
         await createAppointment(formData);
-      } catch (err: any) {
-        expect(err.digest).toContain("error=");
+      } catch (err: unknown) {
+        expect((err as { digest: string }).digest).toContain("error=");
       }
       expect(mocks.prisma.appointment.create).not.toHaveReturned();
     });
@@ -131,8 +131,8 @@ describe("calendar actions", () => {
 
       try {
         await updateAppointment(formData);
-      } catch (err: any) {
-        expect(err.digest).toBe("NEXT_REDIRECT;/calendar");
+      } catch (err: unknown) {
+        expect((err as { digest: string }).digest).toBe("NEXT_REDIRECT;/calendar");
       }
 
       expect(mocks.prisma.appointment.update).toHaveBeenCalled();
@@ -157,8 +157,8 @@ describe("calendar actions", () => {
 
       try {
         await updateAppointment(formData);
-      } catch (err: any) {
-        expect(decodeURIComponent(err.digest)).toContain("Solo l'admin può modificare");
+      } catch (err: unknown) {
+        expect(decodeURIComponent((err as { digest: string }).digest)).toContain("Solo l'admin può modificare");
       }
     });
   });
@@ -171,8 +171,8 @@ describe("calendar actions", () => {
 
       try {
         await deleteAppointment(formData);
-      } catch (err: any) {
-        expect(err.digest).toBe("NEXT_REDIRECT;/calendar");
+      } catch (err: unknown) {
+        expect((err as { digest: string }).digest).toBe("NEXT_REDIRECT;/calendar");
       }
 
       expect(mocks.prisma.appointment.delete).toHaveBeenCalledWith({ where: { id: "appt-1" } });

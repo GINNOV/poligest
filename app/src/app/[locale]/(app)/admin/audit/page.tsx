@@ -181,7 +181,7 @@ export default async function AuditPage({
     // Check if metadata contains a base64 image (specifically for consent signatures or photos)
     let base64Image: string | null = null;
     if (typeof metadata === "object" && metadata !== null) {
-      const meta = metadata as Record<string, any>;
+      const meta = metadata as Record<string, unknown>;
       // Common fields for images in our system
       const imageValue = meta.signature || meta.photo || meta.imageData || meta.image;
       if (typeof imageValue === "string" && imageValue.startsWith("data:image/")) {
@@ -360,15 +360,15 @@ export default async function AuditPage({
                       let quoteItemId = null;
 
                       if (log.metadata && typeof log.metadata === "object") {
-                        const meta = log.metadata as Record<string, any>;
-                        if (!patientId && meta.patientId) patientId = meta.patientId;
-                        if (!patientId && meta.patient_id) patientId = meta.patient_id;
-                        if (!quoteId && meta.quoteId) quoteId = meta.quoteId;
-                        if (!quoteId && meta.quote_id) quoteId = meta.quote_id;
-                        if (!appointmentId && meta.appointmentId) appointmentId = meta.appointmentId;
-                        if (!appointmentId && meta.appointment_id) appointmentId = meta.appointment_id;
-                        if (meta.quoteItemId) quoteItemId = meta.quoteItemId;
-                        if (meta.quote_item_id) quoteItemId = meta.quote_item_id;
+                        const meta = log.metadata as Record<string, unknown>;
+                        if (!patientId && meta.patientId) patientId = meta.patientId as string;
+                        if (!patientId && meta.patient_id) patientId = meta.patient_id as string;
+                        if (!quoteId && meta.quoteId) quoteId = meta.quoteId as string;
+                        if (!quoteId && meta.quote_id) quoteId = meta.quote_id as string;
+                        if (!appointmentId && meta.appointmentId) appointmentId = meta.appointmentId as string;
+                        if (!appointmentId && meta.appointment_id) appointmentId = meta.appointment_id as string;
+                        if (meta.quoteItemId) quoteItemId = meta.quoteItemId as string;
+                        if (meta.quote_item_id) quoteItemId = meta.quote_item_id as string;
                       }
 
                       return (

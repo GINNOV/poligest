@@ -38,7 +38,8 @@ export function PatientCreateSubmitButton({ className, label, pendingLabel, disa
     const initialValue = (window as typeof window & { __consentRequiredComplete?: boolean })
       .__consentRequiredComplete;
     if (typeof initialValue === "boolean") {
-      setIsComplete(initialValue);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsComplete(prev => prev === initialValue ? prev : initialValue);
     }
 
     return () => window.removeEventListener(CONSENT_REQUIRED_EVENT, handler as EventListener);
@@ -55,7 +56,8 @@ export function PatientCreateSubmitButton({ className, label, pendingLabel, disa
     const initialValue = (window as typeof window & { __paperConsentOverride?: boolean })
       .__paperConsentOverride;
     if (typeof initialValue === "boolean") {
-      setHasPaperConsentOverride(initialValue);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHasPaperConsentOverride(prev => prev === initialValue ? prev : initialValue);
     }
 
     return () => window.removeEventListener(PAPER_CONSENT_OVERRIDE_EVENT, handler as EventListener);

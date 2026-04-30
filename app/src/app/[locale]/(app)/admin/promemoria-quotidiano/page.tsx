@@ -10,7 +10,7 @@ import {
   sendDailyReminders,
 } from "@/lib/daily-reminder";
 import { Role, RecurringMessageStatus } from "@prisma/client";
-import { formatDateInDisplayTimeZone, formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
+import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
 
 const formatDateTime = (value: Date | null) =>
   value
@@ -104,6 +104,20 @@ async function clearDailyReminderHistory() {
   revalidatePath("/admin/promemoria-quotidiano");
 }
 
+interface DailyReminderLogRecord {
+  id: string;
+  userId: string;
+  date: Date;
+  status: RecurringMessageStatus;
+  error: string | null;
+  sentAt: Date | null;
+  createdAt: Date;
+  user: {
+    name: string | null;
+    email: string;
+  };
+}
+
 export default async function AdminDailyReminderPage() {
   try {
     await requireUser([Role.ADMIN]);
@@ -119,7 +133,7 @@ export default async function AdminDailyReminderPage() {
         orderBy: { createdAt: "asc" | "desc" };
         take: number;
         include: { user: { select: { name: true, email: true } } };
-      }) => Promise<Array<any>>;
+      }) => Promise<Array<DailyReminderLogRecord>>;
     }>("dailyReminderLog");
 
     const [configResult, logResult] = await Promise.all([
@@ -144,6 +158,7 @@ export default async function AdminDailyReminderPage() {
     const recentLogs = logResult.value;
     
     // Explicitly set to true as we've confirmed the tables exist and migrations are applied
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const moduleAvailable = true; 
 
     const currentRoles = config?.targetRoles ?? [Role.ADMIN, Role.MANAGER, Role.ASSISTANT, Role.SECRETARY];
@@ -355,7 +370,7 @@ export default async function AdminDailyReminderPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900/50">
-                  {recentLogs.map((log: any) => (
+                  {recentLogs.map((log: DailyReminderLogRecord) => (
                     <tr key={log.id}>
                       <td className="px-3 py-3">
                         <div className="font-medium text-zinc-900 dark:text-zinc-50">{log.user.name || "Utente"}</div>

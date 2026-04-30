@@ -1,21 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
-import { logAudit } from "@/lib/audit";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
-import { normalizeItalianPhone } from "@/lib/phone";
-import { normalizePersonName } from "@/lib/name";
 import {
   appendCalendarQueryParam,
   dateEndExclusive,
   dateStart,
-  ensureCalendarReturnTo,
   formatCalendarLocalInput,
-  parseCalendarDateParam,
   weekdayIso,
 } from "@/lib/calendar/domain";
 import { AppointmentStatus, Role } from "@prisma/client";
@@ -23,14 +16,8 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   addDays,
   addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
   format,
-  isSameMonth,
   isToday,
-  startOfMonth,
-  startOfWeek,
 } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarDoctorFilter } from "@/components/calendar-doctor-filter";
@@ -103,16 +90,6 @@ type ClientWeeklyClosure = {
   title?: string | null;
 };
 
-function isNextRedirectError(err: unknown): err is { digest: string } {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "digest" in err &&
-    typeof (err as { digest?: unknown }).digest === "string" &&
-    (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
-}
-
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -184,9 +161,14 @@ export default async function CalendarPage({
   const monthStart = monthRange.start;
   const monthEnd = monthRange.end;
 
-  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  const selectedMonthKey = TZ.formatDateInputValueInTimeZone(baseMonth, displayTimeZone).slice(0, 7);
+
+  const days = TZ.getMonthGridInTimeZone(baseMonth, displayTimeZone).filter(day => {
+    const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
+    return key.startsWith(selectedMonthKey);
+  });
+  const calendarStart = days[0];
+  const calendarEnd = new Date(days[days.length - 1].getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const doctors = await prisma.doctor.findMany({
     orderBy: { fullName: "asc" },
@@ -347,14 +329,11 @@ export default async function CalendarPage({
     appointmentsByDay.get(key)?.push(appt);
   });
 
-  const monthLabel = new Intl.DateTimeFormat("it-IT", {
-    month: "long",
-    year: "numeric",
-  }).format(baseMonth);
+  const monthLabel = TZ.formatDateInDisplayTimeZone(baseMonth, { month: "long", year: "numeric" }, displayTimeZone);
   const currentMonthKey = TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone).slice(0, 7);
-  const selectedMonthKey = TZ.formatDateInputValueInTimeZone(baseMonth, displayTimeZone).slice(0, 7);
-  const prevMonth = format(addMonths(baseMonth, -1), "yyyy-MM");
-  const nextMonth = format(addMonths(baseMonth, 1), "yyyy-MM");
+  
+  const prevMonth = TZ.getRelativeMonthKey(selectedMonthKey, -1);
+  const nextMonth = TZ.getRelativeMonthKey(selectedMonthKey, 1);
   
   const weekKey = TZ.formatDateInputValueInTimeZone(weekStart, displayTimeZone);
   const prevWeekKey = TZ.formatDateInputValueInTimeZone(addDays(weekStart, -7), displayTimeZone);
@@ -391,22 +370,25 @@ export default async function CalendarPage({
     }
     return `/calendar?${nextParams.toString()}`;
   };
-  const returnParams = new URLSearchParams();
-  if (showAllDoctors) {
-    returnParams.set("doctor", "all");
-  } else if (selectedDoctorId) {
-    returnParams.set("doctor", selectedDoctorId);
-  }
-  returnParams.set("view", view);
-  if (view === "week") {
-    returnParams.set("week", weekKey);
-  } else {
-    returnParams.set("month", selectedMonthKey);
-  }
-  if (searchQueryRaw) {
-    returnParams.set("q", searchQueryRaw);
-  }
-  const returnTo = `/calendar?${returnParams.toString()}`;
+  const returnTo = (() => {
+    const returnParams = new URLSearchParams();
+    if (showAllDoctors) {
+      returnParams.set("doctor", "all");
+    } else if (selectedDoctorId) {
+      returnParams.set("doctor", selectedDoctorId);
+    }
+    returnParams.set("view", view);
+    if (view === "week") {
+      returnParams.set("week", weekKey);
+    } else {
+      returnParams.set("month", selectedMonthKey);
+    }
+    if (searchQueryRaw) {
+      returnParams.set("q", searchQueryRaw);
+    }
+    return `/calendar?${returnParams.toString()}`;
+  })();
+
   const calendarDays = days.map((day) => {
     const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
@@ -427,13 +409,18 @@ export default async function CalendarPage({
     const availabilityColors = dayWindows
       .map((win) => win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981")
       .filter((color): color is string => Boolean(color));
+    
+    // Day of week for CSS positioning (1=Mon, 7=Sun)
+    const dayOfWeek = TZ.weekdayIsoInTimeZone(day, displayTimeZone);
+
     return {
       date: key,
       label: format(day, "d", { locale: it }),
-      inMonth: isSameMonth(day, monthStart),
+      inMonth: key.startsWith(selectedMonthKey),
       isToday: isToday(day),
       availabilityColors,
       isPracticeClosed,
+      dayOfWeek,
       appointments: dayAppointments.map((appt) => {
         const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
         const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
@@ -525,15 +512,44 @@ export default async function CalendarPage({
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-6">
       <div className="mx-auto max-w-screen-2xl space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {selectedDoctorId && !showAllDoctors 
-              ? `Calendario di ${doctors.find(d => d.id === selectedDoctorId)?.fullName}`
-              : "Calendario medici"}
+            {selectedDoctorId && !showAllDoctors ? (
+              <>
+                Calendario di{" "}
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                  {doctors.find((d) => d.id === selectedDoctorId)?.fullName}
+                </span>
+              </>
+            ) : (
+              "Calendario medici"
+            )}
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Seleziona un medico o tutto lo staff per vedere la pianificazione del periodo selezionato.
           </p>
+          <div className="mt-3 flex items-center gap-2">
+            <Link
+              href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                view === "month"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+              }`}
+            >
+              Vista mese
+            </Link>
+            <Link
+              href={buildCalendarLink({ view: "week", week: weekKey })}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                view === "week"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+              }`}
+            >
+              Vista settimana
+            </Link>
+          </div>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
           <CalendarPreferencesSync doctorIds={doctors.map((doctor) => doctor.id)} />
@@ -544,28 +560,13 @@ export default async function CalendarPage({
           />
           <div className="flex flex-wrap items-center justify-end gap-3">
             <CalendarSearch />
-            <div className="flex items-center gap-2">
-              <Link
-                href={buildCalendarLink({ view: "month", month: selectedMonthKey })}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                  view === "month"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
-                    : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
-                }`}
-              >
-                Vista mese
-              </Link>
-              <Link
-                href={buildCalendarLink({ view: "week", week: weekKey })}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
-                  view === "week"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
-                    : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
-                }`}
-              >
-                Vista settimana
-              </Link>
-            </div>
+            <Link
+              href={appendCalendarQueryParam(returnTo, "edit", "new")}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+            >
+              <span className="text-sm">+</span>
+              Nuovo
+            </Link>
           </div>
         </div>
       </div>

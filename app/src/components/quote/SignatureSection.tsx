@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
 type Point = { x: number; y: number };
@@ -61,7 +61,7 @@ export function SignatureSection({
     return "#0f172a"; // zinc-950
   };
 
-  const resizeCanvas = () => {
+  const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext("2d");
@@ -78,14 +78,14 @@ export function SignatureSection({
       context.lineCap = "round";
       context.strokeStyle = getStrokeColor();
     }
-  };
+  }, []);
 
   useEffect(() => {
     resizeCanvas();
     const handleResize = () => resizeCanvas();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [resizeCanvas]);
 
   useEffect(() => {
     onSignatureStateChange?.(isSignatureReady);

@@ -52,7 +52,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={mergedClassName}
         ref={ref}
         disabled={disabled || loading}
-        type={(props.type as any) || "button"}
+        type={props.type || "button"}
         {...props}
       >
         {loading && (

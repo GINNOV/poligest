@@ -195,7 +195,10 @@ export async function generateDailyReminderPreview(userId: string, targetDate: D
   return { status: "success", subject, text, html, count: appointments.length };
 }
 
-export function generateDailyReminderContent(user: any, appointments: any[], date: Date, timeZone: string) {
+type UserWithDoctor = Prisma.UserGetPayload<{ include: { doctor: true } }>;
+type AppointmentWithPatient = Prisma.AppointmentGetPayload<{ include: { patient: true } }>;
+
+export function generateDailyReminderContent(user: UserWithDoctor, appointments: AppointmentWithPatient[], date: Date, timeZone: string) {
   const dateLabel = formatDateInDisplayTimeZone(date, { dateStyle: "full" }, timeZone);
   const rows = appointments.map((appt) => {
     const time = formatTimeInputValueInTimeZone(appt.startsAt, timeZone);

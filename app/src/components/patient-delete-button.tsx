@@ -12,10 +12,6 @@ export function PatientDeleteButton({ patientId, role }: { patientId: string; ro
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmation, setConfirmation] = useState("");
 
-  if (role === Role.SECRETARY) {
-    return null;
-  }
-
   const close = () => {
     setShowConfirm(false);
     setConfirmation("");
@@ -66,13 +62,17 @@ export function PatientDeleteButton({ patientId, role }: { patientId: string; ro
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [showConfirm]);
 
+  if (role === Role.SECRETARY) {
+    return null;
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => setShowConfirm(true)}
         disabled={isSubmitting}
-        className="rounded-full border border-rose-200 px-4 py-1 text-rose-700 transition hover:border-rose-300 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+        className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
       >
         Elimina
       </button>

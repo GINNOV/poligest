@@ -1,7 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import Link from "next/link";
 import clsx from "clsx";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -24,25 +23,18 @@ type DentalRecord = {
   updatedByName?: string | null;
 };
 
-const TOOTH_PATHS: Record<string, string> = {
-  molar:
-    "M10,2 C5,2 2,5 2,12 C2,18 5,22 10,22 C15,22 18,18 18,12 C18,5 15,2 10,2 Z M6,8 C6,7 7,6 8,6 C9,6 10,7 10,8 C10,7 11,6 12,6 C13,6 14,7 14,8 M5,12 L15,12",
-  premolar:
-    "M10,2 C6,2 3,5 3,12 C3,18 6,22 10,22 C14,22 17,18 17,12 C17,5 14,2 10,2 Z M7,8 C7,7 8,6 9,6 C10,6 11,7 11,8 C11,7 12,6 13,6 M5,12 L15,12",
-  canine: "M10,2 C7,2 4,6 4,12 C4,18 7,22 10,22 C13,22 16,18 16,12 C16,6 13,2 10,2 Z M10,6 L10,16",
-  incisor: "M10,4 C7,4 5,6 5,12 C5,18 7,22 10,22 C13,22 15,18 15,12 C15,6 13,4 10,4 Z M8,8 L12,8",
-};
+type ToothType = "molar" | "premolar" | "canine" | "incisor";
 
 type ToothData = {
   id: number;
-  type: keyof typeof TOOTH_PATHS;
+  type: ToothType;
   label: string;
   x: number;
   y: number;
   rot: number;
 };
 
-const TOOTH_IMAGES: Record<ToothData["type"], string> = {
+const TOOTH_IMAGES: Record<ToothType, string> = {
   incisor: "/teeth/incisivi.png",
   canine: "/teeth/canini.png",
   premolar: "/teeth/premolari.png",
@@ -251,7 +243,6 @@ export function DentalChart({
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [procedure, setProcedure] = useState("");
   const [notes, setNotes] = useState("");
-  const [isNotesActive, setIsNotesActive] = useState(false);
   const [customProcedure, setCustomProcedure] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -356,12 +347,6 @@ export function DentalChart({
       ? TEETH.find((tooth) => tooth.id === selectedTooth) ?? null
       : null;
   const selectedToothImage = selectedToothData ? TOOTH_IMAGES[selectedToothData.type] : null;
-  const selectedProcedureLabel =
-    procedure === "altro"
-      ? customProcedure.trim() || "Altro"
-      : procedure.trim()
-        ? procedure.trim()
-        : "";
 
   const hasChanges = useMemo(() => {
     if (!selectedRecord) return false;
@@ -859,15 +844,15 @@ export function DentalChart({
               <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr,340px]">
                 <section className="flex flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="mb-6 flex flex-wrap items-center gap-4 text-xs">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Legenda</span>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">LEGENDA</span>
                     <div className="flex gap-3">
                       <span className="inline-flex items-center gap-2 rounded-full bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 border border-zinc-100 dark:border-zinc-800">
                         <svg width="12" height="12" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#22c55e" strokeWidth="10" /></svg>
-                        <span className="font-bold text-zinc-700 dark:text-zinc-300">Trattato</span>
+                        <span className="font-bold text-zinc-700 dark:text-zinc-300 uppercase">TRATTATO</span>
                       </span>
                       <span className="inline-flex items-center gap-2 rounded-full bg-zinc-50 dark:bg-zinc-800/50 px-3 py-1.5 border border-zinc-100 dark:border-zinc-800">
                         <svg width="12" height="12" viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="none" stroke="#ef4444" strokeWidth="10" /></svg>
-                        <span className="font-bold text-zinc-700 dark:text-zinc-300">Selezionato</span>
+                        <span className="font-bold text-zinc-700 dark:text-zinc-300 uppercase">SELEZIONATO</span>
                       </span>
                     </div>
                   </div>

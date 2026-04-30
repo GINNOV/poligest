@@ -34,7 +34,7 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
   const [extraNotes, setExtraNotes] = useState(extraNotesDefault ?? "");
   const [activeField, setActiveField] = useState<ActiveField>("medications");
   const activeFieldRef = useRef<ActiveField>("medications");
-  const [isSupported, setIsSupported] = useState(false);
+  const [isSupported] = useState(() => !!getSpeechRecognition());
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +47,6 @@ export function PatientAnamnesisNotes({ medicationsDefault, extraNotesDefault }:
   };
 
   useEffect(() => {
-    setIsSupported(!!getSpeechRecognition());
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.onresult = null;

@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
 import { normalizeItalianPhone } from "@/lib/phone";
@@ -74,14 +73,19 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
 
 export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const [displayTimeZone, setDisplayTimeZone] = useState("UTC");
-  const [isMounted, setIsMounted] = useState(false);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    setDisplayTimeZone(getBrowserUserDisplayTimeZone());
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
+  const displayTimeZone = useSyncExternalStore(
+    () => () => {},
+    () => getBrowserUserDisplayTimeZone(),
+    () => "UTC"
+  );
 
   const orderedAppointments = useMemo(() => {
     const parsed = appointments.map((appt) => ({

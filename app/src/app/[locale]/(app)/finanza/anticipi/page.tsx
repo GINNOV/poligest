@@ -11,13 +11,6 @@ export const revalidate = 60;
 const ARCHIVE_PREFIX = "[ARCHIVIO] ";
 const DOCTOR_PAYMENT_PREFIX = "Pagamento medico";
 
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 type MediciSearchParams = {
   aq?: string;
   afrom?: string;

@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { buildPositionedAppointments, CalendarAppointment } from "../layout-engine";
 
 const mockAppt = (id: string, start: string, end: string): CalendarAppointment => {
-  const [d1, t1] = start.split("T");
+  const [, t1] = start.split("T");
   const [h1, m1] = t1.split(":").map(Number);
-  const [d2, t2] = end.split("T");
+  const [, t2] = end.split("T");
   const [h2, m2] = t2.split(":").map(Number);
 
   return {
