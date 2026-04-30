@@ -15,11 +15,8 @@ import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   addDays,
-  addMonths,
-  format,
   isToday,
 } from "date-fns";
-import { it } from "date-fns/locale";
 import { CalendarDoctorFilter } from "@/components/calendar-doctor-filter";
 import { CalendarMonthView } from "@/components/calendar-month-view";
 import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync";
@@ -149,9 +146,11 @@ export default async function CalendarPage({
   const weekEnd = new Date(weekIntervalDays[6].getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const monthMatch = monthParam?.match(/^(\d{4})-(\d{2})$/);
-  let baseMonth = monthMatch
-    ? TZ.parseDateAtMidnightInTimeZone(`${monthParam}-01`, displayTimeZone)
-    : new Date();
+  const selectedMonthKey = monthMatch
+    ? monthParam!
+    : TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone).slice(0, 7);
+
+  let baseMonth = TZ.parseDateAtMidnightInTimeZone(`${selectedMonthKey}-15`, displayTimeZone);
   
   if (!monthMatch && view === "week") {
     baseMonth = weekStart;
@@ -160,8 +159,6 @@ export default async function CalendarPage({
   const monthRange = TZ.getMonthRangeInTimeZone(baseMonth, displayTimeZone);
   const monthStart = monthRange.start;
   const monthEnd = monthRange.end;
-
-  const selectedMonthKey = TZ.formatDateInputValueInTimeZone(baseMonth, displayTimeZone).slice(0, 7);
 
   const days = TZ.getMonthGridInTimeZone(baseMonth, displayTimeZone).filter(day => {
     const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
@@ -415,7 +412,7 @@ export default async function CalendarPage({
 
     return {
       date: key,
-      label: format(day, "d", { locale: it }),
+      label: TZ.formatDateInDisplayTimeZone(day, { day: "numeric" }, displayTimeZone),
       inMonth: key.startsWith(selectedMonthKey),
       isToday: isToday(day),
       availabilityColors,
