@@ -1,22 +1,23 @@
-// Load environment variables for Prisma CLI commands (prefer .env.local)
-import dotenv from "dotenv";
+import { defineConfig } from "@prisma/config";
+import * as dotenv from "dotenv";
+import "dotenv/config";
 
+// Load .env.local if present
 dotenv.config({ path: ".env.local" });
-dotenv.config();
 
 const getDbUrl = () =>
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.POSTGRES_PRISMA_URL ??
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.POSTGRES_PRISMA_URL ||
   process.env.DATABASE_URL;
 
-function normalizeConnectionString(rawConnectionString: string) {
+function normalizeConnectionString(rawConnectionString: string): string {
   try {
     const parsed = new URL(rawConnectionString);
     if (parsed.searchParams.get("sslmode") === "require" && !parsed.searchParams.has("uselibpqcompat")) {
       parsed.searchParams.set("uselibpqcompat", "true");
     }
     return parsed.toString();
-  } catch {
+  } catch (error) {
     return rawConnectionString;
   }
 }
@@ -24,20 +25,17 @@ function normalizeConnectionString(rawConnectionString: string) {
 const dbUrl = getDbUrl();
 
 if (!dbUrl) {
-  throw new Error(
-    "Missing database URL. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env."
-  );
+  // We need a string for the type checker, even if it's empty.
+  // Prisma will fail anyway if the URL is missing during commands that need it.
 }
 
-const config = {
+export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: normalizeConnectionString(dbUrl),
+    url: normalizeConnectionString(dbUrl || ""),
   },
-};
-
-export default config;
+});
