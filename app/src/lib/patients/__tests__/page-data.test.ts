@@ -184,7 +184,11 @@ describe("patient page data", () => {
         },
       },
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { name: true, email: true } } },
+      select: {
+        createdAt: true,
+        role: true,
+        user: { select: { name: true, email: true } },
+      },
     });
     expect(result.dentalRecordsSerialized).toEqual([
       expect.objectContaining({

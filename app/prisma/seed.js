@@ -2,8 +2,40 @@
 
 const { hash } = require("bcryptjs");
 const { PrismaClient, Role, Prisma } = require("@prisma/client");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const { Pool } = require("pg");
 
-const prisma = new PrismaClient();
+function normalizeConnectionString(rawConnectionString) {
+  try {
+    const parsed = new URL(rawConnectionString);
+    if (parsed.searchParams.get("sslmode") === "require" && !parsed.searchParams.has("uselibpqcompat")) {
+      parsed.searchParams.set("uselibpqcompat", "true");
+    }
+    return parsed.toString();
+  } catch {
+    return rawConnectionString;
+  }
+}
+
+const connectionString = normalizeConnectionString(
+  process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.DATABASE_URL ||
+    ""
+);
+
+if (!connectionString) {
+  console.error("❌ prisma/seed.js: Database URL missing. Set DATABASE_URL in your env.");
+  process.exit(1);
+}
+
+const pool = new Pool({
+  connectionString,
+  ssl: true,
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
 const defaultEmailTemplates = [
   {
