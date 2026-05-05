@@ -48,7 +48,7 @@ describe("GET /api/reports/weekly", () => {
 
     expect(mocks.sendPracticeWeeklyReport).toHaveBeenCalledWith({
       force: true,
-      trigger: "API",
+      trigger: "CRON",
       timeZone: "Europe/Rome",
     });
     expect(await response.json()).toEqual({ sent: true, skipped: false });

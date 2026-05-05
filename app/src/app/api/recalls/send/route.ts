@@ -13,7 +13,6 @@ import {
   computeRecurringRecallCreates,
   shouldSkipAppointmentReminder,
 } from "@/lib/recalls/send-domain";
-import { sendPracticeWeeklyReport } from "@/lib/practice-weekly-report";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { unauthorizedCronResponse, validateCronSecret } from "@/lib/cron-auth";
 import { logAudit } from "@/lib/audit";
@@ -125,14 +124,7 @@ export async function GET(req: Request) {
   try {
     const now = new Date();
     const timeZone = await getPracticeTimeZone();
-    let weeklyReport: Awaited<ReturnType<typeof sendPracticeWeeklyReport>> | null = null;
     const autoCompletedAppointments = await autoCompletePastAppointments(now);
-
-    try {
-      weeklyReport = await sendPracticeWeeklyReport({ now, trigger: "CRON", timeZone, syncAppointments: false });
-    } catch (err) {
-      console.error("[practice_weekly_report] failed during recalls cron", { err });
-    }
 
     const enqueuedRecalls = await enqueueRecurringRecalls(now);
     const enqueuedReminders = await enqueueAppointmentReminders(now, timeZone);
@@ -295,7 +287,6 @@ export async function GET(req: Request) {
       autoCompletedAppointments,
       processed: dueRecalls.length,
       appointmentReminders: dueAppointmentReminders.length,
-      weeklyReport,
     });
   } catch (error) {
     return errorResponse({

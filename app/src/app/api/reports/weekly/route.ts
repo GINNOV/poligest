@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const force = url.searchParams.get("force") === "1";
     const timeZone = await getPracticeTimeZone();
-    const result = await sendPracticeWeeklyReport({ force, trigger: "API", timeZone });
+    const result = await sendPracticeWeeklyReport({ force, trigger: "CRON", timeZone });
     return NextResponse.json(result);
   } catch (error) {
     return errorResponse({
