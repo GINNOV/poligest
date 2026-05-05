@@ -9,7 +9,6 @@ import {
   dateEndExclusive,
   dateStart,
   formatCalendarLocalInput,
-  weekdayIso,
 } from "@/lib/calendar/domain";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -389,10 +388,11 @@ export default async function CalendarPage({
   const calendarDays = days.map((day) => {
     const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
+    const displayWeekday = TZ.weekdayIsoInTimeZone(day, displayTimeZone);
     const dayWindows = showAllDoctors
-      ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
+      ? (windowsByWeekday.get(displayWeekday) ?? [])
       : selectedDoctorId
-        ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
+        ? (windowsByWeekday.get(displayWeekday) ?? []).filter((win) => win.doctorId === selectedDoctorId)
         : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
@@ -400,15 +400,12 @@ export default async function CalendarPage({
       (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
     );
     const isClosedWeekly = weeklyClosures.some(
-      (row) => row.isActive && row.dayOfWeek === weekdayIso(day)
+      (row) => row.isActive && row.dayOfWeek === displayWeekday
     );
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
     const availabilityColors = dayWindows
       .map((win) => win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981")
       .filter((color): color is string => Boolean(color));
-    
-    // Day of week for CSS positioning (1=Mon, 7=Sun)
-    const dayOfWeek = TZ.weekdayIsoInTimeZone(day, displayTimeZone);
 
     return {
       date: key,
@@ -417,7 +414,7 @@ export default async function CalendarPage({
       isToday: isToday(day),
       availabilityColors,
       isPracticeClosed,
-      dayOfWeek,
+      dayOfWeek: displayWeekday,
       appointments: dayAppointments.map((appt) => {
         const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
         const endsAtLocal = formatCalendarLocalInput(appt.endsAt, displayTimeZone);
@@ -450,10 +447,11 @@ export default async function CalendarPage({
   const weekDays = weekIntervalDays.map((day) => {
     const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
+    const displayWeekday = TZ.weekdayIsoInTimeZone(day, displayTimeZone);
     const dayWindows = showAllDoctors
-      ? (windowsByWeekday.get(weekdayIso(day)) ?? [])
+      ? (windowsByWeekday.get(displayWeekday) ?? [])
       : selectedDoctorId
-        ? (windowsByWeekday.get(weekdayIso(day)) ?? []).filter((win) => win.doctorId === selectedDoctorId)
+        ? (windowsByWeekday.get(displayWeekday) ?? []).filter((win) => win.doctorId === selectedDoctorId)
         : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
@@ -461,7 +459,7 @@ export default async function CalendarPage({
       (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
     );
     const isClosedWeekly = weeklyClosures.some(
-      (row) => row.isActive && row.dayOfWeek === weekdayIso(day)
+      (row) => row.isActive && row.dayOfWeek === displayWeekday
     );
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
     const availabilityWindows = dayWindows.map((win) => ({
