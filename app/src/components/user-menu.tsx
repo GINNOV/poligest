@@ -359,7 +359,7 @@ export function UserMenu({
                       <label className="flex flex-col gap-2">
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario</span>
                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Tutti gli orari cron lato server usano questo fuso.
+                          Fuso orario utilizzato per le automazioni lato server.
                         </p>
                         <select
                           value={selectedPracticeTimeZone}
