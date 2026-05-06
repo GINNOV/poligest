@@ -9,6 +9,8 @@ import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
+import { resolveUserDisplayTimeZone } from "@/lib/user-display-time-zone";
 import {
   appendCalendarQueryParam,
   ensureCalendarReturnTo,
@@ -29,6 +31,13 @@ function isNextRedirectError(err: unknown): err is { digest: string } {
 async function hasDoctorConflict() {
   // Allow concurrent appointments for the same doctor
   return false;
+}
+
+function getCalendarFormTimeZone(formData: FormData) {
+  const submitted = formData.get("timeZone");
+  return resolveUserDisplayTimeZone(
+    typeof submitted === "string" ? submitted : null,
+  );
 }
 
 async function resolvePatientIdForAppointment(params: {
@@ -92,6 +101,7 @@ async function resolvePatientIdForAppointment(params: {
 export async function createAppointment(formData: FormData) {
   try {
     const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+    const timeZone = getCalendarFormTimeZone(formData);
 
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
@@ -103,9 +113,12 @@ export async function createAppointment(formData: FormData) {
     const endsAtRaw = formData.get("endsAt") as string;
     const endsAtDate =
       endsAtRaw && !endsAtRaw.endsWith(":")
-        ? new Date(endsAtRaw)
+        ? parseDateTimeLocalInTimeZone(endsAtRaw, timeZone)
         : startsAt
-          ? new Date(new Date(startsAt).getTime() + 60 * 60 * 1000)
+          ? (() => {
+              const startDate = parseDateTimeLocalInTimeZone(startsAt, timeZone);
+              return startDate ? new Date(startDate.getTime() + 60 * 60 * 1000) : null;
+            })()
           : null;
     const patientIdRaw = formData.get("patientId") as string;
     const doctorId = (formData.get("doctorId") as string) || null;
@@ -119,8 +132,8 @@ export async function createAppointment(formData: FormData) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
     }
 
-    const startsAtDate = new Date(startsAt);
-    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+    const startsAtDate = parseDateTimeLocalInTimeZone(startsAt, timeZone);
+    if (!startsAtDate || Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
       throw new Error("Formato data/ora non valido.");
     }
     const adjustedEndsAt =
@@ -186,6 +199,7 @@ export async function createAppointment(formData: FormData) {
 export async function updateAppointment(formData: FormData) {
   try {
     const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+    const timeZone = getCalendarFormTimeZone(formData);
     const appointmentId = formData.get("appointmentId") as string;
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
@@ -204,9 +218,14 @@ export async function updateAppointment(formData: FormData) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
     }
 
-    const startsAtDate = new Date(startsAt);
-    const endsAtDate = new Date(endsAt);
-    if (Number.isNaN(startsAtDate.getTime()) || Number.isNaN(endsAtDate.getTime())) {
+    const startsAtDate = parseDateTimeLocalInTimeZone(startsAt, timeZone);
+    const endsAtDate = parseDateTimeLocalInTimeZone(endsAt, timeZone);
+    if (
+      !startsAtDate ||
+      !endsAtDate ||
+      Number.isNaN(startsAtDate.getTime()) ||
+      Number.isNaN(endsAtDate.getTime())
+    ) {
       throw new Error("Formato data/ora non valido.");
     }
     const adjustedEndsAt =

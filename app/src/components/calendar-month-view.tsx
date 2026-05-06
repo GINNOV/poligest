@@ -146,6 +146,7 @@ type Props = {
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
+  displayTimeZone: string;
   selectedDoctorId?: string;
   returnTo: string;
   searchQuery?: string;
@@ -169,6 +170,7 @@ export function CalendarMonthView({
   action,
   updateAction,
   deleteAction,
+  displayTimeZone,
   selectedDoctorId,
   returnTo,
   searchQuery,
@@ -457,6 +459,7 @@ export function CalendarMonthView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={updateAction}
+                displayTimeZone={displayTimeZone}
                 onSuccess={() => {
                   setSelectedAppointment(null);
                   setSelectedDate(null);
@@ -487,6 +490,7 @@ export function CalendarMonthView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={action}
+                displayTimeZone={displayTimeZone}
                 onSuccess={() => {
                   setSelectedAppointment(null);
                   setSelectedDate(null);

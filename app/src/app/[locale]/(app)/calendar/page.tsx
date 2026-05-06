@@ -658,6 +658,7 @@ export default async function CalendarPage({
               action={createAppointment}
               updateAction={updateAppointment}
               deleteAction={deleteAppointment}
+              displayTimeZone={displayTimeZone}
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
               searchQuery={searchQuery}
@@ -681,6 +682,7 @@ export default async function CalendarPage({
               action={createAppointment}
               updateAction={updateAppointment}
               deleteAction={deleteAppointment}
+              displayTimeZone={displayTimeZone}
               selectedDoctorId={selectedDoctorId}
               returnTo={returnTo}
               searchQuery={searchQuery}

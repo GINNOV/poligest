@@ -34,6 +34,7 @@ type AppointmentUpdateFormProps = {
   practiceWeeklyClosures: PracticeWeeklyClosure[];
   action: (formData: FormData) => Promise<void>;
   onSuccess?: () => void;
+  displayTimeZone?: string;
   returnTo?: string;
 };
 
@@ -47,6 +48,7 @@ export function AppointmentUpdateForm({
   practiceWeeklyClosures,
   action,
   onSuccess,
+  displayTimeZone,
   returnTo,
 }: AppointmentUpdateFormProps) {
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +159,7 @@ export function AppointmentUpdateForm({
       onSubmit={handleSubmit}
     >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+      {displayTimeZone ? <input type="hidden" name="timeZone" value={displayTimeZone} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
       
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">

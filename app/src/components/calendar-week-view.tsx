@@ -149,6 +149,7 @@ type Props = {
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
+  displayTimeZone: string;
   selectedDoctorId?: string;
   returnTo: string;
   searchQuery?: string;
@@ -167,6 +168,7 @@ export function CalendarWeekView({
   action,
   updateAction,
   deleteAction,
+  displayTimeZone,
   selectedDoctorId,
   returnTo,
   searchQuery,
@@ -531,6 +533,7 @@ export function CalendarWeekView({
                   practiceClosures={practiceClosures}
                   practiceWeeklyClosures={practiceWeeklyClosures}
                   action={updateAction}
+                  displayTimeZone={displayTimeZone}
                   onSuccess={() => {
                     setSelectedAppointment(null);
                     setSelectedSlot(null);
@@ -561,6 +564,7 @@ export function CalendarWeekView({
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
                 action={action}
+                displayTimeZone={displayTimeZone}
                 onSuccess={() => {
                   setSelectedAppointment(null);
                   setSelectedSlot(null);

@@ -25,6 +25,7 @@ type Props = {
   initialStartsAt?: string;
   initialEndsAt?: string;
   initialDoctorId?: string;
+  displayTimeZone?: string;
   returnTo?: string;
 };
 
@@ -40,6 +41,7 @@ export function AppointmentCreateForm({
   initialStartsAt,
   initialEndsAt,
   initialDoctorId,
+  displayTimeZone,
   returnTo,
 }: Props) {
   const formId = useId();
@@ -205,6 +207,7 @@ export function AppointmentCreateForm({
         id={appointmentFormId}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+      {displayTimeZone ? <input type="hidden" name="timeZone" value={displayTimeZone} /> : null}
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         <span className="flex items-center justify-between gap-2">
           <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>

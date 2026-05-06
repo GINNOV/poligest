@@ -75,6 +75,7 @@ describe("calendar actions", () => {
       formData.set("serviceType", "Igiene");
       formData.set("startsAt", "2026-04-16T10:00");
       formData.set("endsAt", "2026-04-16T11:00");
+      formData.set("timeZone", "Europe/Rome");
       formData.set("patientId", "patient-1");
       formData.set("returnTo", "/calendar?view=week");
 
@@ -94,6 +95,28 @@ describe("calendar actions", () => {
         })
       }));
       expect(mocks.logAudit).toHaveBeenCalled();
+    });
+
+    it("stores datetime-local values using the submitted timezone", async () => {
+      const formData = new FormData();
+      formData.set("title", "Visita");
+      formData.set("serviceType", "Igiene");
+      formData.set("startsAt", "2026-05-06T09:00");
+      formData.set("endsAt", "2026-05-06T10:00");
+      formData.set("timeZone", "Europe/Rome");
+      formData.set("patientId", "patient-1");
+      formData.set("returnTo", "/calendar?view=week");
+
+      mocks.prisma.patient.findUnique.mockResolvedValue({ id: "patient-1", email: "test@example.com" });
+      mocks.prisma.appointment.create.mockResolvedValue({ id: "appt-1" });
+
+      try {
+        await createAppointment(formData);
+      } catch {}
+
+      const createCall = mocks.prisma.appointment.create.mock.calls.at(-1)?.[0];
+      expect(createCall?.data.startsAt.toISOString()).toBe("2026-05-06T07:00:00.000Z");
+      expect(createCall?.data.endsAt.toISOString()).toBe("2026-05-06T08:00:00.000Z");
     });
 
     it("redirects with error if required fields are missing", async () => {
@@ -117,6 +140,7 @@ describe("calendar actions", () => {
       formData.set("serviceType", "Chirurgia");
       formData.set("startsAt", "2026-04-16T10:00");
       formData.set("endsAt", "2026-04-16T11:00");
+      formData.set("timeZone", "Europe/Rome");
       formData.set("patientId", "patient-1");
       formData.set("status", AppointmentStatus.CONFIRMED);
       formData.set("returnTo", "/calendar");
@@ -136,6 +160,35 @@ describe("calendar actions", () => {
       }
 
       expect(mocks.prisma.appointment.update).toHaveBeenCalled();
+    });
+
+    it("updates using the submitted timezone for datetime-local values", async () => {
+      const formData = new FormData();
+      formData.set("appointmentId", "appt-1");
+      formData.set("title", "Updated Visita");
+      formData.set("serviceType", "Chirurgia");
+      formData.set("startsAt", "2026-05-06T09:00");
+      formData.set("endsAt", "2026-05-06T10:00");
+      formData.set("timeZone", "Europe/Rome");
+      formData.set("patientId", "patient-1");
+      formData.set("status", AppointmentStatus.CONFIRMED);
+      formData.set("returnTo", "/calendar");
+
+      mocks.prisma.appointment.findUnique.mockResolvedValue({
+        id: "appt-1",
+        status: AppointmentStatus.CONFIRMED,
+        startsAt: new Date("2026-05-06T07:00:00.000Z"),
+        endsAt: new Date("2026-05-06T08:00:00.000Z"),
+        doctorId: "doc-1"
+      });
+
+      try {
+        await updateAppointment(formData);
+      } catch {}
+
+      const updateCall = mocks.prisma.appointment.update.mock.calls.at(-1)?.[0];
+      expect(updateCall?.data.startsAt.toISOString()).toBe("2026-05-06T07:00:00.000Z");
+      expect(updateCall?.data.endsAt.toISOString()).toBe("2026-05-06T08:00:00.000Z");
     });
 
     it("prevents non-admin from updating COMPLETED appointments", async () => {
