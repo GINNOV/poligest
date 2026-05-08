@@ -6,7 +6,7 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { formatPhone } from "@/lib/phone";
-import { findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
+import { filterPotentialDuplicateGroups, findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 
@@ -92,7 +92,25 @@ function getCardClassName(status: PatientDuplicateStatus) {
   }
 }
 
-export default async function PazientiDuplicatiPage() {
+function getSingleSearchParam(
+  searchParams: Record<string, string | string[] | undefined> | URLSearchParams | undefined,
+  key: string,
+) {
+  if (!searchParams) return "";
+  if (searchParams instanceof URLSearchParams) {
+    return searchParams.get(key)?.trim() ?? "";
+  }
+  const value = searchParams[key];
+  return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
+}
+
+export default async function PazientiDuplicatiPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined> | URLSearchParams>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const searchQuery = getSingleSearchParam(resolvedSearchParams, "q");
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
 
@@ -109,8 +127,10 @@ export default async function PazientiDuplicatiPage() {
     },
   });
 
-  const groups = findPotentialPatientDuplicates(patients);
+  const allGroups = findPotentialPatientDuplicates(patients);
+  const groups = filterPotentialDuplicateGroups(allGroups, searchQuery);
   const totalPatients = new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))).size;
+  const hasSearch = searchQuery.length > 0;
 
   return (
     <div className="space-y-6">
@@ -123,10 +143,43 @@ export default async function PazientiDuplicatiPage() {
           </p>
         </div>
         <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
-          <div className="font-semibold">{groups.length} gruppi trovati</div>
+          <div className="font-semibold">
+            {groups.length} {hasSearch ? `di ${allGroups.length}` : ""} gruppi trovati
+          </div>
           <div>{totalPatients} pazienti coinvolti</div>
         </div>
       </div>
+
+      <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <form action="/pazienti/duplicati" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex flex-1 flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+            <span>Cerca nei duplicati</span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Nome, telefono, email, codice fiscale, ID..."
+              className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
+            />
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="submit"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white transition hover:bg-emerald-600"
+            >
+              Cerca
+            </button>
+            {hasSearch ? (
+              <Link
+                href="/pazienti/duplicati"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-emerald-800 dark:hover:text-emerald-400"
+              >
+                Cancella
+              </Link>
+            ) : null}
+          </div>
+        </form>
+      </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -162,7 +215,9 @@ export default async function PazientiDuplicatiPage() {
 
       {groups.length === 0 ? (
         <section className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-5 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
-          Nessun duplicato potenziale trovato con i controlli su codice fiscale, email, telefono o nome con data di nascita.
+          {hasSearch
+            ? `Nessun duplicato trovato per "${searchQuery}".`
+            : "Nessun duplicato potenziale trovato con i controlli su codice fiscale, email, telefono o nome con data di nascita."}
         </section>
       ) : (
         <div className="space-y-4">

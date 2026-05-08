@@ -89,7 +89,13 @@ export function PatientCreateForm({
   return (
     <>
       <UnsavedChangesGuard formId={formId} />
-      <form action={action} className="space-y-6" id={formId} onSubmit={handleSubmit}>
+      <form
+        action={action}
+        className="space-y-6"
+        data-prevent-double-submit="false"
+        id={formId}
+        onSubmit={handleSubmit}
+      >
         <PatientCreateRedirectField />
         <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
           <div className="space-y-1">

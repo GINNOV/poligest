@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
+import { filterPotentialDuplicateGroups, findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
 
 describe("findPotentialPatientDuplicates", () => {
   it("groups patients that share strong identifiers", () => {
@@ -117,5 +117,61 @@ describe("findPotentialPatientDuplicates", () => {
         expect.objectContaining({ kind: "phone", patientIds: ["patient-2", "patient-3"] }),
       ]),
     );
+  });
+
+  it("filters duplicate groups by patient and signal text", () => {
+    const groups = findPotentialPatientDuplicates([
+      {
+        id: "patient-1",
+        firstName: "Mario",
+        lastName: "Rossi",
+        email: "mario@example.com",
+        phone: "+393331234567",
+        birthDate: new Date("1980-01-01T00:00:00.000Z"),
+        notes: "Codice Fiscale: RSSMRA80A01H501U",
+        createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      },
+      {
+        id: "patient-2",
+        firstName: "Mario",
+        lastName: "Rossi",
+        email: "mario@example.com",
+        phone: "+393331234567",
+        birthDate: new Date("1980-01-01T00:00:00.000Z"),
+        notes: "Codice Fiscale: RSSMRA80A01H501U",
+        createdAt: new Date("2026-01-02T10:00:00.000Z"),
+      },
+      {
+        id: "patient-3",
+        firstName: "Giulia",
+        lastName: "Bianchi",
+        email: "giulia@example.com",
+        phone: "+393339999999",
+        birthDate: new Date("1988-02-02T00:00:00.000Z"),
+        notes: "",
+        createdAt: new Date("2026-01-03T10:00:00.000Z"),
+      },
+      {
+        id: "patient-4",
+        firstName: "Giulia",
+        lastName: "Bianchi",
+        email: "giulia@example.com",
+        phone: "+393339999999",
+        birthDate: new Date("1988-02-02T00:00:00.000Z"),
+        notes: "",
+        createdAt: new Date("2026-01-04T10:00:00.000Z"),
+      },
+    ]);
+
+    expect(filterPotentialDuplicateGroups(groups, "rssmra")).toHaveLength(1);
+    expect(filterPotentialDuplicateGroups(groups, "rssmra")[0].patients.map((patient) => patient.id)).toEqual([
+      "patient-1",
+      "patient-2",
+    ]);
+    expect(filterPotentialDuplicateGroups(groups, "giulia bianchi")[0].patients.map((patient) => patient.id)).toEqual([
+      "patient-3",
+      "patient-4",
+    ]);
+    expect(filterPotentialDuplicateGroups(groups, "nonexistent")).toEqual([]);
   });
 });

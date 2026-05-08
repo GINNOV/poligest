@@ -53,6 +53,10 @@ function normalizeCompactText(value: string | null | undefined) {
   return normalizeLooseText(value).replace(/\s+/g, "");
 }
 
+function normalizeSearchText(value: string | null | undefined) {
+  return normalizeLooseText(value);
+}
+
 function normalizeEmail(value: string | null | undefined) {
   return (value ?? "").trim().toLocaleLowerCase("it");
 }
@@ -256,4 +260,43 @@ export function findPotentialPatientDuplicates(patients: DuplicatePatientInput[]
       const right = `${b.patients[0]?.lastName ?? ""} ${b.patients[0]?.firstName ?? ""}`;
       return left.localeCompare(right, "it", { sensitivity: "base" });
     });
+}
+
+export function filterPotentialDuplicateGroups(groups: PotentialDuplicateGroup[], query: string | null | undefined) {
+  const tokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return groups;
+  }
+
+  return groups.filter((group) => {
+    const searchableText = normalizeSearchText(
+      [
+        group.id,
+        ...group.matchSignals.flatMap((signal) => [signal.label, signal.value]),
+        ...group.patients.flatMap((patient) => [
+          patient.id,
+          patient.firstName,
+          patient.lastName,
+          [patient.firstName, patient.lastName].filter(Boolean).join(" "),
+          [patient.lastName, patient.firstName].filter(Boolean).join(" "),
+          patient.email,
+          patient.phone,
+          patient.taxId,
+          patient.birthDate?.toISOString().slice(0, 10),
+          patient.birthDate
+            ? new Intl.DateTimeFormat("it-IT", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                timeZone: "UTC",
+              }).format(patient.birthDate)
+            : null,
+        ]),
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+
+    return tokens.every((token) => searchableText.includes(token));
+  });
 }
