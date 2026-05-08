@@ -8,6 +8,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { formatPhone } from "@/lib/phone";
 import { findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
+import { PatientDeleteButton } from "@/components/patient-delete-button";
 
 export const metadata: Metadata = {
   title: "CERCA DUPLICATI",
@@ -211,13 +212,16 @@ export default async function PazientiDuplicatiPage() {
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          {user.role === Role.ADMIN ? (
+                          {status === "complete" && user.role === Role.ADMIN ? (
                             <PatientDuplicateResolveButton
                               keepPatientId={patient.id}
                               duplicatePatientIds={group.patients
                                 .map((groupPatient) => groupPatient.id)
                                 .filter((groupPatientId) => groupPatientId !== patient.id)}
                             />
+                          ) : null}
+                          {status !== "complete" && user.role === Role.ADMIN ? (
+                            <PatientDeleteButton patientId={patient.id} role={user.role} redirectTo={null} />
                           ) : null}
                           <Link
                             href={`/pazienti/${patient.id}`}

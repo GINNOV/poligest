@@ -6,7 +6,15 @@ import { useEffect, useState } from "react";
 import { DELETE_CONFIRMATION_TEXT } from "@/lib/destructive-action-guard";
 import { emitToast } from "./global-toasts";
 
-export function PatientDeleteButton({ patientId, role }: { patientId: string; role?: string }) {
+export function PatientDeleteButton({
+  patientId,
+  role,
+  redirectTo = "/pazienti",
+}: {
+  patientId: string;
+  role?: string;
+  redirectTo?: string | null;
+}) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -40,7 +48,11 @@ export function PatientDeleteButton({ patientId, role }: { patientId: string; ro
       }
 
       emitToast("Paziente eliminato", "success");
-      router.replace("/pazienti");
+      if (redirectTo) {
+        router.replace(redirectTo);
+      } else {
+        router.refresh();
+      }
     } catch (error) {
       console.error("[patient-delete] failed", error);
       emitToast("Impossibile eliminare il paziente", "error");

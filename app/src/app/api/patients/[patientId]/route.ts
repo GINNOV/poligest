@@ -63,6 +63,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ patie
 
     // Ensure list is refreshed
     revalidatePath("/pazienti");
+    revalidatePath("/pazienti/duplicati");
 
     return NextResponse.json({ ok: true });
   } catch (error) {
