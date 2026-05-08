@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useTransition, useState } from "react";
 import { Gender, type ConsentModule } from "@prisma/client";
 import { ConsentModulePicker } from "@/components/consent-module-picker";
 import { LocalizedFileInput } from "@/components/localized-file-input";
@@ -12,6 +12,7 @@ import { PatientCreateRedirectField } from "@/components/patient-create-redirect
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 import { PatientPaperConsentCheckbox } from "@/components/patient-paper-consent-checkbox";
 import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
+import { emitToast } from "@/components/global-toasts";
 
 type Props = {
   action: (formData: FormData) => Promise<void>;
@@ -28,33 +29,33 @@ export function PatientCreateForm({
 }: Props) {
   const formId = "patient-create-form";
   const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
-  const bypassRef = useRef(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    if (bypassRef.current) {
-      return;
-    }
+  const submitFormData = (formData: FormData) => {
+    setIsSubmitting(true);
+    startTransition(() => {
+      void action(formData).catch((err) => {
+        console.error("Patient creation failed", err);
+        emitToast(err instanceof Error ? err.message : "Errore durante la creazione del paziente.", "error");
+        setIsSubmitting(false);
+      });
+    });
+  };
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const birthDate = formData.get("birthDate") as string;
-    const phone = formData.get("phone") as string;
-    const email = formData.get("email") as string;
-
-    if (!firstName || !lastName) {
-      // Browser validation should normally catch this, but if not, 
-      // we must prevent default if we want to stop the submission.
-      return;
-    }
-
-    e.preventDefault();
-    setIsChecking(true);
-
+  const runDuplicateCheck = async (formData: FormData) => {
     try {
+      const firstName = formData.get("firstName") as string;
+      const lastName = formData.get("lastName") as string;
+      const birthDate = formData.get("birthDate") as string;
+      const phone = formData.get("phone") as string;
+      const email = formData.get("email") as string;
+
+      if (!firstName || !lastName) {
+        return null;
+      }
+
       const params = new URLSearchParams();
       params.set("firstName", firstName);
       params.set("lastName", lastName);
@@ -66,24 +67,34 @@ export function PatientCreateForm({
       const data = await res.json();
 
       if (data.exists) {
-        setDuplicatePatient(data.patient);
-        setIsChecking(false);
-        return;
+        return data.patient;
       }
     } catch (err) {
       console.error("Duplicate check failed", err);
+    } finally {
+      setIsChecking(false);
     }
 
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isChecking || isSubmitting) return;
+
+    const form = e.currentTarget;
+    if (!form.reportValidity()) return;
+
+    const formData = new FormData(form);
+    setIsChecking(true);
+    const duplicate = await runDuplicateCheck(formData);
     setIsChecking(false);
-    bypassRef.current = true;
-    
-    // Trigger form submission via requestSubmit() which is compatible with React/Next.js Server Actions
-    form.requestSubmit();
-    
-    // Reset bypass after a short delay in case submission fails or is interrupted
-    setTimeout(() => {
-      bypassRef.current = false;
-    }, 1000);
+    if (duplicate) {
+      setDuplicatePatient(duplicate);
+      return;
+    }
+
+    submitFormData(formData);
   };
 
   return (
@@ -254,7 +265,7 @@ export function PatientCreateForm({
             label="Aggiungi nuovo paziente"
             className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
             pendingLabel="Salvataggio..."
-            disabled={isChecking}
+            disabled={isChecking || isSubmitting || isPending}
           />
           <ConfirmLeaveButton
             formId={formId}
@@ -270,11 +281,10 @@ export function PatientCreateForm({
           patient={duplicatePatient}
           onClose={() => setDuplicatePatient(null)}
           onProceed={() => {
-            bypassRef.current = true;
             setDuplicatePatient(null);
             const form = document.getElementById(formId) as HTMLFormElement;
             if (form) {
-              form.requestSubmit();
+              submitFormData(new FormData(form));
             }
           }}
         />
