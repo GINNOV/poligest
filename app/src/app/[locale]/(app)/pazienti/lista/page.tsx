@@ -445,7 +445,7 @@ export default async function PazientiListaPage({
                     >
                       Scheda
                     </Link>
-                    <PatientDeleteButton patientId={patient.id} />
+                    <PatientDeleteButton patientId={patient.id} redirectTo={null} />
                   </div>
                 </div>
               );
