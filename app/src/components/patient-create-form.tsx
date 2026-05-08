@@ -42,8 +42,10 @@ export function PatientCreateForm({
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const birthDate = formData.get("birthDate") as string;
+    const phone = formData.get("phone") as string;
+    const email = formData.get("email") as string;
 
-    if (!firstName || !lastName || !birthDate) {
+    if (!firstName || !lastName) {
       // Browser validation should normally catch this, but if not, 
       // we must prevent default if we want to stop the submission.
       return;
@@ -56,7 +58,9 @@ export function PatientCreateForm({
       const params = new URLSearchParams();
       params.set("firstName", firstName);
       params.set("lastName", lastName);
-      params.set("birthDate", birthDate);
+      if (birthDate) params.set("birthDate", birthDate);
+      if (phone) params.set("phone", phone);
+      if (email) params.set("email", email);
 
       const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
       const data = await res.json();
