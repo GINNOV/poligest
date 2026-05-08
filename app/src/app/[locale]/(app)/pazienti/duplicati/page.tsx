@@ -211,7 +211,7 @@ export default async function PazientiDuplicatiPage() {
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          {status === "complete" && user.role === Role.ADMIN ? (
+                          {user.role === Role.ADMIN ? (
                             <PatientDuplicateResolveButton
                               keepPatientId={patient.id}
                               duplicatePatientIds={group.patients
