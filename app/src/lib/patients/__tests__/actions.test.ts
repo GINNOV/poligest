@@ -215,6 +215,28 @@ describe("patient actions", () => {
     });
   });
 
+  it("rejects future birth dates when updating a patient", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-11T12:00:00.000Z"));
+
+    mocks.prisma.patient.findUnique.mockResolvedValue({
+      notes: "",
+      photoUrl: null,
+      gender: Gender.NOT_SPECIFIED,
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("firstName", "Mario");
+    formData.set("lastName", "Rossi");
+    formData.set("birthDate", "2026-05-12");
+
+    await expect(updatePatientAction(formData)).rejects.toThrow("La data di nascita non può essere futura.");
+
+    expect(mocks.prisma.patient.update).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
   it("adds dental procedures from the diary when creating a quote", async () => {
     mocks.prisma.service.findMany.mockResolvedValue([{ id: "service-manual", name: "Prima visita" }]);
     

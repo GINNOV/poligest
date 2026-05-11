@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
-import { parseOptionalDate } from "@/lib/date";
+import { parseOptionalBirthDate } from "@/lib/date";
 import { normalizePersonName } from "@/lib/name";
 import { put } from "@vercel/blob";
 import { sendEmail } from "@/lib/email";
@@ -84,7 +84,7 @@ export async function createPatient(formData: FormData) {
   const postCreateRedirect = (formData.get("postCreateRedirect") as string)?.trim() || "dashboard";
   const hasPaperConsentForRequired = formData.get("hasPaperConsentForRequired") === "on";
 
-  const birthDate = parseOptionalDate(birthDateValue);
+  const birthDate = parseOptionalBirthDate(birthDateValue);
 
   if (!firstName || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");

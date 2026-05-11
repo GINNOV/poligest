@@ -7,7 +7,7 @@ import { Gender, Role } from "@prisma/client";
 import sharp from "sharp";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
-import { parseOptionalDate } from "@/lib/date";
+import { parseOptionalBirthDate } from "@/lib/date";
 import { sendEmailWithHtml } from "@/lib/email";
 import { normalizePersonName } from "@/lib/name";
 import { normalizeItalianPhone } from "@/lib/phone";
@@ -107,7 +107,7 @@ export async function updatePatientAction(formData: FormData) {
       !line.startsWith("Note:")
   );
 
-  const birthDate = parseOptionalDate(birthDateValue);
+  const birthDate = parseOptionalBirthDate(birthDateValue);
   const { isSystemAvatar, pickRandomSystemAvatar, pickSystemAvatar } = await import("@/lib/patient-avatars");
   const shouldAssignAvatar =
     !existing?.photoUrl || (isSystemAvatar(existing.photoUrl) && existing.gender !== gender);

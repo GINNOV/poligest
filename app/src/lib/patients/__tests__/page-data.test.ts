@@ -81,6 +81,9 @@ describe("patient page data", () => {
   });
 
   it("builds the patient detail payload from related records", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T12:00:00.000Z"));
+
     const futureAppointment = {
       startsAt: new Date("2026-05-10T09:00:00.000Z"),
       serviceType: "Igiene",

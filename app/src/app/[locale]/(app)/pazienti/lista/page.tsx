@@ -10,6 +10,18 @@ import { formatPhone } from "@/lib/phone";
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 
 const PAGE_SIZE = 20;
+const BIRTH_DATE_FORMATTER = new Intl.DateTimeFormat("it-IT", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
+function formatPatientBirthDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return BIRTH_DATE_FORMATTER.format(date);
+}
 
 export default async function PazientiListaPage({
   searchParams,
@@ -335,13 +347,7 @@ export default async function PazientiListaPage({
               ));
 
               const { parsedTaxId } = parsePatientStructuredNotes(patient.notes);
-              const birthDateLabel = patient.birthDate
-                ? new Intl.DateTimeFormat("it-IT", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  }).format(new Date(patient.birthDate))
-                : null;
+              const birthDateLabel = formatPatientBirthDate(patient.birthDate);
 
               return (
                 <div

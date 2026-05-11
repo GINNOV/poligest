@@ -197,6 +197,21 @@ describe("createPatient", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
+  it("rejects future birth dates when creating a patient", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-11T12:00:00.000Z"));
+
+    const formData = new FormData();
+    formData.set("firstName", "Mario");
+    formData.set("lastName", "Rossi");
+    formData.set("birthDate", "2026-05-12");
+
+    await expect(createPatient(formData)).rejects.toThrow("La data di nascita non può essere futura.");
+
+    expect(mocks.prisma.patient.create).not.toHaveBeenCalled();
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+  });
+
   it("allows creating the patient when required consents are marked as present on paper", async () => {
     mocks.prisma.consentModule.findMany.mockResolvedValue([
       { id: "consent-required", name: "Privacy" },
