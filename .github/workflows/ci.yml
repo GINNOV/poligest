@@ -12,7 +12,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/poligest_ci
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
-      NEXT_PUBLIC_STACK_PROJECT_ID: 00000000-0000-0000-0000-000000000000
+      NEXT_PUBLIC_STACK_PROJECT_ID: 11111111-1111-4111-8111-111111111111
       NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ci-stack-publishable-key
       STACK_SECRET_SERVER_KEY: ci-stack-secret-key
     defaults:
