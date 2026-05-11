@@ -47,6 +47,7 @@ import {
 import { getPatientDetailPageData } from "@/lib/patients/page-data";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
+import { formatOptionalDateInputValue } from "@/lib/date";
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",
@@ -506,11 +507,7 @@ export default async function PatientDetailPage({
                           <input
                             type="date"
                             name="birthDate"
-                            defaultValue={
-                              patient.birthDate
-                                ? new Date(patient.birthDate).toISOString().split("T")[0]
-                                : ""
-                            }
+                            defaultValue={formatOptionalDateInputValue(patient.birthDate)}
                             className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           />
                         </label>

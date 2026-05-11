@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseOptionalBirthDate, parseOptionalDate } from "@/lib/date";
+import { formatOptionalDateInputValue, parseOptionalBirthDate, parseOptionalDate } from "@/lib/date";
 
 describe("parseOptionalDate", () => {
   it("parses browser date input values", () => {
@@ -20,5 +20,10 @@ describe("parseOptionalDate", () => {
     expect(() => parseOptionalBirthDate("81983-08-25", new Date("2026-05-11T12:00:00.000Z"))).toThrow(
       "Data di nascita non valida.",
     );
+  });
+
+  it("formats valid date input values and ignores invalid persisted dates", () => {
+    expect(formatOptionalDateInputValue(new Date("1983-08-25T00:00:00.000Z"))).toBe("1983-08-25");
+    expect(formatOptionalDateInputValue(new Date("invalid-date"))).toBe("");
   });
 });
