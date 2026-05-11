@@ -31,7 +31,6 @@
     "@stackframe/stack": "^2.8.85",
     "@types/pg": "^8.15.6",
     "@vercel/blob": "^2.0.0",
-    "@wacom/signature-sdk": "^2.1.1",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
@@ -45,6 +44,9 @@
     "resend": "^6.1.3",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7"
+  },
+  "optionalDependencies": {
+    "@wacom/signature-sdk": "^2.1.1"
   },
   "devDependencies": {
     "@prisma/dev": "^0.24.7",
