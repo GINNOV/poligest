@@ -1,5 +1,6 @@
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 import { normalizeItalianPhone } from "@/lib/phone";
+import { isValidDate } from "@/lib/date";
 
 export type DuplicatePatientInput = {
   id: string;
@@ -66,7 +67,7 @@ function normalizeTaxId(value: string | null | undefined) {
 }
 
 function getBirthDateKey(value: Date | null | undefined) {
-  if (!value) return "";
+  if (!isValidDate(value)) return "";
   return value.toISOString().slice(0, 10);
 }
 
@@ -282,8 +283,8 @@ export function filterPotentialDuplicateGroups(groups: PotentialDuplicateGroup[]
           patient.email,
           patient.phone,
           patient.taxId,
-          patient.birthDate?.toISOString().slice(0, 10),
-          patient.birthDate
+          getBirthDateKey(patient.birthDate),
+          isValidDate(patient.birthDate)
             ? new Intl.DateTimeFormat("it-IT", {
                 day: "2-digit",
                 month: "2-digit",

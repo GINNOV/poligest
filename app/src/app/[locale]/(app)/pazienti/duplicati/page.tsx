@@ -9,6 +9,7 @@ import { formatPhone } from "@/lib/phone";
 import { filterPotentialDuplicateGroups, findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
+import { isValidDate } from "@/lib/date";
 
 export const metadata: Metadata = {
   title: "CERCA DUPLICATI",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 type PatientDuplicateStatus = "complete" | "partial" | "critical";
 
 function formatBirthDate(value: Date | null) {
-  if (!value) return "—";
+  if (!isValidDate(value)) return "—";
   return new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
     month: "2-digit",

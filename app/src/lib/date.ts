@@ -3,6 +3,9 @@ type DateTimeLike = {
   value?: unknown;
 };
 
+export const isValidDate = (value: Date | null | undefined): value is Date =>
+  value instanceof Date && !Number.isNaN(value.getTime());
+
 const parseDateValue = (value: unknown): Date | null => {
   if (typeof value !== "string") return null;
   if (/^[+-]?\d{5,}-/.test(value)) return null;
@@ -65,6 +68,6 @@ export const parseOptionalBirthDate = (
 export const formatOptionalDateInputValue = (value: Date | string | null | undefined): string => {
   if (!value) return "";
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+  if (!isValidDate(date)) return "";
   return date.toISOString().split("T")[0] ?? "";
 };

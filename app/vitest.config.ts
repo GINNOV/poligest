@@ -36,6 +36,9 @@ export default defineConfig({
         "src/lib/practice-weekly-report.ts",
         "src/app/api/**/*.ts",
         "src/app/**/actions.ts",
+        "src/app/**/pazienti/lista/page.tsx",
+        "src/app/**/pazienti/\\[id\\]/page.tsx",
+        "src/app/**/pazienti/duplicati/page.tsx",
       ],
       exclude: [
         "**/*.d.ts",
@@ -44,7 +47,6 @@ export default defineConfig({
         "src/generated/**",
         "src/lib/**/__tests__/**",
         "src/components/**",
-        "src/app/**/page.tsx",
         "src/app/**/layout.tsx",
         "src/app/**/loading.tsx",
         "src/app/**/not-found.tsx",
