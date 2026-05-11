@@ -9,6 +9,12 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/poligest_ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_PUBLIC_STACK_PROJECT_ID: ci-stack-project
+      NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ci-stack-publishable-key
+      STACK_SECRET_SERVER_KEY: ci-stack-secret-key
     defaults:
       run:
         working-directory: app

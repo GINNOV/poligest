@@ -24,6 +24,9 @@ describe("verification configuration", () => {
     expect(workflow).toContain("npm run build");
     expect(workflow).toContain("npm test");
     expect(workflow).toContain("npm run lint");
+    expect(workflow).toContain("DATABASE_URL:");
+    expect(workflow).toContain("NEXT_PUBLIC_STACK_PROJECT_ID:");
+    expect(workflow).toContain("STACK_SECRET_SERVER_KEY:");
   });
 
   it("includes high-risk patient pages in coverage accounting", () => {
