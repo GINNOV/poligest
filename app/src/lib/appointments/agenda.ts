@@ -48,9 +48,11 @@ export async function hasDoctorConflict() {
 type AgendaQueryInput = {
   statusValue?: string;
   dateValue?: string;
+  doctorName?: string;
   searchValue: string;
   pageParam?: string;
   letter?: string;
+  chronological?: boolean;
 };
 
 type AgendaAppointment = Prisma.AppointmentGetPayload<{
@@ -60,12 +62,21 @@ type AgendaAppointment = Prisma.AppointmentGetPayload<{
   };
 }> & { reminderSent?: boolean };
 
-export async function getAgendaPageData({ statusValue, dateValue, searchValue, pageParam, letter }: AgendaQueryInput) {
+export async function getAgendaPageData({
+  statusValue,
+  dateValue,
+  doctorName,
+  searchValue,
+  pageParam,
+  letter,
+  chronological = false,
+}: AgendaQueryInput) {
   const statusFilter =
     statusValue && isAppointmentStatus(statusValue)
       ? (statusValue as AppointmentStatus)
       : undefined;
 
+  const doctorQuery = normalizeAgendaSearchValue(doctorName);
   const searchQuery = normalizeAgendaSearchValue(searchValue);
   const searchTokens = searchQuery ? searchQuery.split(/\s+/).filter(Boolean) : [];
   const dateRange = parseAgendaDateRange(dateValue);
@@ -88,6 +99,17 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
   const baseWhere: Prisma.AppointmentWhereInput = {
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(dateRange ? { startsAt: dateRange } : {}),
+    ...(doctorQuery
+      ? {
+          AND: [
+            {
+              doctor: {
+                fullName: { contains: doctorQuery, mode: Prisma.QueryMode.insensitive },
+              },
+            },
+          ],
+        }
+      : {}),
     ...(searchQuery
       ? {
           OR: [
@@ -126,11 +148,17 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
   const [appointments, patients, doctors, services, totalCount, whatsappTemplate, availabilityWindowsRaw, practiceClosuresRaw, practiceWeeklyClosuresRaw, appointmentsForLetters] =
     await Promise.all([
       prisma.appointment.findMany({
-        orderBy: [
-          { startsAt: "desc" },
-          { patient: { lastName: "asc" } },
-          { patient: { firstName: "asc" } },
-        ],
+        orderBy: chronological
+          ? [
+              { startsAt: "asc" },
+              { patient: { lastName: "asc" } },
+              { patient: { firstName: "asc" } },
+            ]
+          : [
+              { startsAt: "desc" },
+              { patient: { lastName: "asc" } },
+              { patient: { firstName: "asc" } },
+            ],
         take: AGENDA_PAGE_SIZE,
         skip,
         include: {
@@ -177,7 +205,12 @@ export async function getAgendaPageData({ statusValue, dateValue, searchValue, p
       const dateB = b.startsAt.toISOString().split("T")[0];
 
       if (dateA !== dateB) {
-        return dateB.localeCompare(dateA); // Latest date first
+        return chronological ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+      }
+
+      if (chronological) {
+        const timeCompare = a.startsAt.getTime() - b.startsAt.getTime();
+        if (timeCompare !== 0) return timeCompare;
       }
 
       // Same day, sort by name

@@ -6,6 +6,9 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { SignOutButton } from "./sign-out-button";
 import {
+  AGENDA_CHRONOLOGICAL_COOKIE,
+  AGENDA_CHRONOLOGICAL_STORAGE_KEY,
+  CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY,
   HOME_SCREEN_STORAGE_KEY,
   PATIENT_POST_CREATE_STORAGE_KEY,
   PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
@@ -70,6 +73,14 @@ export function UserMenu({
     typeof window === "undefined"
       ? true
       : window.localStorage.getItem(PATIENT_LIST_AUTO_FILTER_STORAGE_KEY) !== "false";
+  const initialCalendarCompactPatientName =
+    typeof window === "undefined"
+      ? false
+      : window.localStorage.getItem(CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY) === "true";
+  const initialAgendaChronological =
+    typeof window === "undefined"
+      ? false
+      : window.localStorage.getItem(AGENDA_CHRONOLOGICAL_STORAGE_KEY) === "true";
   const initialThemePreference =
     typeof window === "undefined"
       ? "system"
@@ -93,6 +104,8 @@ export function UserMenu({
   const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
   const [patientPostCreate, setPatientPostCreate] = useState(initialPatientPostCreate);
   const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
+  const [calendarCompactPatientName, setCalendarCompactPatientName] = useState(initialCalendarCompactPatientName);
+  const [agendaChronological, setAgendaChronological] = useState(initialAgendaChronological);
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
   const [selectedPracticeTimeZone, setSelectedPracticeTimeZone] =
     useState<PracticeTimeZone>(initialPracticeTimeZone);
@@ -248,7 +261,7 @@ export function UserMenu({
             <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-zinc-950/40 px-4 py-6 backdrop-blur-sm sm:py-10">
               <div
                 ref={settingsRef}
-                className="flex w-full max-w-lg flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+                className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
               >
                 <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
                   <div className="flex items-center justify-between">
@@ -270,7 +283,7 @@ export function UserMenu({
                   </p>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div className="grid flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-2">
                   {/* Navigazione Section */}
                   <section className="space-y-4">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-400">
@@ -385,10 +398,11 @@ export function UserMenu({
                   </section>
 
                   {/* Funzionalità Section */}
-                  <section className="space-y-4">
+                  <section className="space-y-4 lg:col-span-2">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-purple-700 dark:text-purple-400">
                       <span>🛡️</span> Funzionalità
                     </h4>
+                    <div className="grid gap-3 lg:grid-cols-3">
                     <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
                       <div>
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Filtro automatico lista</span>
@@ -410,6 +424,55 @@ export function UserMenu({
                           )}
                         />
                       </button>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Nome paziente in agenda compatta</span>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          🗓️ Mostra nome del paziente al posto della terapia.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarCompactPatientName(!calendarCompactPatientName)}
+                        className={clsx(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                          calendarCompactPatientName ? "bg-emerald-600" : "bg-zinc-200 dark:bg-zinc-700"
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={clsx(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            calendarCompactPatientName ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Ordine appuntamenti agenda</span>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          ⬇️ Elenca appuntamenti esistenti in ordine cronologico.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAgendaChronological(!agendaChronological)}
+                        className={clsx(
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                          agendaChronological ? "bg-emerald-600" : "bg-zinc-200 dark:bg-zinc-700"
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={clsx(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            agendaChronological ? "translate-x-5" : "translate-x-0"
+                          )}
+                        />
+                      </button>
+                    </div>
                     </div>
                   </section>
                 </div>
@@ -441,6 +504,17 @@ export function UserMenu({
                             PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
                             patientAutoFilter ? "true" : "false"
                           );
+                          window.localStorage.setItem(
+                            CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY,
+                            calendarCompactPatientName ? "true" : "false"
+                          );
+                          window.localStorage.setItem(
+                            AGENDA_CHRONOLOGICAL_STORAGE_KEY,
+                            agendaChronological ? "true" : "false"
+                          );
+                          document.cookie = `${AGENDA_CHRONOLOGICAL_COOKIE}=${
+                            agendaChronological ? "true" : "false"
+                          }; path=/; max-age=31536000; SameSite=Lax`;
                           window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
                           const normalizedDisplayTimeZone = resolveUserDisplayTimeZone(
                             selectedDisplayTimeZone,
@@ -457,6 +531,11 @@ export function UserMenu({
                           window.dispatchEvent(
                             new CustomEvent("patient-auto-filter-changed", {
                               detail: { enabled: patientAutoFilter },
+                            })
+                          );
+                          window.dispatchEvent(
+                            new CustomEvent("calendar-compact-patient-name-changed", {
+                              detail: { enabled: calendarCompactPatientName },
                             })
                           );
 

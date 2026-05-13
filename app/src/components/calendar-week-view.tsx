@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
+import { CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY } from "@/lib/app-preferences";
 import {
   buildPositionedAppointments,
   type CalendarAppointment,
@@ -128,6 +129,7 @@ function getServiceStyle(serviceType: string) {
 
 const HOUR_HEIGHT = 72;
 const DEFAULT_DURATION_MINUTES = 60;
+const CALENDAR_COMPACT_PATIENT_NAME_EVENT = "calendar-compact-patient-name-changed";
 
 const padTime = (value: number) => value.toString().padStart(2, "0");
 
@@ -178,6 +180,27 @@ export function CalendarWeekView({
     null
   );
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+  const [showPatientNameWhenCompact, setShowPatientNameWhenCompact] = useState(false);
+
+  useEffect(() => {
+    const readPreference = () => {
+      setShowPatientNameWhenCompact(
+        window.localStorage.getItem(CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY) === "true"
+      );
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY) {
+        readPreference();
+      }
+    };
+    readPreference();
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(CALENDAR_COMPACT_PATIENT_NAME_EVENT, readPreference);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(CALENDAR_COMPACT_PATIENT_NAME_EVENT, readPreference);
+    };
+  }, []);
 
   useEffect(() => {
     if (initialAppointmentId === "new") {
@@ -402,6 +425,8 @@ export function CalendarWeekView({
                       const height = Math.max(18, slotHeight - 1);
                       const styles = getServiceStyle(appt.serviceType);
                       const isCompact = height < 38;
+                      const compactPrimaryLabel =
+                        isCompact && showPatientNameWhenCompact ? appt.patientName : appt.serviceType;
                       const columnGap = 6;
                       const clickGutter = 8;
                       const columnWidth = 100 / appt.columnCount;
@@ -434,7 +459,7 @@ export function CalendarWeekView({
                               <span
                                 className={`min-w-0 truncate rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${styles.pill}`}
                               >
-                                {appt.serviceType}
+                                {compactPrimaryLabel}
                               </span>
                               <span className="shrink-0 text-[9px] font-semibold text-zinc-600 dark:text-zinc-300">
                                 {timeStr}

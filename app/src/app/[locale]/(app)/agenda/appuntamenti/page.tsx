@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
+import { AGENDA_CHRONOLOGICAL_COOKIE } from "@/lib/app-preferences";
 import { AgendaFilters } from "@/components/agenda-filters";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { AppointmentStatusAutoSubmit } from "@/components/appointment-status-auto-submit";
@@ -61,6 +63,7 @@ export default async function AgendaPage({
   const params = await searchParams;
   const statusParam = params.status;
   const dateParam = params.date;
+  const doctorParam = params.doctor;
   const letterParam = params.letter;
   const errorParam = params.error;
   const successParam = params.success;
@@ -83,6 +86,13 @@ export default async function AgendaPage({
         ? dateParam[0]
         : undefined;
 
+  const doctorValue =
+    typeof doctorParam === "string"
+      ? doctorParam
+      : Array.isArray(doctorParam)
+        ? doctorParam[0]
+        : undefined;
+
   const letterValue =
     typeof letterParam === "string"
       ? letterParam
@@ -93,6 +103,8 @@ export default async function AgendaPage({
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "agenda");
   const displayTimeZone = await getUserDisplayTimeZone();
+  const cookieStore = await cookies();
+  const chronologicalAppointments = cookieStore.get(AGENDA_CHRONOLOGICAL_COOKIE)?.value === "true";
 
   const dateFilter = dateValue;
   const searchValue =
@@ -106,6 +118,7 @@ export default async function AgendaPage({
   const page = Math.max(1, Number.isNaN(Number(pageParam)) ? 1 : Number(pageParam));
   const {
     appointments,
+    doctors,
     whatsappTemplateBody,
     totalCount,
     availableLetters,
@@ -115,14 +128,17 @@ export default async function AgendaPage({
   } = await getAgendaPageData({
     statusValue,
     dateValue: dateFilter,
+    doctorName: doctorValue,
     searchValue,
     pageParam,
     letter: letterValue,
+    chronological: chronologicalAppointments,
   });
   const basePath = "/agenda/appuntamenti";
   const returnParams = new URLSearchParams();
   if (statusValue) returnParams.set("status", statusValue);
   if (dateValue) returnParams.set("date", dateValue);
+  if (doctorValue) returnParams.set("doctor", doctorValue);
   if (letterValue) returnParams.set("letter", letterValue);
   if (searchValue) returnParams.set("q", searchValue);
   if (pageParam && pageParam !== "1") returnParams.set("page", pageParam);
@@ -131,6 +147,7 @@ export default async function AgendaPage({
     const query = new URLSearchParams();
     if (statusValue) query.set("status", statusValue);
     if (dateValue) query.set("date", dateValue);
+    if (doctorValue) query.set("doctor", doctorValue);
     if (letterValue) query.set("letter", letterValue);
     if (searchValue) query.set("q", searchValue);
     query.set("page", String(targetPage));
@@ -167,8 +184,10 @@ export default async function AgendaPage({
         ) : null}
         <AgendaFilters
           statusLabels={statusLabels}
+          doctors={doctors}
           statusValue={statusValue}
           dateValue={dateValue}
+          doctorValue={doctorValue}
           searchValue={searchValue}
         />
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
@@ -196,6 +215,7 @@ export default async function AgendaPage({
             const query = new URLSearchParams();
             if (statusValue) query.set("status", statusValue);
             if (dateValue) query.set("date", dateValue);
+            if (doctorValue) query.set("doctor", doctorValue);
             if (searchValue) query.set("q", searchValue);
             if (!isSelected) query.set("letter", letter);
             
@@ -229,6 +249,7 @@ export default async function AgendaPage({
                 const query = new URLSearchParams();
                 if (statusValue) query.set("status", statusValue);
                 if (dateValue) query.set("date", dateValue);
+                if (doctorValue) query.set("doctor", doctorValue);
                 if (searchValue) query.set("q", searchValue);
                 return `${basePath}?${query.toString()}`;
               })()}
@@ -325,7 +346,7 @@ export default async function AgendaPage({
                               <span className="font-semibold">{appt.doctor?.fullName ?? "—"}</span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">Quando 🗓️</span>
                               <span>
                                 {formatDateInDisplayTimeZone(
                                   appt.startsAt,
@@ -336,7 +357,7 @@ export default async function AgendaPage({
                                   },
                                   displayTimeZone
                                 )}{" "}
-                                alle{" "}
+                                alle 🕞{" "}
                                 {formatDateInDisplayTimeZone(
                                   appt.startsAt,
                                   { timeStyle: "short" },
@@ -345,7 +366,7 @@ export default async function AgendaPage({
                               </span>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-zinc-500 dark:text-zinc-400">Durata</span>
+                              <span className="text-zinc-500 dark:text-zinc-400">⏳ Durata</span>
                               <span>
                                 {Math.max(
                                   1,
