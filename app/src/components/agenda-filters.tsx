@@ -6,7 +6,7 @@ import { APPOINTMENT_STATUSES, type AppointmentStatus } from "@/lib/client-enums
 
 type Props = {
   statusLabels: Record<AppointmentStatus, string>;
-  doctors: { id: string; fullName: string }[];
+  doctors?: { id: string; fullName: string }[];
   statusValue?: string;
   dateValue?: string;
   doctorValue?: string;
@@ -14,7 +14,7 @@ type Props = {
   basePath?: string;
 };
 
-export function AgendaFilters({ statusLabels, doctors, statusValue, dateValue, doctorValue, searchValue, basePath = "/agenda/appuntamenti" }: Props) {
+export function AgendaFilters({ statusLabels, doctors = [], statusValue, dateValue, doctorValue, searchValue, basePath = "/agenda/appuntamenti" }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();

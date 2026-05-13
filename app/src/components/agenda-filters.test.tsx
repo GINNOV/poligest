@@ -30,4 +30,15 @@ describe("AgendaFilters", () => {
     expect(html).toContain('value="Dr. Luca Verdi">Dr. Luca Verdi');
     expect(html).not.toContain('<input type="text" name="doctor"');
   });
+
+  it("does not crash when doctor options are not yet present during client refresh", () => {
+    const html = renderToStaticMarkup(
+      <AgendaFilters
+        statusLabels={statusLabels}
+      />,
+    );
+
+    expect(html).toContain('<select name="doctor"');
+    expect(html).toContain("Tutti i medici</option>");
+  });
 });
