@@ -4,5 +4,7 @@ export const PATIENT_LIST_AUTO_FILTER_STORAGE_KEY = "poligest:patients:auto-filt
 export const CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY = "poligest:calendar:compact-patient-name";
 export const AGENDA_CHRONOLOGICAL_STORAGE_KEY = "poligest:agenda:chronological";
 export const AGENDA_CHRONOLOGICAL_COOKIE = "poligest-agenda-chronological";
+export const CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY = "poligest:calendar:closure-warning-bypass";
+export const CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY = "poligest:calendar:availability-warning-bypass";
 export const USER_TIME_ZONE_STORAGE_KEY = "poligest:user-time-zone";
 export const USER_TIME_ZONE_COOKIE = "poligest-user-time-zone";

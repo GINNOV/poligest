@@ -47,8 +47,19 @@ export function computeSchedulingWarning(params: {
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures?: PracticeWeeklyClosure[];
+  ignorePracticeClosureWarnings?: boolean;
+  ignoreDoctorAvailabilityWarnings?: boolean;
 }): string | null {
-  const { doctorId, startsAt, endsAt, availabilityWindows, practiceClosures, practiceWeeklyClosures } = params;
+  const {
+    doctorId,
+    startsAt,
+    endsAt,
+    availabilityWindows,
+    practiceClosures,
+    practiceWeeklyClosures,
+    ignorePracticeClosureWarnings,
+    ignoreDoctorAvailabilityWarnings,
+  } = params;
   if (!doctorId || !startsAt || !endsAt) return null;
 
   const start = new Date(startsAt);
@@ -66,6 +77,18 @@ export function computeSchedulingWarning(params: {
   const dayLabel = WEEKDAY_LABELS[day] ?? "giorno selezionato";
   const startMin = minutesFromDate(start);
   const endMin = minutesFromDate(end);
+  const weeklyClosureMatch = (practiceWeeklyClosures ?? []).find((row) => row.dayOfWeek === day);
+  const overlappingClosures = practiceClosures.filter((closure) => {
+    const cStart = new Date(closure.startsAt);
+    const cEnd = new Date(closure.endsAt);
+    if (Number.isNaN(cStart.getTime()) || Number.isNaN(cEnd.getTime())) return false;
+    return intervalsOverlap(start, end, cStart, cEnd);
+  });
+  const isClosedByPracticeRule = Boolean(weeklyClosureMatch) || overlappingClosures.length > 0;
+
+  if (ignorePracticeClosureWarnings && isClosedByPracticeRule) {
+    return null;
+  }
 
   const doctorWindows = availabilityWindows.filter(
     (win) => win.doctorId === doctorId && win.dayOfWeek === day
@@ -74,32 +97,26 @@ export function computeSchedulingWarning(params: {
     sameDay &&
     doctorWindows.some((win) => startMin >= win.startMinute && endMin <= win.endMinute);
 
-  if (!withinAnyWindow) {
+  if (!ignoreDoctorAvailabilityWarnings && !withinAnyWindow) {
     parts.push(
       `L'appuntamento è fuori dalla disponibilità del medico (${dayLabel}). Vuoi procedere comunque?`
     );
   }
 
-  const weeklyMatch = (practiceWeeklyClosures ?? []).find((row) => row.dayOfWeek === day);
-  if (weeklyMatch) {
-    parts.push(
-      `Lo studio risulta chiuso ogni ${dayLabel.toLowerCase()}${weeklyMatch.title ? ` (${weeklyMatch.title})` : ""}. Vuoi procedere comunque?`
-    );
-  }
+  if (!ignorePracticeClosureWarnings) {
+    if (weeklyClosureMatch) {
+      parts.push(
+        `Lo studio risulta chiuso ogni ${dayLabel.toLowerCase()}${weeklyClosureMatch.title ? ` (${weeklyClosureMatch.title})` : ""}. Vuoi procedere comunque?`
+      );
+    }
 
-  const overlappingClosures = practiceClosures.filter((closure) => {
-    const cStart = new Date(closure.startsAt);
-    const cEnd = new Date(closure.endsAt);
-    if (Number.isNaN(cStart.getTime()) || Number.isNaN(cEnd.getTime())) return false;
-    return intervalsOverlap(start, end, cStart, cEnd);
-  });
-
-  if (overlappingClosures.length) {
-    const first = overlappingClosures[0];
-    const title = first.title?.trim();
-    parts.push(
-      `Lo studio risulta chiuso in questo periodo${title ? ` (${title})` : ""}. Vuoi procedere comunque?`
-    );
+    if (overlappingClosures.length) {
+      const first = overlappingClosures[0];
+      const title = first.title?.trim();
+      parts.push(
+        `Lo studio risulta chiuso in questo periodo${title ? ` (${title})` : ""}. Vuoi procedere comunque?`
+      );
+    }
   }
 
   return parts.length ? parts.join(" ") : null;

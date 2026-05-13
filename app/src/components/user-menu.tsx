@@ -8,6 +8,8 @@ import { SignOutButton } from "./sign-out-button";
 import {
   AGENDA_CHRONOLOGICAL_COOKIE,
   AGENDA_CHRONOLOGICAL_STORAGE_KEY,
+  CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
+  CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
   CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY,
   HOME_SCREEN_STORAGE_KEY,
   PATIENT_POST_CREATE_STORAGE_KEY,
@@ -81,6 +83,14 @@ export function UserMenu({
     typeof window === "undefined"
       ? false
       : window.localStorage.getItem(AGENDA_CHRONOLOGICAL_STORAGE_KEY) === "true";
+  const initialCalendarClosureWarningBypass =
+    typeof window === "undefined"
+      ? false
+      : window.localStorage.getItem(CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY) === "true";
+  const initialCalendarAvailabilityWarningBypass =
+    typeof window === "undefined"
+      ? false
+      : window.localStorage.getItem(CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY) === "true";
   const initialThemePreference =
     typeof window === "undefined"
       ? "system"
@@ -106,6 +116,12 @@ export function UserMenu({
   const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
   const [calendarCompactPatientName, setCalendarCompactPatientName] = useState(initialCalendarCompactPatientName);
   const [agendaChronological, setAgendaChronological] = useState(initialAgendaChronological);
+  const [calendarClosureWarningBypass, setCalendarClosureWarningBypass] = useState(
+    initialCalendarClosureWarningBypass
+  );
+  const [calendarAvailabilityWarningBypass, setCalendarAvailabilityWarningBypass] = useState(
+    initialCalendarAvailabilityWarningBypass
+  );
   const [themePreference, setThemePreference] = useState<ThemePreference>(initialThemePreference);
   const [selectedPracticeTimeZone, setSelectedPracticeTimeZone] =
     useState<PracticeTimeZone>(initialPracticeTimeZone);
@@ -402,7 +418,7 @@ export function UserMenu({
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-purple-700 dark:text-purple-400">
                       <span>🛡️</span> Funzionalità
                     </h4>
-                    <div className="grid gap-3 lg:grid-cols-3">
+                    <div className="grid gap-3 lg:grid-cols-4">
                     <div className="flex items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
                       <div>
                         <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Filtro automatico lista</span>
@@ -473,6 +489,40 @@ export function UserMenu({
                         />
                       </button>
                     </div>
+                    <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Avvisi calendario</span>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          Scegli quali avvisi saltare quando inserisci o modifichi appuntamenti.
+                        </p>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        <label className="flex items-center justify-between gap-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                          <span>Salta avviso giorni chiusi.</span>
+                          <input
+                            type="checkbox"
+                            checked={calendarClosureWarningBypass}
+                            onChange={(event) => setCalendarClosureWarningBypass(event.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <span className="relative inline-flex h-6 w-12 shrink-0 rounded-full bg-zinc-200 transition-colors peer-checked:bg-emerald-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-emerald-500 dark:bg-zinc-700">
+                            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-6" />
+                          </span>
+                        </label>
+                        <label className="flex items-center justify-between gap-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                          <span>Salta avviso disponibilità medico</span>
+                          <input
+                            type="checkbox"
+                            checked={calendarAvailabilityWarningBypass}
+                            onChange={(event) => setCalendarAvailabilityWarningBypass(event.target.checked)}
+                            className="peer sr-only"
+                          />
+                          <span className="relative inline-flex h-6 w-12 shrink-0 rounded-full bg-zinc-200 transition-colors peer-checked:bg-emerald-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-emerald-500 dark:bg-zinc-700">
+                            <span className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform peer-checked:translate-x-6" />
+                          </span>
+                        </label>
+                      </div>
+                    </div>
                     </div>
                   </section>
                 </div>
@@ -511,6 +561,14 @@ export function UserMenu({
                           window.localStorage.setItem(
                             AGENDA_CHRONOLOGICAL_STORAGE_KEY,
                             agendaChronological ? "true" : "false"
+                          );
+                          window.localStorage.setItem(
+                            CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
+                            calendarClosureWarningBypass ? "true" : "false"
+                          );
+                          window.localStorage.setItem(
+                            CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
+                            calendarAvailabilityWarningBypass ? "true" : "false"
                           );
                           document.cookie = `${AGENDA_CHRONOLOGICAL_COOKIE}=${
                             agendaChronological ? "true" : "false"

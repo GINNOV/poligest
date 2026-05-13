@@ -477,8 +477,10 @@ export function CalendarWeekView({
                   </div>
 
                   {day.isPracticeClosed ? (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-rose-50/80 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-200">
-                      CHIUSO
+                    <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-rose-50/70 ring-1 ring-inset ring-rose-200/70 dark:bg-rose-950/30 dark:ring-rose-900/60">
+                      <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700 shadow-sm ring-1 ring-rose-200/70 dark:bg-zinc-950/85 dark:text-rose-200 dark:ring-rose-900/70">
+                        CHIUSO
+                      </div>
                     </div>
                   ) : null}
                 </div>

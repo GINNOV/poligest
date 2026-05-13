@@ -7,6 +7,10 @@ import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import {
+  CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
+  CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
+} from "@/lib/app-preferences";
+import {
   computeSchedulingWarning,
   type AvailabilityWindow,
   type PracticeClosure,
@@ -126,6 +130,10 @@ export function AppointmentCreateForm({
     const startsAt = formData.get("startsAt") as string;
     const endsAt = formData.get("endsAt") as string;
     const doctorId = formData.get("doctorId") as string || "";
+    const ignoreClosureWarnings =
+      window.localStorage.getItem(CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY) === "true";
+    const ignoreAvailabilityWarnings =
+      window.localStorage.getItem(CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY) === "true";
 
     if (!patientId || !title || !startsAt || !endsAt) {
       setError("Dati mancanti: seleziona un paziente e compila i campi obbligatori.");
@@ -175,6 +183,8 @@ export function AppointmentCreateForm({
         availabilityWindows,
         practiceClosures,
         practiceWeeklyClosures,
+        ignorePracticeClosureWarnings: ignoreClosureWarnings,
+        ignoreDoctorAvailabilityWarnings: ignoreAvailabilityWarnings,
       });
 
       if (warning) {
