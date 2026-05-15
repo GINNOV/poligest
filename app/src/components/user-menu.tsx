@@ -274,12 +274,12 @@ export function UserMenu({
 
       {showSettings && typeof document !== "undefined"
         ? createPortal(
-            <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-zinc-950/40 px-4 py-6 backdrop-blur-sm sm:py-10">
+            <div className="fixed inset-0 z-[100000] flex items-stretch justify-center bg-zinc-950/40 px-4 py-3 backdrop-blur-sm sm:items-center sm:py-6">
               <div
                 ref={settingsRef}
-                className="flex w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+                className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 sm:max-h-[calc(100vh-3rem)]"
               >
-                <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <div className="shrink-0 border-b border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
                       Personalizza App
@@ -299,7 +299,7 @@ export function UserMenu({
                   </p>
                 </div>
 
-                <div className="grid flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-2">
+                <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-2">
                   {/* Navigazione Section */}
                   <section className="space-y-4">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-400">
@@ -527,7 +527,7 @@ export function UserMenu({
                   </section>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
+                <div className="flex shrink-0 items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
                   {saveMessage ? (
                     <p className="mr-auto text-xs text-zinc-500 dark:text-zinc-400">{saveMessage}</p>
                   ) : null}
