@@ -13,6 +13,7 @@ import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 import { PatientPaperConsentCheckbox } from "@/components/patient-paper-consent-checkbox";
 import { DuplicatePatientDialog } from "@/components/duplicate-patient-dialog";
 import { emitToast } from "@/components/global-toasts";
+import { isRedirectError } from "@/lib/utils";
 
 type Props = {
   action: (formData: FormData) => Promise<void>;
@@ -37,6 +38,9 @@ export function PatientCreateForm({
     setIsSubmitting(true);
     startTransition(() => {
       void action(formData).catch((err) => {
+        if (isRedirectError(err)) {
+          return;
+        }
         console.error("Patient creation failed", err);
         emitToast(err instanceof Error ? err.message : "Errore durante la creazione del paziente.", "error");
         setIsSubmitting(false);

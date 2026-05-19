@@ -241,4 +241,17 @@ describe("createPatient", () => {
       }),
     );
   });
+
+  it("redirects to patients with a creation toast message when requested", async () => {
+    mocks.prisma.consentModule.findMany.mockResolvedValue([]);
+
+    const formData = new FormData();
+    formData.set("firstName", "Maria");
+    formData.set("lastName", "Rossi");
+    formData.set("postCreateRedirect", "patients");
+
+    await expect(createPatient(formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/pazienti?patientCreated=Paziente%20Maria%20Rossi%3A%20cartella%20e'%20stata%20creata.",
+    );
+  });
 });

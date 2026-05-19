@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { PageToastTrigger } from "@/components/page-toast-trigger";
 
 export const metadata: Metadata = {
   title: "PAZIENTI",
@@ -12,12 +13,24 @@ export const metadata: Metadata = {
 
 const TILE_IMAGE_VERSION = "1";
 
-export default async function PazientiPage() {
+export default async function PazientiPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
+  const resolved = await searchParams;
+  const patientCreated =
+    typeof resolved.patientCreated === "string" ? resolved.patientCreated : null;
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      <PageToastTrigger
+        messages={[
+          { key: "patientCreated", message: patientCreated ?? "", variant: "success" },
+        ]}
+      />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <Link
           href="/pazienti/nuovo"

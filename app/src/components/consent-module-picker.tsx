@@ -19,6 +19,7 @@ type Props = {
 
 const CHANNELS = ["Di persona", "Telefono", "Manuale", "Digitale"];
 const CONSENT_REQUIRED_EVENT = "consent-required-status";
+const PAPER_CONSENT_OVERRIDE_EVENT = "paper-consent-override-status";
 const DEFAULT_PLACE = "Striano";
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Rome",
@@ -52,6 +53,12 @@ const getDefaultModuleState = (): ModuleState => ({
 export function ConsentModulePicker({ modules, doctors }: Props) {
   const [selectedModuleId, setSelectedModuleId] = useState<string>("");
   const [moduleStates, setModuleStates] = useState<Record<string, ModuleState>>({});
+  const [hasPaperConsentOverride, setHasPaperConsentOverride] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const initialValue = (window as typeof window & { __paperConsentOverride?: boolean })
+      .__paperConsentOverride;
+    return typeof initialValue === "boolean" ? initialValue : false;
+  });
   const orderedModules = useMemo(
     () =>
       [...modules]
@@ -96,7 +103,25 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
     );
   }, [hasAllRequiredSigned]);
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+      setHasPaperConsentOverride(Boolean(detail?.enabled));
+    };
+    window.addEventListener(PAPER_CONSENT_OVERRIDE_EVENT, handler as EventListener);
+
+    const initialValue = (window as typeof window & { __paperConsentOverride?: boolean })
+      .__paperConsentOverride;
+    if (typeof initialValue === "boolean") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHasPaperConsentOverride((prev) => (prev === initialValue ? prev : initialValue));
+    }
+
+    return () => window.removeEventListener(PAPER_CONSENT_OVERRIDE_EVENT, handler as EventListener);
+  }, []);
+
   const handleModuleSelect = (moduleId: string) => {
+    if (hasPaperConsentOverride) return;
     if (moduleId === selectedModuleId) return;
     setModuleStates((prev) => {
       if (prev[moduleId]) return prev;
@@ -131,18 +156,25 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             const isSelected = module.id === selectedModuleId;
             const moduleState = moduleStates[module.id] ?? getDefaultModuleState();
             const isSigned = Boolean(moduleState.signatureData);
-            const statusClass = isSigned
-              ? "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
-              : module.required
-                ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
-                : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200";
+            const statusClass = hasPaperConsentOverride
+              ? "border-zinc-300 bg-zinc-100 text-zinc-500 opacity-70 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500"
+              : isSigned
+                ? "border-sky-300 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200"
+                : module.required
+                  ? "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                  : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200";
             return (
               <button
                 key={module.id}
                 type="button"
+                disabled={hasPaperConsentOverride}
                 onClick={() => handleModuleSelect(module.id)}
                 className={`flex min-h-[120px] items-center justify-center rounded-xl border-2 px-4 text-center text-base font-semibold transition ${statusClass} ${
-                  isSelected ? "ring-2 ring-emerald-400" : "hover:brightness-95"
+                  hasPaperConsentOverride
+                    ? "cursor-not-allowed"
+                    : isSelected
+                      ? "ring-2 ring-emerald-400"
+                      : "hover:brightness-95"
                 }`}
               >
                 {module.name}
@@ -165,8 +197,8 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             doctors={doctors}
             buttonLabel="Apri informativa e firma"
             moduleLabel={selectedModule?.name ?? ""}
-            disabled={!canEdit}
-            submitDisabled={!canSubmit}
+            disabled={!canEdit || hasPaperConsentOverride}
+            submitDisabled={!canSubmit || hasPaperConsentOverride}
             showSubmitButton={false}
             requireFields={false}
             markRequired={Boolean(selectedModule?.required)}
@@ -190,7 +222,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             Consenso ottenuto via...
             <select
               name="consentChannel"
-              disabled={!canEdit}
+              disabled={!canEdit || hasPaperConsentOverride}
               value={currentState.channel || "Di persona"}
               onChange={(event) => {
                 if (!selectedModuleId) return;
@@ -208,7 +240,7 @@ export function ConsentModulePicker({ modules, doctors }: Props) {
             <input
               type="date"
               name="consentExpiresAt"
-              disabled={!canEdit}
+              disabled={!canEdit || hasPaperConsentOverride}
               value={currentState.expiresAt}
               onChange={(event) => {
                 if (!selectedModuleId) return;

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { emitToast } from "@/components/global-toasts";
+import { isIgnoredFetchFailure } from "@/lib/fetch-error-filter";
 import { subscribeNavigationLock } from "@/lib/navigation-lock";
 
 /**
@@ -175,7 +176,8 @@ export function GlobalLoadingOverlay() {
         const response = await originalFetch(...args);
         const shouldNotify = hadFreshInteraction(5000);
         const isRedirect = response.status >= 300 && response.status < 400;
-        if (!response.ok && !isRedirect && shouldNotify) {
+        const shouldIgnoreFailure = isIgnoredFetchFailure(requestUrl, response.status);
+        if (!response.ok && !isRedirect && shouldNotify && !shouldIgnoreFailure) {
           let errorCode = response.headers.get("x-error-code");
           if (!errorCode) {
             try {

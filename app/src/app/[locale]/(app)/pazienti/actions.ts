@@ -310,7 +310,11 @@ Se hai bisogno di assistenza, contatta la segreteria.`;
   revalidatePath("/dashboard");
   const redirectTarget =
     postCreateRedirect === "patients"
-      ? "/pazienti"
+      ? withParam(
+          "/pazienti",
+          "patientCreated",
+          `Paziente ${patient.firstName} ${patient.lastName}: cartella e' stata creata.`,
+        )
       : postCreateRedirect === "patient_detail"
         ? `/pazienti/${patient.id}`
         : "/dashboard";

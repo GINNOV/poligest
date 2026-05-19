@@ -5,7 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function isRedirectError(err: unknown): err is { digest: string } {
+export function isRedirectError(err: unknown): boolean {
+  if (err instanceof Error && err.message.includes("NEXT_REDIRECT")) {
+    return true;
+  }
   return (
     typeof err === "object" &&
     err !== null &&
@@ -35,4 +38,3 @@ export function withParam(url: string, key: string, value: string) {
   const separator = hasQuery ? "&" : "?";
   return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
 }
-
