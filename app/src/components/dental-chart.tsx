@@ -246,6 +246,7 @@ export function DentalChart({
   const [customProcedure, setCustomProcedure] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
   const [useColorChart, setUseColorChart] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -299,24 +300,14 @@ export function DentalChart({
     );
   }, [isOpen, selectedTooth, storageKey]);
 
-  const recordsByTooth = useMemo(() => {
-    const map = new Map<number, DentalRecord>();
-    // records is sorted DESCENDING (latest first).
-    // To keep the LATEST record for each tooth, we only set if not present.
-    records.forEach((r) => {
-      if (!map.has(r.tooth)) {
-        map.set(r.tooth, r);
-      }
-    });
-    return map;
-  }, [records]);
-
   const toothMarkers = useMemo(() => {
     const markers: Array<{ tooth: number; treated: boolean }> = [];
     const seen = new Set<number>();
-    // records is sorted DESCENDING (latest first).
+    const latestRecords = [...records].sort(
+      (a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()
+    );
     // We take the status of the LATEST record for each tooth.
-    records.forEach((r) => {
+    latestRecords.forEach((r) => {
       if (r.tooth !== 0 && !seen.has(r.tooth)) {
         markers.push({ tooth: r.tooth, treated: !!r.treated });
         seen.add(r.tooth);
@@ -340,8 +331,9 @@ export function DentalChart({
     [services]
   );
 
-  const selectedRecord =
-    selectedTooth === null ? undefined : recordsByTooth.get(selectedTooth);
+  const selectedRecord = editingRecordId
+    ? records.find((record) => record.id === editingRecordId)
+    : undefined;
   const selectedToothData =
     selectedTooth !== null && selectedTooth !== 0
       ? TEETH.find((tooth) => tooth.id === selectedTooth) ?? null
@@ -359,23 +351,43 @@ export function DentalChart({
 
   const resetSelection = () => {
     setSelectedTooth(null);
+    setEditingRecordId(null);
     setProcedure("");
     setNotes("");
+    setCustomProcedure("");
   };
 
   const handleSelectTooth = (id: number) => {
     setSelectedTooth(id);
-    const record = recordsByTooth.get(id);
-    setProcedure(record?.procedure ?? "");
-    setNotes(record?.notes ?? "");
+    setEditingRecordId(null);
+    setProcedure("");
+    setNotes("");
+    setCustomProcedure("");
+  };
+
+  const handleEditRecord = (record: DentalRecord) => {
+    setSelectedTooth(record.tooth);
+    setEditingRecordId(record.id);
+    setProcedure(record.procedure);
+    setNotes(record.notes ?? "");
+    setCustomProcedure("");
   };
 
   useEffect(() => {
-    if (selectedTooth === null) return;
-    const record = recordsByTooth.get(selectedTooth);
-    setProcedure(record?.procedure ?? "");
-    setNotes(record?.notes ?? "");
-  }, [recordsByTooth, selectedTooth]);
+    if (!editingRecordId) return;
+    const record = records.find((item) => item.id === editingRecordId);
+    if (!record) {
+      setSelectedTooth(null);
+      setEditingRecordId(null);
+      setProcedure("");
+      setNotes("");
+      setCustomProcedure("");
+      return;
+    }
+    setSelectedTooth(record.tooth);
+    setProcedure(record.procedure);
+    setNotes(record.notes ?? "");
+  }, [editingRecordId, records]);
 
   const handleChartClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const wrapper = chartRef.current;
@@ -412,9 +424,14 @@ export function DentalChart({
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/patients/${patientId}/dental-records`, {
-        method: "POST",
+        method: selectedRecord ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tooth: selectedTooth, procedure: chosenProcedure, notes }),
+        body: JSON.stringify({
+          recordId: selectedRecord?.id,
+          tooth: selectedTooth,
+          procedure: chosenProcedure,
+          notes,
+        }),
       });
 
       if (!res.ok) {
@@ -430,7 +447,7 @@ export function DentalChart({
         updatedByName: data.record.updatedBy?.name ?? data.record.updatedBy?.email ?? data.record.updatedByName ?? null,
       };
       setRecords((prev) => {
-        const others = prev.filter((r) => r.id !== normalized.id && r.tooth !== normalized.tooth);
+        const others = prev.filter((r) => r.id !== normalized.id);
         return [...others, { ...normalized, performedAt: normalized.performedAt }];
       });
       setNoteDrafts((prev) => ({
@@ -668,7 +685,7 @@ export function DentalChart({
             ) : (
               sortedRecords.map((rec) => {
                 const proc = resolveProcedure(rec.procedure, sortedServices);
-                const isActive = selectedTooth === rec.tooth;
+                const isActive = editingRecordId === rec.id;
                 const toothLabel = rec.tooth === 0 ? "Tutta la bocca" : `Dente ${rec.tooth}`;
                 const toothImage = rec.tooth === 0 ? null : TOOTH_IMAGES[getToothType(rec.tooth)];
                 const showThumbnail = rec.tooth !== 0;
@@ -676,7 +693,7 @@ export function DentalChart({
                   <div
                     key={rec.id}
                     onClick={() => {
-                      handleSelectTooth(rec.tooth);
+                      handleEditRecord(rec);
                       setIsChartDialogOpen(true);
                     }}
                     className={clsx(
@@ -690,7 +707,7 @@ export function DentalChart({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        handleSelectTooth(rec.tooth);
+                        handleEditRecord(rec);
                         setIsChartDialogOpen(true);
                       }
                     }}
@@ -905,7 +922,12 @@ export function DentalChart({
 
                 <aside className="flex flex-col gap-6">
                   <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                    {selectedToothData ? (
+                    {selectedTooth === 0 ? (
+                      <div className="mb-6 rounded-xl bg-emerald-50/50 p-4 text-center dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Area Selezionata</p>
+                        <p className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Tutta la bocca</p>
+                      </div>
+                    ) : selectedToothData ? (
                       <div className="mb-6 flex items-center gap-4 rounded-xl bg-emerald-50/50 p-3 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30">
                         <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white shadow-sm dark:bg-zinc-800">
                           <img src={selectedToothImage ?? ""} alt={`Dente ${selectedToothData.id}`} className="h-full w-full object-contain" />

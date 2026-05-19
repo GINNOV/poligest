@@ -39,22 +39,11 @@ export async function POST(req: Request, { params }: RouteParams) {
       });
     }
 
-    const existing = await prisma.dentalRecord.findFirst({
-      where: { patientId, tooth },
-      select: { id: true },
-    });
-
     const record = await prisma.$transaction(async (tx) => {
-      const savedRecord = existing
-        ? await tx.dentalRecord.update({
-            where: { id: existing.id },
-            data: { procedure, notes, performedAt: new Date(), updatedById: user.id },
-            include: { updatedBy: { select: { name: true, email: true } } },
-          })
-        : await tx.dentalRecord.create({
-            data: { patientId, tooth, procedure, notes, updatedById: user.id },
-            include: { updatedBy: { select: { name: true, email: true } } },
-          });
+      const savedRecord = await tx.dentalRecord.create({
+        data: { patientId, tooth, procedure, notes, updatedById: user.id },
+        include: { updatedBy: { select: { name: true, email: true } } },
+      });
 
       await syncDentalRecordIntoLatestQuote(tx, patientId, savedRecord.id);
       return savedRecord;
@@ -172,6 +161,9 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     const notes = typeof notesRaw === "string" ? notesRaw.trim() : undefined;
     const treatedRaw = body?.treated;
     const treated = typeof treatedRaw === "boolean" ? treatedRaw : undefined;
+    const procedureRaw = body?.procedure as string | undefined;
+    const procedure = typeof procedureRaw === "string" ? procedureRaw.trim() : undefined;
+    const tooth = body?.tooth === undefined ? undefined : Number.parseInt(body.tooth);
 
     if (!recordId) {
       return errorResponse({
@@ -182,7 +174,25 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         actor: user,
       });
     }
-    if (notes === undefined && treated === undefined) {
+    if (procedure !== undefined && !procedure) {
+      return errorResponse({
+        message: "Procedura non valida",
+        status: 400,
+        source: "dental_record_note_update",
+        context: { patientId, recordId },
+        actor: user,
+      });
+    }
+    if (tooth !== undefined && !Number.isInteger(tooth)) {
+      return errorResponse({
+        message: "Dente non valido",
+        status: 400,
+        source: "dental_record_note_update",
+        context: { patientId, recordId },
+        actor: user,
+      });
+    }
+    if (notes === undefined && treated === undefined && procedure === undefined && tooth === undefined) {
       return errorResponse({
         message: "Nessun aggiornamento richiesto",
         status: 400,
@@ -207,6 +217,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       const nextRecord = await tx.dentalRecord.update({
         where: { id: recordId },
         data: {
+          tooth,
+          procedure,
           notes: notes === undefined ? undefined : notes || null,
           treated: treated === undefined ? undefined : treated,
           updatedById: user.id,
