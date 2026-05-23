@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { PatientPaymentMethod, Prisma, Role } from "@prisma/client";
+import { PatientPaymentKind, PatientPaymentMethod, Prisma, Role } from "@prisma/client";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   revalidatePath: vi.fn(),
   logAudit: vi.fn(),
-  prisma: {
+    prisma: {
+    quote: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
     patientPayment: {
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -88,6 +92,41 @@ describe("finanza actions", () => {
         },
       },
     });
+    mocks.prisma.quote.findFirst.mockResolvedValue({
+      id: "quote-1",
+      patientId: "patient-1",
+      patient: {
+        firstName: "Mario",
+        lastName: "Rossi",
+      },
+      items: [
+        {
+          id: "quote-item-1",
+          serviceName: "Igiene",
+          quantity: 1,
+          total: new Prisma.Decimal(100),
+          createdAt: new Date("2026-04-01"),
+          dentalRecord: null,
+          payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD }],
+        },
+      ],
+      payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD, quoteItemId: "quote-item-1" }],
+    });
+    mocks.prisma.quote.findUnique.mockResolvedValue({
+      id: "quote-1",
+      patientId: "patient-1",
+      items: [
+        {
+          id: "quote-item-1",
+          serviceName: "Igiene",
+          quantity: 1,
+          total: new Prisma.Decimal(100),
+          createdAt: new Date("2026-04-01"),
+          payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD }],
+        },
+      ],
+      payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD, quoteItemId: "quote-item-1" }],
+    });
     mocks.prisma.supplier.findUnique.mockResolvedValue({ name: "Dental Supply" });
     mocks.prisma.product.findUnique.mockResolvedValue({ name: "Impianto" });
     mocks.prisma.doctor.findUnique.mockResolvedValue({ id: "doctor-1", fullName: "Dr. Verdi" });
@@ -111,7 +150,9 @@ describe("finanza actions", () => {
     mocks.prisma.patientPayment.findUnique.mockResolvedValue({
       id: "payment-1",
       patientId: "patient-1",
+      quoteId: "quote-1",
       quoteItemId: "quote-item-1",
+      kind: PatientPaymentKind.STANDARD,
       archivedAt: null,
     });
     mocks.prisma.patientPayment.update.mockResolvedValue(undefined);
@@ -130,6 +171,23 @@ describe("finanza actions", () => {
             id: "quote-item-1",
             total: new Prisma.Decimal(100),
             saldato: true,
+          }),
+        },
+        quote: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: "quote-1",
+            patientId: "patient-1",
+            items: [
+              {
+                id: "quote-item-1",
+                serviceName: "Igiene",
+                quantity: 1,
+                total: new Prisma.Decimal(100),
+                createdAt: new Date("2026-04-01"),
+                dentalRecord: null,
+              },
+            ],
+            payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD, quoteItemId: "quote-item-1" }],
           }),
         },
         financeEntry: {
@@ -154,31 +212,124 @@ describe("finanza actions", () => {
     formData.set("paidAt", "2026-04-08");
     formData.set("note", "Saldo finale");
     formData.set("paymentMethod", PatientPaymentMethod.CASH);
+    formData.set("paymentKind", PatientPaymentKind.STANDARD);
 
     await recordPatientPayment(formData);
 
-    expect(mocks.prisma.quoteItem.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: "quote-item-1",
-        quoteId: "quote-1",
-        quote: { patientId: "patient-1" },
-      },
-      include: {
-        dentalRecord: {
-          select: {
-            updatedById: true,
-          },
-        },
-        quote: {
-          select: {
-            patient: { select: { firstName: true, lastName: true } },
-          },
-        },
-      },
-    });
+    expect(mocks.prisma.quote.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "quote-1", patientId: "patient-1" },
+    }));
     expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/pagamenti");
+  });
+
+  it("records a quote-level downpayment without a quote item", async () => {
+    const txPatientPaymentCreate = vi.fn().mockResolvedValue({ id: "p-downpayment" });
+    const txFinanceEntryCreate = vi.fn().mockResolvedValue({ id: "f-1" });
+
+    mocks.prisma.$transaction.mockImplementationOnce(async (callback) => {
+      const tx = {
+        patientPayment: {
+          create: txPatientPaymentCreate,
+          update: vi.fn().mockResolvedValue(undefined),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        quoteItem: {
+          update: vi.fn().mockResolvedValue(undefined),
+          updateMany: vi.fn().mockResolvedValue(undefined),
+          findUnique: vi.fn(),
+        },
+        quote: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: "quote-1",
+            patientId: "patient-1",
+            items: [
+              {
+                id: "quote-item-1",
+                serviceName: "Igiene",
+                quantity: 1,
+                total: new Prisma.Decimal(100),
+                createdAt: new Date("2026-04-01"),
+                dentalRecord: null,
+              },
+            ],
+            payments: [{ amount: new Prisma.Decimal(20), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD, quoteItemId: "quote-item-1" }],
+          }),
+        },
+        financeEntry: {
+          create: txFinanceEntryCreate,
+          update: vi.fn().mockResolvedValue(undefined),
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+        cashAdvance: {
+          create: vi.fn(),
+        },
+      };
+      return callback(tx);
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("amount", "50");
+    formData.set("paidAt", "2026-04-08");
+    formData.set("note", "Acconto impianto");
+    formData.set("paymentMethod", PatientPaymentMethod.BANK_TRANSFER);
+    formData.set("paymentKind", PatientPaymentKind.DOWNPAYMENT);
+
+    await recordPatientPayment(formData);
+
+    expect(mocks.prisma.quote.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "quote-1", patientId: "patient-1" },
+    }));
+    expect(txPatientPaymentCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        patientId: "patient-1",
+        quoteId: "quote-1",
+        quoteItemId: null,
+        amount: new Prisma.Decimal(50),
+        method: PatientPaymentMethod.BANK_TRANSFER,
+        kind: PatientPaymentKind.DOWNPAYMENT,
+      }),
+    });
+    expect(txFinanceEntryCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        description: expect.stringContaining("Acconto preventivo paziente Rossi Mario"),
+        metadata: expect.objectContaining({
+          quoteItemId: null,
+          paymentKind: PatientPaymentKind.DOWNPAYMENT,
+        }),
+      }),
+    });
+  });
+
+  it("rejects a quote-level downpayment above the quote residual", async () => {
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("amount", "90");
+    formData.set("paidAt", "2026-04-08");
+    formData.set("paymentKind", PatientPaymentKind.DOWNPAYMENT);
+
+    await expect(recordPatientPayment(formData)).rejects.toThrow(
+      "L'acconto supera il residuo del preventivo",
+    );
+
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("requires a quote item for standard patient payments", async () => {
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("amount", "10");
+    formData.set("paidAt", "2026-04-08");
+    formData.set("paymentKind", PatientPaymentKind.STANDARD);
+
+    await expect(recordPatientPayment(formData)).rejects.toThrow("Dati mancanti");
+
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it("uses explicit doctorId in recordPatientPayment if provided", async () => {
@@ -198,7 +349,26 @@ describe("finanza actions", () => {
   });
 
   it("rejects patient payment when the amount exceeds the quote item residual", async () => {
-    mocks.prisma.patientPayment.findMany.mockResolvedValue([{ amount: new Prisma.Decimal(95) }]);
+    mocks.prisma.quote.findFirst.mockResolvedValueOnce({
+      id: "quote-1",
+      patientId: "patient-1",
+      patient: {
+        firstName: "Mario",
+        lastName: "Rossi",
+      },
+      items: [
+        {
+          id: "quote-item-1",
+          serviceName: "Igiene",
+          quantity: 1,
+          total: new Prisma.Decimal(100),
+          createdAt: new Date("2026-04-01"),
+          dentalRecord: null,
+          payments: [{ amount: new Prisma.Decimal(95), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD }],
+        },
+      ],
+      payments: [{ amount: new Prisma.Decimal(95), method: PatientPaymentMethod.CASH, kind: PatientPaymentKind.STANDARD, quoteItemId: "quote-item-1" }],
+    });
 
     const formData = new FormData();
     formData.set("patientId", "patient-1");
@@ -215,7 +385,16 @@ describe("finanza actions", () => {
   });
 
   it("rejects patient payment when the quote item is missing", async () => {
-    mocks.prisma.quoteItem.findFirst.mockResolvedValue(null);
+    mocks.prisma.quote.findFirst.mockResolvedValueOnce({
+      id: "quote-1",
+      patientId: "patient-1",
+      patient: {
+        firstName: "Mario",
+        lastName: "Rossi",
+      },
+      items: [],
+      payments: [],
+    });
 
     const formData = new FormData();
     formData.set("patientId", "patient-1");
@@ -240,7 +419,9 @@ describe("finanza actions", () => {
       select: {
         id: true,
         patientId: true,
+        quoteId: true,
         quoteItemId: true,
+        kind: true,
         archivedAt: true,
       },
     });

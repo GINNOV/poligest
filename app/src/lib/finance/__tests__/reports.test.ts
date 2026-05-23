@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { aggregateDoctorReport } from "../reports";
-import { Prisma } from "@prisma/client";
+import { aggregateDoctorReport, classifyMonthlyPatientPayment } from "../reports";
+import { PatientPaymentKind, PatientPaymentMethod, Prisma } from "@prisma/client";
 
 describe("aggregateDoctorReport", () => {
   it("aggregates revenue and patients correctly", () => {
@@ -61,5 +61,34 @@ describe("aggregateDoctorReport", () => {
     const watson = result.find(r => r.id === "doc-2")!;
     expect(watson.totalIncome).toBe(500);
     expect(watson.patientCount).toBe(0); // No appointments in this test data
+  });
+});
+
+describe("classifyMonthlyPatientPayment", () => {
+  it("counts actual-money downpayments as anticipo", () => {
+    expect(classifyMonthlyPatientPayment({
+      amount: 75,
+      method: PatientPaymentMethod.BANK_TRANSFER,
+      kind: PatientPaymentKind.DOWNPAYMENT,
+      note: null,
+    })).toEqual({ anticipo: 75, paghero: 0 });
+  });
+
+  it("keeps pay-later downpayments in paghero", () => {
+    expect(classifyMonthlyPatientPayment({
+      amount: 75,
+      method: PatientPaymentMethod.PAY_LATER,
+      kind: PatientPaymentKind.DOWNPAYMENT,
+      note: null,
+    })).toEqual({ anticipo: 0, paghero: 75 });
+  });
+
+  it("does not classify old note-only acconti", () => {
+    expect(classifyMonthlyPatientPayment({
+      amount: 75,
+      method: PatientPaymentMethod.ELECTRONIC,
+      kind: PatientPaymentKind.STANDARD,
+      note: "acconto vecchio",
+    })).toEqual({ anticipo: 0, paghero: 0 });
   });
 });

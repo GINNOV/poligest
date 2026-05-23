@@ -86,6 +86,11 @@ enum PatientPaymentMethod {
   OTHER
 }
 
+enum PatientPaymentKind {
+  STANDARD
+  DOWNPAYMENT
+}
+
 enum PracticeWeeklyReportStatus {
   SENT
   FAILED
@@ -796,6 +801,7 @@ model PatientPayment {
   amount        Decimal              @db.Decimal(12, 2)
   paidAt        DateTime
   method        PatientPaymentMethod @default(ELECTRONIC)
+  kind          PatientPaymentKind   @default(STANDARD)
   note          String?
   userId        String?
   archivedAt    DateTime?

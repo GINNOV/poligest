@@ -104,7 +104,7 @@ export function UnsettledItemsList() {
                       : "Da incassare"}
                   </span>
                 </div>
-                <div className="mt-4 grid gap-3 text-[11px] font-semibold uppercase tracking-wider sm:grid-cols-5">
+                <div className="mt-4 grid gap-3 text-[11px] font-semibold uppercase tracking-wider sm:grid-cols-6">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-zinc-500 dark:text-zinc-400">Totale</span>
                     <div className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 font-mono text-sm text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
@@ -115,6 +115,12 @@ export function UnsettledItemsList() {
                     <span className="text-emerald-700 dark:text-emerald-400">Incassato</span>
                     <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 px-2.5 py-1.5 font-mono text-sm text-emerald-900 shadow-sm dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
                       {formatCurrency(item.paid)}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-sky-700 dark:text-sky-400">Acconto</span>
+                    <div className="rounded-lg border border-sky-100 bg-sky-50/50 px-2.5 py-1.5 font-mono text-sm text-sky-900 shadow-sm dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300">
+                      {formatCurrency(item.downpaymentAllocated)}
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5">

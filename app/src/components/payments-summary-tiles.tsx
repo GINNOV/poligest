@@ -12,7 +12,7 @@ export function PaymentsSummaryTiles() {
     }).format(value);
 
   return (
-    <div className="grid gap-4 md:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-6">
       <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">PRESTAZIONI</p>
         <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-zinc-900 dark:text-zinc-50">{formatCurrency(totals.total)}</p>
@@ -20,6 +20,10 @@ export function PaymentsSummaryTiles() {
       <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Incassato</p>
         <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-500">{formatCurrency(totals.paid)}</p>
+      </div>
+      <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Acconto</p>
+        <p className="mt-1 text-2xl font-bold font-mono tabular-nums text-sky-700 dark:text-sky-500">{formatCurrency(totals.downpaymentCredit)}</p>
       </div>
       <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Pagherò</p>

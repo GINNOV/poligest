@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { allocateQuotePayments } from "@/lib/finance/domain-logic";
 
 const EPSILON = 0.009;
 
@@ -9,6 +10,43 @@ type SyncOptions = {
 
 function toNumber(value: Prisma.Decimal | number) {
   return Number(value.toString());
+}
+
+function allocateQuoteSyncState(quote: {
+  items: Array<{
+    id: string;
+    serviceName: string;
+    quantity: number;
+    total: Prisma.Decimal | number;
+    createdAt: Date;
+    dentalRecord?: { treated: boolean; tooth: number | null } | null;
+  }>;
+  payments: Array<{
+    id: string;
+    quoteItemId: string | null;
+    amount: Prisma.Decimal | number;
+    method: "CASH" | "ELECTRONIC" | "BANK_TRANSFER" | "PAY_LATER" | "OTHER";
+    kind: "STANDARD" | "DOWNPAYMENT";
+  }>;
+}) {
+  return allocateQuotePayments({
+    items: quote.items.map((item) => ({
+      id: item.id,
+      serviceName: item.serviceName,
+      quantity: item.quantity,
+      total: toNumber(item.total),
+      createdAt: item.createdAt,
+      tooth: item.dentalRecord?.tooth,
+      inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
+    })),
+    payments: quote.payments.map((payment) => ({
+      id: payment.id,
+      quoteItemId: payment.quoteItemId,
+      amount: toNumber(payment.amount),
+      method: payment.method,
+      kind: payment.kind,
+    })),
+  });
 }
 
 async function refreshQuoteSummary(tx: TransactionClient, quoteId: string) {
@@ -97,9 +135,14 @@ async function syncDentalRecordIntoQuote(
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         include: {
           payments: {
-            select: { amount: true },
+            select: { amount: true, method: true, kind: true, quoteItemId: true, id: true },
           },
+          dentalRecord: { select: { treated: true, tooth: true } },
         },
+      },
+      payments: {
+        where: { archivedAt: null },
+        select: { amount: true, method: true, kind: true, quoteItemId: true, id: true },
       },
     },
   });
@@ -133,7 +176,9 @@ async function syncDentalRecordIntoQuote(
     return { synced: true, reason: "created" as const };
   }
 
-  const paidAmount = linkedItem.payments.reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+  const quoteAllocation = allocateQuoteSyncState(quote);
+  const linkedAllocation = quoteAllocation.items.find((item) => item.id === linkedItem.id);
+  const paidAmount = (linkedAllocation?.paid ?? 0) + (linkedAllocation?.paghero ?? 0);
   
   // Logic: 
   // 1. If it's a manual adjustment, WE PRESERVE IT unless paidAmount > currentTotal.
@@ -209,9 +254,14 @@ export async function syncAllDentalRecordsIntoQuote(
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           include: {
             payments: {
-              select: { amount: true },
+              select: { amount: true, method: true, kind: true, quoteItemId: true, id: true },
             },
+            dentalRecord: { select: { treated: true, tooth: true } },
           },
+        },
+        payments: {
+          where: { archivedAt: null },
+          select: { amount: true, method: true, kind: true, quoteItemId: true, id: true },
         },
       },
     }),
@@ -258,7 +308,9 @@ export async function syncAllDentalRecordsIntoQuote(
       });
       changed = true;
     } else {
-      const paidAmount = linkedItem.payments.reduce((sum, p) => sum + toNumber(p.amount), 0);
+      const quoteAllocation = allocateQuoteSyncState(quote);
+      const linkedAllocation = quoteAllocation.items.find((item) => item.id === linkedItem.id);
+      const paidAmount = (linkedAllocation?.paid ?? 0) + (linkedAllocation?.paghero ?? 0);
       const currentPrice = toNumber(linkedItem.price);
       
       let nextPrice = currentPrice;

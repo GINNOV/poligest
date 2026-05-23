@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { PatientPaymentKind, PatientPaymentMethod, Prisma } from "@prisma/client";
 
 export type DoctorReportSummary = {
   id: string;
@@ -101,4 +101,19 @@ export function aggregateDoctorReport({
   }
 
   return Array.from(doctorsMap.values()).sort((a, b) => b.totalIncome - a.totalIncome);
+}
+
+export function classifyMonthlyPatientPayment(payment: {
+  amount: number;
+  method: PatientPaymentMethod;
+  kind: PatientPaymentKind;
+  note: string | null;
+}): { anticipo: number; paghero: number } {
+  if (payment.method === PatientPaymentMethod.PAY_LATER) {
+    return { anticipo: 0, paghero: payment.amount };
+  }
+  if (payment.kind === PatientPaymentKind.DOWNPAYMENT && payment.method !== PatientPaymentMethod.OTHER) {
+    return { anticipo: payment.amount, paghero: 0 };
+  }
+  return { anticipo: 0, paghero: 0 };
 }

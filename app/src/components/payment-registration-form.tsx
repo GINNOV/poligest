@@ -9,12 +9,14 @@ import { useActionState, useEffect } from "react";
 export function PaymentRegistrationForm({
   patientId,
   quoteId,
+  quoteResidual,
   diarioUrl,
   recordPatientPaymentAction,
   doctors,
 }: {
   patientId: string;
   quoteId: string;
+  quoteResidual: number;
   diarioUrl: string;
   recordPatientPaymentAction: (formData: FormData) => Promise<void>;
   doctors: { id: string; fullName: string }[];
@@ -95,6 +97,7 @@ export function PaymentRegistrationForm({
               patientId={patientId}
               quoteId={quoteId}
               quoteItems={unsettledItems}
+              quoteResidual={quoteResidual}
               diarioUrl={diarioUrl}
               doctors={doctors}
             />

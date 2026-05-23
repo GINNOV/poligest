@@ -12,6 +12,8 @@ export function calculateRemaining(total: number, paid: number, paghero: number)
 }
 
 export type QuoteItemPaymentStatus = "settled" | "partial" | "unpaid" | "in_progress" | "promised_altro";
+export type FinancePaymentMethod = "CASH" | "ELECTRONIC" | "BANK_TRANSFER" | "PAY_LATER" | "OTHER";
+export type FinancePaymentKind = "STANDARD" | "DOWNPAYMENT";
 
 /**
  * Determines the payment status of a quote item based on priority.
@@ -45,6 +47,8 @@ export type QuoteItemSummary = {
   tooth?: number | null;
   quantity: number;
   total: number;
+  paidDirect: number;
+  downpaymentAllocated: number;
   paid: number;
   paghero: number;
   altro: number;
@@ -62,6 +66,8 @@ export function summarizeQuoteItem(item: {
   serviceName: string;
   quantity: number;
   total: number;
+  paidDirect?: number;
+  downpaymentAllocated?: number;
   paid: number;
   paghero: number;
   altro: number;
@@ -84,9 +90,160 @@ export function summarizeQuoteItem(item: {
 
   return {
     ...item,
+    paidDirect: item.paidDirect ?? item.paid,
+    downpaymentAllocated: item.downpaymentAllocated ?? 0,
     remaining,
     status,
     saldato: status === "settled",
     label: `${item.serviceName}${item.tooth ? ` (Dente ${item.tooth})` : ""} · residuo ${formattedRemaining}`,
+  };
+}
+
+type AllocatableQuoteItem = {
+  id: string;
+  serviceName: string;
+  quantity: number;
+  total: number;
+  createdAt?: Date | string | null;
+  tooth?: number | null;
+  inProgress?: boolean;
+};
+
+type AllocatablePayment = {
+  id?: string;
+  quoteItemId: string | null;
+  amount: number;
+  method: FinancePaymentMethod;
+  kind?: FinancePaymentKind | string | null;
+};
+
+export type AllocatedQuoteItemSummary = QuoteItemSummary & {
+  paidDirect: number;
+  downpaymentAllocated: number;
+};
+
+export function isActualMoneyPayment(method: FinancePaymentMethod): boolean {
+  return method !== "PAY_LATER" && method !== "OTHER";
+}
+
+export function allocateQuotePayments({
+  items,
+  payments,
+}: {
+  items: AllocatableQuoteItem[];
+  payments: AllocatablePayment[];
+}): {
+  items: AllocatedQuoteItemSummary[];
+  totals: {
+    total: number;
+    paid: number;
+    paidDirect: number;
+    downpaymentCredit: number;
+    paghero: number;
+    altro: number;
+    remaining: number;
+  };
+  downpaymentCredit: number;
+  remaining: number;
+} {
+  const sortedItems = [...items].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id.localeCompare(b.id);
+  });
+
+  const itemSummaries = sortedItems.map((item) => {
+    const itemPayments = payments.filter((payment) => payment.quoteItemId === item.id);
+    const paidDirect = itemPayments.reduce(
+      (sum, payment) => isActualMoneyPayment(payment.method) ? sum + payment.amount : sum,
+      0
+    );
+    const paghero = itemPayments.reduce(
+      (sum, payment) => payment.method === "PAY_LATER" ? sum + payment.amount : sum,
+      0
+    );
+    const altro = itemPayments.reduce(
+      (sum, payment) => payment.method === "OTHER" ? sum + payment.amount : sum,
+      0
+    );
+
+    return {
+      item,
+      paidDirect,
+      paghero,
+      altro,
+      downpaymentAllocated: 0,
+    };
+  });
+
+  let remainingDownpaymentCredit = payments.reduce((sum, payment) => {
+    if (payment.quoteItemId !== null) return sum;
+    if (payment.kind !== "DOWNPAYMENT") return sum;
+    if (!isActualMoneyPayment(payment.method)) return sum;
+    return sum + payment.amount;
+  }, 0);
+  const downpaymentCredit = remainingDownpaymentCredit;
+
+  for (const summary of itemSummaries) {
+    if (remainingDownpaymentCredit <= 0.009) break;
+    const itemResidualBeforeDownpayment = calculateRemaining(
+      summary.item.total,
+      summary.paidDirect,
+      summary.paghero
+    );
+    const allocated = Math.min(itemResidualBeforeDownpayment, remainingDownpaymentCredit);
+    summary.downpaymentAllocated = allocated;
+    remainingDownpaymentCredit -= allocated;
+  }
+
+  const allocatedItems = itemSummaries.map((summary) => {
+    const paid = summary.paidDirect + summary.downpaymentAllocated;
+    return summarizeQuoteItem({
+      id: summary.item.id,
+      serviceName: summary.item.serviceName,
+      tooth: summary.item.tooth,
+      quantity: summary.item.quantity,
+      total: summary.item.total,
+      paidDirect: summary.paidDirect,
+      downpaymentAllocated: summary.downpaymentAllocated,
+      paid,
+      paghero: summary.paghero,
+      altro: summary.altro,
+      inProgress: Boolean(summary.item.inProgress),
+    });
+  });
+
+  const itemLinkedActualPaid = payments.reduce(
+    (sum, payment) => payment.quoteItemId && isActualMoneyPayment(payment.method) ? sum + payment.amount : sum,
+    0
+  );
+  const quoteLevelOther = payments.reduce(
+    (sum, payment) => payment.quoteItemId === null && payment.method === "OTHER" ? sum + payment.amount : sum,
+    0
+  );
+  const quoteLevelPayLater = payments.reduce(
+    (sum, payment) => payment.quoteItemId === null && payment.method === "PAY_LATER" ? sum + payment.amount : sum,
+    0
+  );
+  const total = allocatedItems.reduce((sum, item) => sum + item.total, 0);
+  const paid = allocatedItems.reduce((sum, item) => sum + item.paid, 0);
+  const paghero = allocatedItems.reduce((sum, item) => sum + item.paghero, 0) + quoteLevelPayLater;
+  const altro = allocatedItems.reduce((sum, item) => sum + item.altro, 0) + quoteLevelOther;
+  const remaining = allocatedItems.reduce((sum, item) => sum + item.remaining, 0);
+
+  return {
+    items: allocatedItems,
+    totals: {
+      total,
+      paid,
+      paidDirect: itemLinkedActualPaid,
+      downpaymentCredit,
+      paghero,
+      altro,
+      remaining,
+    },
+    downpaymentCredit,
+    remaining,
   };
 }

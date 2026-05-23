@@ -3,9 +3,10 @@ import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
-import { PatientPaymentMethod, Role } from "@prisma/client";
+import { PatientPaymentKind, PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
+import { classifyMonthlyPatientPayment } from "@/lib/finance/reports";
 
 export const revalidate = 60;
 
@@ -62,13 +63,14 @@ export default async function ReportMensilePage({
   const patientPaymentClient = getOptionalPrismaModel<{
     findMany?: (args: {
       where: { paidAt: { gte: Date; lte: Date } };
-      select: { amount: true; paidAt: true; method: true; note: true };
+      select: { amount: true; paidAt: true; method: true; kind: true; note: true };
       orderBy: { paidAt: "asc" | "desc" };
     }) => Promise<
       Array<{
         amount: { toString(): string };
         paidAt: Date;
         method: PatientPaymentMethod;
+        kind: PatientPaymentKind;
         note: string | null;
       }>
     >;
@@ -86,6 +88,7 @@ export default async function ReportMensilePage({
           amount: true,
           paidAt: true,
           method: true,
+          kind: true,
           note: true,
         },
         orderBy: { paidAt: "asc" },
@@ -135,14 +138,15 @@ export default async function ReportMensilePage({
       due: 0,
     };
     const amount = Number(payment.amount);
-    const note = (payment.note ?? "").toLowerCase();
-    const isAnticipo = note.includes("anticipo") || note.includes("acconto");
+    const classification = classifyMonthlyPatientPayment({
+      amount,
+      method: payment.method,
+      kind: payment.kind,
+      note: payment.note,
+    });
 
-    if (payment.method === PatientPaymentMethod.PAY_LATER) {
-      current.paghero += amount;
-    } else if (isAnticipo) {
-      current.anticipo += amount;
-    }
+    current.paghero += classification.paghero;
+    current.anticipo += classification.anticipo;
 
     groupedByDay.set(dayKey, current);
   }

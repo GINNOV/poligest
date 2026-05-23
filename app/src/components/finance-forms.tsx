@@ -138,6 +138,7 @@ type PatientPaymentFieldsProps = {
   patientId: string;
   quoteId: string;
   quoteItems: QuoteItemOption[];
+  quoteResidual: number;
   diarioUrl?: string;
   doctors: DoctorOption[];
 };
@@ -146,8 +147,10 @@ export function PatientPaymentFields({
   patientId,
   quoteId,
   quoteItems,
+  quoteResidual,
   doctors,
 }: PatientPaymentFieldsProps) {
+  const [paymentKind, setPaymentKind] = useState<"STANDARD" | "DOWNPAYMENT">("STANDARD");
   const [quoteItemId, setQuoteItemId] = useState<string>("");
   const [prevQuoteItems, setPrevQuoteItems] = useState(quoteItems);
 
@@ -164,20 +167,51 @@ export function PatientPaymentFields({
     () => quoteItems.find((item) => item.id === quoteItemId) ?? null,
     [quoteItemId, quoteItems]
   );
+  const isDownpayment = paymentKind === "DOWNPAYMENT";
+  const maxAmount = isDownpayment ? quoteResidual : selectedItem?.remaining;
 
   return (
     <div className="space-y-3">
       <input type="hidden" name="patientId" value={patientId} />
       <input type="hidden" name="quoteId" value={quoteId} />
+      <input type="hidden" name="paymentKind" value={paymentKind} />
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => setPaymentKind("STANDARD")}
+          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+            !isDownpayment
+              ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+              : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+          }`}
+        >
+          Saldo prestazione
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPaymentKind("DOWNPAYMENT");
+            setQuoteItemId("");
+          }}
+          className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
+            isDownpayment
+              ? "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-300"
+              : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
+          }`}
+        >
+          Acconto preventivo
+        </button>
+      </div>
+
+      {!isDownpayment ? <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:flex-1">
           Prestazione del preventivo
           <select
             name="quoteItemId"
             value={quoteItemId}
             onChange={(event) => setQuoteItemId(event.target.value)}
-            required
+            required={!isDownpayment}
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
           >
             <option value="" disabled>
@@ -202,9 +236,13 @@ export function PatientPaymentFields({
             </div>
           </div>
         ) : null}
-      </div>
+      </div> : (
+        <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs font-semibold text-sky-900 dark:border-sky-900/30 dark:bg-sky-950/20 dark:text-sky-300">
+          Acconto sul preventivo. Residuo preventivo: € {quoteResidual.toFixed(2)}
+        </div>
+      )}
 
-      {quoteItemId && (
+      {(quoteItemId || isDownpayment) && (
         <div className="grid gap-3 md:grid-cols-5 animate-in fade-in slide-in-from-top-2 duration-300">
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
             Data incasso
@@ -257,7 +295,7 @@ export function PatientPaymentFields({
               min="0.01"
               step="0.01"
               required
-              max={selectedItem ? selectedItem.remaining.toFixed(2) : undefined}
+              max={maxAmount != null ? maxAmount.toFixed(2) : undefined}
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:ring-emerald-900"
             />
           </label>

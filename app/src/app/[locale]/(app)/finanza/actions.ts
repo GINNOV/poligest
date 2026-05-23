@@ -1,10 +1,130 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PatientPaymentMethod, Prisma, Role } from "@prisma/client";
+import { PatientPaymentKind, PatientPaymentMethod, Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { allocateQuotePayments } from "@/lib/finance/domain-logic";
+
+type QuoteForPayment = NonNullable<Awaited<ReturnType<typeof getQuoteForPayment>>>;
+
+function toAmount(value: Prisma.Decimal | number | { toString(): string }) {
+  return Number(value.toString());
+}
+
+function parsePaymentKind(raw: FormDataEntryValue | null): PatientPaymentKind {
+  const value = String(raw || PatientPaymentKind.STANDARD).toUpperCase();
+  return Object.values(PatientPaymentKind).includes(value as PatientPaymentKind)
+    ? (value as PatientPaymentKind)
+    : PatientPaymentKind.STANDARD;
+}
+
+function getMethodLabel(method: PatientPaymentMethod) {
+  return method === PatientPaymentMethod.CASH
+    ? "contanti"
+    : method === PatientPaymentMethod.BANK_TRANSFER
+      ? "bonifico"
+      : method === PatientPaymentMethod.PAY_LATER
+        ? "pagherò"
+      : method === PatientPaymentMethod.OTHER
+        ? "insolvente"
+        : "elettronico";
+}
+
+async function getQuoteForPayment(quoteId: string, patientId: string) {
+  return prisma.quote.findFirst({
+    where: { id: quoteId, patientId },
+    include: {
+      patient: { select: { firstName: true, lastName: true } },
+      items: {
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        include: {
+          dentalRecord: { select: { updatedById: true, treated: true, tooth: true } },
+          payments: {
+            where: { archivedAt: null },
+            select: { id: true, amount: true, method: true, kind: true, quoteItemId: true },
+          },
+        },
+      },
+      payments: {
+        where: { archivedAt: null },
+        select: { id: true, amount: true, method: true, kind: true, quoteItemId: true },
+      },
+    },
+  });
+}
+
+function getQuoteAllocation(quote: QuoteForPayment) {
+  return allocateQuotePayments({
+    items: quote.items.map((item) => ({
+      id: item.id,
+      serviceName: item.serviceName,
+      quantity: item.quantity,
+      total: toAmount(item.total),
+      createdAt: item.createdAt,
+      tooth: item.dentalRecord?.tooth,
+      inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
+    })),
+    payments: quote.payments.map((payment) => ({
+      id: payment.id,
+      quoteItemId: payment.quoteItemId,
+      amount: toAmount(payment.amount),
+      method: payment.method,
+      kind: payment.kind,
+    })),
+  });
+}
+
+async function refreshQuoteItemSettlementState(
+  tx: Prisma.TransactionClient,
+  quoteId: string,
+  patientId: string
+) {
+  const quote = await tx.quote.findFirst({
+    where: { id: quoteId, patientId },
+    include: {
+      items: {
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        include: {
+          dentalRecord: { select: { treated: true, tooth: true } },
+        },
+      },
+      payments: {
+        where: { archivedAt: null },
+        select: { id: true, amount: true, method: true, kind: true, quoteItemId: true },
+      },
+    },
+  });
+
+  if (!quote) return;
+
+  const allocation = allocateQuotePayments({
+    items: quote.items.map((item) => ({
+      id: item.id,
+      serviceName: item.serviceName,
+      quantity: item.quantity,
+      total: toAmount(item.total),
+      createdAt: item.createdAt,
+      tooth: item.dentalRecord?.tooth,
+      inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
+    })),
+    payments: quote.payments.map((payment) => ({
+      id: payment.id,
+      quoteItemId: payment.quoteItemId,
+      amount: toAmount(payment.amount),
+      method: payment.method,
+      kind: payment.kind,
+    })),
+  });
+
+  await Promise.all(allocation.items.map((item) =>
+    tx.quoteItem.update({
+      where: { id: item.id },
+      data: { saldato: item.saldato },
+    })
+  ));
+}
 
 export async function recordPatientPayment(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
@@ -15,12 +135,13 @@ export async function recordPatientPayment(formData: FormData) {
   const amountRaw = (formData.get("amount") as string)?.trim();
   const paidAt = (formData.get("paidAt") as string) || "";
   const note = ((formData.get("note") as string) || "").trim() || null;
+  const kind = parsePaymentKind(formData.get("paymentKind"));
   const methodRaw = ((formData.get("paymentMethod") as string) || PatientPaymentMethod.ELECTRONIC).toUpperCase();
   const method = Object.values(PatientPaymentMethod).includes(methodRaw as PatientPaymentMethod)
     ? (methodRaw as PatientPaymentMethod)
     : PatientPaymentMethod.ELECTRONIC;
 
-  if (!patientId || !quoteId || !quoteItemId || !amountRaw || !paidAt) {
+  if (!patientId || !quoteId || !amountRaw || !paidAt || (kind === PatientPaymentKind.STANDARD && !quoteItemId)) {
     throw new Error("Dati mancanti");
   }
 
@@ -29,34 +150,36 @@ export async function recordPatientPayment(formData: FormData) {
     throw new Error("Importo non valido");
   }
 
-  const quoteItem = await prisma.quoteItem.findFirst({
-    where: {
-      id: quoteItemId,
-      quoteId,
-      quote: { patientId },
-    },
-    include: {
-      dentalRecord: {
-        select: {
-          updatedById: true,
-        },
-      },
-      quote: {
-        select: {
-          patient: { select: { firstName: true, lastName: true } },
-        },
-      },
-    },
-  });
+  const quote = await getQuoteForPayment(quoteId, patientId);
+  if (!quote) {
+    throw new Error("Preventivo non trovato");
+  }
 
-  if (!quoteItem) {
+  const quoteItem = kind === PatientPaymentKind.STANDARD
+    ? quote.items.find((item) => item.id === quoteItemId)
+    : null;
+
+  if (kind === PatientPaymentKind.STANDARD && !quoteItem) {
     throw new Error("Prestazione del preventivo non trovata");
+  }
+
+  const allocation = getQuoteAllocation(quote);
+  if (kind === PatientPaymentKind.DOWNPAYMENT) {
+    if (amountNumber - allocation.remaining > 0.009) {
+      throw new Error("L'acconto supera il residuo del preventivo");
+    }
+  } else if (quoteItem) {
+    const selectedSummary = allocation.items.find((item) => item.id === quoteItem.id);
+    const residual = selectedSummary?.remaining ?? 0;
+    if (amountNumber - residual > 0.009) {
+      throw new Error("L'importo supera il residuo della prestazione selezionata");
+    }
   }
 
   // Try to find the doctor responsible for this payment
   let targetDoctorId: string | null = explicitDoctorId;
 
-  if (!targetDoctorId && quoteItem.dentalRecord?.updatedById) {
+  if (!targetDoctorId && quoteItem?.dentalRecord?.updatedById) {
     const doc = await prisma.doctor.findUnique({
       where: { userId: quoteItem.dentalRecord.updatedById },
       select: { id: true },
@@ -85,63 +208,37 @@ export async function recordPatientPayment(formData: FormData) {
     if (agg.length > 0) targetDoctorId = agg[0].doctorId;
   }
 
-  const existingPayments = await prisma.patientPayment.findMany({
-    where: { quoteItemId, archivedAt: null },
-    select: { amount: true },
-  });
-
-  const totalAmount = Number(quoteItem.total.toString());
-  const existingPaid = existingPayments.length
-    ? existingPayments.reduce((sum, payment) => sum + Number(payment.amount.toString()), 0)
-    : quoteItem.saldato
-      ? totalAmount
-      : 0;
-  const nextPaid = existingPaid + amountNumber;
-
-  if (nextPaid - totalAmount > 0.009) {
-    throw new Error("L'importo supera il residuo della prestazione selezionata");
-  }
-
   const patientName =
-    `${quoteItem.quote.patient.lastName ?? ""} ${quoteItem.quote.patient.firstName ?? ""}`.trim() || "Paziente";
-  const methodLabel =
-    method === PatientPaymentMethod.CASH
-      ? "contanti"
-      : method === PatientPaymentMethod.BANK_TRANSFER
-        ? "bonifico"
-        : method === PatientPaymentMethod.PAY_LATER
-          ? "pagherò"
-        : method === PatientPaymentMethod.OTHER
-          ? "insolvente"
-          : "elettronico";
+    `${quote.patient.lastName ?? ""} ${quote.patient.firstName ?? ""}`.trim() || "Paziente";
+  const methodLabel = getMethodLabel(method);
+  const paymentQuoteItemId = kind === PatientPaymentKind.DOWNPAYMENT ? null : quoteItemId;
+  const descriptionTitle = kind === PatientPaymentKind.DOWNPAYMENT
+    ? `Acconto preventivo paziente ${patientName}`
+    : `Pagamento paziente ${patientName}`;
 
   const payment = await prisma.$transaction(async (tx) => {
     const p = await tx.patientPayment.create({
       data: {
         patientId,
         quoteId,
-        quoteItemId,
+        quoteItemId: paymentQuoteItemId,
         amount: new Prisma.Decimal(amountNumber),
         paidAt: new Date(paidAt),
         method,
+        kind,
         note,
         userId: user.id,
       },
     });
 
-    await tx.quoteItem.update({
-      where: { id: quoteItemId },
-      data: {
-        saldato: Math.abs(nextPaid - totalAmount) < 0.01 || nextPaid > totalAmount,
-      },
-    });
+    await refreshQuoteItemSettlementState(tx, quoteId, patientId);
 
     await tx.financeEntry.create({
       data: {
         type: "INCOME",
         description: [
-          `Pagamento paziente ${patientName}`,
-          quoteItem.serviceName,
+          descriptionTitle,
+          quoteItem?.serviceName,
           `Metodo: ${methodLabel}`,
           note,
         ]
@@ -156,7 +253,8 @@ export async function recordPatientPayment(formData: FormData) {
         metadata: {
           paymentId: p.id,
           quoteId,
-          quoteItemId,
+          quoteItemId: paymentQuoteItemId,
+          paymentKind: kind,
         },
       },
     });
@@ -173,7 +271,8 @@ export async function recordPatientPayment(formData: FormData) {
       quoteId,
       amount: amountNumber,
       method,
-      quoteItemId,
+      kind,
+      quoteItemId: paymentQuoteItemId,
     },
   });
 
@@ -194,7 +293,9 @@ export async function archivePatientPayment(formData: FormData) {
     select: {
       id: true,
       patientId: true,
+      quoteId: true,
       quoteItemId: true,
+      kind: true,
       archivedAt: true,
     },
   });
@@ -238,32 +339,8 @@ export async function archivePatientPayment(formData: FormData) {
       });
     }
 
-    if (payment.quoteItemId) {
-      const [quoteItem, activePayments] = await Promise.all([
-        tx.quoteItem.findUnique({
-          where: { id: payment.quoteItemId },
-          select: { id: true, total: true, saldato: true },
-        }),
-        tx.patientPayment.findMany({
-          where: {
-            quoteItemId: payment.quoteItemId,
-            archivedAt: null,
-          },
-          select: { amount: true },
-        }),
-      ]);
-
-      if (quoteItem) {
-        const paidAmount = activePayments.reduce((sum, entry) => sum + Number(entry.amount.toString()), 0);
-        const totalAmount = Number(quoteItem.total.toString());
-
-        await tx.quoteItem.update({
-          where: { id: quoteItem.id },
-          data: {
-            saldato: paidAmount >= totalAmount - 0.009,
-          },
-        });
-      }
+    if (payment.quoteId) {
+      await refreshQuoteItemSettlementState(tx, payment.quoteId, payment.patientId);
     }
   });
 
@@ -273,7 +350,9 @@ export async function archivePatientPayment(formData: FormData) {
     entityId: paymentId,
     metadata: {
       patientId: payment.patientId,
+      quoteId: payment.quoteId,
       quoteItemId: payment.quoteItemId,
+      kind: payment.kind,
     },
   });
 

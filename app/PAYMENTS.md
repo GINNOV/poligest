@@ -8,6 +8,7 @@ This document explains how the clinic's financial calculations, remaining balanc
 | :--- | :--- | :--- |
 | **Total (Totale)** | `Quantity * Price` of a quote item. | N/A |
 | **Incassato** | Sum of actual payments (CASH, ELECTRONIC, BANK_TRANSFER). | **Reduces Residuo** |
+| **Acconto** | Quote-level downpayment with `PatientPayment.kind = DOWNPAYMENT`. Actual-money methods are allocated across quote items from oldest to newest. | **Reduces Residuo via virtual allocation** |
 | **Pagherò** | Standard deferred payment (PAY_LATER). Treated as a commitment. | **Reduces Residuo** |
 | **insolvente** | Special "Other" payment method. Tracked separately. | **NO IMPACT on Residuo** |
 | **Residuo** | `Total - Incassato - Pagherò`. | N/A |
@@ -16,8 +17,12 @@ This document explains how the clinic's financial calculations, remaining balanc
 The remaining balance (**Residuo**) for any given item or quote follows this logic:
 ```typescript
 // insolvente is EXCLUDED from the subtraction
-const residuo = Math.max(0, total - actualCollections - pagheroAmount);
+const residuo = Math.max(0, total - actualCollections - allocatedDownpayment - pagheroAmount);
 ```
+
+Quote-level downpayments are stored once as `PatientPayment` records with `quoteItemId = null` and `kind = DOWNPAYMENT`.
+They are not split into per-item rows. The app allocates them virtually across quote items ordered by `createdAt ASC, id ASC`.
+Item-linked payments and `PAY_LATER` commitments are applied before downpayment credit for each item.
 
 ## 3. Item Status Logic
 The status of a quote item is determined by the following priority:
@@ -32,10 +37,16 @@ The status of a quote item is determined by the following priority:
 
 ### Summary Tiles (`PaymentsSummaryTiles.tsx`)
 - **Prestazioni:** Sum of all item totals.
-- **Incassato:** Sum of actual money collected.
+- **Incassato:** Sum of actual money collected after item-linked payments and allocated acconti.
+- **Acconto:** Sum of actual-money quote-level downpayments available for allocation.
 - **Pagherò:** Sum of all standard deferred commitments.
 - **totale insolvente:** Sum of special "Other" commitments. This box has a **red gradient** background to highlight its special status.
 - **Residuo:** The net amount still owed by the patient (excluding insolvente).
+
+### Registering Payments (`PatientPaymentFields`)
+- **Saldo prestazione:** requires selecting a quote item and creates a standard item-linked payment.
+- **Acconto preventivo:** does not require a quote item and creates a quote-level `DOWNPAYMENT`.
+- Existing note-only records containing `acconto` or `anticipo` are **not backfilled**; only new records use `PatientPayment.kind`.
 
 ### Daily Report (`report-giornaliero`)
 - **Row Coloring:**
@@ -43,6 +54,13 @@ The status of a quote item is determined by the following priority:
     - **Blue (`bg-blue-50`):** Bonifico (Bank Transfer)
     - **Gray (`bg-zinc-100`):** Pagherò
     - **Emerald Tint:** Default for Electronic/insolvente.
+
+### Monthly Report (`report-mensile`)
+- New downpayments are classified by `PatientPayment.kind`, not by note text.
+- Method precedence wins:
+    - `PAY_LATER` is counted in **Pagherò** even when `kind = DOWNPAYMENT`.
+    - `OTHER` remains insolvente/special and is not counted as **Acconto**.
+    - Actual-money `DOWNPAYMENT` records are counted in **Anticipo/Acconto**.
 
 ## 5. Settled Items (Read-only behavior)
 When a quote item is fully paid (`Residuo < 0.01`):
@@ -62,3 +80,4 @@ If you change the financial math, you **MUST** update these four files together:
 2. `src/components/payment-state-provider.tsx` (Client-side interactive updates)
 3. `src/components/unsettled-items-list.tsx` (Status badges and item grids)
 4. `src/components/quote/QuoteItemRow.tsx` (Row styling and read-only logic)
+5. `src/lib/finance/domain-logic.ts` (Shared allocation and status math)

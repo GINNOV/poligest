@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
-import { PatientPaymentMethod } from "@prisma/client";
+import { PatientPaymentKind, PatientPaymentMethod } from "@prisma/client";
 
 type HistoricalPayment = {
   id: string;
   paidAt: Date;
   amount: number;
   method: PatientPaymentMethod;
+  kind: PatientPaymentKind;
   note: string | null;
   quoteItem?: {
     serviceName: string;
@@ -121,7 +122,7 @@ export function PaymentHistory({
               >
                 <div className="space-y-1.5">
                   <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 uppercase tracking-tight">
-                    {payment.quoteItem?.serviceName ?? "Pagamento paziente"}
+                    {payment.kind === PatientPaymentKind.DOWNPAYMENT ? "Acconto preventivo" : payment.quoteItem?.serviceName ?? "Pagamento paziente"}
                     {payment.quoteItem?.tooth ? (
                       <span className="ml-2 text-[10px] font-black text-blue-900 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/20 uppercase tracking-tighter">
                         Dente {payment.quoteItem.tooth}

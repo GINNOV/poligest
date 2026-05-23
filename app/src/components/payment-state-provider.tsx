@@ -12,7 +12,15 @@ export type AccordionId = "quote" | "unsettled" | "payment" | null;
 type PaymentContextType = {
   items: QuoteItemSummary[];
   updateItemPrice: (id: string, newPrice: number, newQuantity: number) => void;
-  totals: { total: number; paid: number; paghero: number; altro: number; remaining: number };
+  totals: {
+    total: number;
+    paid: number;
+    paidDirect: number;
+    downpaymentCredit: number;
+    paghero: number;
+    altro: number;
+    remaining: number;
+  };
   openAccordion: AccordionId;
   setOpenAccordion: (id: AccordionId) => void;
 };
@@ -21,11 +29,11 @@ const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
 export function PaymentStateProvider({
   initialItems,
-  initialAltro,
+  initialTotals,
   children,
 }: {
   initialItems: QuoteItemSummary[];
-  initialAltro: number;
+  initialTotals: PaymentContextType["totals"] | null;
   children: ReactNode;
 }) {
   const [items, setItems] = useState(initialItems);
@@ -69,14 +77,21 @@ export function PaymentStateProvider({
       (acc, item) => {
         acc.total += item.total;
         acc.paid += item.paid;
+        acc.paidDirect += item.paidDirect;
+        acc.downpaymentCredit += item.downpaymentAllocated;
         acc.paghero += item.paghero;
+        acc.altro += item.altro;
         acc.remaining += item.remaining;
         return acc;
       },
-      { total: 0, paid: 0, paghero: 0, remaining: 0 }
+      { total: 0, paid: 0, paidDirect: 0, downpaymentCredit: 0, paghero: 0, altro: 0, remaining: 0 }
     );
-    return { ...sums, altro: initialAltro };
-  }, [items, initialAltro]);
+    return {
+      ...sums,
+      downpaymentCredit: initialTotals?.downpaymentCredit ?? sums.downpaymentCredit,
+      altro: initialTotals?.altro ?? sums.altro,
+    };
+  }, [items, initialTotals]);
 
   return (
     <PaymentContext.Provider value={{ items, updateItemPrice, totals, openAccordion, setOpenAccordion }}>

@@ -22,7 +22,7 @@ import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import {
   formatDateInputValueInTimeZone,
 } from "@/lib/user-display-time-zone";
-import { summarizeQuoteItem } from "@/lib/finance/domain-logic";
+import { allocateQuotePayments } from "@/lib/finance/domain-logic";
 
 export const revalidate = 60;
 
@@ -91,6 +91,7 @@ export default async function PagamentiPage({
                   amount: true,
                   paidAt: true,
                   method: true,
+                  kind: true,
                   note: true,
                   quoteItemId: true,
                   user: {
@@ -117,7 +118,9 @@ export default async function PagamentiPage({
                       amount: true,
                       paidAt: true,
                       method: true,
+                      kind: true,
                       note: true,
+                      quoteItemId: true,
                       user: {
                         select: { name: true, email: true },
                       },
@@ -152,36 +155,38 @@ export default async function PagamentiPage({
       : null
   );
 
-  const quoteItemSummaries = (latestQuote?.items ?? []).map((item) => {
-    const total = Number(item.total.toString());
-    const paid = item.payments.reduce(
-      (sum, p) => (p.method !== "PAY_LATER" && p.method !== "OTHER") ? sum + Number(p.amount.toString()) : sum,
-      0
-    );
-    const paghero = item.payments.reduce(
-      (sum, p) => p.method === "PAY_LATER" ? sum + Number(p.amount.toString()) : sum,
-      0
-    );
-    const altro = item.payments.reduce(
-      (sum, p) => p.method === "OTHER" ? sum + Number(p.amount.toString()) : sum,
-      0
-    );
-
-    return summarizeQuoteItem({
-      id: item.id,
-      serviceName: item.serviceName,
-      tooth: item.dentalRecord?.tooth,
-      quantity: item.quantity,
-      total,
-      paid,
-      paghero,
-      altro,
-      inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
-    });
-  });
-  const altroTotal = latestQuote?.payments
-    .filter(p => !p.quoteItemId)
-    .reduce((sum, p) => sum + Number(p.amount), 0) ?? 0;
+  const quoteAllocation = latestQuote
+    ? allocateQuotePayments({
+        items: latestQuote.items.map((item) => ({
+          id: item.id,
+          serviceName: item.serviceName,
+          tooth: item.dentalRecord?.tooth,
+          quantity: item.quantity,
+          total: Number(item.total.toString()),
+          createdAt: item.createdAt,
+          inProgress: Boolean(item.dentalRecord && !item.dentalRecord.treated),
+        })),
+        payments: latestQuote.payments.map((p) => ({
+          id: p.id,
+          quoteItemId: p.quoteItemId,
+          amount: Number(p.amount.toString()),
+          method: p.method,
+          kind: p.kind,
+        })),
+      })
+    : null;
+  const quoteItemSummaries = quoteAllocation?.items ?? [];
+  const quoteForAccordion = parsedQuote
+    ? {
+        ...parsedQuote,
+        items: parsedQuote.items?.map((item) => {
+          const summary = quoteItemSummaries.find((candidate) => candidate.id === item.id);
+          return summary
+            ? { ...item, saldato: summary.saldato, payments: [{ amount: summary.paid }] }
+            : item;
+        }),
+      }
+    : null;
 
   const patientOptions = patients.map((p) => ({
     id: p.id,
@@ -194,6 +199,7 @@ export default async function PagamentiPage({
       amount: Number(p.amount.toString()),
       paidAt: p.paidAt,
       method: p.method,
+      kind: p.kind,
       note: p.note,
       user: p.user,
       quoteItem: {
@@ -210,6 +216,7 @@ export default async function PagamentiPage({
       amount: Number(p.amount.toString()),
       paidAt: p.paidAt,
       method: p.method,
+      kind: p.kind,
       note: p.note,
       user: p.user,
       quoteItem: null,
@@ -293,7 +300,10 @@ export default async function PagamentiPage({
       </div>
 
       {!selectedPatient ? null : (
-        <PaymentStateProvider initialItems={quoteItemSummaries} initialAltro={altroTotal}>
+        <PaymentStateProvider
+          initialItems={quoteItemSummaries}
+          initialTotals={quoteAllocation?.totals ?? null}
+        >
           <PaymentsSummaryTiles />
 
           <QuoteAccordion
@@ -306,8 +316,8 @@ export default async function PagamentiPage({
               name: service.name,
               costBasis: Number(service.costBasis.toString()),
             }))}
-            initialQuote={parsedQuote}
-            printHref={parsedQuote?.id ? `/pazienti/${selectedPatient.id}/preventivo/${parsedQuote.id}` : null}
+            initialQuote={quoteForAccordion}
+            printHref={quoteForAccordion?.id ? `/pazienti/${selectedPatient.id}/preventivo/${quoteForAccordion.id}` : null}
             className="bg-white dark:bg-zinc-950"
             onSave={savePreventivoAction}
           />
@@ -319,6 +329,7 @@ export default async function PagamentiPage({
               key={selectedPatient.id}
               patientId={selectedPatient.id}
               quoteId={latestQuote?.id ?? ""}
+              quoteResidual={quoteAllocation?.remaining ?? 0}
               diarioUrl={`/pazienti/${selectedPatient.id}`}
               recordPatientPaymentAction={recordPatientPayment}
               doctors={doctors}
