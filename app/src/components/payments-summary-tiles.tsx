@@ -6,10 +6,10 @@ export function PaymentsSummaryTiles() {
   const { totals } = usePaymentState();
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("it-IT", {
-      style: "currency",
-      currency: "EUR",
-    }).format(value);
+    `€ ${new Intl.NumberFormat("it-IT", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value)}`;
 
   return (
     <div className="grid gap-4 md:grid-cols-6">
