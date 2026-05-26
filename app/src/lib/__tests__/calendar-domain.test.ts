@@ -6,6 +6,7 @@ import {
   ensureCalendarReturnTo,
   formatCalendarLocalInput,
   parseCalendarDateParam,
+  resolveCalendarMonthKey,
   weekdayIso,
 } from "@/lib/calendar/domain";
 
@@ -34,5 +35,29 @@ describe("calendar domain", () => {
     expect(appendCalendarQueryParam("/calendar", "error", "orario non valido")).toBe(
       "/calendar?error=orario%20non%20valido",
     );
+  });
+
+  it("uses the selected week month in week view navigation", () => {
+    expect(
+      resolveCalendarMonthKey({
+        monthParam: undefined,
+        view: "week",
+        weekStart: new Date("2026-05-31T22:00:00.000Z"),
+        now: new Date("2026-05-26T12:00:00.000Z"),
+        timeZone: "Europe/Rome",
+      }),
+    ).toBe("2026-06");
+  });
+
+  it("ignores stale month params in week view", () => {
+    expect(
+      resolveCalendarMonthKey({
+        monthParam: "2026-05",
+        view: "week",
+        weekStart: new Date("2026-05-31T22:00:00.000Z"),
+        now: new Date("2026-05-26T12:00:00.000Z"),
+        timeZone: "Europe/Rome",
+      }),
+    ).toBe("2026-06");
   });
 });

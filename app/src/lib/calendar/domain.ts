@@ -35,6 +35,28 @@ export function formatCalendarLocalInput(date: Date, timeZone?: string) {
   )}:${pad(date.getMinutes())}`;
 }
 
+export function resolveCalendarMonthKey({
+  monthParam,
+  view,
+  weekStart,
+  now,
+  timeZone,
+}: {
+  monthParam?: string;
+  view: "month" | "week";
+  weekStart: Date;
+  now: Date;
+  timeZone: string;
+}) {
+  if (view === "week") {
+    return formatDateInputValueInTimeZone(weekStart, timeZone).slice(0, 7);
+  }
+
+  return monthParam?.match(/^\d{4}-\d{2}$/)
+    ? monthParam
+    : formatDateInputValueInTimeZone(now, timeZone).slice(0, 7);
+}
+
 export function ensureCalendarReturnTo(value: string | null) {
   if (!value || !value.startsWith("/calendar")) return "/calendar";
   return value;

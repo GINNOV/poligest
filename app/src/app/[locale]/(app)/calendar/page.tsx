@@ -9,6 +9,7 @@ import {
   dateEndExclusive,
   dateStart,
   formatCalendarLocalInput,
+  resolveCalendarMonthKey,
 } from "@/lib/calendar/domain";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -144,16 +145,17 @@ export default async function CalendarPage({
   const weekStart = weekIntervalDays[0];
   const weekEnd = new Date(weekIntervalDays[6].getTime() + 24 * 60 * 60 * 1000 - 1);
 
-  const monthMatch = monthParam?.match(/^(\d{4})-(\d{2})$/);
-  const selectedMonthKey = monthMatch
-    ? monthParam!
-    : TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone).slice(0, 7);
-
-  let baseMonth = TZ.parseDateAtMidnightInTimeZone(`${selectedMonthKey}-15`, displayTimeZone);
-  
-  if (!monthMatch && view === "week") {
-    baseMonth = weekStart;
-  }
+  const selectedMonthKey = resolveCalendarMonthKey({
+    monthParam,
+    view,
+    weekStart,
+    now: new Date(),
+    timeZone: displayTimeZone,
+  });
+  const baseMonth =
+    view === "week"
+      ? weekStart
+      : TZ.parseDateAtMidnightInTimeZone(`${selectedMonthKey}-15`, displayTimeZone);
 
   const monthRange = TZ.getMonthRangeInTimeZone(baseMonth, displayTimeZone);
   const monthStart = monthRange.start;
