@@ -5,10 +5,12 @@ import {
   dateStart,
   ensureCalendarReturnTo,
   formatCalendarLocalInput,
+  getCalendarMonthDays,
   parseCalendarDateParam,
   resolveCalendarMonthKey,
   weekdayIso,
 } from "@/lib/calendar/domain";
+import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
 
 describe("calendar domain", () => {
   it("maps sunday to ISO weekday 7", () => {
@@ -59,5 +61,28 @@ describe("calendar domain", () => {
         timeZone: "Europe/Rome",
       }),
     ).toBe("2026-06");
+  });
+
+  it("returns visible days for the selected calendar month", () => {
+    const days = getCalendarMonthDays({
+      baseMonth: new Date("2026-05-31T22:00:00.000Z"),
+      selectedMonthKey: "2026-06",
+      timeZone: "Europe/Rome",
+    });
+
+    expect(days).toHaveLength(30);
+    expect(formatDateInputValueInTimeZone(days[0], "Europe/Rome")).toBe("2026-06-01");
+    expect(formatDateInputValueInTimeZone(days.at(-1)!, "Europe/Rome")).toBe("2026-06-30");
+  });
+
+  it("falls back to the base month instead of returning an empty day range", () => {
+    const days = getCalendarMonthDays({
+      baseMonth: new Date("2026-05-15T12:00:00.000Z"),
+      selectedMonthKey: "2026-07",
+      timeZone: "Europe/Rome",
+    });
+
+    expect(days.length).toBeGreaterThan(0);
+    expect(days.every((day) => formatDateInputValueInTimeZone(day, "Europe/Rome").startsWith("2026-05"))).toBe(true);
   });
 });

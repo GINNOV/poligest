@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseInstructionStepsPayload } from "@/lib/instructions/domain";
 
 export async function upsertInstructionAction(formData: FormData) {
   const user = await requireUser([Role.ADMIN]);
@@ -16,8 +17,7 @@ export async function upsertInstructionAction(formData: FormData) {
   const description = formData.get("description") as string;
   const isActive = formData.get("isActive") === "on";
   
-  const stepsJson = formData.get("stepsJson") as string;
-  const steps = JSON.parse(stepsJson) as Array<{ id?: string; title: string; content: string; sortOrder: number }>;
+  const steps = parseInstructionStepsPayload(formData.get("stepsJson"));
 
   const data = {
     pathPattern,
@@ -114,7 +114,16 @@ export async function markStepAsDoneAction(instructionId: string, stepId: string
     include: { instruction: { include: { steps: { orderBy: { sortOrder: 'asc' } } } } }
   });
 
-  const isLastStep = step.instruction.steps[step.instruction.steps.length - 1].id === stepId;
+  if (step.instructionId !== instructionId) {
+    throw new Error("Passaggio istruzione non valido");
+  }
+
+  const lastStepId = step.instruction.steps.at(-1)?.id;
+  if (!lastStepId) {
+    throw new Error("Istruzione senza passaggi");
+  }
+
+  const isLastStep = lastStepId === stepId;
 
   await prisma.userInstructionProgress.upsert({
     where: {

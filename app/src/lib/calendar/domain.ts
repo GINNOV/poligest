@@ -1,6 +1,7 @@
 import { 
   formatDateInputValueInTimeZone,
-  formatTimeInputValueInTimeZone
+  formatTimeInputValueInTimeZone,
+  getMonthGridInTimeZone,
 } from "@/lib/user-display-time-zone";
 
 export function weekdayIso(date: Date) {
@@ -55,6 +56,30 @@ export function resolveCalendarMonthKey({
   return monthParam?.match(/^\d{4}-\d{2}$/)
     ? monthParam
     : formatDateInputValueInTimeZone(now, timeZone).slice(0, 7);
+}
+
+export function getCalendarMonthDays({
+  baseMonth,
+  selectedMonthKey,
+  timeZone,
+}: {
+  baseMonth: Date;
+  selectedMonthKey: string;
+  timeZone: string;
+}) {
+  const gridDays = getMonthGridInTimeZone(baseMonth, timeZone);
+  const selectedMonthDays = gridDays.filter((day) =>
+    formatDateInputValueInTimeZone(day, timeZone).startsWith(selectedMonthKey)
+  );
+
+  if (selectedMonthDays.length > 0) {
+    return selectedMonthDays;
+  }
+
+  const baseMonthKey = formatDateInputValueInTimeZone(baseMonth, timeZone).slice(0, 7);
+  return gridDays.filter((day) =>
+    formatDateInputValueInTimeZone(day, timeZone).startsWith(baseMonthKey)
+  );
 }
 
 export function ensureCalendarReturnTo(value: string | null) {

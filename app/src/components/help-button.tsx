@@ -39,6 +39,8 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
   // Match current path with instructions
   const activeInstruction = useMemo(() => {
     return instructions.find((ins) => {
+      if (ins.steps.length === 0) return false;
+
       // Check role
       if (ins.role && ins.role !== userRole) return false;
       
@@ -70,7 +72,7 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
     
     const res = await markStepAsDoneAction(activeInstruction.id, stepId);
     if (res.success) {
-      const isLast = activeInstruction.steps[activeInstruction.steps.length - 1].id === stepId;
+      const isLast = activeInstruction.steps.at(-1)?.id === stepId;
       setProgress(prev => {
         const others = prev.filter(p => p.instructionId !== activeInstruction.id);
         return [...others, { 

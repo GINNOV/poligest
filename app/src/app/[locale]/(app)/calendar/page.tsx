@@ -9,6 +9,7 @@ import {
   dateEndExclusive,
   dateStart,
   formatCalendarLocalInput,
+  getCalendarMonthDays,
   resolveCalendarMonthKey,
 } from "@/lib/calendar/domain";
 import { AppointmentStatus, Role } from "@prisma/client";
@@ -161,9 +162,10 @@ export default async function CalendarPage({
   const monthStart = monthRange.start;
   const monthEnd = monthRange.end;
 
-  const days = TZ.getMonthGridInTimeZone(baseMonth, displayTimeZone).filter(day => {
-    const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
-    return key.startsWith(selectedMonthKey);
+  const days = getCalendarMonthDays({
+    baseMonth,
+    selectedMonthKey,
+    timeZone: displayTimeZone,
   });
   const calendarStart = days[0];
   const calendarEnd = new Date(days[days.length - 1].getTime() + 24 * 60 * 60 * 1000 - 1);
