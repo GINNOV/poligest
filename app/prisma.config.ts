@@ -17,7 +17,7 @@ function normalizeConnectionString(rawConnectionString: string): string {
       parsed.searchParams.set("uselibpqcompat", "true");
     }
     return parsed.toString();
-  } catch (error) {
+  } catch {
     return rawConnectionString;
   }
 }

@@ -36,7 +36,8 @@ describe("GET /api/reports/weekly", () => {
     const response = await GET(new Request("http://localhost/api/reports/weekly"));
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized", code: "ERR_WEEKLY" });
+    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    expect(mocks.errorResponse).not.toHaveBeenCalled();
   });
 
   it("runs the weekly report with parsed force mode", async () => {

@@ -1,5 +1,5 @@
 
-import { errorResponse } from "@/lib/error-response";
+import { NextResponse } from "next/server";
 
 /**
  * Validates the cron secret from headers.
@@ -19,11 +19,7 @@ export async function validateCronSecret(req: Request) {
   return false;
 }
 
-export function unauthorizedCronResponse(req: Request, source: string) {
-  return errorResponse({
-    message: "Unauthorized",
-    status: 401,
-    source,
-    path: new URL(req.url).pathname,
-  });
+export function unauthorizedCronResponse(...args: unknown[]) {
+  void args;
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 }

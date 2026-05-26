@@ -181,16 +181,6 @@ export function getMonthRangeInTimeZone(baseDate: Date, timeZone: string) {
  * Returns the day of week (1=Mon, ..., 7=Sun) for a given date in the target timeZone.
  */
 export function weekdayIsoInTimeZone(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    weekday: "narrow", // S, M, T, W, T, F, S
-  }).formatToParts(date);
-  
-  // Actually, narrow weekday is not reliable for mapping to 1-7 easily due to duplicates.
-  // Better to get the day of week index via numeric format if possible, 
-  // but Intl doesn't have a direct "day of week index" part.
-  
-  // Use a safer approach: get the day string and map it
   const dayName = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
