@@ -28,6 +28,7 @@ type AppointmentItem = {
   };
   doctor?: { id: string; fullName?: string | null } | null;
   reminderSent?: boolean;
+  reminderSendCount?: number;
 };
 
 type Props = {
@@ -251,6 +252,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       appointmentId={appt.id}
                       whatsappHref={whatsappHref}
                       initialReminderSent={appt.reminderSent}
+                      initialReminderSendCount={appt.reminderSendCount}
                     />
                     <AppointmentStatusAutoSubmit
                       appointmentId={appt.id}

@@ -60,7 +60,32 @@ type AgendaAppointment = Prisma.AppointmentGetPayload<{
     patient: { select: { firstName: true; lastName: true; phone: true } };
     doctor: { select: { fullName: true; specialty: true } };
   };
-}> & { reminderSent?: boolean };
+}> & { reminderSent?: boolean; reminderSendCount?: number };
+
+const APPOINTMENT_WHATSAPP_REMINDER_ACTION = "appointment.whatsapp_reminder_clicked";
+
+export async function getAppointmentWhatsappReminderCounts(appointmentIds: string[]) {
+  const uniqueIds = Array.from(new Set(appointmentIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map<string, number>();
+
+  const rows = await prisma.auditLog.groupBy({
+    by: ["entityId"],
+    where: {
+      action: APPOINTMENT_WHATSAPP_REMINDER_ACTION,
+      entity: "Appointment",
+      entityId: { in: uniqueIds },
+    },
+    _count: { _all: true },
+  });
+
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    if (row.entityId) {
+      counts.set(row.entityId, row._count._all);
+    }
+  }
+  return counts;
+}
 
 export async function getAgendaPageData({
   statusValue,
@@ -199,6 +224,8 @@ export async function getAgendaPageData({
     )
   ).sort();
 
+  const reminderCounts = await getAppointmentWhatsappReminderCounts(appointments.map((appt) => appt.id));
+
   const appointmentsWithStatus = appointments
     .sort((a, b) => {
       const dateA = a.startsAt.toISOString().split("T")[0];
@@ -221,7 +248,8 @@ export async function getAgendaPageData({
     })
     .map((appt) => ({
       ...appt,
-      reminderSent: false,
+      reminderSent: (reminderCounts.get(appt.id) ?? 0) > 0,
+      reminderSendCount: reminderCounts.get(appt.id) ?? 0,
     }));
 
   const serviceOptions = Array.from(new Set([...services.map((s) => s.name), ...FALLBACK_APPOINTMENT_SERVICES]).values());

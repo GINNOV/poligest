@@ -390,6 +390,7 @@ export default async function AgendaPage({
                             appointmentId={appt.id}
                             whatsappHref={whatsappHref}
                             initialReminderSent={appt.reminderSent}
+                            initialReminderSendCount={appt.reminderSendCount}
                           />
                           <AppointmentStatusAutoSubmit
                             appointmentId={appt.id}

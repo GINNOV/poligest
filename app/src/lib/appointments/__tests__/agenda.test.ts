@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => {
     smsTemplate: {
       findUnique: vi.fn(),
     },
+    auditLog: {
+      groupBy: vi.fn(),
+    },
   };
   const getOptionalPrismaModel = vi.fn();
 
@@ -41,6 +44,7 @@ describe("getAgendaPageData", () => {
     mocks.prisma.patient.findMany.mockResolvedValue([]);
     mocks.prisma.doctor.findMany.mockResolvedValue([]);
     mocks.prisma.smsTemplate.findUnique.mockResolvedValue(null);
+    mocks.prisma.auditLog.groupBy.mockResolvedValue([]);
   });
 
   it("filters appointments by doctor name independently from the free-text search", async () => {
@@ -79,5 +83,42 @@ describe("getAgendaPageData", () => {
         ]),
       }),
     });
+  });
+
+  it("marks appointments with persisted WhatsApp reminder sends", async () => {
+    const appointments = [
+      {
+        id: "appt-1",
+        startsAt: new Date("2026-05-13T09:00:00.000Z"),
+        endsAt: new Date("2026-05-13T10:00:00.000Z"),
+        patient: { firstName: "Ada", lastName: "Rossi", phone: "+3900000001" },
+        doctor: { fullName: "Dr. Verde", specialty: "Odontoiatria" },
+      },
+      {
+        id: "appt-2",
+        startsAt: new Date("2026-05-13T11:00:00.000Z"),
+        endsAt: new Date("2026-05-13T12:00:00.000Z"),
+        patient: { firstName: "Bruno", lastName: "Bianchi", phone: "+3900000002" },
+        doctor: { fullName: "Dr. Verde", specialty: "Odontoiatria" },
+      },
+    ];
+    mocks.prisma.appointment.findMany
+      .mockResolvedValueOnce(appointments)
+      .mockResolvedValueOnce(appointments.map((appointment) => ({ patient: appointment.patient })));
+    mocks.prisma.auditLog.groupBy.mockResolvedValue([
+      { entityId: "appt-1", _count: { _all: 2 } },
+    ]);
+
+    const result = await getAgendaPageData({
+      dateValue: "2026-05-13",
+      searchValue: "",
+    });
+
+    expect(result.appointments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "appt-1", reminderSent: true, reminderSendCount: 2 }),
+        expect.objectContaining({ id: "appt-2", reminderSent: false, reminderSendCount: 0 }),
+      ]),
+    );
   });
 });

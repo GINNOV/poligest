@@ -25,6 +25,7 @@ import {
 } from "@/lib/whatsapp-template";
 import { DashboardAppointmentsList } from "@/components/dashboard-appointments-list";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { getAppointmentWhatsappReminderCounts } from "@/lib/appointments/agenda";
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -363,6 +364,7 @@ export default async function DashboardPage({
         : appointments;
   const listAppointments = filteredByDoctor;
   const nowIso = today.toISOString();
+  const reminderCounts = await getAppointmentWhatsappReminderCounts(listAppointments.map((appt) => appt.id));
   const appointmentsForList = listAppointments.map((appt) => ({
     id: appt.id,
     startsAt: formatLocalDateTime(appt.startsAt),
@@ -378,7 +380,8 @@ export default async function DashboardPage({
       phone: appt.patient.phone,
     },
     doctor: appt.doctor?.fullName ? { id: appt.doctorId || "", fullName: appt.doctor.fullName } : null,
-    reminderSent: false,
+    reminderSent: (reminderCounts.get(appt.id) ?? 0) > 0,
+    reminderSendCount: reminderCounts.get(appt.id) ?? 0,
   }));
   const todayStart = startOfDay(today);
   const upcomingAppointments = isPatient
