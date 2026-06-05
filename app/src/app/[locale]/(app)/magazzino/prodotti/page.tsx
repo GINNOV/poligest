@@ -69,6 +69,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
             Registra impianto
           </h2>
           <form action={createProduct} className="mt-3 space-y-3 text-sm">
+            <input type="hidden" name="isImplant" value="1" />
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1">
                 <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
@@ -84,11 +85,10 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                 <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Fornitore</span>
                 <select
                   name="supplierId"
-                  required
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 >
-                  <option value="" disabled>
-                    Seleziona fornitore
+                  <option value="">
+                    Fornitore non specificato
                   </option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -120,25 +120,28 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                 <input
                   name="serviceType"
                   placeholder="es. impianto"
+                  defaultValue="impianto"
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
             </div>
-            <div className="grid gap-3 sm:grid-cols-4">
-              <label className="flex flex-col gap-1">
+            <div className="grid gap-3 lg:grid-cols-[minmax(18rem,2fr)_minmax(18rem,2fr)_minmax(10rem,1fr)_minmax(9rem,1fr)]">
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-DI</span>
                 <input
                   name="udiDi"
-                  placeholder="UDI-DI"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
+                  placeholder="(01)72901086921981"
+                  autoComplete="off"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 font-mono text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex min-w-0 flex-col gap-1">
                 <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-PI</span>
                 <input
                   name="udiPi"
-                  placeholder="UDI-PI"
-                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
+                  placeholder="(17)291209(10)WO-031358(21)22-70007"
+                  autoComplete="off"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 font-mono text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -345,7 +348,7 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                   </select>
                 </label>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 lg:grid-cols-4">
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">SKU</span>
                   <input
@@ -379,20 +382,24 @@ export default async function ProdottiPage({ searchParams }: ProdottiPageProps) 
                     className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-DI</span>
                   <input
                     name="udiDi"
                     defaultValue={product.udiDi ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
+                    placeholder="(01)72901086921981"
+                    autoComplete="off"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
-                <label className="flex flex-col gap-1">
+                <label className="flex min-w-0 flex-col gap-1 lg:col-span-2">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Codice UDI-PI</span>
                   <input
                     name="udiPi"
                     defaultValue={product.udiPi ?? ""}
-                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
+                    placeholder="(17)291209(10)WO-031358(21)22-70007"
+                    autoComplete="off"
+                    className="h-9 rounded-lg border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
               </div>

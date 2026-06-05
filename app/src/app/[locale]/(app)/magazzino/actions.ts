@@ -6,6 +6,23 @@ import { requireUser } from "@/lib/auth";
 import { normalizePersonName } from "@/lib/name";
 import { Role, StockMovementType } from "@prisma/client";
 
+const FALLBACK_SUPPLIER_NAME = "Fornitore non specificato";
+
+async function getOrCreateFallbackSupplierId() {
+  const fallback = await prisma.supplier.findFirst({
+    where: { name: { equals: FALLBACK_SUPPLIER_NAME, mode: "insensitive" } },
+  });
+
+  return fallback
+    ? fallback.id
+    : (await prisma.supplier.create({ data: { name: FALLBACK_SUPPLIER_NAME } })).id;
+}
+
+function revalidateMagazzino() {
+  revalidatePath("/magazzino");
+  revalidatePath("/magazzino/prodotti");
+}
+
 export async function updateProduct(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const id = formData.get("productId") as string;
@@ -25,7 +42,7 @@ export async function updateProduct(formData: FormData) {
     data: { name, sku, serviceType, udiDi, udiPi, brand, minThreshold, supplierId },
   });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function updateSupplier(formData: FormData) {
@@ -71,22 +88,16 @@ export async function deleteSupplier(formData: FormData) {
     const supplier = await prisma.supplier.findUnique({ where: { id: supplierId } });
     if (!supplier) return;
 
-    const fallbackName = "Fornitore non specificato";
-    if (supplier.name.toLowerCase() === fallbackName.toLowerCase()) {
+    if (supplier.name.toLowerCase() === FALLBACK_SUPPLIER_NAME.toLowerCase()) {
       throw new Error("Impossibile eliminare il fornitore predefinito");
     }
 
-    let fallback = await prisma.supplier.findFirst({
-      where: { name: { equals: fallbackName, mode: "insensitive" } },
-    });
-    if (!fallback) {
-      fallback = await prisma.supplier.create({ data: { name: fallbackName } });
-    }
+    const fallbackSupplierId = await getOrCreateFallbackSupplierId();
 
     // Riassegna i prodotti a un fornitore predefinito per evitare vincoli FK
     await prisma.product.updateMany({
       where: { supplierId },
-      data: { supplierId: fallback.id },
+      data: { supplierId: fallbackSupplierId },
     });
     await prisma.supplier.delete({ where: { id: supplierId } });
   } catch (err) {
@@ -110,15 +121,21 @@ export async function createSupplier(formData: FormData) {
 
 export async function createProduct(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
+  const isImplant = formData.get("isImplant") === "1";
   const name = (formData.get("name") as string)?.trim();
   const sku = (formData.get("sku") as string)?.trim() || null;
-  const serviceType = (formData.get("serviceType") as string)?.trim() || null;
+  const serviceType = (formData.get("serviceType") as string)?.trim() || (isImplant ? "impianto" : null);
   const unitCostRaw = (formData.get("unitCost") as string)?.trim();
   const minThreshold = Number(formData.get("minThreshold")) || 0;
-  const supplierId = (formData.get("supplierId") as string)?.trim() || "";
+  let supplierId = (formData.get("supplierId") as string)?.trim() || "";
   const udiDi = (formData.get("udiDi") as string)?.trim() || null;
   const udiPi = (formData.get("udiPi") as string)?.trim() || null;
   const brand = (formData.get("brand") as string)?.trim() || null;
+
+  if (!supplierId && isImplant) {
+    supplierId = await getOrCreateFallbackSupplierId();
+  }
+
   if (!name || !supplierId) throw new Error("Nome e fornitore obbligatori");
 
   await prisma.product.create({
@@ -135,7 +152,7 @@ export async function createProduct(formData: FormData) {
     },
   });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function addStockMovement(formData: FormData) {
@@ -289,13 +306,7 @@ export async function importStockFromCSV(formData: FormData) {
     let supplierId = supplier?.id ?? null;
     if (!supplierId) {
       if (!fallbackSupplierId) {
-        const fallbackName = "Fornitore non specificato";
-        const fallback = await prisma.supplier.findFirst({
-          where: { name: { equals: fallbackName, mode: "insensitive" } },
-        });
-        fallbackSupplierId = fallback
-          ? fallback.id
-          : (await prisma.supplier.create({ data: { name: fallbackName } })).id;
+        fallbackSupplierId = await getOrCreateFallbackSupplierId();
       }
       supplierId = fallbackSupplierId;
     }
