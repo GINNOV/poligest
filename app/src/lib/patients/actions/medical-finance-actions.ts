@@ -13,14 +13,19 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const STAFF_ROLES = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY] as const;
 
+const buildImplantNote = (product: { name: string; brand: string | null; udiDi: string | null }) =>
+  [
+    product.name ? `Tipo: ${product.name}` : null,
+    product.brand ? `Marca: ${product.brand}` : null,
+    product.udiDi ? `UDI-DI: ${product.udiDi}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ") || null;
+
 export async function addImplantAssociationAction(formData: FormData) {
   const user = await requireUser([...STAFF_ROLES]);
   const patientId = (formData.get("patientId") as string) || "";
   const productId = (formData.get("productId") as string) || "";
-  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
-  const brand = (formData.get("brand") as string)?.trim() || null;
-  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
-  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
   const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
   const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
   const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
@@ -31,17 +36,22 @@ export async function addImplantAssociationAction(formData: FormData) {
 
   const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
   const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { id: true, name: true, brand: true, udiDi: true, udiPi: true },
+  });
+  if (!product) {
+    throw new Error("Impianto non trovato in magazzino");
+  }
 
   await prisma.stockMovement.create({
     data: {
       productId,
       quantity: 1,
       movement: StockMovementType.OUT,
-      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null, udiDi ? `UDI-DI: ${udiDi}` : null]
-        .filter(Boolean)
-        .join(" · ") || null,
+      note: buildImplantNote(product),
       patientId,
-      udiPi,
+      udiPi: product.udiPi,
       interventionSite,
       interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
       purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
@@ -52,7 +62,7 @@ export async function addImplantAssociationAction(formData: FormData) {
     action: "patient.implant_added",
     entity: "Patient",
     entityId: patientId,
-    metadata: { productId, udiPi, brand, deviceType, interventionSite },
+    metadata: { productId, udiPi: product.udiPi, brand: product.brand, deviceType: product.name, interventionSite },
   });
 
   revalidatePath(`/pazienti/${patientId}`);
@@ -62,30 +72,29 @@ export async function updateImplantAssociationAction(formData: FormData) {
   const user = await requireUser([...STAFF_ROLES]);
   const implantId = (formData.get("implantId") as string) || "";
   const patientId = (formData.get("patientId") as string) || "";
-  const productId = (formData.get("productId") as string) || "";
-  const deviceType = (formData.get("deviceType") as string)?.trim() || null;
-  const brand = (formData.get("brand") as string)?.trim() || null;
-  const udiDi = (formData.get("udiDi") as string)?.trim() || null;
-  const udiPi = (formData.get("udiPi") as string)?.trim() || null;
   const purchaseDateStr = (formData.get("purchaseDate") as string)?.trim();
   const interventionDateStr = (formData.get("interventionDate") as string)?.trim();
   const interventionSite = (formData.get("interventionSite") as string)?.trim() || null;
 
-  if (!implantId || !patientId || !productId) {
+  if (!implantId || !patientId) {
     throw new Error("Dati impianto non validi");
   }
 
   const purchaseDate = purchaseDateStr ? new Date(purchaseDateStr) : null;
   const interventionDate = interventionDateStr ? new Date(interventionDateStr) : null;
+  const existingImplant = await prisma.stockMovement.findFirst({
+    where: { id: implantId, patientId },
+    include: { product: { select: { id: true, name: true, brand: true, udiDi: true, udiPi: true } } },
+  });
+  if (!existingImplant) {
+    throw new Error("Impianto associato non trovato");
+  }
 
   await prisma.stockMovement.update({
     where: { id: implantId },
     data: {
-      productId,
-      note: [deviceType ? `Tipo: ${deviceType}` : null, brand ? `Marca: ${brand}` : null, udiDi ? `UDI-DI: ${udiDi}` : null]
-        .filter(Boolean)
-        .join(" · ") || null,
-      udiPi,
+      note: buildImplantNote(existingImplant.product),
+      udiPi: existingImplant.product.udiPi,
       interventionSite,
       interventionDate: interventionDate && !Number.isNaN(interventionDate.getTime()) ? interventionDate : null,
       purchaseDate: purchaseDate && !Number.isNaN(purchaseDate.getTime()) ? purchaseDate : null,
@@ -96,7 +105,7 @@ export async function updateImplantAssociationAction(formData: FormData) {
     action: "patient.implant_updated",
     entity: "Patient",
     entityId: patientId,
-    metadata: { implantId, productId },
+    metadata: { implantId, productId: existingImplant.productId },
   });
 
   revalidatePath(`/pazienti/${patientId}`);
