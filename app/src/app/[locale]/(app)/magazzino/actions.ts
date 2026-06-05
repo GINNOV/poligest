@@ -20,7 +20,21 @@ async function getOrCreateFallbackSupplierId() {
 
 function revalidateMagazzino() {
   revalidatePath("/magazzino");
+  revalidatePath("/magazzino/fornitori");
   revalidatePath("/magazzino/prodotti");
+  revalidatePath("/magazzino/impianti");
+  revalidatePath("/magazzino/movimenti");
+  revalidatePath("/magazzino/print/prodotti");
+  revalidatePath("/magazzino/print/movimenti");
+}
+
+function parseStockMovementType(value: FormDataEntryValue | null) {
+  return value === StockMovementType.IN || value === StockMovementType.OUT ? value : null;
+}
+
+function parsePositiveQuantity(value: FormDataEntryValue | null) {
+  const quantity = Number(value);
+  return Number.isInteger(quantity) && quantity > 0 ? quantity : null;
 }
 
 export async function updateProduct(formData: FormData) {
@@ -60,7 +74,7 @@ export async function updateSupplier(formData: FormData) {
     data: { name, email, phone, notes },
   });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -76,7 +90,7 @@ export async function deleteProduct(formData: FormData) {
     throw err;
   }
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function deleteSupplier(formData: FormData) {
@@ -104,7 +118,7 @@ export async function deleteSupplier(formData: FormData) {
     throw err;
   }
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function createSupplier(formData: FormData) {
@@ -116,7 +130,7 @@ export async function createSupplier(formData: FormData) {
   if (!name) throw new Error("Nome fornitore obbligatorio");
 
   await prisma.supplier.create({ data: { name, email, phone, notes } });
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function createProduct(formData: FormData) {
@@ -158,24 +172,24 @@ export async function createProduct(formData: FormData) {
 export async function addStockMovement(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const productId = formData.get("productId") as string;
-  const quantity = Number(formData.get("quantity"));
-  const movement = formData.get("movement") as StockMovementType;
+  const quantity = parsePositiveQuantity(formData.get("quantity"));
+  const movement = parseStockMovementType(formData.get("movement"));
   const note = (formData.get("note") as string)?.trim() || null;
-  if (!productId || !movement || Number.isNaN(quantity) || quantity === 0) {
+  if (!productId || !movement || quantity === null) {
     throw new Error("Dati movimento non validi");
   }
 
   await prisma.stockMovement.create({
     data: {
       productId,
-      quantity: Math.abs(quantity),
+      quantity,
       movement,
       note,
       userId: user.id,
     },
   });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function deleteStockMovement(formData: FormData) {
@@ -185,31 +199,31 @@ export async function deleteStockMovement(formData: FormData) {
 
   await prisma.stockMovement.delete({ where: { id: movementId } });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function updateStockMovement(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER]);
   const movementId = formData.get("movementId") as string;
-  const quantity = Number(formData.get("quantity"));
-  const movement = formData.get("movement") as StockMovementType;
+  const quantity = parsePositiveQuantity(formData.get("quantity"));
+  const movement = parseStockMovementType(formData.get("movement"));
   const note = (formData.get("note") as string)?.trim() || null;
 
-  if (!movementId || !movement || Number.isNaN(quantity) || quantity === 0) {
+  if (!movementId || !movement || quantity === null) {
     throw new Error("Dati movimento non validi");
   }
 
   await prisma.stockMovement.update({
     where: { id: movementId },
     data: {
-      quantity: Math.abs(quantity),
+      quantity,
       movement,
       note,
       userId: user.id,
     },
   });
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
 
 export async function importStockFromCSV(formData: FormData) {
@@ -377,5 +391,5 @@ export async function importStockFromCSV(formData: FormData) {
     });
   }
 
-  revalidatePath("/magazzino");
+  revalidateMagazzino();
 }
