@@ -1,11 +1,25 @@
 import { StackServerApp } from "@stackframe/stack";
 
+const REQUIRED_STACK_ENV_KEYS = [
+  "NEXT_PUBLIC_STACK_PROJECT_ID",
+  "NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY",
+  "STACK_SECRET_SERVER_KEY",
+] as const;
+
 function requireEnv(key: string) {
   const value = process.env[key];
   if (!value) {
     throw new Error(`Missing required env var ${key} for Stack Auth`);
   }
   return value;
+}
+
+export function getMissingStackEnvKeys() {
+  return REQUIRED_STACK_ENV_KEYS.filter((key) => !process.env[key]);
+}
+
+export function isStackAuthConfigured() {
+  return getMissingStackEnvKeys().length === 0;
 }
 
 const rawStackApiUrl = process.env.NEXT_PUBLIC_STACK_API_URL || process.env.STACK_API_URL;
@@ -59,4 +73,23 @@ export function getStackServerApp(explicitOrigin?: string) {
   });
 }
 
-export const stackServerApp = getStackServerApp();
+export function getOptionalStackServerApp(explicitOrigin?: string) {
+  if (!isStackAuthConfigured()) {
+    if (process.env.NODE_ENV === "production") {
+      requireEnv(getMissingStackEnvKeys()[0]);
+    }
+    return null;
+  }
+
+  return getStackServerApp(explicitOrigin);
+}
+
+export function getStackSignInUrl() {
+  return isStackAuthConfigured() ? getStackServerApp().urls.signIn : "/auth/login?config=missing-stack";
+}
+
+export function getStackSignOutUrl() {
+  return isStackAuthConfigured() ? (getStackServerApp().urls.signOut ?? "/handler/sign-out") : "/auth/login";
+}
+
+export const stackServerApp = isStackAuthConfigured() ? getStackServerApp() : null;

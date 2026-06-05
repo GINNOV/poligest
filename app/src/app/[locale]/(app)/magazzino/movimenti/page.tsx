@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Prisma, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { addStockMovement, deleteStockMovement, updateStockMovement } from "../actions";
+import { buildStockMovementFilters } from "../stock-movement-filters";
 import { format } from "date-fns";
 
 export const revalidate = 60;
@@ -11,75 +12,23 @@ type MovimentiPageProps = {
   searchParams?: Promise<{ mq?: string; from?: string; to?: string }>;
 };
 
-const parseDateStart = (value: string) => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(`${value}T00:00:00`);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const parseDateEnd = (value: string) => {
-  if (!value) {
-    return null;
-  }
-  const date = new Date(`${value}T23:59:59.999`);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
 export default async function MovimentiPage({ searchParams }: MovimentiPageProps) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const resolvedParams = searchParams ? await searchParams : undefined;
-  const movementQuery = typeof resolvedParams?.mq === "string" ? resolvedParams.mq.trim() : "";
-  const fromParam = typeof resolvedParams?.from === "string" ? resolvedParams.from : "";
-  const toParam = typeof resolvedParams?.to === "string" ? resolvedParams.to : "";
-  const dateFrom = parseDateStart(fromParam);
-  const dateTo = parseDateEnd(toParam);
-  const movementWhere: Prisma.StockMovementWhereInput | undefined = movementQuery
-    ? {
-        OR: [
-          {
-            product: {
-              is: { name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          {
-            product: {
-              is: { udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          { udiPi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-          {
-            patient: {
-              is: { firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          {
-            patient: {
-              is: { lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-        ],
-      }
-    : undefined;
-  const dateWhere =
-    dateFrom || dateTo
-      ? {
-          createdAt: {
-            ...(dateFrom ? { gte: dateFrom } : {}),
-            ...(dateTo ? { lte: dateTo } : {}),
-          },
-        }
-      : undefined;
-  const movementFilters =
-    movementWhere && dateWhere
-      ? { AND: [movementWhere, dateWhere] }
-      : movementWhere ?? dateWhere;
+  const { fromParam, hasFilters, movementQuery, toParam, where } =
+    buildStockMovementFilters(resolvedParams ?? {});
+  const currentQuery = new URLSearchParams();
+  if (movementQuery) currentQuery.set("mq", movementQuery);
+  if (fromParam) currentQuery.set("from", fromParam);
+  if (toParam) currentQuery.set("to", toParam);
+  const currentQueryString = currentQuery.toString();
+  const movementPrintHref = `/magazzino/print/movimenti${currentQueryString ? `?${currentQueryString}` : ""}`;
+  const movementExportHref = `/api/magazzino/export${currentQueryString ? `?${currentQueryString}` : ""}`;
   const [products, movements] = await Promise.all([
     prisma.product.findMany({ orderBy: { name: "asc" } }),
     prisma.stockMovement.findMany({
       take: 50,
-      where: movementFilters,
+      where,
       orderBy: { createdAt: "desc" },
       include: { product: true, patient: true },
     }),
@@ -90,6 +39,20 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
       <div>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">Magazzino</p>
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Movimenti</h1>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={movementPrintHref}
+          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
+        >
+          Stampa lista
+        </Link>
+        <a
+          href={movementExportHref}
+          className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
+        >
+          Esporta CSV
+        </a>
       </div>
 
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -179,7 +142,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
           >
             Cerca
           </button>
-          {movementQuery ? (
+          {hasFilters ? (
             <Link
               href="/magazzino/movimenti"
               className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/50"
@@ -207,9 +170,42 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
                 <span className="text-[11px] font-semibold uppercase text-zinc-500">Prodotto</span>
                 <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-200">
                   <div className="font-medium text-zinc-900 dark:text-zinc-50">{movement.product.name}</div>
+                  {movement.patient ? (
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                      {movement.patient.lastName} {movement.patient.firstName}
+                    </div>
+                  ) : null}
                   <div className="text-xs text-zinc-500">
                     {format(movement.createdAt, "dd/MM/yyyy HH:mm")}
                   </div>
+                  {movement.interventionDate || movement.purchaseDate || movement.udiPi || movement.interventionSite ? (
+                    <dl className="mt-2 grid gap-1 text-xs text-zinc-500">
+                      {movement.udiPi ? (
+                        <div>
+                          <dt className="inline font-semibold">UDI-PI: </dt>
+                          <dd className="inline font-mono">{movement.udiPi}</dd>
+                        </div>
+                      ) : null}
+                      {movement.purchaseDate ? (
+                        <div>
+                          <dt className="inline font-semibold">Acquisto: </dt>
+                          <dd className="inline">{format(movement.purchaseDate, "dd/MM/yyyy")}</dd>
+                        </div>
+                      ) : null}
+                      {movement.interventionDate ? (
+                        <div>
+                          <dt className="inline font-semibold">Intervento: </dt>
+                          <dd className="inline">{format(movement.interventionDate, "dd/MM/yyyy")}</dd>
+                        </div>
+                      ) : null}
+                      {movement.interventionSite ? (
+                        <div>
+                          <dt className="inline font-semibold">Sede: </dt>
+                          <dd className="inline">{movement.interventionSite}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  ) : null}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">

@@ -73,6 +73,7 @@ vi.mock("@/lib/email", () => ({
 }));
 
 vi.mock("@/lib/stack-app", () => ({
+  getStackSignInUrl: () => "/handler/sign-in",
   stackServerApp: {
     urls: {
       signIn: "/handler/sign-in",

@@ -3,13 +3,23 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { format } from "date-fns";
+import { buildStockMovementFilters } from "@/app/[locale]/(app)/magazzino/stock-movement-filters";
 
-export async function GET() {
+export async function GET(request: Request) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
+  const params = new URL(request.url).searchParams;
+  const { where } = buildStockMovementFilters({
+    mq: params.get("mq"),
+    from: params.get("from"),
+    to: params.get("to"),
+  });
 
   const movements = await prisma.stockMovement.findMany({
     where: {
-      patientId: { not: null },
+      AND: [
+        { patientId: { not: null } },
+        ...(where ? [where] : []),
+      ],
     },
     include: {
       product: { include: { supplier: true } },

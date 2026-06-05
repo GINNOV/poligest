@@ -99,6 +99,7 @@ vi.mock("@/lib/sms", () => ({
 }));
 
 vi.mock("@/lib/stack-app", () => ({
+  getStackSignInUrl: () => "/handler/sign-in",
   stackServerApp: {},
 }));
 

@@ -1,5 +1,4 @@
 import { Role } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
@@ -91,6 +90,7 @@ export const FALLBACK_PERMISSIONS: Partial<Record<Role, Set<FeatureId>>> = {
 };
 
 export async function getRoleFeatureAccess(role: Role) {
+  const { prisma } = await import("@/lib/prisma");
   const accessEntries = await prisma.roleFeatureAccess.findMany({
     where: { role },
     select: { feature: true, allowed: true },

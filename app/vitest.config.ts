@@ -39,6 +39,8 @@ export default defineConfig({
         "src/app/**/pazienti/lista/page.tsx",
         "src/app/**/pazienti/\\[id\\]/page.tsx",
         "src/app/**/pazienti/duplicati/page.tsx",
+        "src/app/**/magazzino/stock-movement-filters.ts",
+        "src/app/**/magazzino/movimenti/page.tsx",
       ],
       exclude: [
         "**/*.d.ts",

@@ -39,38 +39,60 @@ const connectionString = normalizeConnectionString(
     ""
 );
 
-if (!connectionString) {
+export const isPrismaConfigured = Boolean(connectionString);
+
+if (!connectionString && !isDev) {
   throw new Error(
     "❌ src/lib/prisma.ts: Database URL missing. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env."
   );
 }
 
-const pool = new Pool({
-  connectionString,
-  ssl: true,
-  max: 10, // Connection pool size
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-});
+const createMissingDatabaseProxy = () =>
+  new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(
+          "❌ src/lib/prisma.ts: Database URL missing. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env.",
+        );
+      },
+    },
+  ) as PrismaClientWithLogs;
 
-// Test the pool connection immediately to fail fast if there's an issue
-pool.on("error", (err) => {
-  console.error("❌ src/lib/prisma.ts: Unexpected error on idle client", err);
-});
+const createPrismaClient = () => {
+  if (!connectionString) {
+    return createMissingDatabaseProxy();
+  }
 
-const adapter = new PrismaPg(pool);
+  const pool = new Pool({
+    connectionString,
+    ssl: true,
+    max: 10, // Connection pool size
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient<
+  // Test the pool connection immediately to fail fast if there's an issue
+  pool.on("error", (err) => {
+    console.error("❌ src/lib/prisma.ts: Unexpected error on idle client", err);
+  });
+
+  const adapter = new PrismaPg(pool);
+
+  return new PrismaClient<
     Prisma.PrismaClientOptions,
     "query" | "info" | "warn" | "error"
   >({
     adapter,
     log: isDev ? devLogLevels : prodLogLevels,
     errorFormat: "pretty",
-});
+  });
+};
 
-if (isDev) {
+export const prisma =
+  globalForPrisma.prisma ??
+  createPrismaClient();
+
+if (isDev && connectionString) {
   globalForPrisma.prisma = prisma;
 }

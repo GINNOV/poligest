@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackSignInUrl } from "@/lib/stack-app";
 import Image from "next/image";
 
 function withParam(url: string, key: string, value: string) {
@@ -9,7 +9,7 @@ function withParam(url: string, key: string, value: string) {
 }
 
 export default async function StaffAccessPage() {
-  const baseSignIn = stackServerApp.urls.signIn ?? "/handler/sign-in";
+  const baseSignIn = getStackSignInUrl();
   const staffSignInUrl = withParam(baseSignIn, "audience", "staff");
 
   return (

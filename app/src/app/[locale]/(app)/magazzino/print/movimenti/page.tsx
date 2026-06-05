@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { Prisma, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
+import { buildStockMovementFilters } from "../../stock-movement-filters";
 import type { Metadata } from "next";
 import { format } from "date-fns";
 
@@ -19,56 +20,11 @@ type MovimentiPrintPageProps = {
 export default async function MovimentiPrintPage({ searchParams }: MovimentiPrintPageProps) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const resolvedParams = searchParams ? await searchParams : undefined;
-  const movementQuery = typeof resolvedParams?.mq === "string" ? resolvedParams.mq.trim() : "";
-  const fromParam = typeof resolvedParams?.from === "string" ? resolvedParams.from : "";
-  const toParam = typeof resolvedParams?.to === "string" ? resolvedParams.to : "";
-  const dateFrom = fromParam ? new Date(`${fromParam}T00:00:00`) : null;
-  const dateTo = toParam ? new Date(`${toParam}T23:59:59.999`) : null;
-  const safeDateFrom = dateFrom && !Number.isNaN(dateFrom.getTime()) ? dateFrom : null;
-  const safeDateTo = dateTo && !Number.isNaN(dateTo.getTime()) ? dateTo : null;
-  const movementWhere: Prisma.StockMovementWhereInput | undefined = movementQuery
-    ? {
-        OR: [
-          {
-            product: {
-              is: { name: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          {
-            product: {
-              is: { udiDi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          { udiPi: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-          {
-            patient: {
-              is: { firstName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-          {
-            patient: {
-              is: { lastName: { contains: movementQuery, mode: Prisma.QueryMode.insensitive } },
-            },
-          },
-        ],
-      }
-    : undefined;
-  const dateWhere =
-    safeDateFrom || safeDateTo
-      ? {
-          createdAt: {
-            ...(safeDateFrom ? { gte: safeDateFrom } : {}),
-            ...(safeDateTo ? { lte: safeDateTo } : {}),
-          },
-        }
-      : undefined;
-  const movementFilters =
-    movementWhere && dateWhere
-      ? { AND: [movementWhere, dateWhere] }
-      : movementWhere ?? dateWhere;
+  const { dateFrom, dateTo, movementQuery, where } =
+    buildStockMovementFilters(resolvedParams ?? {});
 
   const movements = await prisma.stockMovement.findMany({
-    where: movementFilters,
+    where,
     orderBy: { createdAt: "desc" },
     include: {
       product: true,
@@ -95,12 +51,12 @@ export default async function MovimentiPrintPage({ searchParams }: MovimentiPrin
                 Lista movimenti
               </p>
               <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Studio Agovino & Angrisano</h1>
-              {movementQuery || safeDateFrom || safeDateTo ? (
+              {movementQuery || dateFrom || dateTo ? (
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
                   Filtro:
                   {movementQuery ? ` ${movementQuery}` : null}
-                  {safeDateFrom ? ` dal ${format(safeDateFrom, "dd/MM/yyyy")}` : null}
-                  {safeDateTo ? ` al ${format(safeDateTo, "dd/MM/yyyy")}` : null}
+                  {dateFrom ? ` dal ${format(dateFrom, "dd/MM/yyyy")}` : null}
+                  {dateTo ? ` al ${format(dateTo, "dd/MM/yyyy")}` : null}
                 </p>
               ) : null}
             </div>

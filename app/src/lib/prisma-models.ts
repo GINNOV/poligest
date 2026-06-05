@@ -1,7 +1,19 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+function hasDatabaseUrl() {
+  return Boolean(
+    process.env.POSTGRES_PRISMA_URL ??
+      process.env.DATABASE_URL_UNPOOLED ??
+      process.env.DATABASE_URL,
+  );
+}
+
 export function getOptionalPrismaModel<T>(name: string): T | undefined {
+  if (!hasDatabaseUrl() && process.env.NODE_ENV !== "test") {
+    return undefined;
+  }
+
   return (prisma as unknown as Record<string, unknown>)[name] as T | undefined;
 }
 

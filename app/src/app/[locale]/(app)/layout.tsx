@@ -4,11 +4,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
 import { Role } from "@prisma/client";
 import { NavLink } from "@/components/nav-link";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackSignOutUrl } from "@/lib/stack-app";
 import { SiteFooter } from "@/components/site-footer";
 import { UserMenu } from "@/components/user-menu";
 import { getAppVersion, getDeployDate } from "@/lib/version";
-import { prisma } from "@/lib/prisma";
 import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 import { HelpButton, type Instruction } from "@/components/help-button";
@@ -28,6 +27,7 @@ async function stopImpersonation() {
   const store = await cookies();
   const current = store.get("impersonateUserId")?.value;
   const adminId = store.get("impersonateAdminId")?.value ?? null;
+  const { prisma } = await import("@/lib/prisma");
   const admin = adminId
     ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, role: true } })
     : null;
@@ -136,7 +136,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     [Role.SECRETARY]: t("roleLabels.secretary"),
     [Role.PATIENT]: t("roleLabels.patient"),
   };
-  const signOutUrl = stackServerApp.urls.signOut ?? "/handler/sign-out";
+  const signOutUrl = getStackSignOutUrl();
   const version = getAppVersion();
   const deployedAt = getDeployDate();
   const navLinks = [
