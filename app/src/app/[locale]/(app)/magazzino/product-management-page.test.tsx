@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
+import React from "react";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -28,6 +29,35 @@ vi.mock("./actions", () => ({
 }));
 
 import ProductManagementPage from "./product-management-page";
+
+function collectElements(node: React.ReactNode): React.ReactElement<Record<string, unknown>>[] {
+  if (Array.isArray(node)) {
+    return node.flatMap(collectElements);
+  }
+
+  if (React.isValidElement<Record<string, unknown>>(node)) {
+    const children = node.props.children as React.ReactNode;
+    return [node, ...collectElements(children)];
+  }
+
+  return [];
+}
+
+function collectText(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+
+  if (Array.isArray(node)) {
+    return node.map(collectText).join(" ");
+  }
+
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return collectText(node.props.children);
+  }
+
+  return "";
+}
 
 describe("ProductManagementPage", () => {
   beforeEach(() => {
@@ -97,5 +127,22 @@ describe("ProductManagementPage", () => {
         },
       }),
     );
+  });
+
+  it("requires supplier and UDI codes when registering implants", async () => {
+    const page = await ProductManagementPage({
+      mode: "implants",
+      searchParams: Promise.resolve({}),
+    });
+    const elements = collectElements(page);
+    const fields = elements.filter((element) =>
+      ["name", "supplierId", "udiDi", "udiPi"].includes(String(element.props.name ?? "")),
+    );
+
+    expect(fields.filter((element) => element.props.name === "name").every((element) => element.props.required)).toBe(true);
+    expect(fields.filter((element) => element.props.name === "supplierId").every((element) => element.props.required)).toBe(true);
+    expect(fields.filter((element) => element.props.name === "udiDi").every((element) => element.props.required)).toBe(true);
+    expect(fields.filter((element) => element.props.name === "udiPi").every((element) => element.props.required)).toBe(true);
+    expect(collectText(page)).not.toContain("Fornitore non specificato");
   });
 });

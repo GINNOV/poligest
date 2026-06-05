@@ -1,7 +1,7 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Role } from "@prisma/client";
-import { buildStockMovementFilters } from "../stock-movement-filters";
+import { buildStockMovementFilters, nonImplantProductWhere } from "../stock-movement-filters";
 
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
@@ -99,6 +99,10 @@ describe("MovimentiPage", () => {
         include: { product: true, patient: true },
       }),
     );
+    expect(mocks.prisma.product.findMany).toHaveBeenCalledWith({
+      where: nonImplantProductWhere,
+      orderBy: { name: "asc" },
+    });
 
     const hrefs = collectHrefs(page);
     expect(hrefs).toContain(

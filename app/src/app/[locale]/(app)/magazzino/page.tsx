@@ -30,7 +30,7 @@ const cards = [
     image: "/tiles/materiali_spese_ufficio.png",
     alt: "Gestione impianti",
     title: "Gestione impianti",
-    description: "Registra impianti con UDI-DI e UDI-PI, poi gestisci l'elenco.",
+    description: "Registra impianti per associarli a pazienti",
   },
   {
     href: "/magazzino/movimenti",

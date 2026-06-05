@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@prisma/client";
-import { buildStockMovementFilters } from "./stock-movement-filters";
+import {
+  buildStockMovementFilters,
+  nonImplantProductWhere,
+  nonImplantStockMovementWhere,
+} from "./stock-movement-filters";
 
 describe("buildStockMovementFilters", () => {
+  it("always excludes implant product movements from regular stock movement lists", () => {
+    const filters = buildStockMovementFilters({});
+
+    expect(filters.where).toEqual(nonImplantStockMovementWhere);
+  });
+
   it("builds a tokenized search so patient full names can match first and last name separately", () => {
     const filters = buildStockMovementFilters({ mq: "Rossi Mario" });
 
     expect(filters.movementQuery).toBe("Rossi Mario");
     expect(filters.where).toEqual({
       AND: [
+        { product: { is: nonImplantProductWhere } },
         {
           OR: expect.arrayContaining([
             { patient: { is: { firstName: { contains: "Rossi", mode: Prisma.QueryMode.insensitive } } } },
@@ -31,24 +42,29 @@ describe("buildStockMovementFilters", () => {
     expect(filters.dateFrom).toEqual(new Date("2026-01-02T00:00:00"));
     expect(filters.dateTo).toEqual(new Date("2026-01-04T23:59:59.999"));
     expect(filters.where).toEqual({
-      OR: [
+      AND: [
+        { product: { is: nonImplantProductWhere } },
         {
-          createdAt: {
-            gte: new Date("2026-01-02T00:00:00"),
-            lte: new Date("2026-01-04T23:59:59.999"),
-          },
-        },
-        {
-          purchaseDate: {
-            gte: new Date("2026-01-02T00:00:00"),
-            lte: new Date("2026-01-04T23:59:59.999"),
-          },
-        },
-        {
-          interventionDate: {
-            gte: new Date("2026-01-02T00:00:00"),
-            lte: new Date("2026-01-04T23:59:59.999"),
-          },
+          OR: [
+            {
+              createdAt: {
+                gte: new Date("2026-01-02T00:00:00"),
+                lte: new Date("2026-01-04T23:59:59.999"),
+              },
+            },
+            {
+              purchaseDate: {
+                gte: new Date("2026-01-02T00:00:00"),
+                lte: new Date("2026-01-04T23:59:59.999"),
+              },
+            },
+            {
+              interventionDate: {
+                gte: new Date("2026-01-02T00:00:00"),
+                lte: new Date("2026-01-04T23:59:59.999"),
+              },
+            },
+          ],
         },
       ],
     });
@@ -59,6 +75,6 @@ describe("buildStockMovementFilters", () => {
 
     expect(filters.dateFrom).toBeNull();
     expect(filters.hasFilters).toBe(true);
-    expect(filters.where).toBeUndefined();
+    expect(filters.where).toEqual(nonImplantStockMovementWhere);
   });
 });

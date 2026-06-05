@@ -88,10 +88,12 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
                 <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Fornitore</span>
                 <select
                   name="supplierId"
+                  required
+                  defaultValue=""
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 >
-                  <option value="">
-                    Fornitore non specificato
+                  <option value="" disabled>
+                    Seleziona fornitore
                   </option>
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -135,6 +137,7 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
                   name="udiDi"
                   placeholder="(01)72901086921981"
                   autoComplete="off"
+                  required
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 font-mono text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
@@ -144,6 +147,7 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
                   name="udiPi"
                   placeholder="(17)291209(10)WO-031358(21)22-70007"
                   autoComplete="off"
+                  required
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 font-mono text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                 />
               </label>
@@ -297,6 +301,7 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
               className="grid gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-4 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:grid-cols-[3fr,3fr,auto] sm:items-end"
             >
               <input type="hidden" name="productId" value={product.id} />
+              {isImplantsPage ? <input type="hidden" name="isImplant" value="1" /> : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">Nome</span>
@@ -367,6 +372,7 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
                     defaultValue={product.udiDi ?? ""}
                     placeholder="(01)72901086921981"
                     autoComplete="off"
+                    required={isImplantsPage}
                     className="h-9 rounded-lg border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>
@@ -377,6 +383,7 @@ export default async function ProductManagementPage({ mode, searchParams }: Prod
                     defaultValue={product.udiPi ?? ""}
                     placeholder="(17)291209(10)WO-031358(21)22-70007"
                     autoComplete="off"
+                    required={isImplantsPage}
                     className="h-9 rounded-lg border border-zinc-200 bg-white px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/20"
                   />
                 </label>

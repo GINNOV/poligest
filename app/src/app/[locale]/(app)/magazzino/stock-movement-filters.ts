@@ -46,13 +46,28 @@ const searchTokenWhere = (token: string): Prisma.StockMovementWhereInput => ({
   ],
 });
 
+export const implantProductWhere: Prisma.ProductWhereInput = {
+  OR: [
+    { name: { contains: "impianto", mode: Prisma.QueryMode.insensitive } },
+    { serviceType: { contains: "impianto", mode: Prisma.QueryMode.insensitive } },
+  ],
+};
+
+export const nonImplantProductWhere: Prisma.ProductWhereInput = {
+  NOT: implantProductWhere,
+};
+
+export const nonImplantStockMovementWhere: Prisma.StockMovementWhereInput = {
+  product: { is: nonImplantProductWhere },
+};
+
 export function buildStockMovementFilters(input: StockMovementFilterInput) {
   const movementQuery = firstString(input.mq).trim();
   const fromParam = firstString(input.from);
   const toParam = firstString(input.to);
   const dateFrom = parseDateStart(fromParam);
   const dateTo = parseDateEnd(toParam);
-  const clauses: Prisma.StockMovementWhereInput[] = [];
+  const clauses: Prisma.StockMovementWhereInput[] = [nonImplantStockMovementWhere];
 
   const searchTokens = movementQuery.split(/\s+/).filter(Boolean);
   if (searchTokens.length > 0) {

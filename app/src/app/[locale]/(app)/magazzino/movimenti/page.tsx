@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { addStockMovement, deleteStockMovement, updateStockMovement } from "../actions";
-import { buildStockMovementFilters } from "../stock-movement-filters";
+import { buildStockMovementFilters, nonImplantProductWhere } from "../stock-movement-filters";
 import { format } from "date-fns";
 
 export const revalidate = 60;
@@ -25,7 +25,7 @@ export default async function MovimentiPage({ searchParams }: MovimentiPageProps
   const movementPrintHref = `/magazzino/print/movimenti${currentQueryString ? `?${currentQueryString}` : ""}`;
   const movementExportHref = `/api/magazzino/export${currentQueryString ? `?${currentQueryString}` : ""}`;
   const [products, movements] = await Promise.all([
-    prisma.product.findMany({ orderBy: { name: "asc" } }),
+    prisma.product.findMany({ where: nonImplantProductWhere, orderBy: { name: "asc" } }),
     prisma.stockMovement.findMany({
       take: 50,
       where,
