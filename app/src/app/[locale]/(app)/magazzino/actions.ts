@@ -39,6 +39,7 @@ function parsePositiveQuantity(value: FormDataEntryValue | null) {
 
 export async function updateProduct(formData: FormData) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
+  const isImplant = formData.get("isImplant") === "1";
   const id = formData.get("productId") as string;
   const name = (formData.get("name") as string)?.trim();
   const sku = (formData.get("sku") as string)?.trim() || null;
@@ -48,6 +49,10 @@ export async function updateProduct(formData: FormData) {
   const brand = (formData.get("brand") as string)?.trim() || null;
   const minThreshold = Number(formData.get("minThreshold")) || 0;
   const supplierId = (formData.get("supplierId") as string)?.trim() || "";
+
+  if (isImplant && (!id || !name || !supplierId || !udiDi || !udiPi)) {
+    throw new Error("Nome, fornitore, UDI-DI e UDI-PI obbligatori");
+  }
 
   if (!id || !name || !supplierId) throw new Error("Dati prodotto non validi");
 
@@ -141,13 +146,13 @@ export async function createProduct(formData: FormData) {
   const serviceType = (formData.get("serviceType") as string)?.trim() || (isImplant ? "impianto" : null);
   const unitCostRaw = (formData.get("unitCost") as string)?.trim();
   const minThreshold = Number(formData.get("minThreshold")) || 0;
-  let supplierId = (formData.get("supplierId") as string)?.trim() || "";
+  const supplierId = (formData.get("supplierId") as string)?.trim() || "";
   const udiDi = (formData.get("udiDi") as string)?.trim() || null;
   const udiPi = (formData.get("udiPi") as string)?.trim() || null;
   const brand = (formData.get("brand") as string)?.trim() || null;
 
-  if (!supplierId && isImplant) {
-    supplierId = await getOrCreateFallbackSupplierId();
+  if (isImplant && (!name || !supplierId || !udiDi || !udiPi)) {
+    throw new Error("Nome, fornitore, UDI-DI e UDI-PI obbligatori");
   }
 
   if (!name || !supplierId) throw new Error("Nome e fornitore obbligatori");

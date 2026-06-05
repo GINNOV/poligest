@@ -14,7 +14,7 @@ import { normalizeItalianPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { sendSms } from "@/lib/sms";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackSignInUrl } from "@/lib/stack-app";
 import { isRedirectError, resolveSiteOrigin, withParam } from "@/lib/utils";
 
 const STAFF_ROLES = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY] as const;
@@ -256,7 +256,7 @@ export async function sendPatientAccessEmailAction(formData: FormData) {
       );
     }
 
-    const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
+    const signInUrl = getStackSignInUrl();
     const patientSignInUrl = withParam(signInUrl, "audience", "patient");
     const siteOrigin = resolveSiteOrigin();
     const loginUrl = /^https?:\/\//.test(patientSignInUrl)

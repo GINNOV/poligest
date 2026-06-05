@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { stackServerApp } from "@/lib/stack-app";
+import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getAppVersion } from "@/lib/version";
@@ -14,13 +14,14 @@ function withParam(url: string, key: string, value: string) {
 }
 
 export default async function Home() {
-  const user = await stackServerApp.getUser();
+  const stackServerApp = getOptionalStackServerApp();
+  const user = stackServerApp ? await stackServerApp.getUser() : null;
   if (user) {
     redirect("/dashboard");
   }
 
   const t = await getTranslations("home");
-  const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
+  const signInUrl = getStackSignInUrl();
   const patientSignInUrl = withParam(signInUrl, "audience", "patient");
   const staffSignInUrl = withParam(signInUrl, "audience", "staff");
 

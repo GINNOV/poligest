@@ -1,6 +1,5 @@
 import { cache } from "react";
-import { prisma } from "@/lib/prisma";
-import { stackServerApp } from "@/lib/stack-app";
+import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
 import { getRandomAvatarUrl } from "@/lib/avatars";
 import { normalizePersonName } from "@/lib/name";
 import { Role } from "@prisma/client";
@@ -20,8 +19,10 @@ type AppUser = {
 };
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const getPrisma = async () => (await import("@/lib/prisma")).prisma;
 
 async function ensurePatientRecord(email: string, fullName?: string | null) {
+  const prisma = await getPrisma();
   const existing = await prisma.patient.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
   });
@@ -86,6 +87,9 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
 }
 
 const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUser | null> => {
+  const stackServerApp = getOptionalStackServerApp();
+  if (!stackServerApp) return null;
+
   const stackUser = await stackServerApp.getUser();
   if (!stackUser) return null;
 
@@ -94,6 +98,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     : null;
   if (!email) return null;
 
+  const prisma = await getPrisma();
   let dbUser = await prisma.user.findUnique({ where: { email } });
 
   if (!dbUser) {
@@ -204,7 +209,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
 export async function requireUser(allowedRoles?: Role[], options?: { allowImpersonation?: boolean }): Promise<AppUser> {
   const user = await getUserFromStack(options?.allowImpersonation ?? true);
   if (!user) {
-    redirect(stackServerApp.urls.signIn);
+    redirect(getStackSignInUrl());
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {

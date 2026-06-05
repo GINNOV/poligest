@@ -32,6 +32,11 @@ import { ConsentForm } from "@/components/consent-form";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
+import {
+  PatientImplantAssociations,
+  type ImplantProductOption,
+  type PatientImplantAssociationItem,
+} from "@/components/patient-implant-associations";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { PrintLinkButton } from "@/components/print-link-button";
 import {
@@ -186,6 +191,28 @@ export default async function PatientDetailPage({
   const updatedBy = updatedLog ? formatAuditActor(updatedLog) : createdBy;
   const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt, displayTimeZone);
   const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt, displayTimeZone);
+  const implantProductOptions: ImplantProductOption[] = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    sku: product.sku ?? null,
+    brand: product.brand ?? null,
+    supplierName: product.supplier?.name ?? null,
+    udiDi: product.udiDi ?? null,
+    udiPi: product.udiPi ?? null,
+    serviceType: product.serviceType ?? null,
+  }));
+  const implantAssociationItems: PatientImplantAssociationItem[] = implants.map((implant) => ({
+    id: implant.id,
+    productId: implant.productId,
+    productName: implant.product?.name ?? "—",
+    brand: implant.product?.brand ?? null,
+    supplierName: implant.product?.supplier?.name ?? null,
+    udiDi: implant.product?.udiDi ?? null,
+    udiPi: implant.udiPi ?? implant.product?.udiPi ?? null,
+    purchaseDate: formatOptionalDateInputValue(implant.purchaseDate),
+    interventionDate: formatOptionalDateInputValue(implant.interventionDate),
+    interventionSite: implant.interventionSite ?? null,
+  }));
 
   return (
     <>
@@ -939,306 +966,16 @@ export default async function PatientDetailPage({
 
         </div>
 
-      <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
-        <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 pb-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
-          <span className="flex items-center gap-3">
-            <svg
-              className="h-8 w-8 text-emerald-600"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
-              <path d="M14 3v5h5" />
-            </svg>
-            <span className="uppercase tracking-wide">Associa impianti</span>
-          </span>
-          <svg
-            className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-300"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="m6 9 6 6 6-6" />
-          </svg>
-        </summary>
-        <p className="pt-4 text-sm text-zinc-600 dark:text-zinc-300">
-          Registra impianti/protesi collegati al paziente utilizzando i dati di magazzino.
-        </p>
+          <PatientImplantAssociations
+            patientId={patient.id}
+            products={implantProductOptions}
+            implants={implantAssociationItems}
+            addAction={addImplantAssociationAction}
+            updateAction={updateImplantAssociationAction}
+          />
+      </div>
 
-        <div className="mt-4 space-y-4">
-          <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white/90 to-transparent dark:from-zinc-950/90 sm:hidden" />
-            <table className="min-w-full divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-              <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                <tr>
-                  <th className="px-3 py-2 text-left">Tipo di DM</th>
-                  <th className="px-3 py-2 text-left">Marca</th>
-                  <th className="px-3 py-2 text-left">UDI-DI</th>
-                  <th className="px-3 py-2 text-left">UDI-PI</th>
-                  <th className="px-3 py-2 text-left">Data acquisto</th>
-                  <th className="px-3 py-2 text-left">Data intervento</th>
-                  <th className="px-3 py-2 text-left">Sede intervento</th>
-                  <th className="px-3 py-2 text-left">Modifica</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                {implants.length === 0 ? (
-                  <tr>
-                    <td className="px-3 py-3 text-sm text-zinc-600 dark:text-zinc-400" colSpan={8}>
-                      Nessun impianto associato.
-                    </td>
-                  </tr>
-                ) : (
-                  implants.map((imp) => {
-                    const note = imp.note ?? "";
-                    const deviceType = note.match(/Tipo:\s*([^·]+)/)?.[1]?.trim() ?? imp.product?.name ?? "—";
-                    const brandFromNote = note.match(/Marca:\s*([^·]+)/)?.[1]?.trim();
-                    const udiDiFromNote = note.match(/UDI-DI:\s*([^·]+)/)?.[1]?.trim();
-                    const brand =
-                      brandFromNote ?? imp.product?.supplier?.name ?? (imp.product?.name ? "—" : "—");
-                    return (
-                      <tr key={imp.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
-                        <td className="px-3 py-2 text-zinc-900 dark:text-zinc-50">{deviceType}</td>
-                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{brand ?? "—"}</td>
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-600 dark:text-zinc-400">
-                          {udiDiFromNote ?? imp.product?.udiDi ?? "—"}
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs text-zinc-600 dark:text-zinc-400">{imp.udiPi ?? "—"}</td>
-                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
-                          {imp.purchaseDate
-                            ? formatDateInDisplayTimeZone(
-                                imp.purchaseDate,
-                                { dateStyle: "medium" },
-                                displayTimeZone
-                              )
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">
-                          {imp.interventionDate
-                            ? formatDateInDisplayTimeZone(
-                                imp.interventionDate,
-                                { dateStyle: "medium" },
-                                displayTimeZone
-                              )
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 text-zinc-700 dark:text-zinc-300">{imp.interventionSite ?? "—"}</td>
-                        <td className="px-3 py-2">
-                          <details className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-700 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-                            <summary className="cursor-pointer font-semibold text-emerald-800 dark:text-emerald-300">Modifica</summary>
-                            <form action={updateImplantAssociationAction} className="mt-2 grid grid-cols-1 gap-2">
-                              <input type="hidden" name="implantId" value={imp.id} />
-                              <input type="hidden" name="patientId" value={patient.id} />
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Prodotto
-                                <select
-                                  name="productId"
-                                  defaultValue={imp.productId}
-                                  className="h-9 rounded-lg border border-zinc-200 bg-white px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                >
-                                  {products.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
-                                    </option>
-                                  ))}
-                                </select>
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Tipo DM
-                                <input
-                                  name="deviceType"
-                                  defaultValue={deviceType !== "—" ? deviceType : ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Marca
-                                <input
-                                  name="brand"
-                                  defaultValue={brand ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                UDI-DI
-                                <input
-                                  name="udiDi"
-                                  defaultValue={udiDiFromNote ?? imp.product?.udiDi ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                                  placeholder="UDI-DI"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                UDI-PI
-                                <input
-                                  name="udiPi"
-                                  defaultValue={imp.udiPi ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 font-mono text-xs text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Data acquisto
-                                <input
-                                  type="date"
-                                  name="purchaseDate"
-                                  defaultValue={
-                                    imp.purchaseDate ? imp.purchaseDate.toISOString().split("T")[0] : ""
-                                  }
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Data intervento
-                                <input
-                                  type="date"
-                                  name="interventionDate"
-                                  defaultValue={
-                                    imp.interventionDate ? imp.interventionDate.toISOString().split("T")[0] : ""
-                                  }
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                />
-                              </label>
-                              <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase text-zinc-700 dark:text-zinc-300">
-                                Sede
-                                <input
-                                  name="interventionSite"
-                                  defaultValue={imp.interventionSite ?? ""}
-                                  className="h-9 rounded-lg border border-zinc-200 px-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                                />
-                              </label>
-                              <div className="flex justify-end pt-1">
-                                <button
-                                  type="submit"
-                                  className="rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
-                                >
-                                  Aggiorna
-                                </button>
-                              </div>
-                            </form>
-                          </details>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
-            <summary className="flex cursor-pointer items-center justify-between gap-2 rounded-xl border border-emerald-100 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-400 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/20">
-              <span>Dettagli impianto</span>
-              <svg
-                className="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180 dark:text-emerald-500"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </summary>
-            <form action={addImplantAssociationAction} className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <input type="hidden" name="patientId" value={patient.id} />
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Prodotto / Tipo di DM
-                <select
-                  name="productId"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  required
-                  defaultValue=""
-                >
-                  <option value="" disabled>
-                    Seleziona prodotto
-                  </option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} {p.supplier?.name ? `· ${p.supplier.name}` : ""} {p.udiDi ? `· ${p.udiDi}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Marca
-                <input
-                  name="brand"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  placeholder="Marca"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Tipo di DM (personalizzato)
-                <input
-                  name="deviceType"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  placeholder="Es. Impianto, Protesi..."
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Codice UDI-DI
-                <input
-                  name="udiDi"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  placeholder="UDI-DI"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Codice UDI-PI
-                <input
-                  name="udiPi"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  placeholder="UDI-PI / Lotto"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Data acquisto
-                <input
-                  type="date"
-                  name="purchaseDate"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Data intervento
-                <input
-                  type="date"
-                  name="interventionDate"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                Sede intervento
-                <input
-                  name="interventionSite"
-                  className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-                  placeholder="Es. 1.1, 2.4..."
-                />
-              </label>
-              <div className="sm:col-span-2 flex justify-end">
-                <FormSubmitButton className="inline-flex h-11 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600">
-                  Associa impianto
-                </FormSubmitButton>
-              </div>
-            </form>
-          </details>
-        </div>
-      </details>
-    </div>
-
-    <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <svg

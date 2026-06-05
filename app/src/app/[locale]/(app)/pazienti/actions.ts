@@ -12,7 +12,7 @@ import { parseOptionalBirthDate } from "@/lib/date";
 import { normalizePersonName } from "@/lib/name";
 import { put } from "@vercel/blob";
 import { sendEmail } from "@/lib/email";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackSignInUrl } from "@/lib/stack-app";
 import sharp from "sharp";
 import { pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
 
@@ -287,7 +287,7 @@ export async function createPatient(formData: FormData) {
   });
 
   if (email) {
-    const signInUrl = stackServerApp.urls.signIn ?? "/handler/sign-in";
+    const signInUrl = getStackSignInUrl();
     const patientSignInUrl = withParam(signInUrl, "audience", "patient");
     const siteOrigin = resolveSiteOrigin();
     const loginUrl = /^https?:\/\//.test(patientSignInUrl)

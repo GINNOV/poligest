@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { reportError } from "@/lib/error-reporting";
 import { Prisma, Role } from "@prisma/client";
 import { cookies } from "next/headers";
-import { stackServerApp } from "@/lib/stack-app";
+import { getStackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -20,6 +20,7 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
 async function resolveStackUserIdByEmail(email: string, displayName?: string | null) {
+  const stackServerApp = getStackServerApp();
   const normalized = email.trim().toLowerCase();
   const result = await stackServerApp.listUsers({
     query: normalized,
@@ -87,6 +88,7 @@ async function upsertUser(formData: FormData) {
 
   if (!existingUser && isActive) {
     try {
+      const stackServerApp = getStackServerApp();
       const sender = stackServerApp as unknown as {
         sendMagicLinkEmail?: (email: string, options?: { callbackUrl?: string }) => Promise<unknown>;
       };
@@ -274,6 +276,7 @@ async function startImpersonation(formData: FormData) {
   const stackUserId = await resolveStackUserIdByEmail(target.email, target.name);
 
   // Create a short-lived session flagged as impersonation.
+  const stackServerApp = getStackServerApp();
   const stackServerAppWithInterface = stackServerApp as typeof stackServerApp & {
     _interface: {
       createServerUserSession: (
@@ -369,6 +372,7 @@ async function sendPasswordResetLink(formData: FormData) {
   }
 
   try {
+    const stackServerApp = getStackServerApp();
     const callbackUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL;
     if (!callbackUrl) {
       throw new Error("Callback URL mancante per il reset password.");

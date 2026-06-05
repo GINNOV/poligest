@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConsentStatus, Gender, Role } from "@prisma/client";
+import { ConsentStatus, Gender, Role, StockMovementType } from "@prisma/client";
 
 const mocks = vi.hoisted(() => {
   const requireUser = vi.fn();
@@ -18,6 +18,14 @@ const mocks = vi.hoisted(() => {
     },
     patientConsent: {
       create: vi.fn(),
+    },
+    product: {
+      findUnique: vi.fn(),
+    },
+    stockMovement: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
   };
   const put = vi.fn();
@@ -73,6 +81,7 @@ vi.mock("@/lib/email", () => ({
 }));
 
 vi.mock("@/lib/stack-app", () => ({
+  getStackSignInUrl: () => "/handler/sign-in",
   stackServerApp: {
     urls: {
       signIn: "/handler/sign-in",
@@ -86,6 +95,7 @@ vi.mock("@/lib/patient-avatars", () => ({
 }));
 
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
+import { addImplantAssociationAction, updateImplantAssociationAction } from "@/lib/patients/actions";
 
 describe("createPatient", () => {
   beforeEach(() => {
@@ -253,5 +263,89 @@ describe("createPatient", () => {
     await expect(createPatient(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/pazienti?patientCreated=Paziente%20Maria%20Rossi%3A%20cartella%20e'%20stata%20creata.",
     );
+  });
+});
+
+describe("implant association actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.requireUser.mockResolvedValue({ id: "staff-1", role: Role.ADMIN });
+    mocks.logAudit.mockResolvedValue(undefined);
+    mocks.prisma.stockMovement.create.mockResolvedValue({ id: "implant-1" });
+    mocks.prisma.stockMovement.update.mockResolvedValue({ id: "implant-1" });
+  });
+
+  it("associates an implant using read-only product data from magazzino", async () => {
+    mocks.prisma.product.findUnique.mockResolvedValue({
+      id: "product-1",
+      name: "Impianto conico",
+      brand: "Biomed",
+      udiDi: "UDI-DI-DB",
+      udiPi: "LOT-DB",
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("productId", "product-1");
+    formData.set("brand", "Marca manomessa");
+    formData.set("udiDi", "UDI-MANOMESSO");
+    formData.set("udiPi", "LOT-MANOMESSO");
+    formData.set("purchaseDate", "2026-06-01");
+    formData.set("interventionDate", "2026-06-05");
+    formData.set("interventionSite", "1.1");
+
+    await addImplantAssociationAction(formData);
+
+    expect(mocks.prisma.stockMovement.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        productId: "product-1",
+        quantity: 1,
+        movement: StockMovementType.OUT,
+        patientId: "patient-1",
+        udiPi: "LOT-DB",
+        note: "Tipo: Impianto conico · Marca: Biomed · UDI-DI: UDI-DI-DB",
+        interventionSite: "1.1",
+      }),
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/patient-1");
+  });
+
+  it("updates only editable implant association fields while preserving the product", async () => {
+    mocks.prisma.stockMovement.findFirst.mockResolvedValue({
+      id: "implant-1",
+      patientId: "patient-1",
+      productId: "product-1",
+      product: {
+        id: "product-1",
+        name: "Impianto conico",
+        brand: "Biomed",
+        udiDi: "UDI-DI-DB",
+        udiPi: "LOT-DB",
+      },
+    });
+
+    const formData = new FormData();
+    formData.set("implantId", "implant-1");
+    formData.set("patientId", "patient-1");
+    formData.set("productId", "different-product");
+    formData.set("purchaseDate", "2026-06-02");
+    formData.set("interventionDate", "2026-06-06");
+    formData.set("interventionSite", "2.4");
+
+    await updateImplantAssociationAction(formData);
+
+    expect(mocks.prisma.stockMovement.update).toHaveBeenCalledWith({
+      where: { id: "implant-1" },
+      data: expect.not.objectContaining({ productId: "different-product" }),
+    });
+    expect(mocks.prisma.stockMovement.update).toHaveBeenCalledWith({
+      where: { id: "implant-1" },
+      data: expect.objectContaining({
+        udiPi: "LOT-DB",
+        note: "Tipo: Impianto conico · Marca: Biomed · UDI-DI: UDI-DI-DB",
+        interventionSite: "2.4",
+      }),
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/patient-1");
   });
 });

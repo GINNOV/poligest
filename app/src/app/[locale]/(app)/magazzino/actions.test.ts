@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     },
     product: {
       create: vi.fn(),
+      update: vi.fn(),
     },
     stockMovement: {
       create: vi.fn(),
@@ -47,32 +48,32 @@ describe("magazzino actions", () => {
     mocks.prisma.supplier.findFirst.mockResolvedValue({ id: "supplier-fallback" });
     mocks.prisma.supplier.create.mockResolvedValue({ id: "supplier-fallback" });
     mocks.prisma.product.create.mockResolvedValue({ id: "product-1" });
+    mocks.prisma.product.update.mockResolvedValue({ id: "product-1" });
     mocks.prisma.stockMovement.create.mockResolvedValue({ id: "movement-1" });
     mocks.prisma.stockMovement.delete.mockResolvedValue({ id: "movement-1" });
     mocks.prisma.stockMovement.update.mockResolvedValue({ id: "movement-1" });
   });
 
-  it("creates implant products without a selected supplier and keeps long UDI codes", async () => {
+  it("creates implant products with supplier, UDI-DI, and UDI-PI", async () => {
     const udiDi = "(01)72901086921981";
     const udiPi = "(17)291209(10)WO-031358(21)22-70007";
     const formData = new FormData();
 
     formData.set("isImplant", "1");
     formData.set("name", "IMPIANTO 2026");
+    formData.set("supplierId", "supplier-1");
     formData.set("udiDi", udiDi);
     formData.set("udiPi", udiPi);
     formData.set("minThreshold", "0");
 
     await createProduct(formData);
 
-    expect(mocks.prisma.supplier.findFirst).toHaveBeenCalledWith({
-      where: { name: { equals: "Fornitore non specificato", mode: "insensitive" } },
-    });
+    expect(mocks.prisma.supplier.findFirst).not.toHaveBeenCalled();
     expect(mocks.prisma.product.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         name: "IMPIANTO 2026",
         serviceType: "impianto",
-        supplierId: "supplier-fallback",
+        supplierId: "supplier-1",
         udiDi,
         udiPi,
       }),
@@ -84,6 +85,23 @@ describe("magazzino actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/magazzino/movimenti");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/magazzino/print/prodotti");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/magazzino/print/movimenti");
+  });
+
+  it.each([
+    ["supplier", { supplierId: "", udiDi: "(01)72901086921981", udiPi: "(17)291209(10)WO-031358" }],
+    ["UDI-DI", { supplierId: "supplier-1", udiDi: "", udiPi: "(17)291209(10)WO-031358" }],
+    ["UDI-PI", { supplierId: "supplier-1", udiDi: "(01)72901086921981", udiPi: "" }],
+  ])("rejects implant products without %s", async (_field, values) => {
+    const formData = new FormData();
+
+    formData.set("isImplant", "1");
+    formData.set("name", "IMPIANTO 2026");
+    formData.set("supplierId", values.supplierId);
+    formData.set("udiDi", values.udiDi);
+    formData.set("udiPi", values.udiPi);
+
+    await expect(createProduct(formData)).rejects.toThrow("Nome, fornitore, UDI-DI e UDI-PI obbligatori");
+    expect(mocks.prisma.product.create).not.toHaveBeenCalled();
   });
 
   it("still requires a supplier for regular products", async () => {
