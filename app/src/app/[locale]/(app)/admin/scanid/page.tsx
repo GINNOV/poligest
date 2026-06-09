@@ -37,6 +37,35 @@ export default async function ScanIdAdminPage() {
               <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Pronto a ricevere scansioni</span>
             </div>
           </div>
+
+          {/* Latest ScanID version + download (driven by same envs as /api/scanid/meta) */}
+          {(() => {
+            const latestVersion = process.env.SCANID_LATEST_VERSION || "1.1.0";
+            const downloadUrl =
+              process.env.SCANID_DOWNLOAD_URL ||
+              "https://github.com/GINNOV/poligest/releases";
+            return (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Versione ScanID consigliata</span>
+                    <div className="mt-1 font-mono text-lg font-semibold text-emerald-950 dark:text-emerald-100">{latestVersion}</div>
+                  </div>
+                  <a
+                    href={downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 dark:border-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                  >
+                    Scarica ScanID
+                  </a>
+                </div>
+                <p className="mt-2 text-[11px] text-emerald-800/80 dark:text-emerald-300/80">
+                  Usa il pulsante <strong>Controlla aggiornamenti</strong> all&apos;interno di ScanID (Preferenze → Sorriso) per ricevere notifiche automatiche delle nuove versioni.
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Setup guide */}
@@ -84,6 +113,10 @@ export default async function ScanIdAdminPage() {
               </div>
             </li>
           </ol>
+
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            Dopo la configurazione, usa <strong>Controlla aggiornamenti</strong> nelle Preferenze di ScanID per verificare la presenza di nuove versioni.
+          </p>
         </div>
       </div>
     </div>

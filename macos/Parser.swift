@@ -13,6 +13,27 @@ struct IDData: Codable {
     var nationality: String?
     var cardNumber: String? // TS Card number (20 digits on back)
     var rawText: [String]
+    
+    mutating func calculateCodiceFiscaleIfPossible() {
+        guard codiceFiscale == nil else { return }
+        guard let surname = surname,
+              let name = name,
+              let dob = dateOfBirth,
+              let gender = gender,
+              let pob = placeOfBirth else {
+            return
+        }
+        
+        if let calculated = IDParser.calculateCodiceFiscale(
+            surname: surname,
+            name: name,
+            dateOfBirth: dob,
+            gender: gender,
+            placeOfBirth: pob
+        ) {
+            self.codiceFiscale = calculated
+        }
+    }
 }
 
 class IDParser {
@@ -134,48 +155,9 @@ class IDParser {
             }
         }
         
-        // Find Surname and Name using label anchors, skipping intermediate label/metadata lines
-        if let surnameIndex = findLabelIndex(in: cleanedLines, labels: ["cognome", "surname"]) {
-            for i in (surnameIndex + 1)..<cleanedLines.count {
-                let candidate = cleanedLines[i]
-                if !isLabelLine(candidate) && candidate.count > 1 && isValidNameOrSurname(candidate) {
-                    data.surname = candidate
-                    break
-                }
-            }
-        }
-        
-        if let nameIndex = findLabelIndex(in: cleanedLines, labels: ["nome", "name", "given name"]) {
-            for i in (nameIndex + 1)..<cleanedLines.count {
-                let candidate = cleanedLines[i]
-                if !isLabelLine(candidate) && candidate.count > 1 && isValidNameOrSurname(candidate) {
-                    data.name = candidate
-                    break
-                }
-            }
-        }
-        
-        // Fallback for Surname/Name merged prefixes
-        if data.surname == nil {
-            for line in cleanedLines {
-                if let val = getValueAfterPrefix(line: line, prefixes: ["cognome", "surname"]) {
-                    if !isLabelLine(val) && isValidNameOrSurname(val) {
-                        data.surname = val
-                        break
-                    }
-                }
-            }
-        }
-        if data.name == nil {
-            for line in cleanedLines {
-                if let val = getValueAfterPrefix(line: line, prefixes: ["nome", "name", "given"]) {
-                    if !isLabelLine(val) && isValidNameOrSurname(val) {
-                        data.name = val
-                        break
-                    }
-                }
-            }
-        }
+        // Find Surname and Name
+        data.surname = extractField(in: cleanedLines, labels: ["cognome", "surname"], validator: isValidNameOrSurname)
+        data.name = extractField(in: cleanedLines, labels: ["nome", "name", "given name", "given"], validator: isValidNameOrSurname)
         
         // Find Place of Birth
         // Find Place of Birth
@@ -394,17 +376,100 @@ class IDParser {
         return nil
     }
     
-    private static func getValueAfterPrefix(line: String, prefixes: [String]) -> String? {
-        let lowercased = line.lowercased()
-        for prefix in prefixes {
-            let words = lowercased.components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { !$0.isEmpty }
-            if words.first == prefix {
-                if let range = lowercased.range(of: prefix) {
-                    let afterPrefix = line[range.upperBound...]
-                    let clean = afterPrefix.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-\t"))
-                    if !clean.isEmpty && clean.count > 2 && !clean.contains("/") {
-                        return clean
+    private static let skipWords: Set<String> = [
+        "cognome", "surname", "cogaome", "suraame", "surnam", "cognomesurname",
+        "nome", "name", "names", "given", "givennames", "givenname", "nami", "noma", "nomename",
+        "sesso", "sex", "sessosex", "seso", "gender",
+        "cittadinanza", "nationality", "nationalite", "vationality", "nationalty", "cittadinanz", "citadinanza",
+        "luogo", "data", "nascita", "birth", "place", "date", "birthplace", "birthdate", "placeanddateofbirth", "placedateofbirth",
+        "documento", "document", "card", "tessera", "sanitaria", "health", "insurance", "regional", "regione",
+        "scadenza", "expiry", "valido", "altezza", "statura", "stature", "height", "emissione", "comune",
+        "codice", "fiscale", "cod", "fisc", "fiscal", "tax", "code",
+        "provincia", "prov", "firma", "signature", "ministero", "interno", "salute", "unione", "europea", "nazionale", "servizi",
+        "e", "di", "and", "of", "da", "de", "d", "l", "la", "le", "del", "della"
+    ]
+
+    private static func cleanSuffixValue(_ suffix: String) -> String? {
+        let trimmed = suffix.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-,.\t"))
+        if trimmed.isEmpty { return nil }
+        
+        let words = trimmed.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+        
+        var valueWords: [String] = []
+        var skipping = true
+        
+        for word in words {
+            let cleanWord = word.lowercased().replacingOccurrences(of: "[^a-z0-9]", with: "", options: .regularExpression)
+            if skipping {
+                if skipWords.contains(cleanWord) || cleanWord.isEmpty {
+                    continue
+                } else {
+                    skipping = false
+                    valueWords.append(word)
+                }
+            } else {
+                valueWords.append(word)
+            }
+        }
+        
+        if valueWords.isEmpty { return nil }
+        let result = valueWords.joined(separator: " ").trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-,.\t"))
+        return result.isEmpty ? nil : result
+    }
+
+    private static func findLabelRangeWithWordBoundaries(in line: String, label: String) -> Range<String.Index>? {
+        let lower = line.lowercased()
+        var searchStartIndex = lower.startIndex
+        
+        while let range = lower.range(of: label, range: searchStartIndex..<lower.endIndex) {
+            var isBeforeBoundary = true
+            if range.lowerBound > lower.startIndex {
+                let beforeChar = lower[lower.index(before: range.lowerBound)]
+                if beforeChar.isLetter || beforeChar.isNumber {
+                    isBeforeBoundary = false
+                }
+            }
+            
+            var isAfterBoundary = true
+            if range.upperBound < lower.endIndex {
+                let afterChar = lower[range.upperBound]
+                if afterChar.isLetter || afterChar.isNumber {
+                    isAfterBoundary = false
+                }
+            }
+            
+            if isBeforeBoundary && isAfterBoundary {
+                return range
+            }
+            
+            searchStartIndex = range.upperBound
+        }
+        
+        return nil
+    }
+
+    private static func extractField(in lines: [String], labels: [String], validator: (String) -> Bool) -> String? {
+        // 1. Try same line
+        for line in lines {
+            for label in labels {
+                if let range = findLabelRangeWithWordBoundaries(in: line, label: label) {
+                    let suffix = String(line[range.upperBound...])
+                    if let cleaned = cleanSuffixValue(suffix), validator(cleaned) {
+                        return cleaned
+                    }
+                }
+            }
+        }
+        
+        // 2. Try subsequent lines
+        if let labelIndex = findLabelIndex(in: lines, labels: labels) {
+            for i in (labelIndex + 1)..<lines.count {
+                let candidate = lines[i]
+                if !isLabelLine(candidate) {
+                    let cleaned = candidate.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-\t"))
+                    if validator(cleaned) {
+                        return cleaned
                     }
                 }
             }
@@ -413,54 +478,65 @@ class IDParser {
     }
     
     private static func findPlaceOfBirth(in lines: [String], dateOfBirth: String?) -> String? {
-        if let index = findLabelIndex(in: lines, labels: ["luogo di nascita", "luogo e data di nascita", "place of birth", "luogo", "place"]) {
+        let labels = ["luogo e data di nascita", "luogo di nascita", "place and date of birth", "place of birth", "luogo", "place"]
+        
+        // 1. Try same line
+        for line in lines {
+            for label in labels {
+                if let range = findLabelRangeWithWordBoundaries(in: line, label: label) {
+                    let suffix = String(line[range.upperBound...])
+                    if var cleaned = cleanSuffixValue(suffix) {
+                        if let dob = dateOfBirth {
+                            cleaned = cleaned.replacingOccurrences(of: dob, with: "")
+                                .replacingOccurrences(of: dob.replacingOccurrences(of: "/", with: "."), with: "")
+                        }
+                        cleaned = dateRegex.stringByReplacingMatches(in: cleaned, options: [], range: NSRange(location: 0, length: cleaned.utf16.count), withTemplate: "")
+                        
+                        let cleanPlace = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                        if !cleanPlace.isEmpty && cleanPlace.count > 2 && !isLabelLine(cleanPlace) {
+                            return cleanPlace
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 2. Try subsequent lines
+        if let index = findLabelIndex(in: lines, labels: labels) {
             for i in (index + 1)..<lines.count {
                 let candidate = lines[i]
                 if !isLabelLine(candidate) {
+                    var place = candidate
                     if let dob = dateOfBirth {
-                        let clean = candidate.replacingOccurrences(of: dob, with: "")
+                        place = place.replacingOccurrences(of: dob, with: "")
                             .replacingOccurrences(of: dob.replacingOccurrences(of: "/", with: "."), with: "")
-                            .trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/"))
-                        if !clean.isEmpty && clean.count > 2 {
-                            return clean
-                        }
-                    } else {
-                        return candidate
+                    }
+                    place = dateRegex.stringByReplacingMatches(in: place, options: [], range: NSRange(location: 0, length: place.utf16.count), withTemplate: "")
+                    
+                    let cleanPlace = place.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                    if !cleanPlace.isEmpty && cleanPlace.count > 2 {
+                        return cleanPlace
                     }
                 }
             }
         }
         
-        // Fallback 1: check if any line starts with/contains the label followed by the value
-        for line in lines {
-            let lower = line.lowercased()
-            for label in ["luogo e data di nascita", "luogo di nascita", "place of birth", "luogo", "place"] {
-                if let range = lower.range(of: label) {
-                    let after = line[range.upperBound...]
-                    var clean = after.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-\t"))
-                    
-                    if let dob = dateOfBirth {
-                        clean = clean.replacingOccurrences(of: dob, with: "")
-                            .replacingOccurrences(of: dob.replacingOccurrences(of: "/", with: "."), with: "")
-                            .trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/"))
-                    }
-                    
-                    if !clean.isEmpty && clean.count > 2 && !isLabelLine(clean) {
-                        return clean
-                    }
-                }
-            }
-        }
-        
-        // Fallback 2: search for line containing DOB and extract place from it
+        // 3. Fallback: check if any line contains DOB and another text
         if let dob = dateOfBirth {
             for line in lines {
                 if line.contains(dob) || line.contains(dob.replacingOccurrences(of: "/", with: ".")) {
-                    let clean = line.replacingOccurrences(of: dob, with: "")
+                    var place = line.replacingOccurrences(of: dob, with: "")
                         .replacingOccurrences(of: dob.replacingOccurrences(of: "/", with: "."), with: "")
-                        .trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/"))
-                    if !clean.isEmpty && clean.count > 2 && !isLabelLine(clean) {
-                        return clean
+                    
+                    // Also clean labels from this line if any
+                    let labelStrs = ["luogo e data di nascita", "luogo di nascita", "place and date of birth", "place of birth", "luogo", "data", "nascita", "birth", "place", "date"]
+                    for label in labelStrs {
+                        place = place.replacingOccurrences(of: label, with: "", options: .caseInsensitive)
+                    }
+                    
+                    let cleanPlace = place.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                    if !cleanPlace.isEmpty && cleanPlace.count > 2 && !isLabelLine(cleanPlace) {
+                        return cleanPlace
                     }
                 }
             }
@@ -470,18 +546,24 @@ class IDParser {
     }
     
     private static func findGender(in lines: [String]) -> String? {
-        // 1. Check if the label line itself contains M or F as an isolated word
+        let labels = ["sesso", "sex", "gender"]
+        
+        // 1. Try same line
         for line in lines {
-            let lower = line.lowercased()
-            if lower.contains("sesso") || lower.contains("sex") {
-                let words = line.uppercased().components(separatedBy: CharacterSet.alphanumerics.inverted)
-                if words.contains("M") { return "M" }
-                if words.contains("F") { return "F" }
+            for label in labels {
+                if let range = findLabelRangeWithWordBoundaries(in: line, label: label) {
+                    let suffix = String(line[range.upperBound...])
+                    if let cleaned = cleanSuffixValue(suffix) {
+                        let upper = cleaned.uppercased()
+                        if upper.contains("M") { return "M" }
+                        if upper.contains("F") { return "F" }
+                    }
+                }
             }
         }
         
-        // 2. Scan lines immediately following the label index
-        if let index = findLabelIndex(in: lines, labels: ["sesso", "sex"]) {
+        // 2. Try subsequent lines
+        if let index = findLabelIndex(in: lines, labels: labels) {
             for i in (index + 1)..<min(index + 4, lines.count) {
                 let val = lines[i].trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
                 let words = val.components(separatedBy: CharacterSet.alphanumerics.inverted)
@@ -515,17 +597,14 @@ class IDParser {
     }
     
     private static func findNationality(in lines: [String]) -> String? {
-        if let index = findLabelIndex(in: lines, labels: ["cittadinanza", "nationality"]) {
-            for i in (index + 1)..<lines.count {
-                let candidate = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
-                if !isLabelLine(candidate) && candidate.count > 1 && candidate.count < 15 {
-                    // Check if it contains only letters and spaces
-                    let allowedChars = CharacterSet.letters.union(CharacterSet.whitespaces)
-                    if candidate.unicodeScalars.allSatisfy({ allowedChars.contains($0) }) {
-                        return candidate.uppercased()
-                    }
-                }
-            }
+        let labels = ["cittadinanza", "nationality"]
+        let allowedChars = CharacterSet.letters.union(CharacterSet.whitespaces)
+        let isValidNationality = { (val: String) -> Bool in
+            return val.count > 1 && val.count < 15 && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
+        }
+        
+        if let extracted = extractField(in: lines, labels: labels, validator: isValidNationality) {
+            return extracted.uppercased()
         }
         
         for line in lines {
@@ -541,7 +620,12 @@ class IDParser {
     private static func determineDocumentType(lines: [String], data: IDData) -> String {
         let fullText = lines.joined(separator: " ").lowercased()
         
-        if fullText.contains("tessera sanitaria") || fullText.contains("servizio sanitario nazionale") || fullText.contains("health insurance card") || data.cardNumber != nil {
+        // 1. Tessera Sanitaria check
+        if fullText.contains("tessera sanitaria") || 
+           fullText.contains("servizio sanitario nazionale") || 
+           fullText.contains("health insurance card") || 
+           fullText.contains("tessera europea") ||
+           data.cardNumber != nil {
             if data.codiceFiscale != nil && (fullText.contains("cognome") || fullText.contains("nome")) {
                 return "TESSERA_SANITARIA_FRONT"
             } else {
@@ -549,10 +633,20 @@ class IDParser {
             }
         }
         
-        if fullText.contains("carta d'identita") || fullText.contains("repubblica italiana") || data.documentNumber != nil {
-            if fullText.contains("cognome") && fullText.contains("nome") {
-                return "CIE_FRONT"
-            } else if fullText.contains("indirizzo") || fullText.contains("residenza") {
+        // 2. Carta di Identità (CIE) check
+        let isCIE = fullText.contains("carta d'identita") || 
+                    fullText.contains("carta di identita") || 
+                    fullText.contains("carta d'identità") || 
+                    fullText.contains("carta di identità") || 
+                    fullText.contains("repubblica italiana") || 
+                    fullText.contains("repubblica ltaliana") || // OCR 'I' as 'l'
+                    data.documentNumber != nil
+                    
+        if isCIE {
+            if fullText.contains("indirizzo") || 
+               fullText.contains("residenza") || 
+               fullText.contains("mrz") || 
+               lines.contains(where: { $0.count == 30 && ($0.hasPrefix("I") || $0.hasPrefix("C") || $0.hasPrefix("A")) }) {
                 return "CIE_BACK"
             }
             return "CIE_FRONT"
@@ -646,7 +740,7 @@ class IDParser {
     
     // MARK: - Codice Fiscale Calculation Logic
     
-    private static func calculateCodiceFiscale(surname: String, name: String, dateOfBirth: String, gender: String, placeOfBirth: String) -> String? {
+    static func calculateCodiceFiscale(surname: String, name: String, dateOfBirth: String, gender: String, placeOfBirth: String) -> String? {
         // 1. Surname code (3 chars)
         let surnameCode = extractSurnameCode(surname)
         
@@ -658,8 +752,12 @@ class IDParser {
             return nil
         }
         
-        // 4. Belfiore code (4 chars)
-        let cleanPob = placeOfBirth.replacingOccurrences(of: "\\s*\\([^)]*\\)", with: "", options: .regularExpression)
+        // 4. Belfiore code (4 chars) - Clean place of birth including trailing province codes
+        let cleanPob = placeOfBirth
+            .replacingOccurrences(of: "\\s*\\([^)]*\\)\\s*$", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "[-/\\s]+[A-Z]{2}\\s*$", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            
         guard let belfioreCode = Belfiore.resolve(cleanPob) else {
             print("Failed to resolve Belfiore code for place: \(cleanPob)")
             return nil

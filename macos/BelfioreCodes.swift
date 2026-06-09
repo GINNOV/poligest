@@ -7902,6 +7902,20 @@ struct Belfiore {
         "ZUNGRI": "M204",
     ]
     
+    private static func levenshteinDistance(_ s1: String, _ s2: String) -> Int {
+        let empty = [Int](repeating: 0, count: s2.count + 1)
+        var last = [Int](0...s2.count)
+        
+        for (i, char1) in s1.enumerated() {
+            var cur = [i + 1] + empty.dropFirst()
+            for (j, char2) in s2.enumerated() {
+                cur[j + 1] = char1 == char2 ? last[j] : min(last[j + 1], cur[j], last[j]) + 1
+            }
+            last = cur
+        }
+        return last.last ?? 0
+    }
+    
     static func resolve(_ place: String) -> String? {
         let clean = place.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -7917,6 +7931,26 @@ struct Belfiore {
             if nameAlpha == alphaOnly {
                 return code
             }
+        }
+        
+        // 3. Try fuzzy matching (edit distance <= 1 for short places, <= 2 for longer places)
+        let maxDistance = clean.count > 6 ? 2 : 1
+        var bestMatch: String? = nil
+        var bestDistance = Int.max
+        
+        for (name, code) in codes {
+            if abs(clean.count - name.count) > maxDistance {
+                continue
+            }
+            let dist = levenshteinDistance(clean, name)
+            if dist <= maxDistance && dist < bestDistance {
+                bestDistance = dist
+                bestMatch = code
+            }
+        }
+        
+        if let fuzzyCode = bestMatch {
+            return fuzzyCode
         }
         
         return nil

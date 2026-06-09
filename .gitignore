@@ -47,3 +47,9 @@ app/.gemini-clipboard
 app/logs
 output
 .playwright-cli
+
+# macOS build artifacts (ScanID companion)
+*.dmg
+*.app
+macos/ScanID.app
+macos/*.dmg

@@ -28,6 +28,13 @@ swiftc -O \
 echo "2. Copying Info.plist..."
 cp Info.plist ScanID.app/Contents/Info.plist
 
+# Allow overriding the version for releases: VERSION=1.2.0 bash build.sh
+if [ -n "${VERSION:-}" ]; then
+  echo "   Overriding version to ${VERSION}..."
+  /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" ScanID.app/Contents/Info.plist 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${VERSION}" ScanID.app/Contents/Info.plist 2>/dev/null || true
+fi
+
 echo "3. Setting execution permissions..."
 chmod +x ScanID.app/Contents/MacOS/ScanID
 
@@ -37,3 +44,8 @@ codesign -s - --force ScanID.app
 
 echo "=== Build Completed Successfully! ==="
 echo "You can launch the app using: open ScanID.app"
+echo ""
+echo "To create a distributable DMG for users:"
+echo "  ./create-dmg.sh"
+echo ""
+echo "  (The DMG name will include the version from Info.plist)"

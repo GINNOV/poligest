@@ -111,6 +111,86 @@ let parsedTSBack = IDParser.parse(lines: tsBackLines)
 assertEqual(parsedTSBack.documentType, "TESSERA_SANITARIA_BACK", "TS Back Type")
 assertEqual(parsedTSBack.cardNumber, "80380001201234567890", "TS Back Card Number")
 assertEqual(parsedTSBack.codiceFiscale, "RSSMRA95T64F205W", "TS Back Codice Fiscale")
+// Test Case 5: Codice Fiscale Calculation
+let cfCalcLines = [
+    "REPUBBLICA ITALIANA",
+    "CARTA DI IDENTITÀ",
+    "DOCUMENTO NUMERO CA12345AA",
+    "Cognome / Surname",
+    "ROSSI",
+    "Nome / Name",
+    "MARIO",
+    "Luogo e data di nascita / Place and date of birth",
+    "ROMA (RM) 15/01/1990",
+    "Sesso / Sex",
+    "M",
+    "Cittadinanza / Nationality",
+    "ITALIANA",
+    "Scadenza / Expiry Date",
+    "15/01/2030"
+]
+
+let parsedCFCalc = IDParser.parse(lines: cfCalcLines)
+assertEqual(parsedCFCalc.documentType, "CIE_FRONT", "CF Calc Type")
+assertEqual(parsedCFCalc.surname, "ROSSI", "CF Calc Surname")
+assertEqual(parsedCFCalc.name, "MARIO", "CF Calc Name")
+assertEqual(parsedCFCalc.dateOfBirth, "15/01/1990", "CF Calc DOB")
+assertEqual(parsedCFCalc.placeOfBirth, "ROMA (RM)", "CF Calc Place of Birth")
+assertEqual(parsedCFCalc.gender, "M", "CF Calc Gender")
+assertEqual(parsedCFCalc.codiceFiscale, "RSSMRA90A15H501K", "Calculated Codice Fiscale")
+
+// Test Case 6: Tessera Sanitaria Front with noise and messy ordering (with birthplace label on separate lines)
+let tsFrontNoiseLines = [
+    "REPUBBLICA ITALIANA",
+    "TESSERA SANITARIA",
+    "CARTA REGIONALE DEI SERVIZI",
+    "Codice RSSMRA90A15H501Y",
+    "Sesso M",
+    "Cognome",
+    "ROSSI",
+    "Nome",
+    "MARIO",
+    "Luogo",
+    "ROMA",
+    "di nascita",
+    "Provincia",
+    "RM",
+    "Data di nascita",
+    "15/01/1990",
+    "Scadenza 15/01/2030"
+]
+
+let parsedTSFrontNoise = IDParser.parse(lines: tsFrontNoiseLines)
+assertEqual(parsedTSFrontNoise.documentType, "TESSERA_SANITARIA_FRONT", "TS Front Noise Type")
+assertEqual(parsedTSFrontNoise.surname, "ROSSI", "TS Front Noise Surname")
+assertEqual(parsedTSFrontNoise.name, "MARIO", "TS Front Noise Name")
+assertEqual(parsedTSFrontNoise.codiceFiscale, "RSSMRA90A15H501Y", "TS Front Noise Codice Fiscale")
+assertEqual(parsedTSFrontNoise.dateOfBirth, "15/01/1990", "TS Front Noise DOB")
+assertEqual(parsedTSFrontNoise.placeOfBirth, "ROMA", "TS Front Noise Place of Birth")
+assertEqual(parsedTSFrontNoise.gender, "M", "TS Front Noise Gender")
+assertEqual(parsedTSFrontNoise.expiryDate, "15/01/2030", "TS Front Noise Expiry Date")
+
+// Test Case 7: CIE Front with label and value on same line (e.g. OCR merging)
+let cieSameLineLines = [
+    "REPUBBLICA ITALIANA",
+    "CARTA DI IDENTITÀ",
+    "DOCUMENTO NUMERO CA12345AA",
+    "3. Cognome / Surname ROSSI",
+    "4. Nome / Name MARIO",
+    "5. Luogo e data di nascita / Place and date of birth ROMA (RM) 15/01/1990",
+    "Sesso / Sex M",
+    "Cittadinanza / Nationality ITALIANA",
+    "Scadenza / Expiry Date 15/01/2030"
+]
+
+let parsedCIESameLine = IDParser.parse(lines: cieSameLineLines)
+assertEqual(parsedCIESameLine.documentType, "CIE_FRONT", "CIE Same Line Type")
+assertEqual(parsedCIESameLine.surname, "ROSSI", "CIE Same Line Surname")
+assertEqual(parsedCIESameLine.name, "MARIO", "CIE Same Line Name")
+assertEqual(parsedCIESameLine.dateOfBirth, "15/01/1990", "CIE Same Line DOB")
+assertEqual(parsedCIESameLine.placeOfBirth, "ROMA (RM)", "CIE Same Line Place of Birth")
+assertEqual(parsedCIESameLine.gender, "M", "CIE Same Line Gender")
+assertEqual(parsedCIESameLine.codiceFiscale, "RSSMRA90A15H501K", "CIE Same Line Calculated Codice Fiscale")
 
 print("\n=== Verification Complete ===")
 EOF

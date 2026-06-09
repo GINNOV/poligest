@@ -25,11 +25,24 @@ struct MainView: View {
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
+    // Update checking
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
+    @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
+    
     // Interactive UI State
     @State private var isShowingSettings = false
     @State private var showingConfirmationAlert = false
     @State private var pendingPatientToCreate: PendingPatient? = nil
     @State private var syncStatus: SyncStatus = .idle
+    @State private var pendingUpdate: PendingUpdate? = nil
+    @State private var isCheckingForUpdates = false
+    
+    // Update downloading state
+    @State private var downloadProgress: Double = 0.0
+    @State private var isDownloading = false
+    @State private var downloadError: String? = nil
+    @State private var downloadedFileUrl: URL? = nil
+    @State private var downloader: UpdateDownloader? = nil
     
     struct PendingPatient: Identifiable {
         let id = UUID()
@@ -38,6 +51,13 @@ struct MainView: View {
         let birthDate: String?
         let gender: String?
         let codiceFiscale: String?
+    }
+    
+    struct PendingUpdate: Identifiable {
+        let id = UUID()
+        let version: String
+        let downloadUrl: String
+        let notes: String?
     }
     
     enum CaptureState {
@@ -401,6 +421,14 @@ struct MainView: View {
             if scanMode == .camera {
                 cameraManager.startSession()
             }
+            
+            // Background update check (throttled to ~once per day)
+            if checkForUpdatesAutomatically {
+                let now = Date().timeIntervalSince1970
+                if now - lastUpdateCheck > 86_400 { // 24 hours
+                    checkForUpdates(silent: true)
+                }
+            }
         }
         .onDisappear {
             cameraManager.stopSession()
@@ -414,7 +442,36 @@ struct MainView: View {
             }
         }
         .sheet(isPresented: $isShowingSettings) {
-            SettingsView(isPresented: $isShowingSettings)
+            SettingsView(isPresented: $isShowingSettings, pendingUpdate: $pendingUpdate)
+        }
+        .sheet(item: $pendingUpdate) { update in
+            UpdateAvailableSheet(
+                update: update,
+                appLanguage: appLanguage,
+                isDownloading: isDownloading,
+                downloadProgress: downloadProgress,
+                downloadError: downloadError,
+                downloadedFileUrl: downloadedFileUrl,
+                onDownload: {
+                    if let url = URL(string: update.downloadUrl) {
+                        startUpdateDownload(url: url)
+                    }
+                },
+                onInstall: {
+                    if let fileUrl = downloadedFileUrl {
+                        installAndRelaunch(downloadedFile: fileUrl)
+                    }
+                },
+                onLater: {
+                    downloader?.cancel()
+                    isDownloading = false
+                    downloadProgress = 0.0
+                    downloadError = nil
+                    downloadedFileUrl = nil
+                    downloader = nil
+                    pendingUpdate = nil
+                }
+            )
         }
         .alert(
             Localization.string(key: "confirm_dialog_title", lang: appLanguage),
@@ -602,9 +659,8 @@ struct MainView: View {
     }
     
     private func processStaticImage(_ nsImage: NSImage) {
-        let croppedImage = cropToCenter(nsImage, ratio: 0.5)
-        guard let cgImage = croppedImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
-        self.selectedImage = croppedImage
+        guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        self.selectedImage = nsImage
         self.cgImageForOCR = cgImage
         
         IDScanner.recognizeText(in: cgImage) { items in
@@ -617,7 +673,8 @@ struct MainView: View {
             }
             self.recognizedItems = sortedItems
             let textLines = sortedItems.map { $0.text }
-            let parsed = IDParser.parse(lines: textLines)
+            var parsed = IDParser.parse(lines: textLines)
+            parsed.calculateCodiceFiscaleIfPossible()
             self.parsedData = parsed
             
             if parsed.documentType != "UNKNOWN" {
@@ -796,6 +853,183 @@ struct MainView: View {
         task.resume()
     }
     
+    // MARK: - Version & Updates (reuses serverUrl + apiToken + URLSession pattern from patient creation)
+    
+    private var currentVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0"
+    }
+    
+    private func isNewerVersion(_ remote: String, than local: String) -> Bool {
+        let r = remote.split(separator: ".").compactMap { Int($0) }
+        let l = local.split(separator: ".").compactMap { Int($0) }
+        let maxCount = max(r.count, l.count)
+        for i in 0..<maxCount {
+            let rv = i < r.count ? r[i] : 0
+            let lv = i < l.count ? l[i] : 0
+            if rv > lv { return true }
+            if rv < lv { return false }
+        }
+        return false
+    }
+    
+    private func checkForUpdates(silent: Bool = false) {
+        guard !isCheckingForUpdates else { return }
+        isCheckingForUpdates = true
+        
+        let base = serverUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: "\(base)/api/scanid/meta") else {
+            isCheckingForUpdates = false
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        // Send token if configured (harmless for public meta endpoint)
+        if !apiToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            request.setValue(apiToken, forHTTPHeaderField: "x-api-key")
+        }
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            // Always bounce to main to touch @State. MainView is a struct so we capture
+            // a copy of self at the moment the task was created (sufficient for this use).
+            DispatchQueue.main.async {
+                self.isCheckingForUpdates = false
+                self.lastUpdateCheck = Date().timeIntervalSince1970
+            }
+            
+            if error != nil {
+                if !silent { /* graceful: ignore for background checks */ }
+                return
+            }
+            guard let data = data else { return }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let remoteVersion = json["version"] as? String,
+                   let downloadUrl = json["downloadUrl"] as? String {
+                    
+                    let local = self.currentVersion
+                    if self.isNewerVersion(remoteVersion, than: local) {
+                        DispatchQueue.main.async {
+                            self.pendingUpdate = PendingUpdate(
+                                version: remoteVersion,
+                                downloadUrl: downloadUrl,
+                                notes: json["notes"] as? String
+                            )
+                        }
+                    } else if !silent {
+                        // Up to date
+                    }
+                }
+            } catch {
+                if !silent { /* ignore parse errors silently for now */ }
+            }
+        }
+        task.resume()
+    }
+    
+    private func startUpdateDownload(url: URL) {
+        isDownloading = true
+        downloadProgress = 0.0
+        downloadError = nil
+        downloadedFileUrl = nil
+        
+        let dl = UpdateDownloader()
+        dl.onProgress = { progress in
+            self.downloadProgress = progress
+        }
+        dl.onCompletion = { localUrl, error in
+            self.isDownloading = false
+            self.downloader = nil
+            if let error = error {
+                self.downloadError = error.localizedDescription
+            } else if let localUrl = localUrl {
+                self.downloadedFileUrl = localUrl
+            }
+        }
+        self.downloader = dl
+        dl.startDownload(url: url)
+    }
+    
+    private func installAndRelaunch(downloadedFile: URL) {
+        let currentAppPath = Bundle.main.bundlePath
+        let pid = ProcessInfo.processInfo.processIdentifier
+        
+        let tempDir = FileManager.default.temporaryDirectory
+        let scriptUrl = tempDir.appendingPathComponent("install-scanid-update.sh")
+        
+        let scriptContent = """
+        #!/bin/bash
+        PID=\(pid)
+        CURRENT_APP_PATH="\(currentAppPath)"
+        DOWNLOADED_FILE="\(downloadedFile.path)"
+        MOUNT_POINT="/Volumes/ScanID"
+
+        # Wait for parent PID to exit
+        while kill -0 "$PID" 2>/dev/null; do
+            sleep 0.2
+        done
+
+        # Check if downloaded file is DMG or ZIP
+        if [[ "$DOWNLOADED_FILE" == *.dmg ]]; then
+            # Mount DMG and find mount point dynamically
+            MOUNT_INFO=$(hdiutil attach -nobrowse -readonly "$DOWNLOADED_FILE")
+            MOUNT_POINT=$(echo "$MOUNT_INFO" | grep -o '/Volumes/.*' | head -n 1 | xargs)
+            
+            if [ -n "$MOUNT_POINT" ] && [ -d "$MOUNT_POINT" ]; then
+                NEW_APP=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 2 -type d | head -n 1)
+                if [ -d "$NEW_APP" ]; then
+                    # Replace app
+                    rm -rf "$CURRENT_APP_PATH"
+                    cp -R "$NEW_APP" "$CURRENT_APP_PATH"
+                fi
+                # Detach DMG
+                hdiutil detach "$MOUNT_POINT" -force
+            fi
+        elif [[ "$DOWNLOADED_FILE" == *.zip ]]; then
+            # Unzip to a temporary folder
+            TMP_UNZIP_DIR=$(mktemp -d)
+            unzip -q "$DOWNLOADED_FILE" -d "$TMP_UNZIP_DIR"
+            # Find ScanID.app in the unzipped files (ignoring resource forks like __MACOSX)
+            NEW_APP=$(find "$TMP_UNZIP_DIR" -name "ScanID.app" -type d -maxdepth 3 | grep -v "__MACOSX" | head -n 1)
+            if [ -d "$NEW_APP" ]; then
+                # Replace app
+                rm -rf "$CURRENT_APP_PATH"
+                cp -R "$NEW_APP" "$CURRENT_APP_PATH"
+            fi
+            rm -rf "$TMP_UNZIP_DIR"
+        fi
+
+        # Relaunch the app
+        open "$CURRENT_APP_PATH"
+
+        # Delete this script
+        rm -- "$0"
+        """
+        
+        do {
+            try scriptContent.write(to: scriptUrl, atomically: true, encoding: .utf8)
+            
+            // Make executable
+            let chmodProcess = Process()
+            chmodProcess.executableURL = URL(fileURLWithPath: "/bin/chmod")
+            chmodProcess.arguments = ["+x", scriptUrl.path]
+            try chmodProcess.run()
+            chmodProcess.waitUntilExit()
+            
+            // Run the script in background
+            let scriptProcess = Process()
+            scriptProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
+            scriptProcess.arguments = [scriptUrl.path]
+            try scriptProcess.run()
+            
+            // Terminate the app
+            NSApplication.shared.terminate(nil)
+        } catch {
+            print("Failed to run updater script: \(error)")
+        }
+    }
+    
     // MARK: - Import / Actions
     
     private func importImage() {
@@ -871,9 +1105,11 @@ struct MainView: View {
         Menu {
             Button(appLanguage == "it" ? "Assegna a Cognome" : "Assign to Cognome / Surname") {
                 parsedData.surname = item.text
+                parsedData.calculateCodiceFiscaleIfPossible()
             }
             Button(appLanguage == "it" ? "Assegna a Nome" : "Assign to Nome / Name") {
                 parsedData.name = item.text
+                parsedData.calculateCodiceFiscaleIfPossible()
             }
             Button(appLanguage == "it" ? "Assegna a Codice Fiscale" : "Assign to Codice Fiscale / Tax Code") {
                 parsedData.codiceFiscale = item.text
@@ -883,12 +1119,15 @@ struct MainView: View {
             }
             Button(appLanguage == "it" ? "Assegna a Data Nascita" : "Assign to Data Nascita / Birth Date") {
                 parsedData.dateOfBirth = item.text
+                parsedData.calculateCodiceFiscaleIfPossible()
             }
             Button(appLanguage == "it" ? "Assegna a Luogo Nascita" : "Assign to Luogo Nascita / Birth Place") {
                 parsedData.placeOfBirth = item.text
+                parsedData.calculateCodiceFiscaleIfPossible()
             }
             Button(appLanguage == "it" ? "Assegna a Sesso" : "Assign to Sesso / Sex") {
                 parsedData.gender = item.text
+                parsedData.calculateCodiceFiscaleIfPossible()
             }
             Button(appLanguage == "it" ? "Assegna a Scadenza" : "Assign to Scadenza / Expiry Date") {
                 parsedData.expiryDate = item.text
@@ -957,6 +1196,7 @@ struct MainView: View {
 
 struct SettingsView: View {
     @Binding var isPresented: Bool
+    @Binding var pendingUpdate: MainView.PendingUpdate?
     
     @AppStorage("showJsonOptions") private var showJsonOptions = false
     @AppStorage("autoCreatePatient") private var autoCreatePatient = false
@@ -966,8 +1206,13 @@ struct SettingsView: View {
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
+    // Update prefs (synced via same keys as MainView)
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
+    @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
+    
     @State private var activeTab: Tab = .general
     @State private var showToken = false
+    @State private var isCheckingForUpdates = false
     
     enum Tab {
         case general
@@ -1087,7 +1332,138 @@ struct SettingsView: View {
                     .help(showToken ? "Hide token" : "Show token")
                 }
             }
+            
+            // Update section
+            Divider().padding(.vertical, 4)
+            
+            LabeledContent(Localization.string(key: "version", lang: appLanguage)) {
+                Text(currentVersionString())
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+            
+            Toggle(Localization.string(key: "pref_check_updates", lang: appLanguage), isOn: $checkForUpdatesAutomatically)
+                .toggleStyle(.checkbox)
+            
+            Button(action: { performUpdateCheckInSettings() }) {
+                if isCheckingForUpdates {
+                    HStack {
+                        ProgressView().controlSize(.small)
+                        Text(Localization.string(key: "checking_for_updates", lang: appLanguage))
+                    }
+                } else {
+                    Label(Localization.string(key: "check_for_updates", lang: appLanguage), systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+            .disabled(isCheckingForUpdates)
         }
+    }
+    
+    // Local version read (SettingsView has its own @AppStorage copies)
+    private func currentVersionString() -> String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "1.0"
+    }
+    
+    private func performUpdateCheckInSettings() {
+        guard !isCheckingForUpdates else { return }
+        isCheckingForUpdates = true
+        
+        let base = serverUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: "\(base)/api/scanid/meta") else {
+            isCheckingForUpdates = false
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if !apiToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            request.setValue(apiToken, forHTTPHeaderField: "x-api-key")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                self.isCheckingForUpdates = false
+                self.lastUpdateCheck = Date().timeIntervalSince1970
+            }
+            
+            if let error = error {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = Localization.string(key: "update_check_failed", lang: self.appLanguage)
+                    alert.informativeText = error.localizedDescription
+                    alert.addButton(withTitle: Localization.string(key: "close", lang: self.appLanguage))
+                    alert.runModal()
+                }
+                return
+            }
+            
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = Localization.string(key: "update_check_failed", lang: self.appLanguage)
+                    alert.informativeText = "No data returned from the update server."
+                    alert.addButton(withTitle: Localization.string(key: "close", lang: self.appLanguage))
+                    alert.runModal()
+                }
+                return
+            }
+            
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let remote = json["version"] as? String,
+                   let download = json["downloadUrl"] as? String {
+                    
+                    let local = self.currentVersionString()
+                    if self.isNewer(remote, than: local) {
+                        DispatchQueue.main.async {
+                            self.pendingUpdate = MainView.PendingUpdate(
+                                version: remote,
+                                downloadUrl: download,
+                                notes: json["notes"] as? String
+                            )
+                            // Dismiss settings to reveal update sheet in MainView
+                            self.isPresented = false
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            let alert = NSAlert()
+                            alert.messageText = Localization.string(key: "up_to_date", lang: self.appLanguage)
+                            alert.addButton(withTitle: Localization.string(key: "close", lang: self.appLanguage))
+                            alert.runModal()
+                        }
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        let alert = NSAlert()
+                        alert.messageText = Localization.string(key: "update_check_failed", lang: self.appLanguage)
+                        alert.informativeText = "Invalid update response structure."
+                        alert.addButton(withTitle: Localization.string(key: "close", lang: self.appLanguage))
+                        alert.runModal()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = Localization.string(key: "update_check_failed", lang: self.appLanguage)
+                    alert.informativeText = error.localizedDescription
+                    alert.addButton(withTitle: Localization.string(key: "close", lang: self.appLanguage))
+                    alert.runModal()
+                }
+            }
+        }.resume()
+    }
+    
+    private func isNewer(_ remote: String, than local: String) -> Bool {
+        let r = remote.split(separator: ".").compactMap { Int($0) }
+        let l = local.split(separator: ".").compactMap { Int($0) }
+        let maxC = max(r.count, l.count)
+        for i in 0..<maxC {
+            let rv = i < r.count ? r[i] : 0
+            let lv = i < l.count ? l[i] : 0
+            if rv > lv { return true }
+            if rv < lv { return false }
+        }
+        return false
     }
 }
 
@@ -1240,6 +1616,88 @@ struct VisualEffectView: View {
     }
 }
 
+// MARK: - Update Sheet
+
+struct UpdateAvailableSheet: View {
+    let update: MainView.PendingUpdate
+    let appLanguage: String
+    let isDownloading: Bool
+    let downloadProgress: Double
+    let downloadError: String?
+    let downloadedFileUrl: URL?
+    let onDownload: () -> Void
+    let onInstall: () -> Void
+    let onLater: () -> Void
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "arrow.down.circle.fill")
+                .font(.system(size: 48))
+                .foregroundColor(.accentColor)
+            
+            Text(Localization.string(key: "update_available_title", lang: appLanguage))
+                .font(.headline)
+            
+            Text(String(format: Localization.string(key: "update_available_body", lang: appLanguage), update.version))
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+            
+            if let notes = update.notes, !notes.isEmpty {
+                Text(notes)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            if isDownloading {
+                VStack(spacing: 8) {
+                    ProgressView(value: downloadProgress, total: 1.0)
+                        .progressViewStyle(.linear)
+                        .frame(width: 280)
+                    Text(String(format: "%.0f%%", downloadProgress * 100))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 8)
+            } else if let error = downloadError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            } else if downloadedFileUrl != nil {
+                Text(appLanguage == "it" ? "Aggiornamento scaricato con successo!" : "Update downloaded successfully!")
+                    .font(.subheadline)
+                    .foregroundColor(.green)
+                    .padding(.vertical, 8)
+            }
+            
+            HStack(spacing: 12) {
+                if downloadedFileUrl != nil {
+                    Button(Localization.string(key: "later", lang: appLanguage), action: onLater)
+                        .buttonStyle(.bordered)
+                        .disabled(isDownloading)
+                    
+                    Button(appLanguage == "it" ? "Installa & Riavvia" : "Install & Relaunch", action: onInstall)
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Button(Localization.string(key: "later", lang: appLanguage), action: onLater)
+                        .buttonStyle(.bordered)
+                        .disabled(isDownloading)
+                    
+                    Button(appLanguage == "it" ? "Scarica & Installa" : "Download & Install", action: onDownload)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isDownloading)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .padding(24)
+        .frame(width: 380)
+    }
+}
+
 // MARK: - Localization Utility
 
 struct Localization {
@@ -1285,7 +1743,18 @@ struct Localization {
             "field_sex": "Sex",
             "field_expiry": "Expiry Date",
             "field_nationality": "Nationality",
-            "field_card_num": "Card Number (TS Back)"
+            "field_card_num": "Card Number (TS Back)",
+            "version": "Version",
+            "check_for_updates": "Check for Updates",
+            "checking_for_updates": "Checking for updates...",
+            "up_to_date": "You are up to date.",
+            "update_available_title": "Update Available",
+            "update_available_body": "ScanID version %@ is available.",
+            "download_update": "Download Update",
+            "later": "Later",
+            "update_check_failed": "Update check failed.",
+            "pref_check_updates": "Automatically check for updates",
+            "new_version_available": "New version available"
         ]
         let it = [
             "scan_mode": "Modalità Scansione",
@@ -1328,9 +1797,80 @@ struct Localization {
             "field_sex": "Sesso",
             "field_expiry": "Scadenza",
             "field_nationality": "Cittadinanza",
-            "field_card_num": "Numero Tessera (Retro TS)"
+            "field_card_num": "Numero Tessera (Retro TS)",
+            "version": "Versione",
+            "check_for_updates": "Controlla aggiornamenti",
+            "checking_for_updates": "Controllo aggiornamenti in corso...",
+            "up_to_date": "La versione è aggiornata.",
+            "update_available_title": "Aggiornamento disponibile",
+            "update_available_body": "È disponibile la versione %@ di ScanID.",
+            "download_update": "Scarica aggiornamento",
+            "later": "Più tardi",
+            "update_check_failed": "Controllo aggiornamenti non riuscito.",
+            "pref_check_updates": "Controlla automaticamente gli aggiornamenti",
+            "new_version_available": "Nuova versione disponibile"
         ]
         let dict = (lang == "it" ? it : en)
         return dict[key] ?? key
     }
 }
+
+// MARK: - Update Downloader
+
+class UpdateDownloader: NSObject, URLSessionDownloadDelegate {
+    var onProgress: ((Double) -> Void)?
+    var onCompletion: ((URL?, Error?) -> Void)?
+    
+    private var session: URLSession?
+    private var task: URLSessionDownloadTask?
+    
+    override init() {
+        super.init()
+        let config = URLSessionConfiguration.default
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: .main)
+    }
+    
+    func startDownload(url: URL) {
+        task = session?.downloadTask(with: url)
+        task?.resume()
+    }
+    
+    func cancel() {
+        task?.cancel()
+        task = nil
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        if totalBytesExpectedToWrite > 0 {
+            let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+            onProgress?(progress)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        guard let originalUrl = downloadTask.originalRequest?.url else {
+            onCompletion?(nil, NSError(domain: "UpdateError", code: -1, userInfo: [NSLocalizedDescriptionKey: "No request URL"]))
+            return
+        }
+        
+        let ext = originalUrl.pathExtension.isEmpty ? "dmg" : originalUrl.pathExtension
+        let tempDir = FileManager.default.temporaryDirectory
+        let destinationUrl = tempDir.appendingPathComponent("ScanID-Update.\(ext)")
+        
+        try? FileManager.default.removeItem(at: destinationUrl)
+        
+        do {
+            try FileManager.default.moveItem(at: location, to: destinationUrl)
+            onCompletion?(destinationUrl, nil)
+        } catch {
+            onCompletion?(nil, error)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            onCompletion?(nil, error)
+        }
+    }
+}
+
