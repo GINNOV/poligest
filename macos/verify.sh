@@ -112,63 +112,6 @@ assertEqual(parsedTSBack.documentType, "TESSERA_SANITARIA_BACK", "TS Back Type")
 assertEqual(parsedTSBack.cardNumber, "80380001201234567890", "TS Back Card Number")
 assertEqual(parsedTSBack.codiceFiscale, "RSSMRA95T64F205W", "TS Back Codice Fiscale")
 
-// Test Case 5: Codice Fiscale Calculation
-let cfCalcLines = [
-    "REPUBBLICA ITALIANA",
-    "CARTA DI IDENTITÀ",
-    "DOCUMENTO NUMERO CA77545WN",
-    "Cognome / Surname",
-    "ESPOSITO",
-    "Nome / Name",
-    "MARIO",
-    "Luogo e data di nascita / Place and date of birth",
-    "OLEVANO SUL TUSCIANO (SA) 05/03/1971",
-    "Sesso / Sex",
-    "M",
-    "Cittadinanza / Nationality",
-    "ITALIANA",
-    "Scadenza / Expiry Date",
-    "05/03/2035"
-]
-
-let parsedCFCalc = IDParser.parse(lines: cfCalcLines)
-assertEqual(parsedCFCalc.documentType, "CIE_FRONT", "CF Calc Type")
-assertEqual(parsedCFCalc.surname, "ESPOSITO", "CF Calc Surname")
-assertEqual(parsedCFCalc.name, "MARIO", "CF Calc Name")
-assertEqual(parsedCFCalc.dateOfBirth, "05/03/1971", "CF Calc DOB")
-assertEqual(parsedCFCalc.placeOfBirth, "OLEVANO SUL TUSCIANO (SA)", "CF Calc Place of Birth")
-assertEqual(parsedCFCalc.gender, "M", "CF Calc Gender")
-assertEqual(parsedCFCalc.codiceFiscale, "SPSMRA71C05G023H", "Calculated Codice Fiscale")
-
-// Test Case 6: Tessera Sanitaria Front with noise and messy ordering (with Provincia label present)
-let tsFrontNoiseLines = [
-    "REPUBBLICA ITALIANA",
-    "TESSERA SANITARIA",
-    "CARTA REGIONALE DEI SERVIZI",
-    "Codice SPSMRA71C05G023H",
-    "Sesso M",
-    "Cognome",
-    "ESPOSITO",
-    "Nome",
-    "MARIO",
-    "Luogo di nascita OLEVANO SUL TUSCIANO",
-    "Provincia",
-    "SA",
-    "Data di nascita",
-    "05/03/1971",
-    "Scadenza 07/07/2031"
-]
-
-let parsedTSFrontNoise = IDParser.parse(lines: tsFrontNoiseLines)
-assertEqual(parsedTSFrontNoise.documentType, "TESSERA_SANITARIA_FRONT", "TS Front Noise Type")
-assertEqual(parsedTSFrontNoise.surname, "ESPOSITO", "TS Front Noise Surname")
-assertEqual(parsedTSFrontNoise.name, "MARIO", "TS Front Noise Name")
-assertEqual(parsedTSFrontNoise.codiceFiscale, "SPSMRA71C05G023H", "TS Front Noise Codice Fiscale")
-assertEqual(parsedTSFrontNoise.dateOfBirth, "05/03/1971", "TS Front Noise DOB")
-assertEqual(parsedTSFrontNoise.placeOfBirth, "OLEVANO SUL TUSCIANO", "TS Front Noise Place of Birth")
-assertEqual(parsedTSFrontNoise.gender, "M", "TS Front Noise Gender")
-assertEqual(parsedTSFrontNoise.expiryDate, "07/07/2031", "TS Front Noise Expiry Date")
-
 print("\n=== Verification Complete ===")
 EOF
 

@@ -413,7 +413,7 @@ class IDParser {
     }
     
     private static func findPlaceOfBirth(in lines: [String], dateOfBirth: String?) -> String? {
-        if let index = findLabelIndex(in: lines, labels: ["luogo di nascita", "luogo e data di nascita", "place of birth"]) {
+        if let index = findLabelIndex(in: lines, labels: ["luogo di nascita", "luogo e data di nascita", "place of birth", "luogo", "place"]) {
             for i in (index + 1)..<lines.count {
                 let candidate = lines[i]
                 if !isLabelLine(candidate) {
@@ -434,7 +434,7 @@ class IDParser {
         // Fallback 1: check if any line starts with/contains the label followed by the value
         for line in lines {
             let lower = line.lowercased()
-            for label in ["luogo e data di nascita", "luogo di nascita", "place of birth"] {
+            for label in ["luogo e data di nascita", "luogo di nascita", "place of birth", "luogo", "place"] {
                 if let range = lower.range(of: label) {
                     let after = line[range.upperBound...]
                     var clean = after.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-\t"))
