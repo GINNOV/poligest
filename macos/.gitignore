@@ -1,0 +1,13 @@
+# Xcode
+build/
+DerivedData/
+
+# User-specific Xcode files
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+SymbolicLinks/
+
+# Built macOS application
+ScanID.app/
