@@ -46,6 +46,7 @@ type Props = {
   practiceTimeZone?: PracticeTimeZone;
   displayTimeZone?: string;
   canManagePracticeTimeZone?: boolean;
+  macosAppApiKey?: string;
 };
 
 export function UserMenu({
@@ -61,6 +62,7 @@ export function UserMenu({
   practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   displayTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   canManagePracticeTimeZone = false,
+  macosAppApiKey,
 }: Props) {
   const router = useRouter();
   const initialHomeScreen =
@@ -523,6 +525,36 @@ export function UserMenu({
                         </label>
                       </div>
                     </div>
+                    </div>
+                  </section>
+
+                  {/* Scanner integration Section */}
+                  <section className="space-y-4 lg:col-span-2">
+                    <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-zinc-700 dark:text-zinc-400">
+                      <span>📱</span> Integrazione Scanner macOS
+                    </h4>
+                    <div className="rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Chiave API per ScanID</span>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          Inserisci questa chiave nelle preferenze dell&apos;applicazione ScanID per macOS per autorizzare la creazione dei pazienti.
+                        </p>
+                        <div className="mt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                          <code className="flex-1 select-all rounded-lg bg-zinc-100 px-3 py-2 font-mono text-sm text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50 border border-zinc-200 dark:border-zinc-700 overflow-x-auto whitespace-pre">
+                            {macosAppApiKey || "poligest_macos_secret"}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(macosAppApiKey || "poligest_macos_secret");
+                              alert("Chiave copiata negli appunti!");
+                            }}
+                            className="inline-flex h-10 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 cursor-pointer"
+                          >
+                            Copia
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </section>
                 </div>

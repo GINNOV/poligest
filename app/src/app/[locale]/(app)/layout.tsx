@@ -243,6 +243,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 practiceTimeZone={practiceTimeZone}
                 displayTimeZone={displayTimeZone}
                 canManagePracticeTimeZone={isManagerOrAdmin}
+                macosAppApiKey={process.env.MACOS_APP_API_KEY || "poligest_macos_secret"}
               />
             ) : null}
           </div>
