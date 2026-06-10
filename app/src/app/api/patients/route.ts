@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     }
 
     // Map gender string to Gender enum
-    let mappedGender = Gender.NOT_SPECIFIED;
+    let mappedGender: Gender = Gender.NOT_SPECIFIED;
     if (gender === "M") {
       mappedGender = Gender.MALE;
     } else if (gender === "F") {
