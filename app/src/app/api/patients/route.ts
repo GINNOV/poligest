@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Gender } from "@prisma/client";
 
 export async function POST(req: Request) {
   // Authentication check: Accept Authorization header or x-api-key
@@ -44,11 +45,11 @@ export async function POST(req: Request) {
     }
 
     // Map gender string to Gender enum
-    let mappedGender = "NOT_SPECIFIED";
+    let mappedGender = Gender.NOT_SPECIFIED;
     if (gender === "M") {
-      mappedGender = "MALE";
+      mappedGender = Gender.MALE;
     } else if (gender === "F") {
-      mappedGender = "FEMALE";
+      mappedGender = Gender.FEMALE;
     }
 
     const patient = await prisma.patient.create({
@@ -58,14 +59,15 @@ export async function POST(req: Request) {
         email: email || null,
         phone: phone || null,
         birthDate: parsedBirthDate,
-        gender: mappedGender as any,
+        gender: mappedGender,
         notes: notes || null,
       },
     });
 
     return NextResponse.json({ ok: true, patientId: patient.id });
-  } catch (error: any) {
+  } catch (error) {
     console.error("API Error creating patient:", error);
-    return NextResponse.json({ error: error.message || "Failed to create patient" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Failed to create patient";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
