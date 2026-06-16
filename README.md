@@ -2,7 +2,7 @@
 
 SORRISO is practice management software for small dental clinics. It handles appointments, patient records, clinical documentation, billing, inventory, and the back-office work that keeps a studio running — with a separate patient login so people can check their own data from home.
 
-Built for Italian clinics: UI in Italian, Italian date formats, CIE and Tessera Sanitaria support via ScanID, codice fiscale handling. ScanID's own UI is also available in English.
+Available in Italian and English (web app and ScanID). Built for Italian clinics — date formats, CIE and Tessera Sanitaria support via ScanID, codice fiscale handling.
 
 Production: [sorrisosplendente.com](https://sorrisosplendente.com)
 
