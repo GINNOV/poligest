@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		100A62C3ABF776F5B82A25C3 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC4D06C500D1FFE7E1F2C0 /* CameraView.swift */; };
+		B300CFD92606F9E100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B300CFD82606F9E100000001 /* Assets.xcassets */; };
 		7C1230CF4FAA99FC1899B882 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348691AB3151589787C27FCF /* Scanner.swift */; };
 		A235FA3C671ABDA748EF11B8 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB08DD3B4A04143C59BECFC4 /* Parser.swift */; };
 		B200CFD82606F9E100000000 /* BelfioreCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200CFD72606F9E100000000 /* BelfioreCodes.swift */; };
@@ -23,6 +24,7 @@
 		C7EB7E16AEB5926C1DAB2180 /* ScanID.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScanID.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB08DD3B4A04143C59BECFC4 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		B200CFD72606F9E100000000 /* BelfioreCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BelfioreCodes.swift; sourceTree = "<group>"; };
+		B300CFD82606F9E100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		EECF55C8D9B50305D41C50DC /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -35,6 +37,17 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B300CFD72606F9E100000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B300CFD92606F9E100000001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXGroup section */
 		401B55B313CC19E177BBF6D8 /* Supporting Files */ = {
@@ -62,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				78C8676D2F5DB841DDAD46E4 /* Sources */,
+				B300CFD82606F9E100000001 /* Assets.xcassets */,
 				401B55B313CC19E177BBF6D8 /* Supporting Files */,
 				C769FEA752C22F7B25D62158 /* Products */,
 			);
@@ -84,6 +98,7 @@
 			buildPhases = (
 				A0C8AC3BB31C2095048B84B1 /* Sources */,
 				DFA0ACACB013068B06C33F96 /* Frameworks */,
+				B300CFD72606F9E100000002 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -149,9 +164,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -168,9 +186,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "";
+				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

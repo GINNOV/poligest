@@ -104,7 +104,9 @@ Run from `macos/`:
 ./verify.sh        # unit tests for card parsing logic
 ```
 
-App icon source: `macos/Assets/AppIcon-1024.png`. Regenerate `.icns` and web PNG with `./generate-icon.sh`.
+Icons live in `macos/Assets.xcassets` (Xcode asset catalog, App Store–ready). Source: `macos/Assets/AppIcon-1024.png`. Run `./generate-icon.sh` to regenerate all sizes, `Assets/AppIcon.icns`, and `macos/AppStore/MarketingIcon-1024.png` (upload this 1024×1024 PNG in App Store Connect if prompted separately from the bundle).
+
+Open `ScanID.xcodeproj` in Xcode for Archive → Distribute App. The catalog includes all required macOS icon sizes (16 through 1024).
 
 To bump the version before building:
 

@@ -25,13 +25,28 @@ swiftc -O \
   Parser.swift \
   BelfioreCodes.swift
 
-echo "2. Copying Info.plist and app icon..."
+echo "2. Copying Info.plist and compiling asset catalog..."
 cp Info.plist ScanID.app/Contents/Info.plist
-if [ ! -f Assets/AppIcon.icns ]; then
-  echo "Error: Assets/AppIcon.icns not found. Run ./generate-icon.sh first."
+if [ ! -d Assets.xcassets ]; then
+  echo "Error: Assets.xcassets not found. Run ./generate-icon.sh first."
   exit 1
 fi
-cp Assets/AppIcon.icns ScanID.app/Contents/Resources/AppIcon.icns
+PARTIAL_PLIST="$(mktemp)"
+xcrun actool Assets.xcassets \
+  --compile ScanID.app/Contents/Resources \
+  --platform macosx \
+  --minimum-deployment-target 14.0 \
+  --app-icon AppIcon \
+  --output-partial-info-plist "$PARTIAL_PLIST" \
+  --notices --warnings
+# Merge icon name from actool into Info.plist (asset catalog embedding)
+ICON_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$PARTIAL_PLIST" 2>/dev/null || true)
+if [ -n "$ICON_NAME" ]; then
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" ScanID.app/Contents/Info.plist 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" ScanID.app/Contents/Info.plist 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName $ICON_NAME" ScanID.app/Contents/Info.plist
+fi
+rm -f "$PARTIAL_PLIST"
 
 # Allow overriding the version for releases: VERSION=1.2.0 bash build.sh
 if [ -n "${VERSION:-}" ]; then
