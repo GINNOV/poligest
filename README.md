@@ -2,6 +2,8 @@
 
 Practice management software for small dental clinics. Two parts: a Next.js web app for day-to-day operations, and **ScanID**, a macOS companion that scans Italian ID cards and creates patient records.
 
+**Languages:** Italian and English. The web app UI is in Italian (`next-intl`, `app/src/messages/it.json`). ScanID ships both — switch under preferences.
+
 Production: [sorrisosplendente.com](https://sorrisosplendente.com)
 
 ## Repository layout
@@ -60,7 +62,7 @@ Patients, appointments, dental charts, finance (quotes, payments, reports), inve
 
 ## ScanID (macOS)
 
-Native app that uses Apple Vision to OCR Italian **Carta d'Identità Elettronica** and **Tessera Sanitaria** from the camera or a dropped image, then optionally creates a patient in Sorriso via `POST /api/patients`.
+Native app that uses Apple Vision to OCR Italian **Carta d'Identità Elettronica** and **Tessera Sanitaria** from the camera or a dropped image, then optionally creates a patient in Sorriso via `POST /api/patients`. UI in Italian or English (`appLanguage` in preferences).
 
 ### Download
 
