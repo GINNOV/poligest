@@ -86,6 +86,14 @@ Direct DMG: [ScanID-1.1.0.dmg](https://github.com/GINNOV/poligest/releases/downl
 
 Open the DMG, drag `ScanID.app` to Applications.
 
+macOS Gatekeeper may block the first launch because the app is ad-hoc signed, not notarized. If you see *"ScanID" can't be opened* or similar:
+
+1. Open **Applications** in Finder.
+2. **Right-click** (or Control-click) `ScanID.app` → **Open**.
+3. Click **Open** in the dialog to confirm you trust the app.
+
+If it still won't run, open **System Settings → Privacy & Security**, scroll to the security message about ScanID, and click **Open Anyway**. Then launch the app once more.
+
 ### Build
 
 Run from `macos/`:
