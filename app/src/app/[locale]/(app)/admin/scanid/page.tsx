@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
@@ -12,13 +13,24 @@ export default async function ScanIdAdminPage() {
     <div className="space-y-6">
       {/* Header section */}
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-          Integrazione macOS
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">ScanID</h1>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-          Collega l&apos;applicazione nativa macOS per la scansione delle carte d&apos;identità italiane e tessere sanitarie.
-        </p>
+        <div className="flex items-start gap-4">
+          <Image
+            src="/scanid-icon.png"
+            alt="ScanID"
+            width={64}
+            height={64}
+            className="h-16 w-16 shrink-0 rounded-2xl shadow-sm"
+          />
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+              Integrazione macOS
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">ScanID</h1>
+            <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
+              Collega l&apos;applicazione nativa macOS per la scansione delle carte d&apos;identità italiane e tessere sanitarie.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Grid container */}

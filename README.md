@@ -82,6 +82,8 @@ Run from `macos/`:
 ./verify.sh        # unit tests for card parsing logic
 ```
 
+App icon source: `macos/Assets/AppIcon-1024.png`. Regenerate `.icns` and web PNG with `./generate-icon.sh`.
+
 To bump the version before building:
 
 ```bash

@@ -25,8 +25,13 @@ swiftc -O \
   Parser.swift \
   BelfioreCodes.swift
 
-echo "2. Copying Info.plist..."
+echo "2. Copying Info.plist and app icon..."
 cp Info.plist ScanID.app/Contents/Info.plist
+if [ ! -f Assets/AppIcon.icns ]; then
+  echo "Error: Assets/AppIcon.icns not found. Run ./generate-icon.sh first."
+  exit 1
+fi
+cp Assets/AppIcon.icns ScanID.app/Contents/Resources/AppIcon.icns
 
 # Allow overriding the version for releases: VERSION=1.2.0 bash build.sh
 if [ -n "${VERSION:-}" ]; then
