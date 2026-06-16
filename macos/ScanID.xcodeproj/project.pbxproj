@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		100A62C3ABF776F5B82A25C3 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31DC4D06C500D1FFE7E1F2C0 /* CameraView.swift */; };
 		B300CFD92606F9E100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B300CFD82606F9E100000001 /* Assets.xcassets */; };
+		B300CFDA2606F9E100000003 /* BelfioreCodes.json in Resources */ = {isa = PBXBuildFile; fileRef = B300CFD92606F9E100000003 /* BelfioreCodes.json */; };
 		7C1230CF4FAA99FC1899B882 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 348691AB3151589787C27FCF /* Scanner.swift */; };
 		A235FA3C671ABDA748EF11B8 /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB08DD3B4A04143C59BECFC4 /* Parser.swift */; };
 		B200CFD82606F9E100000000 /* BelfioreCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200CFD72606F9E100000000 /* BelfioreCodes.swift */; };
@@ -25,6 +26,7 @@
 		CB08DD3B4A04143C59BECFC4 /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
 		B200CFD72606F9E100000000 /* BelfioreCodes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BelfioreCodes.swift; sourceTree = "<group>"; };
 		B300CFD82606F9E100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B300CFD92606F9E100000003 /* BelfioreCodes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BelfioreCodes.json; sourceTree = "<group>"; };
 		EECF55C8D9B50305D41C50DC /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -44,6 +46,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B300CFD92606F9E100000001 /* Assets.xcassets in Resources */,
+				B300CFDA2606F9E100000003 /* BelfioreCodes.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -54,6 +57,7 @@
 			isa = PBXGroup;
 			children = (
 				866C48AEA1A9E5053496971D /* Info.plist */,
+				B300CFD92606F9E100000003 /* BelfioreCodes.json */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -168,8 +172,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "";
-				ENABLE_PREVIEWS = YES;
+				ENABLE_PREVIEWS = NO;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -190,8 +193,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "";
-				ENABLE_PREVIEWS = YES;
+				ENABLE_PREVIEWS = NO;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -263,7 +265,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -321,7 +323,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};

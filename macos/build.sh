@@ -47,6 +47,7 @@ if [ -n "$ICON_NAME" ]; then
     || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName $ICON_NAME" ScanID.app/Contents/Info.plist
 fi
 rm -f "$PARTIAL_PLIST"
+cp BelfioreCodes.json ScanID.app/Contents/Resources/BelfioreCodes.json
 
 # Allow overriding the version for releases: VERSION=1.2.0 bash build.sh
 if [ -n "${VERSION:-}" ]; then

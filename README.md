@@ -106,7 +106,7 @@ Run from `macos/`:
 
 Icons live in `macos/Assets.xcassets` (Xcode asset catalog, App Store–ready). Source: `macos/Assets/AppIcon-1024.png`. Run `./generate-icon.sh` to regenerate all sizes, `Assets/AppIcon.icns`, and `macos/AppStore/MarketingIcon-1024.png` (upload this 1024×1024 PNG in App Store Connect if prompted separately from the bundle).
 
-Open `ScanID.xcodeproj` in Xcode for Archive → Distribute App. The catalog includes all required macOS icon sizes (16 through 1024).
+Open `ScanID.xcodeproj` in Xcode for Archive → Distribute App. The catalog includes all required macOS icon sizes (16 through 1024). Belfiore place-of-birth codes ship as `BelfioreCodes.json` (not compiled Swift) to keep Xcode builds fast.
 
 To bump the version before building:
 
