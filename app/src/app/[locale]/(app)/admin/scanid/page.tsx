@@ -43,7 +43,7 @@ export default async function ScanIdAdminPage() {
             const latestVersion = process.env.SCANID_LATEST_VERSION || "1.1.0";
             const downloadUrl =
               process.env.SCANID_DOWNLOAD_URL ||
-              "https://github.com/GINNOV/poligest/releases";
+              "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.0/ScanID-1.1.0.dmg";
             return (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/30">
                 <div className="flex items-center justify-between">

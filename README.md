@@ -34,7 +34,7 @@ All commands should be executed from the `macos` directory:
 ### 🌐 Update API Configuration
 The companion app pulls updates from the web app's `/api/scanid/meta` endpoint. You can control the version and package URL by defining the following environment variables on the web server:
 - `SCANID_LATEST_VERSION` (defaults to `1.1.0`) - The latest version string (e.g., `1.2.0`).
-- `SCANID_DOWNLOAD_URL` - The URL pointing to the latest zip or dmg package asset.
+- `SCANID_DOWNLOAD_URL` - The URL pointing to the latest zip or dmg package asset (default: [ScanID-1.1.0.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.0/ScanID-1.1.0.dmg)).
 - `SCANID_RELEASE_NOTES` - Optional release notes displayed in the companion app's update dialog.
 
 ---

@@ -13,7 +13,7 @@ export async function GET() {
   // (e.g. a GitHub release asset or a stable hosted .zip of the .app bundle).
   const downloadUrl =
     process.env.SCANID_DOWNLOAD_URL ||
-    "https://github.com/GINNOV/poligest/releases";
+    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.0/ScanID-1.1.0.dmg";
 
   const notes = process.env.SCANID_RELEASE_NOTES || "";
 
