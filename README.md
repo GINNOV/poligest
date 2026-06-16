@@ -1,10 +1,36 @@
 # poligest (SORRISO)
 
-Practice management software for small dental clinics. Two parts: a Next.js web app for day-to-day operations, and **ScanID**, a macOS companion that scans Italian ID cards and creates patient records.
+SORRISO runs a small dental practice from one place: patient records, scheduling, clinical work, billing, stock, and staff comms. The web app is where the clinic lives day to day. **ScanID** is a Mac utility that reads Italian ID cards at reception and opens a patient file without retyping.
 
-**Languages:** Italian and English. The web app UI is in Italian (`next-intl`, `app/src/messages/it.json`). ScanID ships both — switch under preferences.
+Built for Italian clinics — UI copy, date formats, and document types (CIE, Tessera Sanitaria, codice fiscale) reflect that. The web app is in Italian; ScanID also supports English.
 
 Production: [sorrisosplendente.com](https://sorrisosplendente.com)
+
+### What the web app does
+
+**Patients** — demographics, contacts, photos, duplicate detection, clinical notes, anamnesis, GDPR export. Interactive dental chart per tooth (conditions, treatments, history). Consent modules with optional Wacom signature capture.
+
+**Scheduling** — multi-doctor agenda and calendar, appointment states (to confirm, confirmed, in progress, completed, no-show, etc.), conflict checks, WhatsApp reminder tracking, configurable reminder rules.
+
+**Finance** — treatment quotes with line items, standard and down payments, daily/monthly/doctor expense reports, cash advances, payment methods (cash, card, transfer, pay later).
+
+**Inventory** — products and implants as separate flows, suppliers, stock movements linked to patients where relevant.
+
+**Recalls** — rule-based automatic recalls, manual recalls, recurring messages (holidays, closures, birthdays).
+
+**Communications** — SMS via ClickSend, email templates, daily agenda email to staff, weekly practice report to managers.
+
+**Admin** — users and roles (admin, manager, assistant, secretary, patient), per-role feature access, audit log, error reporting, privacy settings, service catalogue, anamnesis conditions, ScanID API key, data export/reset.
+
+Patients can log in separately to book visits and manage their own consents.
+
+### What ScanID does
+
+Point the Mac camera at a **Carta d'Identità** or **Tessera Sanitaria** — or drop a photo — and ScanID extracts surname, name, birth date, gender, codice fiscale, document number, and related fields. It can compute codice fiscale from place of birth when the card doesn't show it.
+
+From there, optionally push a new patient record to Sorriso (with confirmation, or fully automatic). Open the created record in the browser. Copy raw JSON for debugging.
+
+Does not replace the web app. Handles the reception desk step of getting a patient into the system quickly.
 
 ## Repository layout
 
@@ -54,15 +80,13 @@ Run from `app/`:
 
 CI (`.github/workflows/ci.yml`) runs build, test, and lint on every push and PR to `main`.
 
-### Main areas
-
-Patients, appointments, dental charts, finance (quotes, payments, reports), inventory, recalls, consents, SMS, and role-based admin. Routes are under `app/src/app/[locale]/(app)/`; API routes under `app/src/app/api/`.
+Routes: `app/src/app/[locale]/(app)/` · API: `app/src/app/api/`
 
 ---
 
 ## ScanID (macOS)
 
-Native app that uses Apple Vision to OCR Italian **Carta d'Identità Elettronica** and **Tessera Sanitaria** from the camera or a dropped image, then optionally creates a patient in Sorriso via `POST /api/patients`. UI in Italian or English (`appLanguage` in preferences).
+Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS with an API key configured in `/admin/scanid`.
 
 ### Download
 
