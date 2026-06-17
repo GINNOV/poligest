@@ -190,6 +190,7 @@ describe("patient page data", () => {
       select: {
         createdAt: true,
         role: true,
+        metadata: true,
         user: { select: { name: true, email: true } },
       },
     });
