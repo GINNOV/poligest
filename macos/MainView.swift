@@ -5,7 +5,7 @@ import AppKit
 
 struct MainView: View {
     @StateObject private var cameraManager = CameraManager()
-    @State private var scanMode: ScanMode = .camera
+    @State private var scanMode: ScanMode = .image
     @State private var selectedImage: NSImage?
     @State private var cgImageForOCR: CGImage?
     @State private var recognizedItems: [RecognizedItem] = []
@@ -26,13 +26,18 @@ struct MainView: View {
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
     // Update checking
-    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
+    @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     
     // Interactive UI State
+    @State private var showWelcomePrompt = false
     @State private var isShowingSettings = false
     @State private var showingConfirmationAlert = false
     @State private var pendingPatientToCreate: PendingPatient? = nil
+    @State private var existingPatientId: String? = nil
+    @State private var patientLookupGeneration = 0
     @State private var syncStatus: SyncStatus = .idle
     @State private var pendingUpdate: PendingUpdate? = nil
     @State private var isCheckingForUpdates = false
@@ -51,6 +56,11 @@ struct MainView: View {
         let birthDate: String?
         let gender: String?
         let codiceFiscale: String?
+        let existingPatientId: String?
+        
+        var isUpdate: Bool {
+            existingPatientId != nil
+        }
     }
     
     struct PendingUpdate: Identifiable {
@@ -74,8 +84,16 @@ struct MainView: View {
     enum SyncStatus {
         case idle
         case syncing
-        case success(patientId: String)
+        case success(patientId: String, isUpdate: Bool)
         case failure(error: String)
+    }
+    
+    private var isUpdatingExistingPatient: Bool {
+        existingPatientId != nil
+    }
+    
+    private var showParsedResults: Bool {
+        captureState == .captured
     }
     
     var body: some View {
@@ -195,163 +213,11 @@ struct MainView: View {
             .frame(minWidth: 400, maxWidth: .infinity, minHeight: 400)
             
             // Right Panel - Parsed Data & JSON
-            VStack(spacing: 0) {
-                // Header Metadata
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(Localization.string(key: "detected_data", lang: appLanguage))
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 8) {
-                            Text(parsedData.documentType.replacingOccurrences(of: "_", with: " "))
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            badgeView(for: parsedData.documentType)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    if showJsonOptions {
-                        HStack(spacing: 8) {
-                            Button(action: copyJSON) {
-                                Label(copied ? Localization.string(key: "copied", lang: appLanguage) : Localization.string(key: "copy_json", lang: appLanguage), systemImage: copied ? "checkmark" : "doc.on.doc")
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(parsedData.documentType == "UNKNOWN" && parsedData.rawText.isEmpty)
-                            
-                            Button(action: saveJSON) {
-                                Label(appLanguage == "it" ? "Salva File..." : "Save File...", systemImage: "square.and.arrow.down")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(parsedData.documentType == "UNKNOWN" && parsedData.rawText.isEmpty)
-                        }
-                    }
-                }
-                .padding()
-                .background(VisualEffectView(material: .headerView, blendingMode: .withinWindow))
-                
-                Divider()
-                
-                // Sync Status Banner
-                syncStatusBanner()
-                
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Table View of Fields
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(Localization.string(key: "fields", lang: appLanguage))
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            VStack(spacing: 0) {
-                                FieldRow(label: Localization.string(key: "field_surname", lang: appLanguage), value: parsedData.surname, icon: "person.text.rectangle")
-                                FieldRow(label: Localization.string(key: "field_name", lang: appLanguage), value: parsedData.name, icon: "person")
-                                FieldRow(label: Localization.string(key: "field_cf", lang: appLanguage), value: parsedData.codiceFiscale, icon: "number.square", highlight: true)
-                                FieldRow(label: Localization.string(key: "field_doc_num", lang: appLanguage), value: parsedData.documentNumber, icon: "doc.text.fill")
-                                FieldRow(label: Localization.string(key: "field_dob", lang: appLanguage), value: parsedData.dateOfBirth, icon: "calendar")
-                                FieldRow(label: Localization.string(key: "field_pob", lang: appLanguage), value: parsedData.placeOfBirth, icon: "mappin.and.ellipse")
-                                FieldRow(label: Localization.string(key: "field_sex", lang: appLanguage), value: parsedData.gender, icon: "figure.male.female")
-                                FieldRow(label: Localization.string(key: "field_expiry", lang: appLanguage), value: parsedData.expiryDate, icon: "calendar.badge.exclamationmark")
-                                FieldRow(label: Localization.string(key: "field_nationality", lang: appLanguage), value: parsedData.nationality, icon: "globe")
-                                if let cardNum = parsedData.cardNumber {
-                                    FieldRow(label: Localization.string(key: "field_card_num", lang: appLanguage), value: cardNum, icon: "creditcard")
-                                }
-                            }
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                        }
-                        .padding(.top)
-                        
-                        // Manual Sync Trigger Button
-                        if parsedData.documentType != "UNKNOWN" {
-                            if case .success = syncStatus {
-                                // Synced successfully
-                            } else {
-                                Button(action: {
-                                    let fName = parsedData.name ?? "Sconosciuto"
-                                    let lName = parsedData.surname ?? "Sconosciuto"
-                                    
-                                    if askConfirmation {
-                                        self.pendingPatientToCreate = PendingPatient(
-                                            firstName: fName,
-                                            lastName: lName,
-                                            birthDate: parsedData.dateOfBirth,
-                                            gender: parsedData.gender,
-                                            codiceFiscale: parsedData.codiceFiscale
-                                        )
-                                        self.showingConfirmationAlert = true
-                                    } else {
-                                        self.triggerPatientCreation(
-                                            firstName: fName,
-                                            lastName: lName,
-                                            birthDate: parsedData.dateOfBirth,
-                                            gender: parsedData.gender,
-                                            codiceFiscale: parsedData.codiceFiscale
-                                        )
-                                    }
-                                }) {
-                                    Label(
-                                        appLanguage == "it" ? "Crea una cartella paziente in Sorriso" : "Create a patient record in Sorriso",
-                                        systemImage: "person.badge.plus"
-                                    )
-                                    .padding(.vertical, 4)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.large)
-                                .padding(.horizontal)
-                            }
-                        }
-                        
-                        if showJsonOptions {
-                            // JSON Code Panel
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(Localization.string(key: "json_output", lang: appLanguage))
-                                    .font(.headline)
-                                    .padding(.horizontal)
-                                
-                                ZStack(alignment: .topTrailing) {
-                                    TextEditor(text: .constant(jsonString))
-                                        .font(.system(.body, design: .monospaced))
-                                        .foregroundColor(Color(nsColor: .textColor))
-                                        .padding(8)
-                                        .frame(height: 250)
-                                        .background(Color(nsColor: .textBackgroundColor))
-                                        .cornerRadius(8)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                                        )
-                                }
-                                .padding(.horizontal)
-                            }
-                            
-                            // Raw OCR Lines Panel
-                            if !parsedData.rawText.isEmpty {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    DisclosureGroup("\(Localization.string(key: "raw_ocr", lang: appLanguage)) (\(parsedData.rawText.count) lines)") {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            ForEach(parsedData.rawText.indices, id: \.self) { idx in
-                                                Text("[\(idx)]: \(parsedData.rawText[idx])")
-                                                    .font(.system(.footnote, design: .monospaced))
-                                                    .foregroundColor(.secondary)
-                                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                                    .padding(.vertical, 2)
-                                                    .background(idx % 2 == 0 ? Color.secondary.opacity(0.05) : Color.clear)
-                                            }
-                                        }
-                                        .padding(.vertical, 8)
-                                    }
-                                    .padding(.horizontal)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.bottom, 20)
+            Group {
+                if showParsedResults {
+                    parsedResultsPanel
+                } else {
+                    emptyResultsPanel
                 }
             }
             .frame(minWidth: 400, maxWidth: .infinity)
@@ -422,6 +288,12 @@ struct MainView: View {
                 cameraManager.startSession()
             }
             
+            if lastUpdateCheck > 0 {
+                hasCompletedWelcomePrompt = true
+            } else if !hasCompletedWelcomePrompt {
+                showWelcomePrompt = true
+            }
+            
             // Background update check (throttled to ~once per day)
             if checkForUpdatesAutomatically {
                 let now = Date().timeIntervalSince1970
@@ -440,6 +312,14 @@ struct MainView: View {
             } else {
                 cameraManager.stopSession()
             }
+        }
+        .sheet(isPresented: $showWelcomePrompt) {
+            WelcomePromptView(isPresented: $showWelcomePrompt, lang: appLanguage) {
+                if checkForUpdatesAutomatically {
+                    checkForUpdates(silent: true)
+                }
+            }
+            .interactiveDismissDisabled()
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(isPresented: $isShowingSettings, pendingUpdate: $pendingUpdate)
@@ -474,17 +354,24 @@ struct MainView: View {
             )
         }
         .alert(
-            Localization.string(key: "confirm_dialog_title", lang: appLanguage),
+            Localization.string(
+                key: pendingPatientToCreate?.isUpdate == true ? "confirm_update_title" : "confirm_dialog_title",
+                lang: appLanguage
+            ),
             isPresented: $showingConfirmationAlert,
             presenting: pendingPatientToCreate
         ) { details in
-            Button(Localization.string(key: "create", lang: appLanguage)) {
-                self.triggerPatientCreation(
+            Button(Localization.string(
+                key: details.isUpdate ? "update" : "create",
+                lang: appLanguage
+            )) {
+                self.triggerPatientSync(
                     firstName: details.firstName,
                     lastName: details.lastName,
                     birthDate: details.birthDate,
                     gender: details.gender,
-                    codiceFiscale: details.codiceFiscale
+                    codiceFiscale: details.codiceFiscale,
+                    existingPatientId: details.existingPatientId
                 )
             }
             Button(Localization.string(key: "cancel", lang: appLanguage), role: .cancel) {
@@ -492,7 +379,10 @@ struct MainView: View {
             }
         } message: { details in
             Text(String(
-                format: Localization.string(key: "confirm_dialog_body", lang: appLanguage),
+                format: Localization.string(
+                    key: details.isUpdate ? "confirm_update_body" : "confirm_dialog_body",
+                    lang: appLanguage
+                ),
                 details.firstName,
                 details.lastName
             ))
@@ -502,13 +392,174 @@ struct MainView: View {
     // MARK: - Subviews
     
     @ViewBuilder
+    private var emptyResultsPanel: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(Localization.string(key: "awaiting_scan_title", lang: appLanguage))
+                .font(.headline)
+            Text(Localization.string(key: "awaiting_scan_body", lang: appLanguage))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    @ViewBuilder
+    private var parsedResultsPanel: some View {
+        VStack(spacing: 0) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(Localization.string(key: "detected_data", lang: appLanguage))
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 8) {
+                        Text(parsedData.documentType.replacingOccurrences(of: "_", with: " "))
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        badgeView(for: parsedData.documentType)
+                    }
+                }
+                
+                Spacer()
+                
+                if showJsonOptions {
+                    HStack(spacing: 8) {
+                        Button(action: copyJSON) {
+                            Label(copied ? Localization.string(key: "copied", lang: appLanguage) : Localization.string(key: "copy_json", lang: appLanguage), systemImage: copied ? "checkmark" : "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Button(action: saveJSON) {
+                            Label(appLanguage == "it" ? "Salva File..." : "Save File...", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+            }
+            .padding()
+            .background(VisualEffectView(material: .headerView, blendingMode: .withinWindow))
+            
+            Divider()
+            
+            syncStatusBanner()
+            
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(Localization.string(key: "fields", lang: appLanguage))
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        VStack(spacing: 0) {
+                            FieldRow(label: Localization.string(key: "field_surname", lang: appLanguage), value: parsedData.surname, icon: "person.text.rectangle")
+                            FieldRow(label: Localization.string(key: "field_name", lang: appLanguage), value: parsedData.name, icon: "person")
+                            FieldRow(label: Localization.string(key: "field_cf", lang: appLanguage), value: parsedData.codiceFiscale, icon: "number.square", highlight: true)
+                            FieldRow(label: Localization.string(key: "field_doc_num", lang: appLanguage), value: parsedData.documentNumber, icon: "doc.text.fill")
+                            FieldRow(label: Localization.string(key: "field_dob", lang: appLanguage), value: parsedData.dateOfBirth, icon: "calendar")
+                            FieldRow(label: Localization.string(key: "field_pob", lang: appLanguage), value: parsedData.placeOfBirth, icon: "mappin.and.ellipse")
+                            FieldRow(label: Localization.string(key: "field_sex", lang: appLanguage), value: parsedData.gender, icon: "figure.male.female")
+                            FieldRow(label: Localization.string(key: "field_expiry", lang: appLanguage), value: parsedData.expiryDate, icon: "calendar.badge.exclamationmark")
+                            FieldRow(label: Localization.string(key: "field_nationality", lang: appLanguage), value: parsedData.nationality, icon: "globe")
+                            if let cardNum = parsedData.cardNumber {
+                                FieldRow(label: Localization.string(key: "field_card_num", lang: appLanguage), value: cardNum, icon: "creditcard")
+                            }
+                        }
+                        .background(Color(nsColor: .controlBackgroundColor))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    .padding(.top)
+                    
+                    if parsedData.documentType != "UNKNOWN" {
+                        if case .success = syncStatus {
+                            EmptyView()
+                        } else {
+                            Button(action: {
+                                self.beginPatientSync()
+                            }) {
+                                Label(
+                                    Localization.string(
+                                        key: isUpdatingExistingPatient ? "sync_update_button" : "sync_create_button",
+                                        lang: appLanguage
+                                    ),
+                                    systemImage: isUpdatingExistingPatient ? "person.crop.circle.badge.checkmark" : "person.badge.plus"
+                                )
+                                .padding(.vertical, 4)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .padding(.horizontal)
+                        }
+                    }
+                    
+                    if showJsonOptions {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(Localization.string(key: "json_output", lang: appLanguage))
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            ZStack(alignment: .topTrailing) {
+                                TextEditor(text: .constant(jsonString))
+                                    .font(.system(.body, design: .monospaced))
+                                    .foregroundColor(Color(nsColor: .textColor))
+                                    .padding(8)
+                                    .frame(height: 250)
+                                    .background(Color(nsColor: .textBackgroundColor))
+                                    .cornerRadius(8)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                                    )
+                            }
+                            .padding(.horizontal)
+                        }
+                        
+                        if !parsedData.rawText.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                DisclosureGroup("\(Localization.string(key: "raw_ocr", lang: appLanguage)) (\(parsedData.rawText.count) lines)") {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ForEach(parsedData.rawText.indices, id: \.self) { idx in
+                                            Text("[\(idx)]: \(parsedData.rawText[idx])")
+                                                .font(.system(.footnote, design: .monospaced))
+                                                .foregroundColor(.secondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .padding(.vertical, 2)
+                                                .background(idx % 2 == 0 ? Color.secondary.opacity(0.05) : Color.clear)
+                                        }
+                                    }
+                                    .padding(.vertical, 8)
+                                }
+                                .padding(.horizontal)
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 20)
+            }
+        }
+    }
+    
+    @ViewBuilder
     private func syncStatusBanner() -> some View {
         switch syncStatus {
         case .syncing:
             HStack {
                 ProgressView()
                     .controlSize(.small)
-                Text(appLanguage == "it" ? "Sincronizzazione in corso..." : "Synchronizing patient file...")
+                Text(Localization.string(
+                    key: isUpdatingExistingPatient ? "sync_progress_update" : "sync_progress_create",
+                    lang: appLanguage
+                ))
                     .font(.subheadline)
                     .foregroundColor(.primary)
             }
@@ -516,11 +567,14 @@ struct MainView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.orange.opacity(0.15))
             
-        case .success(let patientId):
+        case .success(let patientId, let isUpdate):
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
-                Text(appLanguage == "it" ? "Sincronizzato con successo!" : "Patient file created successfully!")
+                Text(Localization.string(
+                    key: isUpdate ? "sync_success_update" : "sync_success_create",
+                    lang: appLanguage
+                ))
                     .font(.subheadline)
                     .foregroundColor(.green)
                 Spacer()
@@ -577,7 +631,7 @@ struct MainView: View {
             IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
                 let sortedItems = items.sorted { item1, item2 in
                     let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
-                    if yDiff < 0.03 {
+                    if yDiff < 0.035 {
                         return item1.boundingBox.minX < item2.boundingBox.minX
                     }
                     return item1.boundingBox.midY > item2.boundingBox.midY
@@ -586,10 +640,11 @@ struct MainView: View {
                 
                 if sortedItems.isEmpty {
                     if self.captureState != .idle {
-                        self.captureState = .idle
+                        self.clearParsedResults()
                     }
                 } else {
                     if self.captureState == .idle {
+                        self.clearParsedResults()
                         self.captureState = .scanning
                     }
                     
@@ -597,39 +652,14 @@ struct MainView: View {
                         self.playSubtleScanSound()
                     }
                     
-                    let textLines = sortedItems.map { $0.text }
-                    let parsed = IDParser.parse(lines: textLines)
+                    let parsed = Self.parseRecognizedItems(sortedItems)
                     
                     // Verify if capture succeeded (has correct document type and name/surname or tax code)
-                    if parsed.documentType != "UNKNOWN" && (parsed.surname != nil || parsed.codiceFiscale != nil) {
+                    if Self.shouldAcceptCapture(parsed) {
                         self.parsedData = parsed
                         self.captureState = .captured
                         self.playSuccessSound()
-                        
-                        // Handle auto sync
-                        if self.autoCreatePatient {
-                            let fName = parsed.name ?? "Sconosciuto"
-                            let lName = parsed.surname ?? "Sconosciuto"
-                            
-                            if self.askConfirmation {
-                                self.pendingPatientToCreate = PendingPatient(
-                                    firstName: fName,
-                                    lastName: lName,
-                                    birthDate: parsed.dateOfBirth,
-                                    gender: parsed.gender,
-                                    codiceFiscale: parsed.codiceFiscale
-                                )
-                                self.showingConfirmationAlert = true
-                            } else {
-                                self.triggerPatientCreation(
-                                    firstName: fName,
-                                    lastName: lName,
-                                    birthDate: parsed.dateOfBirth,
-                                    gender: parsed.gender,
-                                    codiceFiscale: parsed.codiceFiscale
-                                )
-                            }
-                        }
+                        self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
                     }
                 }
             }
@@ -658,55 +688,60 @@ struct MainView: View {
         return NSImage(cgImage: croppedCgImage, size: NSSize(width: cropWidth, height: cropHeight))
     }
     
+    private static func parseRecognizedItems(_ items: [RecognizedItem]) -> IDData {
+        let textLines = items.sortedLines()
+        let ocrItems = items.map {
+            OCRTextItem(
+                text: $0.text,
+                midX: $0.boundingBox.midX,
+                midY: $0.boundingBox.midY
+            )
+        }
+        return IDParser.parse(ocrItems: ocrItems, fallbackLines: textLines)
+    }
+    
+    private static func shouldAcceptCapture(_ parsed: IDData) -> Bool {
+        parsed.documentType != "UNKNOWN"
+            || parsed.codiceFiscale != nil
+            || parsed.surname != nil
+            || parsed.name != nil
+            || parsed.documentNumber != nil
+            || parsed.cardNumber != nil
+    }
+    
+    private func clearParsedResults() {
+        parsedData = IDData(documentType: "UNKNOWN", rawText: [])
+        recognizedItems = []
+        captureState = .idle
+        syncStatus = .idle
+        pendingPatientToCreate = nil
+        existingPatientId = nil
+        patientLookupGeneration += 1
+    }
+    
     private func processStaticImage(_ nsImage: NSImage) {
         guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        clearParsedResults()
         self.selectedImage = nsImage
         self.cgImageForOCR = cgImage
         
         IDScanner.recognizeText(in: cgImage) { items in
             let sortedItems = items.sorted { item1, item2 in
                 let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
-                if yDiff < 0.03 {
+                if yDiff < 0.035 {
                     return item1.boundingBox.minX < item2.boundingBox.minX
                 }
                 return item1.boundingBox.midY > item2.boundingBox.midY
             }
             self.recognizedItems = sortedItems
-            let textLines = sortedItems.map { $0.text }
-            var parsed = IDParser.parse(lines: textLines)
+            var parsed = Self.parseRecognizedItems(sortedItems)
             parsed.calculateCodiceFiscaleIfPossible()
-            self.parsedData = parsed
             
-            if parsed.documentType != "UNKNOWN" {
+            if Self.shouldAcceptCapture(parsed) {
+                self.parsedData = parsed
                 self.captureState = .captured
                 self.playSuccessSound()
-                
-                // Handle auto sync for static images
-                if self.autoCreatePatient {
-                    let fName = parsed.name ?? "Sconosciuto"
-                    let lName = parsed.surname ?? "Sconosciuto"
-                    
-                    if self.askConfirmation {
-                        self.pendingPatientToCreate = PendingPatient(
-                            firstName: fName,
-                            lastName: lName,
-                            birthDate: parsed.dateOfBirth,
-                            gender: parsed.gender,
-                            codiceFiscale: parsed.codiceFiscale
-                        )
-                        self.showingConfirmationAlert = true
-                    } else {
-                        self.triggerPatientCreation(
-                            firstName: fName,
-                            lastName: lName,
-                            birthDate: parsed.dateOfBirth,
-                            gender: parsed.gender,
-                            codiceFiscale: parsed.codiceFiscale
-                        )
-                    }
-                }
-            } else {
-                self.captureState = .idle
+                self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
             }
         }
     }
@@ -714,11 +749,7 @@ struct MainView: View {
     private func resetAllStateOnly() {
         selectedImage = nil
         cgImageForOCR = nil
-        recognizedItems = []
-        parsedData = IDData(documentType: "UNKNOWN", rawText: [])
-        captureState = .idle
-        syncStatus = .idle
-        pendingPatientToCreate = nil
+        clearParsedResults()
     }
     
     private func resetAll() {
@@ -755,23 +786,95 @@ struct MainView: View {
     
     // MARK: - Sync API Calls
     
-    private func triggerPatientCreation(firstName: String, lastName: String, birthDate: String?, gender: String?, codiceFiscale: String?) {
+    private func beginPatientSync() {
+        let fName = parsedData.name ?? "Sconosciuto"
+        let lName = parsedData.surname ?? "Sconosciuto"
+        
+        if askConfirmation {
+            pendingPatientToCreate = PendingPatient(
+                firstName: fName,
+                lastName: lName,
+                birthDate: parsedData.dateOfBirth,
+                gender: parsedData.gender,
+                codiceFiscale: parsedData.codiceFiscale,
+                existingPatientId: existingPatientId
+            )
+            showingConfirmationAlert = true
+        } else {
+            triggerPatientSync(
+                firstName: fName,
+                lastName: lName,
+                birthDate: parsedData.dateOfBirth,
+                gender: parsedData.gender,
+                codiceFiscale: parsedData.codiceFiscale,
+                existingPatientId: existingPatientId
+            )
+        }
+    }
+    
+    private func refreshPatientLookup(for parsed: IDData, autoSyncAfterLookup: Bool = false) {
+        guard parsed.documentType != "UNKNOWN" else {
+            existingPatientId = nil
+            return
+        }
+        
+        let firstName = parsed.name ?? ""
+        let lastName = parsed.surname ?? ""
+        guard !firstName.isEmpty || !lastName.isEmpty || parsed.codiceFiscale != nil else {
+            existingPatientId = nil
+            return
+        }
+        
+        patientLookupGeneration += 1
+        let generation = patientLookupGeneration
+        
+        lookupExistingPatient(
+            firstName: firstName.isEmpty ? "Sconosciuto" : firstName,
+            lastName: lastName.isEmpty ? "Sconosciuto" : lastName,
+            birthDate: parsed.dateOfBirth,
+            codiceFiscale: parsed.codiceFiscale
+        ) { result in
+            DispatchQueue.main.async {
+                guard generation == self.patientLookupGeneration else { return }
+                switch result {
+                case .success(let patientId):
+                    self.existingPatientId = patientId
+                case .failure:
+                    self.existingPatientId = nil
+                }
+                
+                if autoSyncAfterLookup && self.autoCreatePatient {
+                    self.beginPatientSync()
+                }
+            }
+        }
+    }
+    
+    private func triggerPatientSync(
+        firstName: String,
+        lastName: String,
+        birthDate: String?,
+        gender: String?,
+        codiceFiscale: String?,
+        existingPatientId: String?
+    ) {
         self.syncStatus = .syncing
         
-        createPatientInWebApp(
+        syncPatientInWebApp(
             firstName: firstName,
             lastName: lastName,
             birthDate: birthDate,
             gender: gender,
-            codiceFiscale: codiceFiscale
+            codiceFiscale: codiceFiscale,
+            existingPatientId: existingPatientId
         ) { result in
             DispatchQueue.main.async {
                 switch result {
-                case .success(let patientId):
-                    self.syncStatus = .success(patientId: patientId)
+                case .success(let syncResult):
+                    self.syncStatus = .success(patientId: syncResult.patientId, isUpdate: syncResult.isUpdate)
                     
                     if self.openInBrowser {
-                        if let patientUrl = URL(string: "\(self.serverUrl)/pazienti/\(patientId)") {
+                        if let patientUrl = URL(string: "\(self.serverUrl)/pazienti/\(syncResult.patientId)") {
                             NSWorkspace.shared.open(patientUrl)
                         }
                     }
@@ -780,6 +883,163 @@ struct MainView: View {
                 }
             }
         }
+    }
+    
+    private func lookupExistingPatient(
+        firstName: String,
+        lastName: String,
+        birthDate: String?,
+        codiceFiscale: String?,
+        completion: @escaping (Result<String?, Error>) -> Void
+    ) {
+        let urlString = "\(serverUrl)/api/patients/lookup"
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid server URL. Check your Preferences."])))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiToken, forHTTPHeaderField: "x-api-key")
+        
+        let body: [String: Any?] = [
+            "firstName": firstName,
+            "lastName": lastName,
+            "birthDate": birthDate,
+            "codiceFiscale": codiceFiscale
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                completion(.failure(NSError(domain: "Invalid response", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"])))
+                return
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMsg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "HTTP \(httpResponse.statusCode)"
+                completion(.failure(NSError(domain: "HTTP Error", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server returned error: \(errorMsg)"])))
+                return
+            }
+            
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                completion(.failure(NSError(domain: "Invalid JSON", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid lookup response"])))
+                return
+            }
+            
+            if json["exists"] as? Bool == true, let patientId = json["patientId"] as? String {
+                completion(.success(patientId))
+            } else {
+                completion(.success(nil))
+            }
+        }.resume()
+    }
+    
+    private func syncPatientInWebApp(
+        firstName: String,
+        lastName: String,
+        birthDate: String?,
+        gender: String?,
+        codiceFiscale: String?,
+        existingPatientId: String?,
+        completion: @escaping (Result<(patientId: String, isUpdate: Bool), Error>) -> Void
+    ) {
+        if let existingPatientId {
+            updatePatientInWebApp(
+                patientId: existingPatientId,
+                birthDate: birthDate,
+                gender: gender,
+                codiceFiscale: codiceFiscale,
+                completion: completion
+            )
+        } else {
+            createPatientInWebApp(
+                firstName: firstName,
+                lastName: lastName,
+                birthDate: birthDate,
+                gender: gender,
+                codiceFiscale: codiceFiscale
+            ) { result in
+                switch result {
+                case .success(let patientId):
+                    completion(.success((patientId: patientId, isUpdate: false)))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+        }
+    }
+    
+    private func updatePatientInWebApp(
+        patientId: String,
+        birthDate: String?,
+        gender: String?,
+        codiceFiscale: String?,
+        completion: @escaping (Result<(patientId: String, isUpdate: Bool), Error>) -> Void
+    ) {
+        let urlString = "\(serverUrl)/api/patients/\(patientId)"
+        guard let url = URL(string: urlString) else {
+            completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid server URL. Check your Preferences."])))
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiToken, forHTTPHeaderField: "x-api-key")
+        
+        let body: [String: Any?] = [
+            "birthDate": birthDate,
+            "gender": gender,
+            "codiceFiscale": codiceFiscale
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        } catch {
+            completion(.failure(error))
+            return
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                completion(.failure(NSError(domain: "Invalid response", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid server response"])))
+                return
+            }
+            
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let errorMsg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "HTTP \(httpResponse.statusCode)"
+                completion(.failure(NSError(domain: "HTTP Error", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server returned error: \(errorMsg)"])))
+                return
+            }
+            
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let returnedPatientId = json["patientId"] as? String else {
+                completion(.failure(NSError(domain: "Invalid JSON", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid JSON response structure"])))
+                return
+            }
+            
+            completion(.success((patientId: returnedPatientId, isUpdate: true)))
+        }.resume()
     }
     
     private func createPatientInWebApp(firstName: String, lastName: String, birthDate: String?, gender: String?, codiceFiscale: String?, completion: @escaping (Result<String, Error>) -> Void) {
@@ -911,11 +1171,17 @@ struct MainView: View {
                     let local = self.currentVersion
                     if self.isNewerVersion(remoteVersion, than: local) {
                         DispatchQueue.main.async {
-                            self.pendingUpdate = PendingUpdate(
+                            let update = PendingUpdate(
                                 version: remoteVersion,
                                 downloadUrl: downloadUrl,
                                 notes: json["notes"] as? String
                             )
+                            self.pendingUpdate = update
+                            
+                            if self.autoDownloadAndInstallUpdates,
+                               let downloadURL = URL(string: update.downloadUrl) {
+                                self.startUpdateDownload(url: downloadURL)
+                            }
                         }
                     } else if !silent {
                         // Up to date
@@ -1192,6 +1458,76 @@ struct MainView: View {
     }
 }
 
+// MARK: - Welcome Prompt
+
+struct WelcomePromptView: View {
+    @Binding var isPresented: Bool
+    let lang: String
+    let onComplete: () -> Void
+    
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
+    @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 16) {
+                Image(nsImage: AppIconLoader.image)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(Localization.string(key: "welcome_title", lang: lang))
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                    
+                    Text(Localization.string(key: "welcome_body", lang: lang))
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(20)
+            
+            Divider()
+            
+            Toggle(Localization.string(key: "welcome_auto_download", lang: lang), isOn: $autoDownloadAndInstallUpdates)
+                .toggleStyle(.checkbox)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+            
+            Divider()
+            
+            HStack(spacing: 12) {
+                Button(Localization.string(key: "welcome_dont_check", lang: lang)) {
+                    finish(enableAutomaticChecks: false)
+                }
+                .keyboardShortcut(.cancelAction)
+                
+                Spacer()
+                
+                Button(Localization.string(key: "welcome_check_automatically", lang: lang)) {
+                    finish(enableAutomaticChecks: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(20)
+        }
+        .frame(width: 500)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    private func finish(enableAutomaticChecks: Bool) {
+        checkForUpdatesAutomatically = enableAutomaticChecks
+        hasCompletedWelcomePrompt = true
+        isPresented = false
+        onComplete()
+    }
+}
+
 // MARK: - Settings View
 
 struct SettingsView: View {
@@ -1207,7 +1543,8 @@ struct SettingsView: View {
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
     // Update prefs (synced via same keys as MainView)
-    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     
     @State private var activeTab: Tab = .general
@@ -1344,6 +1681,12 @@ struct SettingsView: View {
             
             Toggle(Localization.string(key: "pref_check_updates", lang: appLanguage), isOn: $checkForUpdatesAutomatically)
                 .toggleStyle(.checkbox)
+            
+            if checkForUpdatesAutomatically {
+                Toggle(Localization.string(key: "welcome_auto_download", lang: appLanguage), isOn: $autoDownloadAndInstallUpdates)
+                    .toggleStyle(.checkbox)
+                    .padding(.leading, 20)
+            }
             
             Button(action: { performUpdateCheckInSettings() }) {
                 if isCheckingForUpdates {
@@ -1712,6 +2055,8 @@ struct Localization {
             "camera_denied": "Camera Access Denied",
             "camera_denied_desc": "Please enable Camera permissions for this app in System Settings > Privacy & Security.",
             "detected_data": "DETECTED DATA",
+            "awaiting_scan_title": "No scan yet",
+            "awaiting_scan_body": "Upload or scan an Italian ID card to see extracted fields here.",
             "fields": "Extracted Fields",
             "json_output": "JSON Output",
             "raw_ocr": "Raw OCR Detected Text",
@@ -1728,6 +2073,15 @@ struct Localization {
             "pref_token": "API Key / Token",
             "confirm_dialog_title": "Create Patient Record?",
             "confirm_dialog_body": "Do you want to add a new patient record for %@ %@ in Sorriso?",
+            "confirm_update_title": "Update Patient Record?",
+            "confirm_update_body": "Update the existing patient record for %@ %@ in Sorriso with missing scanned details?",
+            "update": "Update",
+            "sync_create_button": "Create a patient record in Sorriso",
+            "sync_update_button": "Update patient record in Sorriso",
+            "sync_progress_create": "Creating patient record...",
+            "sync_progress_update": "Updating patient record...",
+            "sync_success_create": "Patient record created successfully!",
+            "sync_success_update": "Patient record updated successfully!",
             "create_success": "Patient record created successfully!",
             "create_fail": "Failed to create patient: %@",
             "create": "Create",
@@ -1754,7 +2108,12 @@ struct Localization {
             "later": "Later",
             "update_check_failed": "Update check failed.",
             "pref_check_updates": "Automatically check for updates",
-            "new_version_available": "New version available"
+            "new_version_available": "New version available",
+            "welcome_title": "Check for updates automatically?",
+            "welcome_body": "Should ScanID automatically check for updates? You can always check for updates manually from Settings.",
+            "welcome_auto_download": "Automatically download and install updates",
+            "welcome_dont_check": "Don't Check",
+            "welcome_check_automatically": "Check Automatically"
         ]
         let it = [
             "scan_mode": "Modalità Scansione",
@@ -1766,6 +2125,8 @@ struct Localization {
             "camera_denied": "Accesso Fotocamera Negato",
             "camera_denied_desc": "Abilita i permessi della fotocamera nelle Impostazioni di Sistema > Privacy e Sicurezza.",
             "detected_data": "DATI RILEVATI",
+            "awaiting_scan_title": "Nessuna scansione",
+            "awaiting_scan_body": "Carica o scansiona una carta d'identità italiana per vedere qui i campi estratti.",
             "fields": "Campi Estratti",
             "json_output": "Output JSON",
             "raw_ocr": "Testo OCR Rilevato",
@@ -1782,6 +2143,15 @@ struct Localization {
             "pref_token": "Chiave API / Token",
             "confirm_dialog_title": "Creare Cartella Paziente?",
             "confirm_dialog_body": "Vuoi aggiungere una nuova cartella paziente per %@ %@ in Sorriso?",
+            "confirm_update_title": "Aggiornare Cartella Paziente?",
+            "confirm_update_body": "Vuoi aggiornare la cartella paziente esistente di %@ %@ in Sorriso con i dati mancanti rilevati?",
+            "update": "Aggiorna",
+            "sync_create_button": "Crea una cartella paziente in Sorriso",
+            "sync_update_button": "Aggiorna la cartella paziente in Sorriso",
+            "sync_progress_create": "Creazione cartella paziente in corso...",
+            "sync_progress_update": "Aggiornamento cartella paziente in corso...",
+            "sync_success_create": "Cartella paziente creata con successo!",
+            "sync_success_update": "Cartella paziente aggiornata con successo!",
             "create_success": "Cartella paziente creata con successo!",
             "create_fail": "Impossibile creare cartella: %@",
             "create": "Crea",
@@ -1808,7 +2178,12 @@ struct Localization {
             "later": "Più tardi",
             "update_check_failed": "Controllo aggiornamenti non riuscito.",
             "pref_check_updates": "Controlla automaticamente gli aggiornamenti",
-            "new_version_available": "Nuova versione disponibile"
+            "new_version_available": "Nuova versione disponibile",
+            "welcome_title": "Controllare automaticamente gli aggiornamenti?",
+            "welcome_body": "Vuoi che ScanID controlli automaticamente la disponibilità di aggiornamenti? Puoi sempre controllare manualmente dalle Impostazioni.",
+            "welcome_auto_download": "Scarica e installa automaticamente gli aggiornamenti",
+            "welcome_dont_check": "Non controllare",
+            "welcome_check_automatically": "Controlla automaticamente"
         ]
         let dict = (lang == "it" ? it : en)
         return dict[key] ?? key

@@ -1,4 +1,11 @@
 import Foundation
+import CoreGraphics
+
+struct OCRTextItem {
+    let text: String
+    let midX: CGFloat
+    let midY: CGFloat
+}
 
 struct IDData: Codable {
     var documentType: String // CIE_FRONT, CIE_BACK, TESSERA_SANITARIA_FRONT, TESSERA_SANITARIA_BACK, UNKNOWN
@@ -87,6 +94,27 @@ class IDParser {
         return false
     }
     
+    /// Parses OCR observations (with layout) and returns structured data.
+    static func parse(ocrItems: [OCRTextItem], fallbackLines: [String]? = nil) -> IDData {
+        let spatialItems = filterOCRNoise(ocrItems)
+        let groupedLines = linesFromOCRItems(ocrItems)
+        let lines = groupedLines.isEmpty ? (fallbackLines ?? ocrItems.map(\.text)) : groupedLines
+        
+        var data = parse(lines: lines)
+        data.rawText = lines
+        
+        if let regionNames = resolveNamesFromLabelRegions(
+            from: spatialItems.isEmpty ? ocrItems : spatialItems,
+            codiceFiscale: data.codiceFiscale,
+            placeOfBirth: data.placeOfBirth
+        ) {
+            data.surname = regionNames.surname
+            data.name = regionNames.name
+        }
+        
+        return data
+    }
+    
     /// Parses an array of lines detected by OCR and returns structured data
     static func parse(lines: [String]) -> IDData {
         let cleanedLines = lines.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
@@ -155,13 +183,50 @@ class IDParser {
             }
         }
         
-        // Find Surname and Name
-        data.surname = extractField(in: cleanedLines, labels: ["cognome", "surname"], validator: isValidNameOrSurname)
-        data.name = extractField(in: cleanedLines, labels: ["nome", "name", "given name", "given"], validator: isValidNameOrSurname)
+        // Find Surname and Name (surname first so name extraction can skip it)
+        let surnameLabels = ["cognome", "surname"]
+        let nameLabels = ["nome", "name", "given name", "given"]
+        data.surname = extractField(in: cleanedLines, labels: surnameLabels, validator: isValidNameOrSurname)
+        let surnameLabelIndex = findLabelIndex(in: cleanedLines, labels: surnameLabels)
+        data.name = extractField(
+            in: cleanedLines,
+            labels: nameLabels,
+            validator: isValidNameOrSurname,
+            excludeValues: Set([data.surname].compactMap { $0 }),
+            preferLabelAfterIndex: surnameLabelIndex
+        )
         
         // Find Place of Birth
-        // Find Place of Birth
         data.placeOfBirth = findPlaceOfBirth(in: cleanedLines, dateOfBirth: data.dateOfBirth)
+        
+        // Reconcile scrambled Tessera Sanitaria OCR ordering using codice fiscale
+        if let codiceFiscale = data.codiceFiscale {
+            var excludeValues = Set<String>()
+            if let placeOfBirth = data.placeOfBirth {
+                excludeValues.insert(placeOfBirth)
+            }
+            if let corrected = resolveNamesFromCodiceFiscale(
+                in: cleanedLines,
+                codiceFiscale: codiceFiscale,
+                excludeValues: excludeValues
+            ) ?? correctMisassignedNamesFromCodiceFiscale(
+                surname: data.surname,
+                name: data.name,
+                codiceFiscale: codiceFiscale,
+                placeOfBirth: data.placeOfBirth,
+                lines: cleanedLines,
+                excludeValues: excludeValues
+            ) ?? correctSurnameAndName(
+                surname: data.surname,
+                name: data.name,
+                candidates: collectNameCandidates(in: cleanedLines),
+                codiceFiscale: codiceFiscale,
+                excludeValues: excludeValues
+            ) {
+                data.surname = corrected.surname
+                data.name = corrected.name
+            }
+        }
         
         // Find Gender
         data.gender = findGender(in: cleanedLines)
@@ -188,10 +253,404 @@ class IDParser {
         return data
     }
     
+    private static let ocrNoiseSubstrings = [
+        "campi estratti",
+        "dati rilevati",
+        "dati rilevanti",
+        "crea una cartella",
+        "tessera sanitaria front",
+        "sorriso",
+    ]
+    
+    private static func filterOCRNoise(_ items: [OCRTextItem]) -> [OCRTextItem] {
+        items.filter { item in
+            let lower = item.text.lowercased()
+            return !ocrNoiseSubstrings.contains { lower.contains($0) }
+        }
+    }
+    
+    private static func linesFromOCRItems(_ items: [OCRTextItem], rowThreshold: CGFloat = 0.035) -> [String] {
+        guard !items.isEmpty else { return [] }
+        
+        var rows: [[OCRTextItem]] = []
+        let sortedByY = items.sorted { $0.midY > $1.midY }
+        
+        for item in sortedByY {
+            if let lastRow = rows.last,
+               let anchor = lastRow.first,
+               abs(item.midY - anchor.midY) < rowThreshold {
+                rows[rows.count - 1].append(item)
+            } else {
+                rows.append([item])
+            }
+        }
+        
+        return rows.flatMap { row in
+            row.sorted { $0.midX < $1.midX }.map(\.text)
+        }
+    }
+    
     private static func isValidNameOrSurname(_ value: String) -> Bool {
         let allowed = CharacterSet.letters.union(CharacterSet.whitespaces)
             .union(CharacterSet(charactersIn: "-'’"))
         return !value.isEmpty && value.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+    
+    private static func isGenderOnlyValue(_ value: String) -> Bool {
+        let clean = value.uppercased().trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        return clean == "M" || clean == "F"
+    }
+    
+    private static func lineContainsDate(_ value: String) -> Bool {
+        let range = NSRange(location: 0, length: value.utf16.count)
+        return dateRegex.firstMatch(in: value, options: [], range: range) != nil
+    }
+    
+    private static func isLikelyCodiceFiscale(_ value: String) -> Bool {
+        let stripped = value.replacingOccurrences(of: " ", with: "").uppercased()
+        guard stripped.count >= 16 else { return false }
+        let range = NSRange(location: 0, length: stripped.utf16.count)
+        return codiceFiscaleRegex.firstMatch(in: stripped, options: [], range: range) != nil
+    }
+    
+    private static func namesMatchCodiceFiscale(surname: String, name: String, codiceFiscale: String) -> Bool {
+        let cfPrefix = String(codiceFiscale.uppercased().prefix(6))
+        guard cfPrefix.count == 6 else { return false }
+        let expected = extractSurnameCode(surname) + extractNameCode(name)
+        return expected == cfPrefix
+    }
+    
+    private static func collectNameCandidates(in lines: [String]) -> [String] {
+        let fieldLabels = ["cognome", "surname", "nome", "name", "given name", "given"]
+        guard findLabelIndex(in: lines, labels: fieldLabels) != nil else { return [] }
+        
+        var candidates: [String] = []
+        var seen = Set<String>()
+        
+        func addCandidate(_ value: String?) {
+            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !value.isEmpty,
+                  isValidNameOrSurname(value),
+                  !isGenderOnlyValue(value),
+                  !lineContainsDate(value),
+                  !isLikelyCodiceFiscale(value) else {
+                return
+            }
+            
+            let key = value.uppercased()
+            guard !seen.contains(key) else { return }
+            seen.insert(key)
+            candidates.append(value)
+        }
+        
+        for line in lines {
+            for label in fieldLabels {
+                if let range = findLabelRangeWithWordBoundaries(in: line, label: label),
+                   let cleaned = cleanSuffixValue(String(line[range.upperBound...])) {
+                    addCandidate(cleaned)
+                }
+            }
+        }
+        
+        guard let startIndex = findLabelIndex(in: lines, labels: fieldLabels) else { return candidates }
+        
+        for i in startIndex..<lines.count {
+            let line = lines[i].trimmingCharacters(in: .whitespacesAndNewlines)
+            if line.isEmpty { continue }
+            
+            if isNameCandidateRegionEnd(line) { break }
+            
+            if isLabelLine(line) { continue }
+            
+            addCandidate(line)
+        }
+        
+        return candidates
+    }
+    
+    private static func isNameCandidateRegionEnd(_ line: String) -> Bool {
+        let endLabels = [
+            "data di scadenza",
+            "scadenza",
+            "expiry",
+            "dati sanitari",
+            "sanitaria regionale",
+        ]
+        return endLabels.contains { lineMatchesLabel(line, label: $0) }
+    }
+    
+    private static let ignoredNameTokens: Set<String> = [
+        "repubblica", "italiana", "tessera", "sanitaria", "carta", "regionale",
+        "servizi", "nazionale", "europea", "ministero", "salute", "dati",
+        "sanitari", "provincia", "prov", "europeo", "europei", "codice", "fiscale",
+        "sesso", "scadenza", "nascita", "luogo", "data", "documento", "cittadinanza",
+    ]
+    
+    private static func shouldIgnoreNameToken(_ value: String) -> Bool {
+        let normalized = value.lowercased()
+            .replacingOccurrences(of: "[^a-zàèéìòóù']", with: "", options: .regularExpression)
+        if normalized.isEmpty || ignoredNameTokens.contains(normalized) {
+            return true
+        }
+        return normalized.count < 2
+    }
+    
+    private static func collectAllNameTokens(in lines: [String]) -> [String] {
+        var tokens: [String] = []
+        var seen = Set<String>()
+        
+        func addToken(_ value: String?) {
+            guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !value.isEmpty,
+                  !shouldIgnoreNameToken(value),
+                  isValidNameOrSurname(value),
+                  !isGenderOnlyValue(value),
+                  !lineContainsDate(value),
+                  !isLikelyCodiceFiscale(value) else {
+                return
+            }
+            
+            let key = value.uppercased()
+            guard !seen.contains(key) else { return }
+            seen.insert(key)
+            tokens.append(value)
+        }
+        
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty { continue }
+            
+            for label in ["cognome", "surname", "nome", "name", "given name", "given"] {
+                if let range = findLabelRangeWithWordBoundaries(in: trimmed, label: label),
+                   let cleaned = cleanSuffixValue(String(trimmed[range.upperBound...])) {
+                    addToken(cleaned)
+                }
+            }
+            
+            if isLabelLine(trimmed) { continue }
+            
+            addToken(trimmed)
+            
+            let words = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+            if words.count >= 2 {
+                for index in 0..<(words.count - 1) {
+                    addToken(words[index] + " " + words[index + 1])
+                }
+            }
+            if words.count >= 3 {
+                for index in 0..<(words.count - 2) {
+                    addToken(words[index] + " " + words[index + 1] + " " + words[index + 2])
+                }
+            }
+            for word in words where word.count >= 2 {
+                addToken(word)
+            }
+        }
+        
+        return tokens
+    }
+    
+    private static func resolveNamesFromCodiceFiscale(
+        in lines: [String],
+        codiceFiscale: String,
+        excludeValues: Set<String>
+    ) -> (surname: String, name: String)? {
+        let cfPrefix = String(codiceFiscale.uppercased().prefix(6))
+        guard cfPrefix.count == 6 else { return nil }
+        
+        let expectedSurnameCode = String(cfPrefix.prefix(3))
+        let expectedNameCode = String(cfPrefix.suffix(3))
+        
+        let tokens = collectAllNameTokens(in: lines).filter { token in
+            !excludeValues.contains { $0.caseInsensitiveCompare(token) == .orderedSame }
+        }
+        
+        let surnameMatches = tokens.filter { extractSurnameCode($0) == expectedSurnameCode }
+        let nameMatches = tokens.filter { extractNameCode($0) == expectedNameCode }
+        
+        guard !surnameMatches.isEmpty, !nameMatches.isEmpty else { return nil }
+        
+        for surnameCandidate in surnameMatches {
+            for nameCandidate in nameMatches
+                where nameCandidate.caseInsensitiveCompare(surnameCandidate) != .orderedSame
+                && namesMatchCodiceFiscale(
+                    surname: surnameCandidate,
+                    name: nameCandidate,
+                    codiceFiscale: codiceFiscale
+                ) {
+                return (surnameCandidate, nameCandidate)
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveNamesFromLabelRegions(
+        from items: [OCRTextItem],
+        codiceFiscale: String?,
+        placeOfBirth: String?
+    ) -> (surname: String, name: String)? {
+        let cognomeLabels = items.filter { item in
+            ["cognome", "surname"].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        let nomeLabels = items.filter { item in
+            ["nome", "name"].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        
+        guard !cognomeLabels.isEmpty, !nomeLabels.isEmpty else { return nil }
+        
+        var cfValidated: (surname: String, name: String)?
+        var codeValidated: (surname: String, name: String)?
+        var firstPair: (surname: String, name: String)?
+        
+        for cognomeLabel in cognomeLabels {
+            guard let surname = findSpatialValue(near: cognomeLabel, in: items, placeOfBirth: placeOfBirth) else {
+                continue
+            }
+            
+            for nomeLabel in nomeLabels {
+                guard let name = findSpatialValue(near: nomeLabel, in: items, placeOfBirth: placeOfBirth),
+                      name.caseInsensitiveCompare(surname) != .orderedSame else {
+                    continue
+                }
+                
+                if firstPair == nil {
+                    firstPair = (surname, name)
+                }
+                
+                if let codiceFiscale,
+                   namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+                    cfValidated = (surname, name)
+                } else if let codiceFiscale,
+                          extractSurnameCode(surname) == String(codiceFiscale.uppercased().prefix(3)),
+                          extractNameCode(name) == String(codiceFiscale.uppercased().dropFirst(3).prefix(3)) {
+                    codeValidated = (surname, name)
+                }
+            }
+        }
+        
+        return cfValidated ?? codeValidated ?? (codiceFiscale == nil ? firstPair : nil)
+    }
+    
+    private static func findSpatialValue(
+        near label: OCRTextItem,
+        in items: [OCRTextItem],
+        placeOfBirth: String?
+    ) -> String? {
+        let rowTolerance: CGFloat = 0.04
+        var candidates: [(String, CGFloat)] = []
+        
+        for item in items {
+            let text = item.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty,
+                  isValidNameOrSurname(text),
+                  !isLabelLine(text),
+                  !isGenderOnlyValue(text),
+                  !lineContainsDate(text),
+                  !isLikelyCodiceFiscale(text) else {
+                continue
+            }
+            
+            if let placeOfBirth,
+               text.caseInsensitiveCompare(placeOfBirth) == .orderedSame {
+                continue
+            }
+            
+            let sameRow = abs(item.midY - label.midY) < rowTolerance
+            let belowRow = item.midY < label.midY - 0.008 && item.midY > label.midY - 0.14
+            let rightOfLabel = item.midX > label.midX + 0.02
+            let columnDistance = abs(item.midX - label.midX)
+            
+            if sameRow && rightOfLabel {
+                candidates.append((text, columnDistance))
+            } else if belowRow && columnDistance < 0.16 {
+                candidates.append((text, columnDistance))
+            }
+        }
+        
+        return candidates.min(by: { $0.1 < $1.1 })?.0
+    }
+    
+    private static func correctMisassignedNamesFromCodiceFiscale(
+        surname: String?,
+        name: String?,
+        codiceFiscale: String,
+        placeOfBirth: String?,
+        lines: [String],
+        excludeValues: Set<String>
+    ) -> (surname: String, name: String)? {
+        let cfPrefix = String(codiceFiscale.uppercased().prefix(6))
+        guard cfPrefix.count == 6 else { return nil }
+        
+        let expectedSurnameCode = String(cfPrefix.prefix(3))
+        let expectedNameCode = String(cfPrefix.suffix(3))
+        
+        if let surname,
+           let name,
+           namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            return nil
+        }
+        
+        // Common Tessera layout: cognome field holds the given name, nome field holds birthplace.
+        if let misplacedName = surname,
+           extractNameCode(misplacedName) == expectedNameCode,
+           extractSurnameCode(misplacedName) != expectedSurnameCode {
+            let tokens = collectAllNameTokens(in: lines).filter { token in
+                !excludeValues.contains { $0.caseInsensitiveCompare(token) == .orderedSame }
+            }
+            
+            if let surnameMatch = tokens.first(where: { extractSurnameCode($0) == expectedSurnameCode }),
+               surnameMatch.caseInsensitiveCompare(misplacedName) != .orderedSame,
+               namesMatchCodiceFiscale(
+                   surname: surnameMatch,
+                   name: misplacedName,
+                   codiceFiscale: codiceFiscale
+               ) {
+                return (surnameMatch, misplacedName)
+            }
+            
+            if let placeOfBirth,
+               let misplacedBirthplace = name,
+               misplacedBirthplace.caseInsensitiveCompare(placeOfBirth) == .orderedSame {
+                return nil
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func correctSurnameAndName(
+        surname: String?,
+        name: String?,
+        candidates: [String],
+        codiceFiscale: String,
+        excludeValues: Set<String>
+    ) -> (surname: String, name: String)? {
+        if let surname,
+           let name,
+           namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            return nil
+        }
+        
+        let filteredCandidates = candidates.filter { candidate in
+            !excludeValues.contains { $0.caseInsensitiveCompare(candidate) == .orderedSame }
+        }
+        
+        guard filteredCandidates.count >= 2 else { return nil }
+        
+        for surnameCandidate in filteredCandidates {
+            for nameCandidate in filteredCandidates where nameCandidate.caseInsensitiveCompare(surnameCandidate) != .orderedSame {
+                if namesMatchCodiceFiscale(
+                    surname: surnameCandidate,
+                    name: nameCandidate,
+                    codiceFiscale: codiceFiscale
+                ) {
+                    return (surnameCandidate, nameCandidate)
+                }
+            }
+        }
+        
+        return nil
     }
     
     private static func findCodiceFiscale(in lines: [String]) -> String? {
@@ -348,32 +807,39 @@ class IDParser {
         return false
     }
 
-    private static func findLabelIndex(in lines: [String], labels: [String]) -> Int? {
+    private static func lineMatchesLabel(_ line: String, label: String) -> Bool {
+        let lineLower = line.lowercased()
+        let lineParts = lineLower.components(separatedBy: CharacterSet(charactersIn: "/:"))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let lineWords = lineLower.components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        let labelLower = label.lowercased()
+        
+        if lineParts.contains(labelLower) {
+            return true
+        }
+        
+        let labelWordsList = labelLower.components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        return !labelWordsList.isEmpty && isSubsequence(labelWordsList, in: lineWords)
+    }
+    
+    private static func findLabelIndex(in lines: [String], labels: [String], preferAfterIndex: Int? = nil) -> Int? {
+        var firstMatch: Int? = nil
+        var preferredMatch: Int? = nil
+        
         for (index, line) in lines.enumerated() {
-            let lineLower = line.lowercased()
-            let lineParts = lineLower.components(separatedBy: CharacterSet(charactersIn: "/:"))
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            
-            let lineWords = lineLower.components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { !$0.isEmpty }
-                
-            for label in labels {
-                let labelLower = label.lowercased()
-                
-                // 1. Check exact slash/colon components
-                if lineParts.contains(labelLower) {
-                    return index
+            for label in labels where lineMatchesLabel(line, label: label) {
+                if firstMatch == nil {
+                    firstMatch = index
                 }
-                
-                // 2. Check contiguous word subsequence
-                let labelWordsList = labelLower.components(separatedBy: CharacterSet.alphanumerics.inverted)
-                    .filter { !$0.isEmpty }
-                if !labelWordsList.isEmpty && isSubsequence(labelWordsList, in: lineWords) {
-                    return index
+                if let after = preferAfterIndex, index > after, preferredMatch == nil {
+                    preferredMatch = index
                 }
             }
         }
-        return nil
+        
+        return preferredMatch ?? firstMatch
     }
     
     private static let skipWords: Set<String> = [
@@ -449,13 +915,21 @@ class IDParser {
         return nil
     }
 
-    private static func extractField(in lines: [String], labels: [String], validator: (String) -> Bool) -> String? {
+    private static func extractField(
+        in lines: [String],
+        labels: [String],
+        validator: (String) -> Bool,
+        excludeValues: Set<String> = [],
+        preferLabelAfterIndex: Int? = nil
+    ) -> String? {
         // 1. Try same line
         for line in lines {
             for label in labels {
                 if let range = findLabelRangeWithWordBoundaries(in: line, label: label) {
                     let suffix = String(line[range.upperBound...])
-                    if let cleaned = cleanSuffixValue(suffix), validator(cleaned) {
+                    if let cleaned = cleanSuffixValue(suffix),
+                       validator(cleaned),
+                       !excludeValues.contains(cleaned) {
                         return cleaned
                     }
                 }
@@ -463,12 +937,12 @@ class IDParser {
         }
         
         // 2. Try subsequent lines
-        if let labelIndex = findLabelIndex(in: lines, labels: labels) {
+        if let labelIndex = findLabelIndex(in: lines, labels: labels, preferAfterIndex: preferLabelAfterIndex) {
             for i in (labelIndex + 1)..<lines.count {
                 let candidate = lines[i]
                 if !isLabelLine(candidate) {
                     let cleaned = candidate.trimmingCharacters(in: CharacterSet(charactersIn: " :/\\_-\t"))
-                    if validator(cleaned) {
+                    if validator(cleaned), !excludeValues.contains(cleaned) {
                         return cleaned
                     }
                 }

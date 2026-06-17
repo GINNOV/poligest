@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Gender } from "@prisma/client";
+import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
 
 export async function POST(req: Request) {
-  // Authentication check: Accept Authorization header or x-api-key
-  const authHeader = req.headers.get("Authorization");
-  const apiKey = req.headers.get("x-api-key");
-  
-  // Default to a fallback secret for development ease
-  const expectedToken = process.env.MACOS_APP_API_KEY || "poligest_macos_secret";
-  
-  if (authHeader !== `Bearer ${expectedToken}` && apiKey !== expectedToken) {
+  if (!isAuthorizedMacosAppRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -64,7 +58,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ ok: true, patientId: patient.id });
+    return NextResponse.json({ ok: true, action: "created", patientId: patient.id });
   } catch (error) {
     console.error("API Error creating patient:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to create patient";

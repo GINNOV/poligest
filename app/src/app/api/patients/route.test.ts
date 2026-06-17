@@ -84,6 +84,7 @@ describe("POST /api/patients", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.ok).toBe(true);
+    expect(json.action).toBe("created");
     expect(json.patientId).toBe("new-patient-id");
 
     expect(mocks.prisma.patient.create).toHaveBeenCalledWith({

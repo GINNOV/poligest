@@ -8,12 +8,12 @@ import { NextResponse } from "next/server";
 // Fallbacks allow the feature to work in development without extra config.
 
 export async function GET() {
-  const version = process.env.SCANID_LATEST_VERSION || "1.1.0";
+  const version = process.env.SCANID_LATEST_VERSION || "1.1.1";
   // Default points to the project's releases page; in production set a direct asset URL
   // (e.g. a GitHub release asset or a stable hosted .zip of the .app bundle).
   const downloadUrl =
     process.env.SCANID_DOWNLOAD_URL ||
-    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.0/ScanID-1.1.0.dmg";
+    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.1/ScanID-1.1.1.dmg";
 
   const notes = process.env.SCANID_RELEASE_NOTES || "";
 

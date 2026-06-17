@@ -9,6 +9,40 @@ import {
   isConfirmedDeleteRequest,
 } from "@/lib/destructive-action-guard";
 import { errorResponse } from "@/lib/error-response";
+import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
+import { mergeMissingPatientFieldsFromMacosScan } from "@/lib/patients/macos-patient-sync";
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ patientId: string }> }) {
+  if (!isAuthorizedMacosAppRequest(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { patientId } = await params;
+  if (!patientId) {
+    return NextResponse.json({ error: "Patient id is required" }, { status: 400 });
+  }
+
+  try {
+    const body = await req.json();
+    const result = await mergeMissingPatientFieldsFromMacosScan(patientId, {
+      birthDate: body.birthDate ?? null,
+      gender: body.gender ?? null,
+      codiceFiscale: body.codiceFiscale ?? null,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      action: "updated",
+      patientId: result.patientId,
+      updatedFields: result.updatedFields,
+    });
+  } catch (error) {
+    console.error("API Error merging patient:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to update patient";
+    const status = errorMessage === "Patient not found" ? 404 : 500;
+    return NextResponse.json({ error: errorMessage }, { status });
+  }
+}
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ patientId: string }> }) {
   const { patientId } = await params;

@@ -43,6 +43,9 @@ xcrun actool Assets.xcassets \
 ICON_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$PARTIAL_PLIST" 2>/dev/null || true)
 if [ -n "$ICON_NAME" ]; then
   /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" ScanID.app/Contents/Info.plist 2>/dev/null || true
+  /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string $ICON_NAME" ScanID.app/Contents/Info.plist 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile $ICON_NAME" ScanID.app/Contents/Info.plist
+  /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" ScanID.app/Contents/Info.plist 2>/dev/null || true
   /usr/libexec/PlistBuddy -c "Add :CFBundleIconName string $ICON_NAME" ScanID.app/Contents/Info.plist 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Set :CFBundleIconName $ICON_NAME" ScanID.app/Contents/Info.plist
 fi

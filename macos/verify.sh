@@ -192,6 +192,152 @@ assertEqual(parsedCIESameLine.placeOfBirth, "ROMA (RM)", "CIE Same Line Place of
 assertEqual(parsedCIESameLine.gender, "M", "CIE Same Line Gender")
 assertEqual(parsedCIESameLine.codiceFiscale, "RSSMRA90A15H501K", "CIE Same Line Calculated Codice Fiscale")
 
+// Test Case 8: Stacked label lines (common OCR layout — values below both labels)
+let cieStackedLabelsLines = [
+    "Cognome / Surname",
+    "Nome / Name",
+    "ROSSI",
+    "MARIO",
+    "Luogo e data di nascita / Place and date of birth",
+    "ROMA 15/08/1990",
+    "Sesso / Sex",
+    "M"
+]
+
+let parsedCIEStackedLabels = IDParser.parse(lines: cieStackedLabelsLines)
+assertEqual(parsedCIEStackedLabels.surname, "ROSSI", "CIE Stacked Labels Surname")
+assertEqual(parsedCIEStackedLabels.name, "MARIO", "CIE Stacked Labels Name")
+
+// Test Case 9: Combined Cognome/Nome header on one line
+let cieCombinedHeaderLines = [
+    "Cognome / Nome",
+    "ROSSI",
+    "MARIO",
+    "Sesso / Sex",
+    "M"
+]
+
+let parsedCIECombinedHeader = IDParser.parse(lines: cieCombinedHeaderLines)
+assertEqual(parsedCIECombinedHeader.surname, "ROSSI", "CIE Combined Header Surname")
+assertEqual(parsedCIECombinedHeader.name, "MARIO", "CIE Combined Header Name")
+
+// Test Case 10: Tessera Sanitaria with scrambled OCR name order
+let tsScrambledNameLines = [
+    "REPUBBLICA ITALIANA",
+    "TESSERA SANITARIA",
+    "CARTA REGIONALE DEI SERVIZI",
+    "Codice Fiscale CNTNMR52C44G834U",
+    "Sesso F",
+    "Cognome",
+    "Nome",
+    "ANNA MARIA",
+    "Luogo di nascita",
+    "PONTECAGNANO FAIANO",
+    "Data di nascita",
+    "04/03/1952",
+    "Provincia SA",
+    "CONTE",
+    "Data di scadenza",
+    "02/09/2030"
+]
+
+let parsedTSScrambledNames = IDParser.parse(lines: tsScrambledNameLines)
+assertEqual(parsedTSScrambledNames.documentType, "TESSERA_SANITARIA_FRONT", "TS Scrambled Names Type")
+assertEqual(parsedTSScrambledNames.surname, "CONTE", "TS Scrambled Names Surname")
+assertEqual(parsedTSScrambledNames.name, "ANNA MARIA", "TS Scrambled Names Name")
+assertEqual(parsedTSScrambledNames.codiceFiscale, "CNTNMR52C44G834U", "TS Scrambled Names Codice Fiscale")
+assertEqual(parsedTSScrambledNames.dateOfBirth, "04/03/1952", "TS Scrambled Names DOB")
+assertEqual(parsedTSScrambledNames.placeOfBirth, "PONTECAGNANO FAIANO", "TS Scrambled Names Place of Birth")
+assertEqual(parsedTSScrambledNames.gender, "F", "TS Scrambled Names Gender")
+assertEqual(parsedTSScrambledNames.expiryDate, "02/09/2030", "TS Scrambled Names Expiry Date")
+
+// Test Case 11: CONTE appears before Cognome/Nome labels (column-major OCR)
+let tsColumnMajorLines = [
+    "REPUBBLICA ITALIANA",
+    "TESSERA SANITARIA",
+    "Codice Fiscale CNTNMR52C44G834U",
+    "Sesso F",
+    "CONTE",
+    "ANNA MARIA",
+    "Cognome",
+    "Nome",
+    "Luogo di nascita",
+    "PONTECAGNANO FAIANO",
+    "Data di nascita",
+    "04/03/1952",
+    "Data di scadenza",
+    "02/09/2030"
+]
+
+let parsedTSColumnMajor = IDParser.parse(lines: tsColumnMajorLines)
+assertEqual(parsedTSColumnMajor.surname, "CONTE", "TS Column Major Surname")
+assertEqual(parsedTSColumnMajor.name, "ANNA MARIA", "TS Column Major Name")
+
+// Test Case 12: Cognome/Nome values on same line as labels
+let tsSameLineNames = [
+    "TESSERA SANITARIA",
+    "Codice Fiscale CNTNMR52C44G834U",
+    "Sesso F",
+    "Cognome CONTE",
+    "Nome ANNA MARIA",
+    "Luogo di nascita PONTECAGNANO FAIANO",
+    "Data di nascita 04/03/1952",
+    "Data di scadenza 02/09/2030"
+]
+
+let parsedTSSameLineNames = IDParser.parse(lines: tsSameLineNames)
+assertEqual(parsedTSSameLineNames.surname, "CONTE", "TS Same Line Names Surname")
+assertEqual(parsedTSSameLineNames.name, "ANNA MARIA", "TS Same Line Names Name")
+
+// Test Case 13: Spatial column layout — CONTE left of ANNA MARIA but line order scrambled
+let tsSpatialItems = [
+    OCRTextItem(text: "TESSERA SANITARIA", midX: 0.5, midY: 0.95),
+    OCRTextItem(text: "Codice Fiscale CNTNMR52C44G834U", midX: 0.5, midY: 0.88),
+    OCRTextItem(text: "Sesso F", midX: 0.5, midY: 0.82),
+    OCRTextItem(text: "Cognome", midX: 0.22, midY: 0.76),
+    OCRTextItem(text: "Nome", midX: 0.72, midY: 0.76),
+    OCRTextItem(text: "ANNA MARIA", midX: 0.74, midY: 0.68),
+    OCRTextItem(text: "CONTE", midX: 0.24, midY: 0.67),
+    OCRTextItem(text: "Luogo di nascita", midX: 0.5, midY: 0.58),
+    OCRTextItem(text: "PONTECAGNANO FAIANO", midX: 0.5, midY: 0.50),
+    OCRTextItem(text: "Data di nascita", midX: 0.5, midY: 0.42),
+    OCRTextItem(text: "04/03/1952", midX: 0.5, midY: 0.35),
+]
+let parsedTSSpatial = IDParser.parse(ocrItems: tsSpatialItems)
+assertEqual(parsedTSSpatial.surname, "CONTE", "TS Spatial Surname")
+assertEqual(parsedTSSpatial.name, "ANNA MARIA", "TS Spatial Name")
+
+// Test Case 15: UI panel + card both visible — must pick CF-valid pair (CONTE / ANNA MARIA)
+let tsUIPollutionItems = [
+    OCRTextItem(text: "Campi Estratti", midX: 0.52, midY: 0.77),
+    OCRTextItem(text: "Cognome", midX: 0.58, midY: 0.70),
+    OCRTextItem(text: "ANNA MARIA", midX: 0.77, midY: 0.70),
+    OCRTextItem(text: "Nome", midX: 0.57, midY: 0.63),
+    OCRTextItem(text: "PONTECAGNANO FAIANO", midX: 0.77, midY: 0.63),
+    OCRTextItem(text: "Codice Fiscale", midX: 0.58, midY: 0.57),
+    OCRTextItem(text: "CNTNMR52C44G834U", midX: 0.77, midY: 0.57),
+    OCRTextItem(text: "Cognome", midX: 0.24, midY: 0.38),
+    OCRTextItem(text: "CONTE", midX: 0.39, midY: 0.40),
+    OCRTextItem(text: "Nome", midX: 0.24, midY: 0.34),
+    OCRTextItem(text: "ANNA MARIA", midX: 0.39, midY: 0.35),
+    OCRTextItem(text: "Luogo di nascita", midX: 0.24, midY: 0.30),
+    OCRTextItem(text: "PONTECAGNANO FAIANO", midX: 0.39, midY: 0.30),
+    OCRTextItem(text: "Data di nascita", midX: 0.24, midY: 0.21),
+    OCRTextItem(text: "04/03/1952", midX: 0.39, midY: 0.21),
+    OCRTextItem(text: "Sesso F", midX: 0.72, midY: 0.46),
+]
+let parsedTSUIPollution = IDParser.parse(ocrItems: tsUIPollutionItems)
+assertEqual(parsedTSUIPollution.surname, "CONTE", "TS UI Pollution Surname")
+assertEqual(parsedTSUIPollution.name, "ANNA MARIA", "TS UI Pollution Name")
+
+// Test Case 14: Stacked labels without CONTE in OCR — still fails surname (documents partial case)
+let tsNoSurnameLines = [
+    "Cognome", "Nome", "ANNA MARIA", "Luogo di nascita", "PONTECAGNANO FAIANO",
+    "Codice Fiscale CNTNMR52C44G834U", "Sesso F", "Data di nascita", "04/03/1952",
+]
+let parsedTSNoSurname = IDParser.parse(lines: tsNoSurnameLines)
+assertEqual(parsedTSNoSurname.name, "PONTECAGNANO FAIANO", "TS No Surname OCR Name (known gap)")
+
 print("\n=== Verification Complete ===")
 EOF
 

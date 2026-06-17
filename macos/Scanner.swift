@@ -10,6 +10,30 @@ struct RecognizedItem: Identifiable, Codable {
     var boundingBox: CGRect // Normalized bounds from Vision (y-axis is bottom-up)
 }
 
+extension Array where Element == RecognizedItem {
+    /// Groups OCR observations into reading-order lines (top-to-bottom, left-to-right per row).
+    func sortedLines(rowThreshold: CGFloat = 0.035) -> [String] {
+        guard !isEmpty else { return [] }
+        
+        var rows: [[RecognizedItem]] = []
+        let sortedByY = sorted { $0.boundingBox.midY > $1.boundingBox.midY }
+        
+        for item in sortedByY {
+            if let lastRow = rows.last,
+               let anchor = lastRow.first,
+               abs(item.boundingBox.midY - anchor.boundingBox.midY) < rowThreshold {
+                rows[rows.count - 1].append(item)
+            } else {
+                rows.append([item])
+            }
+        }
+        
+        return rows.flatMap { row in
+            row.sorted { $0.boundingBox.minX < $1.boundingBox.minX }.map(\.text)
+        }
+    }
+}
+
 class IDScanner {
     
     private static var isProcessing = false
