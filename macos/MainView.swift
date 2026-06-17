@@ -1542,164 +1542,333 @@ struct SettingsView: View {
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
-    // Update prefs (synced via same keys as MainView)
     @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     
-    @State private var activeTab: Tab = .general
+    @State private var selectedSection: SettingsSection = .general
     @State private var showToken = false
     @State private var isCheckingForUpdates = false
     
-    enum Tab {
+    enum SettingsSection: String, CaseIterable, Identifiable {
         case general
         case sorriso
+        case updates
+        
+        var id: String { rawValue }
+        
+        func title(lang: String) -> String {
+            switch self {
+            case .general:
+                return Localization.string(key: "settings_sidebar_general", lang: lang)
+            case .sorriso:
+                return Localization.string(key: "settings_sidebar_sorriso", lang: lang)
+            case .updates:
+                return Localization.string(key: "settings_sidebar_updates", lang: lang)
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .sorriso: return "person.crop.circle.badge.plus"
+            case .updates: return "arrow.triangle.2.circlepath"
+            }
+        }
     }
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Tab Selection Header
-            HStack(spacing: 20) {
-                TabButton(
-                    title: appLanguage == "it" ? "Generali" : "General",
-                    icon: "gearshape",
-                    isActive: activeTab == .general
-                ) {
-                    activeTab = .general
+        NavigationSplitView {
+            List(selection: $selectedSection) {
+                Section {
+                    settingsSidebarHeader
                 }
                 
-                TabButton(
-                    title: "Sorriso",
-                    icon: "server.rack",
-                    isActive: activeTab == .sorriso
-                ) {
-                    activeTab = .sorriso
-                }
-                
-                Spacer()
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-            .background(VisualEffectView(material: .titlebar, blendingMode: .withinWindow))
-            
-            Divider()
-            
-            // Tab Content
-            VStack {
-                if activeTab == .general {
-                    generalTab
-                } else {
-                    sorrisoTab
+                Section {
+                    ForEach(SettingsSection.allCases) { section in
+                        Label(section.title(lang: appLanguage), systemImage: section.icon)
+                            .tag(section)
+                    }
                 }
             }
-            .padding(24)
-            .frame(maxHeight: .infinity)
-            .background(VisualEffectView(material: .contentBackground, blendingMode: .withinWindow))
-            
-            Divider()
-            
-            // Footer
-            HStack {
-                Spacer()
-                Button(Localization.string(key: "close", lang: appLanguage)) {
-                    isPresented = false
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+        } detail: {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    settingsDetailHeader
+                    
+                    switch selectedSection {
+                    case .general:
+                        generalSection
+                    case .sorriso:
+                        sorrisoSection
+                    case .updates:
+                        updatesSection
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.regular)
-                .keyboardShortcut(.defaultAction)
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(VisualEffectView(material: .windowBackground, blendingMode: .withinWindow))
+            .background(Color(nsColor: .windowBackgroundColor))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(Localization.string(key: "close", lang: appLanguage)) {
+                        isPresented = false
+                    }
+                    .keyboardShortcut(.cancelAction)
+                }
+            }
         }
-        .frame(width: 480, height: 380)
+        .frame(minWidth: 640, minHeight: 460)
     }
     
-    private var generalTab: some View {
-        Form {
-            Picker(Localization.string(key: "pref_lang", lang: appLanguage), selection: $appLanguage) {
-                Text("English").tag("en")
-                Text("Italiano").tag("it")
-            }
-            .pickerStyle(.menu)
-            .frame(width: 280)
+    private var settingsSidebarHeader: some View {
+        HStack(spacing: 12) {
+            Image(nsImage: AppIconLoader.image)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 40, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             
-            Toggle(Localization.string(key: "pref_json", lang: appLanguage), isOn: $showJsonOptions)
-                .toggleStyle(.checkbox)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("ScanID")
+                    .font(.headline)
+                Text(currentVersionString())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private var settingsDetailHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(selectedSection.title(lang: appLanguage))
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text(settingsSubtitle(for: selectedSection))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
     
-    private var sorrisoTab: some View {
-        Form {
-            Toggle(Localization.string(key: "pref_auto_create", lang: appLanguage), isOn: $autoCreatePatient)
-                .toggleStyle(.checkbox)
-            
-            if autoCreatePatient {
-                Toggle(Localization.string(key: "pref_confirm", lang: appLanguage), isOn: $askConfirmation)
-                    .toggleStyle(.checkbox)
-                    .padding(.leading, 20)
-                
-                Toggle(Localization.string(key: "pref_open_browser", lang: appLanguage), isOn: $openInBrowser)
-                    .toggleStyle(.checkbox)
-                    .padding(.leading, 20)
+    private func settingsSubtitle(for section: SettingsSection) -> String {
+        switch section {
+        case .general:
+            return Localization.string(key: "settings_general_subtitle", lang: appLanguage)
+        case .sorriso:
+            return Localization.string(key: "settings_sorriso_subtitle", lang: appLanguage)
+        case .updates:
+            return Localization.string(key: "settings_updates_subtitle", lang: appLanguage)
+        }
+    }
+    
+    private var generalSection: some View {
+        VStack(spacing: 16) {
+            SettingsCard {
+                SettingsToggleRow(
+                    title: Localization.string(key: "pref_lang", lang: appLanguage),
+                    subtitle: Localization.string(key: "pref_lang_desc", lang: appLanguage),
+                    icon: "globe"
+                ) {
+                    Picker("", selection: $appLanguage) {
+                        Text("English").tag("en")
+                        Text("Italiano").tag("it")
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .frame(width: 140)
+                }
             }
             
-            LabeledContent(Localization.string(key: "pref_server", lang: appLanguage)) {
-                TextField("", text: $serverUrl)
-                    .textFieldStyle(.roundedBorder)
+            SettingsCard {
+                SettingsToggleRow(
+                    title: Localization.string(key: "pref_json", lang: appLanguage),
+                    subtitle: Localization.string(key: "pref_json_desc", lang: appLanguage),
+                    icon: "curlybraces"
+                ) {
+                    Toggle("", isOn: $showJsonOptions)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                }
             }
-            
-            LabeledContent(Localization.string(key: "pref_token", lang: appLanguage)) {
-                HStack(spacing: 8) {
-                    Group {
-                        if showToken {
-                            TextField("", text: $apiToken)
-                        } else {
-                            SecureField("", text: $apiToken)
+        }
+    }
+    
+    private var sorrisoSection: some View {
+        VStack(spacing: 16) {
+            SettingsCard(title: Localization.string(key: "settings_connection_group", lang: appLanguage)) {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(Localization.string(key: "pref_server", lang: appLanguage))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text(Localization.string(key: "pref_server_desc", lang: appLanguage))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("https://…", text: $serverUrl)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(Localization.string(key: "pref_token", lang: appLanguage))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text(Localization.string(key: "pref_token_desc", lang: appLanguage))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        HStack(spacing: 8) {
+                            Group {
+                                if showToken {
+                                    TextField("", text: $apiToken)
+                                } else {
+                                    SecureField("", text: $apiToken)
+                                }
+                            }
+                            .textFieldStyle(.roundedBorder)
+                            
+                            Button(action: { showToken.toggle() }) {
+                                Image(systemName: showToken ? "eye.slash" : "eye")
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
+                            .help(showToken
+                                  ? Localization.string(key: "pref_token_hide", lang: appLanguage)
+                                  : Localization.string(key: "pref_token_show", lang: appLanguage))
                         }
                     }
-                    .textFieldStyle(.roundedBorder)
-                    
-                    Button(action: { showToken.toggle() }) {
-                        Image(systemName: showToken ? "eye.slash" : "eye")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(showToken ? "Hide token" : "Show token")
                 }
             }
             
-            // Update section
-            Divider().padding(.vertical, 4)
-            
-            LabeledContent(Localization.string(key: "version", lang: appLanguage)) {
-                Text(currentVersionString())
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundColor(.secondary)
+            SettingsCard(title: Localization.string(key: "settings_sync_group", lang: appLanguage)) {
+                VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_auto_create", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_auto_create_desc", lang: appLanguage),
+                        icon: "bolt.fill"
+                    ) {
+                        Toggle("", isOn: $autoCreatePatient)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    
+                    if autoCreatePatient {
+                        Divider().padding(.vertical, 4)
+                        
+                        SettingsToggleRow(
+                            title: Localization.string(key: "pref_confirm", lang: appLanguage),
+                            subtitle: Localization.string(key: "pref_confirm_desc", lang: appLanguage),
+                            icon: "hand.raised",
+                            compact: true
+                        ) {
+                            Toggle("", isOn: $askConfirmation)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                        }
+                        
+                        SettingsToggleRow(
+                            title: Localization.string(key: "pref_open_browser", lang: appLanguage),
+                            subtitle: Localization.string(key: "pref_open_browser_desc", lang: appLanguage),
+                            icon: "safari",
+                            compact: true
+                        ) {
+                            Toggle("", isOn: $openInBrowser)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var updatesSection: some View {
+        VStack(spacing: 16) {
+            SettingsCard {
+                HStack(spacing: 16) {
+                    Image(nsImage: AppIconLoader.image)
+                        .resizable()
+                        .interpolation(.high)
+                        .frame(width: 52, height: 52)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("ScanID")
+                            .font(.headline)
+                        Text(Localization.string(key: "version", lang: appLanguage) + " " + currentVersionString())
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        if lastUpdateCheck > 0 {
+                            Text(String(
+                                format: Localization.string(key: "settings_last_checked", lang: appLanguage),
+                                lastUpdateCheckFormatted
+                            ))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    
+                    Spacer()
+                }
             }
             
-            Toggle(Localization.string(key: "pref_check_updates", lang: appLanguage), isOn: $checkForUpdatesAutomatically)
-                .toggleStyle(.checkbox)
-            
-            if checkForUpdatesAutomatically {
-                Toggle(Localization.string(key: "welcome_auto_download", lang: appLanguage), isOn: $autoDownloadAndInstallUpdates)
-                    .toggleStyle(.checkbox)
-                    .padding(.leading, 20)
+            SettingsCard(title: Localization.string(key: "settings_updates_group", lang: appLanguage)) {
+                VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_check_updates", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_check_updates_desc", lang: appLanguage),
+                        icon: "clock.arrow.circlepath"
+                    ) {
+                        Toggle("", isOn: $checkForUpdatesAutomatically)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    
+                    if checkForUpdatesAutomatically {
+                        Divider().padding(.vertical, 4)
+                        
+                        SettingsToggleRow(
+                            title: Localization.string(key: "welcome_auto_download", lang: appLanguage),
+                            subtitle: Localization.string(key: "pref_auto_download_desc", lang: appLanguage),
+                            icon: "arrow.down.circle",
+                            compact: true
+                        ) {
+                            Toggle("", isOn: $autoDownloadAndInstallUpdates)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                        }
+                    }
+                }
             }
             
             Button(action: { performUpdateCheckInSettings() }) {
-                if isCheckingForUpdates {
-                    HStack {
+                HStack(spacing: 8) {
+                    if isCheckingForUpdates {
                         ProgressView().controlSize(.small)
                         Text(Localization.string(key: "checking_for_updates", lang: appLanguage))
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text(Localization.string(key: "check_for_updates", lang: appLanguage))
                     }
-                } else {
-                    Label(Localization.string(key: "check_for_updates", lang: appLanguage), systemImage: "arrow.triangle.2.circlepath")
                 }
+                .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .disabled(isCheckingForUpdates)
         }
+    }
+    
+    private var lastUpdateCheckFormatted: String {
+        let date = Date(timeIntervalSince1970: lastUpdateCheck)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
     // Local version read (SettingsView has its own @AppStorage copies)
@@ -1810,27 +1979,68 @@ struct SettingsView: View {
     }
 }
 
-struct TabButton: View {
-    let title: String
-    let icon: String
-    let isActive: Bool
-    let action: () -> Void
+struct SettingsCard<Content: View>: View {
+    var title: String?
+    @ViewBuilder var content: Content
+    
+    init(title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                    .foregroundColor(isActive ? .accentColor : .secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            if let title {
                 Text(title)
-                    .font(.system(size: 11, weight: isActive ? .semibold : .regular))
-                    .foregroundColor(isActive ? .primary : .secondary)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
             }
-            .frame(width: 64, height: 48)
-            .background(isActive ? Color.secondary.opacity(0.12) : Color.clear)
-            .cornerRadius(6)
+            content
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
+    }
+}
+
+struct SettingsToggleRow<Control: View>: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    var compact: Bool = false
+    @ViewBuilder var control: Control
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: compact ? 13 : 15, weight: .medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 22, alignment: .center)
+                .padding(.top, 2)
+            
+            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
+                Text(title)
+                    .font(compact ? .subheadline : .body)
+                    .fontWeight(.medium)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer(minLength: 12)
+            
+            control
+                .padding(.top, 2)
+        }
+        .padding(.vertical, compact ? 4 : 6)
     }
 }
 
@@ -2113,7 +2323,28 @@ struct Localization {
             "welcome_body": "Should ScanID automatically check for updates? You can always check for updates manually from Settings.",
             "welcome_auto_download": "Automatically download and install updates",
             "welcome_dont_check": "Don't Check",
-            "welcome_check_automatically": "Check Automatically"
+            "welcome_check_automatically": "Check Automatically",
+            "settings_sidebar_general": "General",
+            "settings_sidebar_sorriso": "Sorriso",
+            "settings_sidebar_updates": "Updates",
+            "settings_general_subtitle": "Language and developer options for the app.",
+            "settings_sorriso_subtitle": "Connect ScanID to your Sorriso server and control patient sync.",
+            "settings_updates_subtitle": "Keep ScanID up to date with automatic or manual checks.",
+            "settings_connection_group": "Connection",
+            "settings_sync_group": "Patient sync",
+            "settings_updates_group": "Automatic updates",
+            "settings_last_checked": "Last checked: %@",
+            "pref_lang_desc": "Interface language for labels and messages.",
+            "pref_json_desc": "Show copy and save actions for raw JSON and OCR text.",
+            "pref_server_desc": "Base URL of your Sorriso deployment.",
+            "pref_token_desc": "API key sent as x-api-key when creating or updating patients.",
+            "pref_token_show": "Show token",
+            "pref_token_hide": "Hide token",
+            "pref_auto_create_desc": "Send scanned patients to Sorriso right after a successful scan.",
+            "pref_confirm_desc": "Show a confirmation dialog before creating or updating a record.",
+            "pref_open_browser_desc": "Open the patient chart in your browser after sync completes.",
+            "pref_check_updates_desc": "Check once per day on launch for a newer ScanID release.",
+            "pref_auto_download_desc": "Download and offer to install updates without manual steps."
         ]
         let it = [
             "scan_mode": "Modalità Scansione",
@@ -2183,7 +2414,28 @@ struct Localization {
             "welcome_body": "Vuoi che ScanID controlli automaticamente la disponibilità di aggiornamenti? Puoi sempre controllare manualmente dalle Impostazioni.",
             "welcome_auto_download": "Scarica e installa automaticamente gli aggiornamenti",
             "welcome_dont_check": "Non controllare",
-            "welcome_check_automatically": "Controlla automaticamente"
+            "welcome_check_automatically": "Controlla automaticamente",
+            "settings_sidebar_general": "Generali",
+            "settings_sidebar_sorriso": "Sorriso",
+            "settings_sidebar_updates": "Aggiornamenti",
+            "settings_general_subtitle": "Lingua e opzioni per sviluppatori.",
+            "settings_sorriso_subtitle": "Collega ScanID al server Sorriso e gestisci la sincronizzazione.",
+            "settings_updates_subtitle": "Mantieni ScanID aggiornato con controlli automatici o manuali.",
+            "settings_connection_group": "Connessione",
+            "settings_sync_group": "Sincronizzazione pazienti",
+            "settings_updates_group": "Aggiornamenti automatici",
+            "settings_last_checked": "Ultimo controllo: %@",
+            "pref_lang_desc": "Lingua dell'interfaccia per etichette e messaggi.",
+            "pref_json_desc": "Mostra azioni per copiare e salvare JSON e testo OCR.",
+            "pref_server_desc": "URL base della tua installazione Sorriso.",
+            "pref_token_desc": "Chiave API inviata come x-api-key per creare o aggiornare pazienti.",
+            "pref_token_show": "Mostra token",
+            "pref_token_hide": "Nascondi token",
+            "pref_auto_create_desc": "Invia i pazienti scansionati a Sorriso subito dopo la scansione.",
+            "pref_confirm_desc": "Mostra una conferma prima di creare o aggiornare una cartella.",
+            "pref_open_browser_desc": "Apri la cartella paziente nel browser dopo la sincronizzazione.",
+            "pref_check_updates_desc": "Controlla una volta al giorno all'avvio se esiste una nuova versione.",
+            "pref_auto_download_desc": "Scarica e propone l'installazione degli aggiornamenti automaticamente."
         ]
         let dict = (lang == "it" ? it : en)
         return dict[key] ?? key

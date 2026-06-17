@@ -52,10 +52,10 @@ export default async function ScanIdAdminPage() {
 
           {/* Latest ScanID version + download (driven by same envs as /api/scanid/meta) */}
           {(() => {
-            const latestVersion = process.env.SCANID_LATEST_VERSION || "1.1.1";
+            const latestVersion = process.env.SCANID_LATEST_VERSION || "1.1.2";
             const downloadUrl =
               process.env.SCANID_DOWNLOAD_URL ||
-              "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.1/ScanID-1.1.1.dmg";
+              "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.2/ScanID-1.1.2.dmg";
             return (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/30">
                 <div className="flex items-center justify-between">

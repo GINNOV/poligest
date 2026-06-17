@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { formatAuditActor } from "@/lib/audit";
 
 export async function generateMetadata({
   params,
@@ -90,16 +91,6 @@ const formatDateTime = (value: Date | string | null | undefined, timeZone: strin
     },
     timeZone
   );
-};
-
-const formatAuditActor = (
-  log: {
-    user?: { name: string | null; email: string | null } | null;
-    role?: string | null;
-  } | null | undefined
-) => {
-  if (!log) return "Sistema";
-  return log.user?.name ?? log.user?.email ?? log.role ?? "Sistema";
 };
 
 export default async function PatientDetailPage({

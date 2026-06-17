@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Gender } from "@prisma/client";
+import { logMacosScanAudit } from "@/lib/audit";
 import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
 
 export async function POST(req: Request) {
@@ -55,6 +56,14 @@ export async function POST(req: Request) {
         birthDate: parsedBirthDate,
         gender: mappedGender,
         notes: notes || null,
+      },
+    });
+
+    await logMacosScanAudit({
+      action: "patient.created",
+      patientId: patient.id,
+      metadata: {
+        patientName: `${lastName} ${firstName}`,
       },
     });
 

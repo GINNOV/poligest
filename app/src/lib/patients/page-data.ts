@@ -131,7 +131,12 @@ export async function getPatientDetailPageData(patientId: string) {
       prisma.auditLog.findFirst({
         where: { action: "patient.created", entity: "Patient", entityId: patientId },
         orderBy: { createdAt: "asc" },
-        select: { createdAt: true, role: true, user: { select: { name: true, email: true } } },
+        select: {
+          createdAt: true,
+          role: true,
+          metadata: true,
+          user: { select: { name: true, email: true } },
+        },
       }),
       prisma.auditLog.findFirst({
         where: {
@@ -146,7 +151,12 @@ export async function getPatientDetailPageData(patientId: string) {
           },
         },
         orderBy: { createdAt: "desc" },
-        select: { createdAt: true, role: true, user: { select: { name: true, email: true } } },
+        select: {
+          createdAt: true,
+          role: true,
+          metadata: true,
+          user: { select: { name: true, email: true } },
+        },
       }),
     ]);
 

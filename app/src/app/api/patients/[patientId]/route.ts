@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { logAudit } from "@/lib/audit";
+import { logAudit, logMacosScanAudit } from "@/lib/audit";
 import { Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
@@ -29,6 +29,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ patien
       gender: body.gender ?? null,
       codiceFiscale: body.codiceFiscale ?? null,
     });
+
+    if (result.updatedFields.length > 0) {
+      await logMacosScanAudit({
+        action: "patient.updated",
+        patientId: result.patientId,
+        metadata: {
+          updatedFields: result.updatedFields,
+        },
+      });
+    }
 
     return NextResponse.json({
       ok: true,

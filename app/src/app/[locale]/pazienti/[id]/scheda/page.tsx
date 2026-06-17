@@ -9,6 +9,7 @@ import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
+import { formatAuditActor } from "@/lib/audit";
 
 export const revalidate = 60;
 
@@ -40,9 +41,6 @@ const formatDateTime = (value: Date | string | null | undefined, timeZone: strin
     timeZone
   );
 };
-
-const formatAuditActor = (actor: { name: string | null; email: string | null } | null | undefined) =>
-  actor?.name ?? actor?.email ?? "—";
 
 export default async function PatientPrintPage({
   params,
@@ -146,8 +144,8 @@ export default async function PatientPrintPage({
   const parsedExtra = extraLine
     ? extraLine.replace("Note aggiuntive:", "").replace("Note:", "").trim()
     : "";
-  const createdBy = formatAuditActor(createdLog?.user);
-  const updatedBy = updatedLog ? formatAuditActor(updatedLog.user) : createdBy;
+  const createdBy = formatAuditActor(createdLog);
+  const updatedBy = updatedLog ? formatAuditActor(updatedLog) : createdBy;
   const createdAtLabel = formatDateTime(createdLog?.createdAt ?? patient.createdAt, displayTimeZone);
   const updatedAtLabel = formatDateTime(updatedLog?.createdAt ?? patient.updatedAt, displayTimeZone);
 

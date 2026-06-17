@@ -7,9 +7,11 @@ const mocks = vi.hoisted(() => {
       create: vi.fn(),
     },
   };
+  const logMacosScanAudit = vi.fn();
 
   return {
     prisma,
+    logMacosScanAudit,
   };
 });
 
@@ -17,9 +19,14 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
+vi.mock("@/lib/audit", () => ({
+  logMacosScanAudit: mocks.logMacosScanAudit,
+}));
+
 describe("POST /api/patients", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.logMacosScanAudit.mockResolvedValue(undefined);
     process.env.MACOS_APP_API_KEY = "test_secret_token";
   });
 
@@ -96,6 +103,13 @@ describe("POST /api/patients", () => {
         birthDate: expect.any(Date),
         gender: "MALE",
         notes: "Some notes",
+      },
+    });
+    expect(mocks.logMacosScanAudit).toHaveBeenCalledWith({
+      action: "patient.created",
+      patientId: "new-patient-id",
+      metadata: {
+        patientName: "Rossi Mario",
       },
     });
   });

@@ -2,17 +2,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   mergeMissingPatientFieldsFromMacosScan: vi.fn(),
+  logMacosScanAudit: vi.fn(),
 }));
 
 vi.mock("@/lib/patients/macos-patient-sync", () => ({
   mergeMissingPatientFieldsFromMacosScan: mocks.mergeMissingPatientFieldsFromMacosScan,
 }));
 
+vi.mock("@/lib/audit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/audit")>();
+  return {
+    ...actual,
+    logMacosScanAudit: mocks.logMacosScanAudit,
+  };
+});
+
 import { PATCH } from "./route";
 
 describe("PATCH /api/patients/[patientId]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.logMacosScanAudit.mockResolvedValue(undefined);
     process.env.MACOS_APP_API_KEY = "test_secret_token";
     mocks.mergeMissingPatientFieldsFromMacosScan.mockResolvedValue({
       patientId: "patient-1",
@@ -57,6 +67,13 @@ describe("PATCH /api/patients/[patientId]", () => {
       birthDate: "15/08/1990",
       gender: "M",
       codiceFiscale: "RSSMRA90A15H501Y",
+    });
+    expect(mocks.logMacosScanAudit).toHaveBeenCalledWith({
+      action: "patient.updated",
+      patientId: "patient-1",
+      metadata: {
+        updatedFields: ["birthDate"],
+      },
     });
   });
 });
