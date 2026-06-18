@@ -21,6 +21,8 @@ swiftc -O \
   App.swift \
   MainView.swift \
   CameraView.swift \
+  ZoomableImageWrapper.swift \
+  UpdateInstaller.swift \
   Scanner.swift \
   Parser.swift \
   BelfioreCodes.swift

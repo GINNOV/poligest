@@ -53,6 +53,10 @@ struct MainView: View {
     @State private var downloadError: String? = nil
     @State private var downloadedFileUrl: URL? = nil
     @State private var downloader: UpdateDownloader? = nil
+    @State private var installError: String? = nil
+    
+    @State private var captureZoomScale: CGFloat = 1.0
+    @State private var captureZoomOffset: CGSize = .zero
     
     struct PendingPatient: Identifiable {
         let id = UUID()
@@ -110,6 +114,10 @@ struct MainView: View {
         scanMode == .camera && captureState == .captured && capturedCameraImage != nil
     }
     
+    private var showsZoomableCapture: Bool {
+        isCameraFrozen || (scanMode == .image && selectedImage != nil)
+    }
+    
     var body: some View {
         mainWorkspace
             .toolbar { mainToolbar }
@@ -138,6 +146,19 @@ struct MainView: View {
             }
             .sheet(item: $pendingUpdate) { update in
                 updateAvailableSheet(for: update)
+            }
+            .alert(
+                Localization.string(key: "update_install_failed", lang: appLanguage),
+                isPresented: Binding(
+                    get: { installError != nil },
+                    set: { if !$0 { installError = nil } }
+                )
+            ) {
+                Button(Localization.string(key: "close", lang: appLanguage), role: .cancel) {
+                    installError = nil
+                }
+            } message: {
+                Text(installError ?? "")
             }
             .alert(
                 Localization.string(
@@ -184,21 +205,7 @@ struct MainView: View {
                         // Image upload mode
                         ZStack {
                             if let selectedImage = selectedImage {
-                                Image(nsImage: selectedImage)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .cornerRadius(12)
-                                    .padding(12)
-                                    .overlay(
-                                        GeometryReader { geo in
-                                            let contentRect = fitRect(for: selectedImage.size, in: geo.size)
-                                            ForEach(recognizedItems) { item in
-                                                let rect = mapBoundingBox(item.boundingBox, to: contentRect.size)
-                                                boundingBoxMenu(for: item, rect: rect)
-                                                    .position(x: rect.midX + contentRect.origin.x, y: rect.midY + contentRect.origin.y)
-                                            }
-                                        }
-                                    )
+                                capturedImageWithOverlays(selectedImage)
                             } else {
                                 VStack(spacing: 16) {
                                     Image(systemName: "doc.viewfinder")
@@ -261,6 +268,33 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 250)
+        }
+        
+        if showsZoomableCapture {
+            ToolbarItemGroup(placement: .principal) {
+                Button(action: zoomOutCapture) {
+                    Image(systemName: "minus.magnifyingglass")
+                }
+                .help(Localization.string(key: "zoom_out", lang: appLanguage))
+                .disabled(captureZoomScale <= 1.0)
+                
+                Text("\(Int(round(captureZoomScale * 100)))%")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44)
+                
+                Button(action: zoomInCapture) {
+                    Image(systemName: "plus.magnifyingglass")
+                }
+                .help(Localization.string(key: "zoom_in", lang: appLanguage))
+                .disabled(captureZoomScale >= 6.0)
+                
+                Button(action: resetCaptureZoom) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                }
+                .help(Localization.string(key: "zoom_reset", lang: appLanguage))
+                .disabled(captureZoomScale <= 1.0 && captureZoomOffset == .zero)
+            }
         }
         
         if scanMode == .camera && !isCameraFrozen {
@@ -377,6 +411,7 @@ struct MainView: View {
             isDownloading: isDownloading,
             downloadProgress: downloadProgress,
             downloadError: downloadError,
+            installError: installError,
             downloadedFileUrl: downloadedFileUrl,
             onDownload: {
                 if let url = URL(string: update.downloadUrl) {
@@ -384,20 +419,41 @@ struct MainView: View {
                 }
             },
             onInstall: {
-                if let fileUrl = downloadedFileUrl {
-                    installAndRelaunch(downloadedFile: fileUrl)
-                }
+                installDownloadedUpdate()
             },
             onLater: {
                 downloader?.cancel()
                 isDownloading = false
                 downloadProgress = 0.0
                 downloadError = nil
+                installError = nil
                 downloadedFileUrl = nil
                 downloader = nil
                 pendingUpdate = nil
             }
         )
+    }
+    
+    private func installDownloadedUpdate() {
+        guard let fileUrl = downloadedFileUrl else {
+            installError = Localization.string(key: "update_install_missing_file", lang: appLanguage)
+            return
+        }
+        
+        installError = nil
+        
+        do {
+            try UpdateInstaller.launchInstall(downloadedFile: fileUrl)
+        } catch {
+            installError = error.localizedDescription
+            return
+        }
+        
+        pendingUpdate = nil
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            NSApp.terminate(nil)
+        }
     }
     
     @ViewBuilder
@@ -481,21 +537,49 @@ struct MainView: View {
     
     @ViewBuilder
     private func frozenCameraCaptureView(_ image: NSImage) -> some View {
-        Image(nsImage: image)
-            .resizable()
-            .aspectRatio(contentMode: .fit)
-            .cornerRadius(12)
-            .padding(12)
-            .overlay(
-                GeometryReader { geo in
-                    let contentRect = fitRect(for: image.size, in: geo.size)
-                    ForEach(recognizedItems) { item in
-                        let rect = mapBoundingBox(item.boundingBox, to: contentRect.size)
-                        boundingBoxMenu(for: item, rect: rect)
-                            .position(x: rect.midX + contentRect.origin.x, y: rect.midY + contentRect.origin.y)
-                    }
+        capturedImageWithOverlays(image)
+    }
+    
+    @ViewBuilder
+    private func capturedImageWithOverlays(_ image: NSImage) -> some View {
+        ZoomableImageWrapper(scale: $captureZoomScale, offset: $captureZoomOffset) {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .overlay {
+                    boundingBoxesOverlay(for: image)
                 }
-            )
+        }
+        .cornerRadius(12)
+        .padding(12)
+    }
+    
+    @ViewBuilder
+    private func boundingBoxesOverlay(for image: NSImage) -> some View {
+        GeometryReader { geo in
+            let contentRect = fitRect(for: image.size, in: geo.size)
+            ForEach(recognizedItems) { item in
+                let rect = mapBoundingBox(item.boundingBox, to: contentRect.size)
+                boundingBoxMenu(for: item, rect: rect)
+                    .position(x: rect.midX + contentRect.origin.x, y: rect.midY + contentRect.origin.y)
+            }
+        }
+    }
+    
+    private func resetCaptureZoom() {
+        captureZoomScale = 1.0
+        captureZoomOffset = .zero
+    }
+    
+    private func zoomInCapture() {
+        captureZoomScale = min(captureZoomScale * 1.25, 6.0)
+    }
+    
+    private func zoomOutCapture() {
+        captureZoomScale = max(captureZoomScale / 1.25, 1.0)
+        if captureZoomScale <= 1.0 {
+            captureZoomOffset = .zero
+        }
     }
     
     @ViewBuilder
@@ -871,6 +955,7 @@ struct MainView: View {
         cgImageForOCR = nil
         isDragging = false
         copied = false
+        resetCaptureZoom()
         cameraManager.clearSnapshotBuffer()
         clearParsedResults()
     }
@@ -1339,6 +1424,7 @@ struct MainView: View {
         isDownloading = true
         downloadProgress = 0.0
         downloadError = nil
+        installError = nil
         downloadedFileUrl = nil
         
         let dl = UpdateDownloader()
@@ -1356,85 +1442,6 @@ struct MainView: View {
         }
         self.downloader = dl
         dl.startDownload(url: url)
-    }
-    
-    private func installAndRelaunch(downloadedFile: URL) {
-        let currentAppPath = Bundle.main.bundlePath
-        let pid = ProcessInfo.processInfo.processIdentifier
-        
-        let tempDir = FileManager.default.temporaryDirectory
-        let scriptUrl = tempDir.appendingPathComponent("install-scanid-update.sh")
-        
-        let scriptContent = """
-        #!/bin/bash
-        PID=\(pid)
-        CURRENT_APP_PATH="\(currentAppPath)"
-        DOWNLOADED_FILE="\(downloadedFile.path)"
-        MOUNT_POINT="/Volumes/ScanID"
-
-        # Wait for parent PID to exit
-        while kill -0 "$PID" 2>/dev/null; do
-            sleep 0.2
-        done
-
-        # Check if downloaded file is DMG or ZIP
-        if [[ "$DOWNLOADED_FILE" == *.dmg ]]; then
-            # Mount DMG and find mount point dynamically
-            MOUNT_INFO=$(hdiutil attach -nobrowse -readonly "$DOWNLOADED_FILE")
-            MOUNT_POINT=$(echo "$MOUNT_INFO" | grep -o '/Volumes/.*' | head -n 1 | xargs)
-            
-            if [ -n "$MOUNT_POINT" ] && [ -d "$MOUNT_POINT" ]; then
-                NEW_APP=$(find "$MOUNT_POINT" -name "*.app" -maxdepth 2 -type d | head -n 1)
-                if [ -d "$NEW_APP" ]; then
-                    # Replace app
-                    rm -rf "$CURRENT_APP_PATH"
-                    cp -R "$NEW_APP" "$CURRENT_APP_PATH"
-                fi
-                # Detach DMG
-                hdiutil detach "$MOUNT_POINT" -force
-            fi
-        elif [[ "$DOWNLOADED_FILE" == *.zip ]]; then
-            # Unzip to a temporary folder
-            TMP_UNZIP_DIR=$(mktemp -d)
-            unzip -q "$DOWNLOADED_FILE" -d "$TMP_UNZIP_DIR"
-            # Find ScanID.app in the unzipped files (ignoring resource forks like __MACOSX)
-            NEW_APP=$(find "$TMP_UNZIP_DIR" -name "ScanID.app" -type d -maxdepth 3 | grep -v "__MACOSX" | head -n 1)
-            if [ -d "$NEW_APP" ]; then
-                # Replace app
-                rm -rf "$CURRENT_APP_PATH"
-                cp -R "$NEW_APP" "$CURRENT_APP_PATH"
-            fi
-            rm -rf "$TMP_UNZIP_DIR"
-        fi
-
-        # Relaunch the app
-        open "$CURRENT_APP_PATH"
-
-        # Delete this script
-        rm -- "$0"
-        """
-        
-        do {
-            try scriptContent.write(to: scriptUrl, atomically: true, encoding: .utf8)
-            
-            // Make executable
-            let chmodProcess = Process()
-            chmodProcess.executableURL = URL(fileURLWithPath: "/bin/chmod")
-            chmodProcess.arguments = ["+x", scriptUrl.path]
-            try chmodProcess.run()
-            chmodProcess.waitUntilExit()
-            
-            // Run the script in background
-            let scriptProcess = Process()
-            scriptProcess.executableURL = URL(fileURLWithPath: "/bin/bash")
-            scriptProcess.arguments = [scriptUrl.path]
-            try scriptProcess.run()
-            
-            // Terminate the app
-            NSApplication.shared.terminate(nil)
-        } catch {
-            print("Failed to run updater script: \(error)")
-        }
     }
     
     // MARK: - Import / Actions
@@ -2790,6 +2797,7 @@ struct UpdateAvailableSheet: View {
     let isDownloading: Bool
     let downloadProgress: Double
     let downloadError: String?
+    let installError: String?
     let downloadedFileUrl: URL?
     let onDownload: () -> Void
     let onInstall: () -> Void
@@ -2837,6 +2845,14 @@ struct UpdateAvailableSheet: View {
                     .font(.subheadline)
                     .foregroundColor(.green)
                     .padding(.vertical, 8)
+            }
+            
+            if let installError, !installError.isEmpty {
+                Text(installError)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
             }
             
             HStack(spacing: 12) {
@@ -2930,6 +2946,8 @@ struct Localization {
             "download_update": "Download Update",
             "later": "Later",
             "update_check_failed": "Update check failed.",
+            "update_install_failed": "Update installation failed",
+            "update_install_missing_file": "The downloaded update file is missing. Please download again.",
             "pref_check_updates": "Automatically check for updates",
             "new_version_available": "New version available",
             "welcome_title": "Check for updates automatically?",
@@ -2987,6 +3005,9 @@ struct Localization {
             "new_scan_help": "Discard this scan and open the camera for a new capture",
             "new_image": "New Image",
             "new_image_help": "Clear the current scan and return to the import screen",
+            "zoom_in": "Zoom in",
+            "zoom_out": "Zoom out",
+            "zoom_reset": "Reset zoom",
             "status_import_ready": "Import an image — drag, paste, or browse for a file",
             "status_ready": "Ready",
             "status_scan_complete": "Scan complete — review the extracted fields",
@@ -3063,6 +3084,8 @@ struct Localization {
             "download_update": "Scarica aggiornamento",
             "later": "Più tardi",
             "update_check_failed": "Controllo aggiornamenti non riuscito.",
+            "update_install_failed": "Installazione aggiornamento non riuscita",
+            "update_install_missing_file": "Il file dell'aggiornamento non è disponibile. Scaricalo di nuovo.",
             "pref_check_updates": "Controlla automaticamente gli aggiornamenti",
             "new_version_available": "Nuova versione disponibile",
             "welcome_title": "Controllare automaticamente gli aggiornamenti?",
@@ -3120,6 +3143,9 @@ struct Localization {
             "new_scan_help": "Scarta questa scansione e riapri la fotocamera per una nuova acquisizione",
             "new_image": "Nuova immagine",
             "new_image_help": "Cancella la scansione corrente e torna alla schermata di importazione",
+            "zoom_in": "Ingrandisci",
+            "zoom_out": "Riduci",
+            "zoom_reset": "Reimposta zoom",
             "status_import_ready": "Importa un'immagine — trascina, incolla o sfoglia un file",
             "status_ready": "Pronto",
             "status_scan_complete": "Scansione completata — controlla i campi estratti",

@@ -15,6 +15,8 @@
 		B200CFD82606F9E100000000 /* BelfioreCodes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B200CFD72606F9E100000000 /* BelfioreCodes.swift */; };
 		BEEE78DAB9C9827BBD252317 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECF55C8D9B50305D41C50DC /* App.swift */; };
 		DA3B398D926110DE8DE85FBE /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E14E9594A7E82BF6D614A05 /* MainView.swift */; };
+		F1A2B3C4D5E6F708192A3B4C /* ZoomableImageWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F708192A3B4D /* ZoomableImageWrapper.swift */; };
+		F2B3C4D5E6F708192A3B4C5D /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +30,8 @@
 		B300CFD82606F9E100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B300CFD92606F9E100000003 /* BelfioreCodes.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = BelfioreCodes.json; sourceTree = "<group>"; };
 		EECF55C8D9B50305D41C50DC /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6F708192A3B4D /* ZoomableImageWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageWrapper.swift; sourceTree = "<group>"; };
+		F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +75,8 @@
 				348691AB3151589787C27FCF /* Scanner.swift */,
 				CB08DD3B4A04143C59BECFC4 /* Parser.swift */,
 				B200CFD72606F9E100000000 /* BelfioreCodes.swift */,
+				F1A2B3C4D5E6F708192A3B4D /* ZoomableImageWrapper.swift */,
+				F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -158,6 +164,8 @@
 				7C1230CF4FAA99FC1899B882 /* Scanner.swift in Sources */,
 				A235FA3C671ABDA748EF11B8 /* Parser.swift in Sources */,
 				B200CFD82606F9E100000000 /* BelfioreCodes.swift in Sources */,
+				F1A2B3C4D5E6F708192A3B4C /* ZoomableImageWrapper.swift in Sources */,
+				F2B3C4D5E6F708192A3B4C5D /* UpdateInstaller.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
