@@ -5,10 +5,10 @@ export type ScanIdMeta = {
 };
 
 export function getScanIdMeta(): ScanIdMeta {
-  const version = process.env.SCANID_LATEST_VERSION || "1.1.2";
+  const version = process.env.SCANID_LATEST_VERSION || "1.2.0";
   const downloadUrl =
     process.env.SCANID_DOWNLOAD_URL ||
-    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.1.2/ScanID-1.1.2.dmg";
+    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.2.0/ScanID-1.2.0.dmg";
   const notes = process.env.SCANID_RELEASE_NOTES || "";
 
   return {
