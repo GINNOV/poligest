@@ -46,6 +46,8 @@ type Props = {
   practiceTimeZone?: PracticeTimeZone;
   displayTimeZone?: string;
   canManagePracticeTimeZone?: boolean;
+  scanIdDownloadUrl?: string;
+  scanIdVersion?: string;
 };
 
 export function UserMenu({
@@ -61,6 +63,8 @@ export function UserMenu({
   practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   displayTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   canManagePracticeTimeZone = false,
+  scanIdDownloadUrl,
+  scanIdVersion,
 }: Props) {
   const router = useRouter();
   const initialHomeScreen =
@@ -264,6 +268,24 @@ export function UserMenu({
                 <span aria-hidden>🛠️</span>
                 {adminLabel}
               </Link>
+            ) : null}
+            {scanIdDownloadUrl ? (
+              <a
+                href={scanIdDownloadUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                onClick={() => setOpen(false)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/scanid-icon.png" alt="" className="h-4 w-4 rounded-sm" />
+                <span className="flex-1">Scarica ScanID</span>
+                {scanIdVersion ? (
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+                    v{scanIdVersion}
+                  </span>
+                ) : null}
+              </a>
             ) : null}
             <div className="px-3 py-2">
               <SignOutButton label="🚪 Esci" signOutUrl={signOutUrl} />

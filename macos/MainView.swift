@@ -5,8 +5,11 @@ import AppKit
 
 struct MainView: View {
     @StateObject private var cameraManager = CameraManager()
+    @StateObject private var liveScan = LiveScanController()
+    @StateObject private var statusBar = StatusBarController()
     @State private var scanMode: ScanMode = .image
     @State private var selectedImage: NSImage?
+    @State private var capturedCameraImage: NSImage?
     @State private var cgImageForOCR: CGImage?
     @State private var recognizedItems: [RecognizedItem] = []
     @State private var parsedData: IDData = IDData(documentType: "UNKNOWN", rawText: [])
@@ -30,9 +33,11 @@ struct MainView: View {
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
+    @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
     
     // Interactive UI State
     @State private var showWelcomePrompt = false
+    @State private var showContinuityCameraHelp = false
     @State private var isShowingSettings = false
     @State private var showingConfirmationAlert = false
     @State private var pendingPatientToCreate: PendingPatient? = nil
@@ -73,6 +78,7 @@ struct MainView: View {
     enum CaptureState {
         case idle
         case scanning
+        case countdown
         case captured
     }
     
@@ -81,7 +87,7 @@ struct MainView: View {
         case image
     }
     
-    enum SyncStatus {
+    enum SyncStatus: Equatable {
         case idle
         case syncing
         case success(patientId: String, isUpdate: Bool)
@@ -96,7 +102,59 @@ struct MainView: View {
         captureState == .captured
     }
     
+    private var activeCameraPhase: CaptureState {
+        scanMode == .camera ? liveScan.captureState : .idle
+    }
+    
+    private var isCameraFrozen: Bool {
+        scanMode == .camera && captureState == .captured && capturedCameraImage != nil
+    }
+    
     var body: some View {
+        mainWorkspace
+            .toolbar { mainToolbar }
+            .onAppear(perform: handleAppear)
+            .onDisappear(perform: handleDisappear)
+            .onChange(of: scanMode) { oldMode, newMode in
+                handleScanModeChange(oldMode, newMode)
+            }
+            .onChange(of: autoCaptureCountdown) { _, _ in setupCameraFrameCallback() }
+            .onChange(of: syncStatus) { _, newValue in
+                reflectSyncStatusInStatusBar(newValue)
+            }
+            .onChange(of: liveScan.feedbackKey) { _, newValue in
+                reflectLiveScanInStatusBar(newValue)
+            }
+            .sheet(isPresented: $showWelcomePrompt) {
+                WelcomePromptView(isPresented: $showWelcomePrompt, lang: appLanguage) {
+                    if checkForUpdatesAutomatically {
+                        checkForUpdates(silent: true)
+                    }
+                }
+                .interactiveDismissDisabled()
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView(isPresented: $isShowingSettings, pendingUpdate: $pendingUpdate)
+            }
+            .sheet(item: $pendingUpdate) { update in
+                updateAvailableSheet(for: update)
+            }
+            .alert(
+                Localization.string(
+                    key: pendingPatientToCreate?.isUpdate == true ? "confirm_update_title" : "confirm_dialog_title",
+                    lang: appLanguage
+                ),
+                isPresented: $showingConfirmationAlert,
+                presenting: pendingPatientToCreate
+            ) { details in
+                confirmationAlertActions(for: details)
+            } message: { details in
+                confirmationAlertMessage(for: details)
+            }
+    }
+    
+    private var mainWorkspace: some View {
+        VStack(spacing: 0) {
         HSplitView {
             // Left Panel - Scanning Area
             VStack(spacing: 0) {
@@ -117,49 +175,10 @@ struct MainView: View {
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 40)
                             }
+                        } else if isCameraFrozen, let frozenImage = capturedCameraImage {
+                            frozenCameraCaptureView(frozenImage)
                         } else {
-                            // 16:9 Aspect Ratio Constrained Container - Resizes and aligns perfectly!
-                            ZStack {
-                                CameraPreviewView(cameraManager: cameraManager)
-                                
-                                // Interactive scanning HUD guide box
-                                DocumentGuideOverlay(lang: appLanguage)
-                                    .padding(24)
-                                
-                                // Bounding boxes from live OCR
-                                GeometryReader { geo in
-                                    ForEach(recognizedItems) { item in
-                                        let rect = mapBoundingBox(item.boundingBox, to: geo.size)
-                                        boundingBoxMenu(for: item, rect: rect)
-                                            .position(x: rect.midX, y: rect.midY)
-                                    }
-                                }
-                                
-                                // Scanning Beam animation - only works when card is in frame
-                                if captureState == .scanning {
-                                    GeometryReader { geo in
-                                        let h = geo.size.height
-                                        Color.cyan.opacity(0.3)
-                                            .frame(height: 3)
-                                            .shadow(color: .cyan, radius: 8, x: 0, y: 0)
-                                            .offset(y: animatingScanLine ? 0 : h)
-                                            .animation(
-                                                Animation.easeInOut(duration: 2.5)
-                                                    .repeatForever(autoreverses: true),
-                                                value: animatingScanLine
-                                            )
-                                    }
-                                    .onAppear {
-                                        animatingScanLine = true
-                                    }
-                                    .onDisappear {
-                                        animatingScanLine = false
-                                    }
-                                }
-                            }
-                            .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                            .cornerRadius(12)
-                            .padding(12)
+                            liveCameraScanView
                         }
                     } else {
                         // Image upload mode
@@ -223,19 +242,30 @@ struct MainView: View {
             .frame(minWidth: 400, maxWidth: .infinity)
         }
         .frame(minWidth: 900, minHeight: 600)
-        // Native macOS Toolbar Integration
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Picker(Localization.string(key: "scan_mode", lang: appLanguage), selection: $scanMode) {
-                    Label(Localization.string(key: "live_camera", lang: appLanguage), systemImage: "camera.fill").tag(ScanMode.camera)
-                    Label(Localization.string(key: "upload_image", lang: appLanguage), systemImage: "photo.on.rectangle.angled").tag(ScanMode.image)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 250)
+        
+        AppStatusBar(
+            controller: statusBar,
+            syncStatus: syncStatus,
+            lang: appLanguage,
+            serverUrl: serverUrl
+        )
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var mainToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Picker(Localization.string(key: "scan_mode", lang: appLanguage), selection: $scanMode) {
+                Label(Localization.string(key: "live_camera", lang: appLanguage), systemImage: "camera.fill").tag(ScanMode.camera)
+                Label(Localization.string(key: "upload_image", lang: appLanguage), systemImage: "photo.on.rectangle.angled").tag(ScanMode.image)
             }
-            
-            if scanMode == .camera {
-                ToolbarItem(placement: .navigation) {
+            .pickerStyle(.segmented)
+            .frame(width: 250)
+        }
+        
+        if scanMode == .camera && !isCameraFrozen {
+            ToolbarItem(placement: .navigation) {
+                HStack(spacing: 6) {
                     if !cameraManager.devices.isEmpty {
                         Picker("", selection: Binding(
                             get: { cameraManager.selectedDevice },
@@ -251,164 +281,294 @@ struct MainView: View {
                         }
                         .frame(width: 150)
                     }
-                }
-            }
-            
-            ToolbarItemGroup(placement: .primaryAction) {
-                if scanMode == .image {
-                    Button(action: importImage) {
-                        Label(Localization.string(key: "select_file", lang: appLanguage), systemImage: "folder.badge.plus")
-                    }
-                    .help(Localization.string(key: "select_file", lang: appLanguage))
                     
-                    Button(action: pasteFromClipboard) {
-                        Label(Localization.string(key: "paste_image", lang: appLanguage), systemImage: "doc.on.clipboard")
+                    Button(action: { showContinuityCameraHelp = true }) {
+                        Image(systemName: "info.circle")
                     }
-                    .help(Localization.string(key: "paste_image", lang: appLanguage))
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                    .popover(isPresented: $showContinuityCameraHelp, arrowEdge: .bottom) {
+                        ContinuityCameraHelpView(lang: appLanguage)
+                    }
+                    .help(Localization.string(key: "continuity_camera_help_title", lang: appLanguage))
                 }
-                
-                Button(action: resetAll) {
-                    Label(Localization.string(key: "reset", lang: appLanguage), systemImage: "arrow.counterclockwise")
-                }
-                .help(Localization.string(key: "reset", lang: appLanguage))
-                
-                Button(action: { isShowingSettings = true }) {
-                    Label(Localization.string(key: "settings", lang: appLanguage), systemImage: "gearshape")
-                }
-                .help(Localization.string(key: "settings", lang: appLanguage))
-                .keyboardShortcut(",", modifiers: .command) // Native Cmd+, keyboard shortcut!
             }
         }
-        .onAppear {
-            if serverUrl == "http://localhost:3000" {
-                serverUrl = "https://sorrisosplendente.com"
+        
+        ToolbarItemGroup(placement: .primaryAction) {
+            if scanMode == .image {
+                Button(action: pasteFromClipboard) {
+                    Label(Localization.string(key: "paste_image", lang: appLanguage), systemImage: "doc.on.clipboard")
+                }
+                .help(Localization.string(key: "paste_image", lang: appLanguage))
             }
-            setupCameraFrameCallback()
+            
             if scanMode == .camera {
-                cameraManager.startSession()
-            }
-            
-            if lastUpdateCheck > 0 {
-                hasCompletedWelcomePrompt = true
-            } else if !hasCompletedWelcomePrompt {
-                showWelcomePrompt = true
-            }
-            
-            // Background update check (throttled to ~once per day)
-            if checkForUpdatesAutomatically {
-                let now = Date().timeIntervalSince1970
-                if now - lastUpdateCheck > 86_400 { // 24 hours
-                    checkForUpdates(silent: true)
+                Button(action: startNewCameraScan) {
+                    Label(Localization.string(key: "new_scan", lang: appLanguage), systemImage: "doc.text.viewfinder")
                 }
-            }
-        }
-        .onDisappear {
-            cameraManager.stopSession()
-        }
-        .onChange(of: scanMode) { oldMode, newMode in
-            resetAllStateOnly()
-            if newMode == .camera {
-                cameraManager.startSession()
+                .help(Localization.string(key: "new_scan_help", lang: appLanguage))
             } else {
-                cameraManager.stopSession()
+                Button(action: startNewImageImport) {
+                    Label(Localization.string(key: "new_image", lang: appLanguage), systemImage: "photo.badge.plus")
+                }
+                .help(Localization.string(key: "new_image_help", lang: appLanguage))
+            }
+            
+            Button(action: { isShowingSettings = true }) {
+                Label(Localization.string(key: "settings", lang: appLanguage), systemImage: "gearshape")
+            }
+            .help(Localization.string(key: "settings", lang: appLanguage))
+            .keyboardShortcut(",", modifiers: .command)
+        }
+    }
+    
+    private func handleAppear() {
+        if serverUrl == "http://localhost:3000" {
+            serverUrl = "https://sorrisosplendente.com"
+        }
+        setupCameraFrameCallback()
+        statusBar.showIdle()
+        if scanMode == .camera {
+            cameraManager.startSession()
+        }
+        if cameraManager.isPermissionDenied {
+            statusBar.show(key: "camera_denied", style: .error, autoDismiss: nil)
+        }
+        
+        if lastUpdateCheck > 0 {
+            hasCompletedWelcomePrompt = true
+        } else if !hasCompletedWelcomePrompt {
+            showWelcomePrompt = true
+        }
+        
+        if checkForUpdatesAutomatically {
+            let now = Date().timeIntervalSince1970
+            if now - lastUpdateCheck > 86_400 {
+                checkForUpdates(silent: true)
             }
         }
-        .sheet(isPresented: $showWelcomePrompt) {
-            WelcomePromptView(isPresented: $showWelcomePrompt, lang: appLanguage) {
-                if checkForUpdatesAutomatically {
-                    checkForUpdates(silent: true)
+    }
+    
+    private func handleDisappear() {
+        liveScan.reset()
+        cameraManager.stopSession()
+    }
+    
+    private func handleScanModeChange(_ oldMode: ScanMode, _ newMode: ScanMode) {
+        resetAllStateOnly()
+        if newMode == .camera {
+            cameraManager.startSession()
+        } else {
+            cameraManager.stopSession()
+            statusBar.showIdle()
+        }
+    }
+    
+    private func reportScanComplete() {
+        statusBar.show(key: "status_scan_complete", style: .success, autoDismiss: 6)
+    }
+    
+    @ViewBuilder
+    private func updateAvailableSheet(for update: PendingUpdate) -> some View {
+        UpdateAvailableSheet(
+            update: update,
+            appLanguage: appLanguage,
+            isDownloading: isDownloading,
+            downloadProgress: downloadProgress,
+            downloadError: downloadError,
+            downloadedFileUrl: downloadedFileUrl,
+            onDownload: {
+                if let url = URL(string: update.downloadUrl) {
+                    startUpdateDownload(url: url)
                 }
+            },
+            onInstall: {
+                if let fileUrl = downloadedFileUrl {
+                    installAndRelaunch(downloadedFile: fileUrl)
+                }
+            },
+            onLater: {
+                downloader?.cancel()
+                isDownloading = false
+                downloadProgress = 0.0
+                downloadError = nil
+                downloadedFileUrl = nil
+                downloader = nil
+                pendingUpdate = nil
             }
-            .interactiveDismissDisabled()
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            SettingsView(isPresented: $isShowingSettings, pendingUpdate: $pendingUpdate)
-        }
-        .sheet(item: $pendingUpdate) { update in
-            UpdateAvailableSheet(
-                update: update,
-                appLanguage: appLanguage,
-                isDownloading: isDownloading,
-                downloadProgress: downloadProgress,
-                downloadError: downloadError,
-                downloadedFileUrl: downloadedFileUrl,
-                onDownload: {
-                    if let url = URL(string: update.downloadUrl) {
-                        startUpdateDownload(url: url)
-                    }
-                },
-                onInstall: {
-                    if let fileUrl = downloadedFileUrl {
-                        installAndRelaunch(downloadedFile: fileUrl)
-                    }
-                },
-                onLater: {
-                    downloader?.cancel()
-                    isDownloading = false
-                    downloadProgress = 0.0
-                    downloadError = nil
-                    downloadedFileUrl = nil
-                    downloader = nil
-                    pendingUpdate = nil
-                }
+        )
+    }
+    
+    @ViewBuilder
+    private func confirmationAlertActions(for details: PendingPatient) -> some View {
+        Button(Localization.string(
+            key: details.isUpdate ? "update" : "create",
+            lang: appLanguage
+        )) {
+            triggerPatientSync(
+                firstName: details.firstName,
+                lastName: details.lastName,
+                birthDate: details.birthDate,
+                gender: details.gender,
+                codiceFiscale: details.codiceFiscale,
+                existingPatientId: details.existingPatientId
             )
         }
-        .alert(
-            Localization.string(
-                key: pendingPatientToCreate?.isUpdate == true ? "confirm_update_title" : "confirm_dialog_title",
+        Button(Localization.string(key: "cancel", lang: appLanguage), role: .cancel) {
+            pendingPatientToCreate = nil
+        }
+    }
+    
+    private func confirmationAlertMessage(for details: PendingPatient) -> Text {
+        Text(String(
+            format: Localization.string(
+                key: details.isUpdate ? "confirm_update_body" : "confirm_dialog_body",
                 lang: appLanguage
             ),
-            isPresented: $showingConfirmationAlert,
-            presenting: pendingPatientToCreate
-        ) { details in
-            Button(Localization.string(
-                key: details.isUpdate ? "update" : "create",
-                lang: appLanguage
-            )) {
-                self.triggerPatientSync(
-                    firstName: details.firstName,
-                    lastName: details.lastName,
-                    birthDate: details.birthDate,
-                    gender: details.gender,
-                    codiceFiscale: details.codiceFiscale,
-                    existingPatientId: details.existingPatientId
-                )
-            }
-            Button(Localization.string(key: "cancel", lang: appLanguage), role: .cancel) {
-                self.pendingPatientToCreate = nil
-            }
-        } message: { details in
-            Text(String(
-                format: Localization.string(
-                    key: details.isUpdate ? "confirm_update_body" : "confirm_dialog_body",
-                    lang: appLanguage
-                ),
-                details.firstName,
-                details.lastName
-            ))
-        }
+            details.firstName,
+            details.lastName
+        ))
     }
     
     // MARK: - Subviews
     
     @ViewBuilder
+    private var liveCameraScanView: some View {
+        ZStack {
+            CameraPreviewView(cameraManager: cameraManager)
+            
+            DocumentGuideOverlay(lang: appLanguage)
+                .padding(24)
+            
+            GeometryReader { geo in
+                ForEach(liveScan.recognizedItems) { item in
+                    let rect = mapBoundingBox(item.boundingBox, to: geo.size)
+                    boundingBoxMenu(for: item, rect: rect)
+                        .position(x: rect.midX, y: rect.midY)
+                }
+            }
+            
+            if liveScan.captureState == .countdown, let seconds = liveScan.countdownSeconds {
+                CountdownOverlay(seconds: seconds, lang: appLanguage)
+            }
+            
+            if liveScan.captureState == .scanning || liveScan.captureState == .countdown {
+                GeometryReader { geo in
+                    let h = geo.size.height
+                    Color.cyan.opacity(0.3)
+                        .frame(height: 3)
+                        .shadow(color: .cyan, radius: 8, x: 0, y: 0)
+                        .offset(y: animatingScanLine ? 0 : h)
+                        .animation(
+                            Animation.easeInOut(duration: 2.5)
+                                .repeatForever(autoreverses: true),
+                            value: animatingScanLine
+                        )
+                }
+                .onAppear {
+                    animatingScanLine = true
+                }
+                .onDisappear {
+                    animatingScanLine = false
+                }
+            }
+        }
+        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+        .cornerRadius(12)
+        .padding(12)
+    }
+    
+    @ViewBuilder
+    private func frozenCameraCaptureView(_ image: NSImage) -> some View {
+        Image(nsImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .cornerRadius(12)
+            .padding(12)
+            .overlay(
+                GeometryReader { geo in
+                    let contentRect = fitRect(for: image.size, in: geo.size)
+                    ForEach(recognizedItems) { item in
+                        let rect = mapBoundingBox(item.boundingBox, to: contentRect.size)
+                        boundingBoxMenu(for: item, rect: rect)
+                            .position(x: rect.midX + contentRect.origin.x, y: rect.midY + contentRect.origin.y)
+                    }
+                }
+            )
+    }
+    
+    @ViewBuilder
     private var emptyResultsPanel: some View {
         VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text(Localization.string(key: "awaiting_scan_title", lang: appLanguage))
-                .font(.headline)
-            Text(Localization.string(key: "awaiting_scan_body", lang: appLanguage))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+            if scanMode == .camera && activeCameraPhase != .captured {
+                Image(systemName: scanFeedbackIcon(for: liveScan.feedbackKey))
+                    .font(.system(size: 48))
+                    .foregroundStyle(scanFeedbackColor(for: liveScan.feedbackKey))
+                Text(Localization.string(key: scanStatusTitleKey(for: liveScan.feedbackKey), lang: appLanguage))
+                    .font(.headline)
+                Text(Localization.string(key: liveScan.feedbackKey, lang: appLanguage))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                if autoCaptureCountdown && liveScan.captureState == .scanning {
+                    Text(Localization.string(key: "scan_status_countdown_hint", lang: appLanguage))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+            } else {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text(Localization.string(key: "awaiting_scan_title", lang: appLanguage))
+                    .font(.headline)
+                Text(Localization.string(key: "awaiting_scan_body", lang: appLanguage))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    private func scanStatusTitleKey(for feedbackKey: String) -> String {
+        switch feedbackKey {
+        case "scan_status_ready", "scan_status_countdown":
+            return "scan_status_title_ready"
+        case "scan_status_waiting":
+            return "scan_status_title_waiting"
+        default:
+            return "scan_status_title_adjust"
+        }
+    }
+    
+    private func scanFeedbackIcon(for feedbackKey: String) -> String {
+        switch feedbackKey {
+        case "scan_status_ready", "scan_status_countdown":
+            return "checkmark.circle"
+        case "scan_status_waiting":
+            return "viewfinder"
+        default:
+            return "viewfinder.circle"
+        }
+    }
+    
+    private func scanFeedbackColor(for feedbackKey: String) -> Color {
+        switch feedbackKey {
+        case "scan_status_ready", "scan_status_countdown":
+            return .green
+        case "scan_status_waiting":
+            return .secondary
+        default:
+            return .orange
+        }
     }
     
     @ViewBuilder
@@ -450,8 +610,6 @@ struct MainView: View {
             .background(VisualEffectView(material: .headerView, blendingMode: .withinWindow))
             
             Divider()
-            
-            syncStatusBanner()
             
             ScrollView {
                 VStack(spacing: 20) {
@@ -549,65 +707,50 @@ struct MainView: View {
         }
     }
     
-    @ViewBuilder
-    private func syncStatusBanner() -> some View {
-        switch syncStatus {
-        case .syncing:
-            HStack {
-                ProgressView()
-                    .controlSize(.small)
-                Text(Localization.string(
-                    key: isUpdatingExistingPatient ? "sync_progress_update" : "sync_progress_create",
-                    lang: appLanguage
-                ))
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.orange.opacity(0.15))
-            
-        case .success(let patientId, let isUpdate):
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                Text(Localization.string(
-                    key: isUpdate ? "sync_success_update" : "sync_success_create",
-                    lang: appLanguage
-                ))
-                    .font(.subheadline)
-                    .foregroundColor(.green)
-                Spacer()
-                Button(action: {
-                    if let url = URL(string: "\(serverUrl)/pazienti/\(patientId)") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }) {
-                    Text(appLanguage == "it" ? "Apri nel Browser" : "Open in Browser")
-                        .underline()
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.blue)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.green.opacity(0.1))
-            
-        case .failure(let error):
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.red)
-                Text((appLanguage == "it" ? "Impossibile sincronizzare: " : "Sync failed: ") + error)
-                    .font(.subheadline)
-                    .foregroundColor(.red)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.red.opacity(0.1))
-            
+    private func reflectSyncStatusInStatusBar(_ status: SyncStatus) {
+        switch status {
         case .idle:
-            EmptyView()
+            if scanMode == .camera && captureState != .captured {
+                reflectLiveScanInStatusBar(liveScan.feedbackKey)
+            } else {
+                statusBar.showIdle()
+            }
+        case .syncing:
+            statusBar.show(
+                key: isUpdatingExistingPatient ? "sync_progress_update" : "sync_progress_create",
+                style: .progress,
+                autoDismiss: nil
+            )
+        case .success(_, let isUpdate):
+            statusBar.show(
+                key: isUpdate ? "sync_success_update" : "sync_success_create",
+                style: .success,
+                autoDismiss: 8
+            )
+        case .failure(let error):
+            statusBar.show(
+                key: "status_sync_failed",
+                style: .error,
+                args: [error],
+                autoDismiss: nil
+            )
         }
+    }
+    
+    private func reflectLiveScanInStatusBar(_ feedbackKey: String) {
+        guard scanMode == .camera, captureState != .captured else { return }
+        guard case .idle = syncStatus else { return }
+        
+        let style: StatusBarController.Style
+        switch feedbackKey {
+        case "scan_status_ready", "scan_status_countdown":
+            style = .success
+        case "scan_status_waiting":
+            style = .idle
+        default:
+            style = .info
+        }
+        statusBar.show(key: feedbackKey, style: style, autoDismiss: nil)
     }
     
     // MARK: - Helpers & Data Processing
@@ -623,10 +766,8 @@ struct MainView: View {
     
     private func setupCameraFrameCallback() {
         cameraManager.onFrameCaptured = { pixelBuffer in
-            guard scanMode == .camera else { return }
-            
-            // Skip processing if we already captured
-            guard captureState != .captured else { return }
+            guard self.scanMode == .camera else { return }
+            guard self.captureState != .captured, self.liveScan.captureState != .captured else { return }
             
             IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
                 let sortedItems = items.sorted { item1, item2 in
@@ -636,32 +777,23 @@ struct MainView: View {
                     }
                     return item1.boundingBox.midY > item2.boundingBox.midY
                 }
-                self.recognizedItems = sortedItems
                 
-                if sortedItems.isEmpty {
-                    if self.captureState != .idle {
-                        self.clearParsedResults()
-                    }
-                } else {
-                    if self.captureState == .idle {
-                        self.clearParsedResults()
-                        self.captureState = .scanning
-                    }
-                    
-                    if self.captureState == .scanning {
-                        self.playSubtleScanSound()
-                    }
-                    
-                    let parsed = Self.parseRecognizedItems(sortedItems)
-                    
-                    // Verify if capture succeeded (has correct document type and name/surname or tax code)
-                    if Self.shouldAcceptCapture(parsed) {
+                self.liveScan.processFrame(
+                    sortedItems: sortedItems,
+                    autoCountdown: UserDefaults.standard.bool(forKey: "autoCaptureCountdown"),
+                    onScanSound: { self.playSubtleScanSound() },
+                    onCountdownBeep: { self.playCountdownBeep() },
+                    onFinalize: { parsed in
+                        self.capturedCameraImage = self.cameraManager.snapshotImage()
+                        self.cameraManager.stopSession()
+                        self.recognizedItems = self.liveScan.recognizedItems
                         self.parsedData = parsed
                         self.captureState = .captured
+                        self.reportScanComplete()
                         self.playSuccessSound()
                         self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
                     }
-                }
+                )
             }
         }
     }
@@ -688,28 +820,8 @@ struct MainView: View {
         return NSImage(cgImage: croppedCgImage, size: NSSize(width: cropWidth, height: cropHeight))
     }
     
-    private static func parseRecognizedItems(_ items: [RecognizedItem]) -> IDData {
-        let textLines = items.sortedLines()
-        let ocrItems = items.map {
-            OCRTextItem(
-                text: $0.text,
-                midX: $0.boundingBox.midX,
-                midY: $0.boundingBox.midY
-            )
-        }
-        return IDParser.parse(ocrItems: ocrItems, fallbackLines: textLines)
-    }
-    
-    private static func shouldAcceptCapture(_ parsed: IDData) -> Bool {
-        parsed.documentType != "UNKNOWN"
-            || parsed.codiceFiscale != nil
-            || parsed.surname != nil
-            || parsed.name != nil
-            || parsed.documentNumber != nil
-            || parsed.cardNumber != nil
-    }
-    
     private func clearParsedResults() {
+        liveScan.reset()
         parsedData = IDData(documentType: "UNKNOWN", rawText: [])
         recognizedItems = []
         captureState = .idle
@@ -717,10 +829,14 @@ struct MainView: View {
         pendingPatientToCreate = nil
         existingPatientId = nil
         patientLookupGeneration += 1
+        statusBar.showIdle()
     }
     
     private func processStaticImage(_ nsImage: NSImage) {
-        guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        guard let cgImage = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            statusBar.show(key: "status_image_load_failed", style: .error, autoDismiss: 6)
+            return
+        }
         clearParsedResults()
         self.selectedImage = nsImage
         self.cgImageForOCR = cgImage
@@ -740,23 +856,39 @@ struct MainView: View {
             if Self.shouldAcceptCapture(parsed) {
                 self.parsedData = parsed
                 self.captureState = .captured
+                self.reportScanComplete()
                 self.playSuccessSound()
                 self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
+            } else {
+                self.statusBar.show(key: "status_scan_unreadable", style: .warning, autoDismiss: 6)
             }
         }
     }
     
     private func resetAllStateOnly() {
         selectedImage = nil
+        capturedCameraImage = nil
         cgImageForOCR = nil
+        isDragging = false
+        copied = false
+        cameraManager.clearSnapshotBuffer()
         clearParsedResults()
     }
     
-    private func resetAll() {
+    private func startNewImageImport() {
         resetAllStateOnly()
-        if scanMode == .camera {
-            cameraManager.stopSession()
-            cameraManager.startSession()
+        guard scanMode == .image else { return }
+        statusBar.show(key: "status_import_ready", style: .info, autoDismiss: 3)
+    }
+    
+    private func startNewCameraScan() {
+        resetAllStateOnly()
+        guard scanMode == .camera else { return }
+        
+        statusBar.show(key: "status_camera_ready", style: .info, autoDismiss: 3)
+        cameraManager.stopSession()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            self.cameraManager.startSession()
         }
     }
     
@@ -779,6 +911,15 @@ struct MainView: View {
         DispatchQueue.main.async {
             if let sound = NSSound(named: "Glass") {
                 sound.volume = 0.6
+                sound.play()
+            }
+        }
+    }
+    
+    private func playCountdownBeep() {
+        DispatchQueue.main.async {
+            if let sound = NSSound(named: "Pop") {
+                sound.volume = 0.35
                 sound.play()
             }
         }
@@ -1308,27 +1449,63 @@ struct MainView: View {
         if panel.runModal() == .OK, let url = panel.url {
             if let image = NSImage(contentsOf: url) {
                 processStaticImage(image)
+            } else {
+                statusBar.show(key: "status_image_load_failed", style: .error, autoDismiss: 6)
             }
         }
     }
     
     private func pasteFromClipboard() {
         let pasteboard = NSPasteboard.general
-        if let image = NSImage(pasteboard: pasteboard) {
+        if let image = imageFromPasteboard(pasteboard) {
             processStaticImage(image)
+            statusBar.show(key: "status_image_pasted", style: .success, autoDismiss: 3)
+        } else {
+            statusBar.show(key: "status_paste_failed", style: .warning, autoDismiss: 8)
         }
     }
     
+    private func imageFromPasteboard(_ pasteboard: NSPasteboard) -> NSImage? {
+        if let image = NSImage(pasteboard: pasteboard) {
+            return image
+        }
+        
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL] {
+            for url in urls {
+                if let image = NSImage(contentsOf: url) {
+                    return image
+                }
+            }
+        }
+        
+        let imageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff]
+        for type in imageTypes {
+            if let data = pasteboard.data(forType: type), let image = NSImage(data: data) {
+                return image
+            }
+        }
+        
+        return nil
+    }
+    
     private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        guard let provider = providers.first else { return false }
+        guard let provider = providers.first else {
+            statusBar.show(key: "status_drop_failed", style: .warning, autoDismiss: 5)
+            return false
+        }
         
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
-            guard let data = item as? Data,
-                  let url = URL(dataRepresentation: data, relativeTo: nil),
-                  let image = NSImage(contentsOf: url) else { return }
-            
             DispatchQueue.main.async {
+                guard let data = item as? Data,
+                      let url = URL(dataRepresentation: data, relativeTo: nil),
+                      let image = NSImage(contentsOf: url) else {
+                    self.statusBar.show(key: "status_drop_failed", style: .warning, autoDismiss: 5)
+                    return
+                }
                 self.processStaticImage(image)
+                self.statusBar.show(key: "status_image_dropped", style: .success, autoDismiss: 3)
             }
         }
         return true
@@ -1339,6 +1516,7 @@ struct MainView: View {
         pasteboard.clearContents()
         pasteboard.setString(jsonString, forType: .string)
         copied = true
+        statusBar.show(key: "status_json_copied", style: .success, autoDismiss: 2)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             copied = false
         }
@@ -1545,6 +1723,7 @@ struct SettingsView: View {
     @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
+    @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
     
     @State private var selectedSection: SettingsSection = .general
     @State private var showToken = false
@@ -1692,6 +1871,34 @@ struct SettingsView: View {
                     Toggle("", isOn: $showJsonOptions)
                         .labelsHidden()
                         .toggleStyle(.switch)
+                }
+            }
+            
+            SettingsCard(title: Localization.string(key: "settings_camera_group", lang: appLanguage)) {
+                VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_auto_countdown", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_auto_countdown_desc", lang: appLanguage),
+                        icon: "timer"
+                    ) {
+                        Toggle("", isOn: $autoCaptureCountdown)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    
+                    Divider().padding(.vertical, 4)
+                    
+                    DisclosureGroup {
+                        ContinuityCameraHelpContent(lang: appLanguage)
+                            .padding(.top, 4)
+                    } label: {
+                        Label(
+                            Localization.string(key: "continuity_camera_help_title", lang: appLanguage),
+                            systemImage: "iphone.and.arrow.forward"
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                    }
                 }
             }
         }
@@ -2044,7 +2251,413 @@ struct SettingsToggleRow<Control: View>: View {
     }
 }
 
+// MARK: - Status Bar
+
+@MainActor
+final class StatusBarController: ObservableObject {
+    enum Style {
+        case idle
+        case info
+        case success
+        case warning
+        case error
+        case progress
+    }
+    
+    @Published private(set) var messageKey: String = "status_ready"
+    @Published private(set) var messageArgs: [String] = []
+    @Published private(set) var style: Style = .idle
+    
+    private var dismissTask: Task<Void, Never>?
+    
+    func show(
+        key: String,
+        style: Style,
+        args: [String] = [],
+        autoDismiss: TimeInterval? = 4
+    ) {
+        dismissTask?.cancel()
+        messageKey = key
+        messageArgs = args
+        self.style = style
+        
+        guard let autoDismiss else { return }
+        dismissTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(autoDismiss * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            showIdle()
+        }
+    }
+    
+    func showIdle() {
+        dismissTask?.cancel()
+        messageKey = "status_ready"
+        messageArgs = []
+        style = .idle
+    }
+    
+    var iconName: String {
+        switch style {
+        case .idle: return "circle.fill"
+        case .info: return "info.circle.fill"
+        case .success: return "checkmark.circle.fill"
+        case .warning: return "exclamationmark.triangle.fill"
+        case .error: return "xmark.circle.fill"
+        case .progress: return "arrow.triangle.2.circlepath"
+        }
+    }
+    
+    var iconColor: Color {
+        switch style {
+        case .idle: return .secondary.opacity(0.5)
+        case .info: return .blue
+        case .success: return .green
+        case .warning: return .orange
+        case .error: return .red
+        case .progress: return .orange
+        }
+    }
+    
+    var showsProgress: Bool {
+        style == .progress
+    }
+}
+
+struct AppStatusBar: View {
+    @ObservedObject var controller: StatusBarController
+    let syncStatus: MainView.SyncStatus
+    let lang: String
+    let serverUrl: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: controller.iconName)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(controller.iconColor)
+                .frame(width: 14)
+            
+            Text(formattedMessage)
+                .font(.caption)
+                .foregroundStyle(controller.style == .idle ? .secondary : .primary)
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            if controller.showsProgress {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.7)
+            }
+            
+            if case .success(let patientId, _) = syncStatus {
+                Button(Localization.string(key: "status_open_browser", lang: lang)) {
+                    if let url = URL(string: "\(serverUrl)/pazienti/\(patientId)") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .font(.caption)
+                .buttonStyle(.link)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 26)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .overlay(alignment: .top) {
+            Divider()
+        }
+        .animation(.easeInOut(duration: 0.2), value: controller.messageKey)
+    }
+    
+    private var formattedMessage: String {
+        let template = Localization.string(key: controller.messageKey, lang: lang)
+        guard !controller.messageArgs.isEmpty else { return template }
+        return String(format: template, arguments: controller.messageArgs.map { $0 as CVarArg })
+    }
+}
+
+// MARK: - Live Scan Controller
+
+@MainActor
+final class LiveScanController: ObservableObject {
+    @Published private(set) var captureState: MainView.CaptureState = .idle
+    @Published private(set) var recognizedItems: [RecognizedItem] = []
+    @Published private(set) var feedbackKey: String = "scan_status_waiting"
+    @Published private(set) var countdownSeconds: Int?
+    
+    private var countdownTask: Task<Void, Never>?
+    private var pendingCaptureData: IDData?
+    private var readyStreak = 0
+    private var emptyStreak = 0
+    
+    private let readyStreakRequired = 2
+    private let emptyStreakToReset = 3
+    private let emptyStreakToCancelCountdown = 4
+    
+    func processFrame(
+        sortedItems: [RecognizedItem],
+        autoCountdown: Bool,
+        onScanSound: () -> Void,
+        onCountdownBeep: @escaping () -> Void,
+        onFinalize: @escaping (IDData) -> Void
+    ) {
+        guard captureState != .captured else { return }
+        
+        recognizedItems = sortedItems
+        let parsed = MainView.parseRecognizedItems(sortedItems)
+        let hasText = !sortedItems.isEmpty
+        let isReady = MainView.shouldAcceptCapture(parsed)
+        
+        if captureState == .countdown {
+            handleCountdownFrame(
+                sortedItems: sortedItems,
+                parsed: parsed,
+                hasText: hasText,
+                isReady: isReady,
+                onCountdownBeep: onCountdownBeep,
+                onFinalize: onFinalize
+            )
+            return
+        }
+        
+        guard hasText else {
+            readyStreak = 0
+            emptyStreak += 1
+            if emptyStreak >= emptyStreakToReset && captureState != .idle {
+                captureState = .idle
+            }
+            feedbackKey = "scan_status_waiting"
+            return
+        }
+        
+        emptyStreak = 0
+        
+        if captureState == .idle {
+            captureState = .scanning
+        }
+        
+        if captureState == .scanning {
+            onScanSound()
+        }
+        
+        if isReady {
+            readyStreak += 1
+            feedbackKey = autoCountdown ? "scan_status_ready" : "scan_status_capturing"
+            
+            if autoCountdown {
+                if readyStreak >= readyStreakRequired {
+                    startCountdown(with: parsed, onCountdownBeep: onCountdownBeep, onFinalize: onFinalize)
+                }
+            } else {
+                finalize(parsed, onFinalize: onFinalize)
+            }
+        } else {
+            readyStreak = 0
+            feedbackKey = MainView.scanFeedbackKey(for: parsed, itemCount: sortedItems.count)
+        }
+    }
+    
+    private func handleCountdownFrame(
+        sortedItems: [RecognizedItem],
+        parsed: IDData,
+        hasText: Bool,
+        isReady: Bool,
+        onCountdownBeep: () -> Void,
+        onFinalize: (IDData) -> Void
+    ) {
+        guard hasText else {
+            emptyStreak += 1
+            if emptyStreak >= emptyStreakToCancelCountdown {
+                cancelCountdown()
+                feedbackKey = "scan_status_lost"
+            } else {
+                feedbackKey = "scan_status_hold"
+            }
+            return
+        }
+        
+        emptyStreak = 0
+        feedbackKey = "scan_status_countdown"
+        
+        if isReady {
+            pendingCaptureData = parsed
+        }
+    }
+    
+    private func startCountdown(
+        with parsed: IDData,
+        onCountdownBeep: @escaping () -> Void,
+        onFinalize: @escaping (IDData) -> Void
+    ) {
+        guard captureState == .scanning, countdownTask == nil else { return }
+        
+        pendingCaptureData = parsed
+        captureState = .countdown
+        countdownSeconds = 3
+        feedbackKey = "scan_status_countdown"
+        onCountdownBeep()
+        
+        countdownTask = Task {
+            for remaining in stride(from: 2, through: 1, by: -1) {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if Task.isCancelled { return }
+                countdownSeconds = remaining
+                onCountdownBeep()
+            }
+            
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            if Task.isCancelled { return }
+            
+            guard captureState == .countdown, let pending = pendingCaptureData else { return }
+            countdownTask = nil
+            finalize(pending, onFinalize: onFinalize)
+        }
+    }
+    
+    private func finalize(_ parsed: IDData, onFinalize: (IDData) -> Void) {
+        countdownTask?.cancel()
+        countdownTask = nil
+        countdownSeconds = nil
+        pendingCaptureData = nil
+        captureState = .captured
+        feedbackKey = "scan_status_captured"
+        onFinalize(parsed)
+    }
+    
+    private func cancelCountdown() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        countdownSeconds = nil
+        pendingCaptureData = nil
+        readyStreak = 0
+        captureState = .idle
+    }
+    
+    func reset() {
+        cancelCountdown()
+        captureState = .idle
+        recognizedItems = []
+        emptyStreak = 0
+        readyStreak = 0
+        feedbackKey = "scan_status_waiting"
+    }
+}
+
+extension MainView {
+    static func parseRecognizedItems(_ items: [RecognizedItem]) -> IDData {
+        let textLines = items.sortedLines()
+        let ocrItems = items.map {
+            OCRTextItem(
+                text: $0.text,
+                midX: $0.boundingBox.midX,
+                midY: $0.boundingBox.midY
+            )
+        }
+        return IDParser.parse(ocrItems: ocrItems, fallbackLines: textLines)
+    }
+    
+    static func shouldAcceptCapture(_ parsed: IDData) -> Bool {
+        parsed.documentType != "UNKNOWN"
+            || parsed.codiceFiscale != nil
+            || parsed.surname != nil
+            || parsed.name != nil
+            || parsed.documentNumber != nil
+            || parsed.cardNumber != nil
+    }
+    
+    static func scanFeedbackKey(for parsed: IDData, itemCount: Int) -> String {
+        if itemCount < 3 {
+            return "scan_status_move_closer"
+        }
+        if parsed.documentType == "UNKNOWN" {
+            return "scan_status_align_document"
+        }
+        if parsed.surname == nil && parsed.name == nil && parsed.codiceFiscale == nil {
+            return "scan_status_need_identity"
+        }
+        return "scan_status_reading_fields"
+    }
+}
+
 // MARK: - Supporting Views
+
+struct ContinuityCameraHelpContent: View {
+    let lang: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(Localization.string(key: "continuity_camera_help_intro", lang: lang))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            ForEach(1...4, id: \.self) { step in
+                HStack(alignment: .top, spacing: 8) {
+                    Text("\(step).")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, alignment: .trailing)
+                    Text(Localization.string(key: "continuity_camera_step_\(step)", lang: lang))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            
+            Text(Localization.string(key: "continuity_camera_tip", lang: lang))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+    }
+}
+
+struct ContinuityCameraHelpView: View {
+    let lang: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(
+                Localization.string(key: "continuity_camera_help_title", lang: lang),
+                systemImage: "iphone.and.arrow.forward"
+            )
+            .font(.headline)
+            
+            ContinuityCameraHelpContent(lang: lang)
+        }
+        .padding(16)
+        .frame(width: 300)
+    }
+}
+
+struct CountdownOverlay: View {
+    let seconds: Int
+    let lang: String
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.35)
+            
+            VStack(spacing: 10) {
+                Text("\(seconds)")
+                    .font(.system(size: 72, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.2), value: seconds)
+                
+                Text(Localization.string(key: "countdown_hold_still", lang: lang))
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white.opacity(0.9))
+            }
+            .padding(32)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .allowsHitTesting(false)
+    }
+}
 
 struct DocumentGuideOverlay: View {
     let lang: String
@@ -2344,7 +2957,49 @@ struct Localization {
             "pref_confirm_desc": "Show a confirmation dialog before creating or updating a record.",
             "pref_open_browser_desc": "Open the patient chart in your browser after sync completes.",
             "pref_check_updates_desc": "Check once per day on launch for a newer ScanID release.",
-            "pref_auto_download_desc": "Download and offer to install updates without manual steps."
+            "pref_auto_download_desc": "Download and offer to install updates without manual steps.",
+            "settings_camera_group": "Camera",
+            "pref_auto_countdown": "Countdown before capture",
+            "pref_auto_countdown_desc": "When an ID is detected in frame, wait 3 seconds before locking the scan.",
+            "continuity_camera_help_title": "Use iPhone as camera",
+            "continuity_camera_help_intro": "Scan with your iPhone camera — no photo transfer needed.",
+            "continuity_camera_step_1": "Sign in to the same Apple ID on iPhone and Mac.",
+            "continuity_camera_step_2": "Turn on Wi‑Fi and Bluetooth on both devices.",
+            "continuity_camera_step_3": "Keep the iPhone unlocked and near the Mac.",
+            "continuity_camera_step_4": "In Live Camera mode, choose your iPhone from the camera menu above.",
+            "continuity_camera_tip": "If it does not appear, open Control Center on the Mac and pick your iPhone under Camera.",
+            "countdown_hold_still": "Hold still…",
+            "scan_status_title_waiting": "Ready to scan",
+            "scan_status_title_adjust": "Adjust the card",
+            "scan_status_title_ready": "Document detected",
+            "scan_status_waiting": "Align the ID card inside the frame",
+            "scan_status_move_closer": "Move closer — not enough text is visible",
+            "scan_status_align_document": "Center the card and reduce glare",
+            "scan_status_need_identity": "Show name, surname, or tax code more clearly",
+            "scan_status_reading_fields": "Reading fields — hold steady",
+            "scan_status_ready": "Document recognized — countdown starting",
+            "scan_status_capturing": "Capturing…",
+            "scan_status_countdown": "Hold still for the countdown",
+            "scan_status_hold": "Keep the card in frame",
+            "scan_status_lost": "Card lost — align it again",
+            "scan_status_countdown_hint": "Countdown starts once the document is recognized twice in a row.",
+            "new_scan": "New Scan",
+            "new_scan_help": "Discard this scan and open the camera for a new capture",
+            "new_image": "New Image",
+            "new_image_help": "Clear the current scan and return to the import screen",
+            "status_import_ready": "Import an image — drag, paste, or browse for a file",
+            "status_ready": "Ready",
+            "status_scan_complete": "Scan complete — review the extracted fields",
+            "status_scan_unreadable": "Image loaded but no ID fields could be read",
+            "status_image_pasted": "Image pasted from clipboard",
+            "status_paste_failed": "Nothing to paste — copy an image first (Upload Image mode)",
+            "status_image_dropped": "Image imported",
+            "status_drop_failed": "Could not import dropped file — use PNG, JPEG, or HEIC",
+            "status_image_load_failed": "Could not open the selected image file",
+            "status_json_copied": "JSON copied to clipboard",
+            "status_sync_failed": "Sync failed: %@",
+            "status_camera_ready": "Camera ready — align the ID card",
+            "status_open_browser": "Open in browser"
         ]
         let it = [
             "scan_mode": "Modalità Scansione",
@@ -2435,7 +3090,49 @@ struct Localization {
             "pref_confirm_desc": "Mostra una conferma prima di creare o aggiornare una cartella.",
             "pref_open_browser_desc": "Apri la cartella paziente nel browser dopo la sincronizzazione.",
             "pref_check_updates_desc": "Controlla una volta al giorno all'avvio se esiste una nuova versione.",
-            "pref_auto_download_desc": "Scarica e propone l'installazione degli aggiornamenti automaticamente."
+            "pref_auto_download_desc": "Scarica e propone l'installazione degli aggiornamenti automaticamente.",
+            "settings_camera_group": "Fotocamera",
+            "pref_auto_countdown": "Conto alla rovescia prima della cattura",
+            "pref_auto_countdown_desc": "Quando un documento è rilevato nell'inquadratura, attendi 3 secondi prima di confermare la scansione.",
+            "continuity_camera_help_title": "Usa iPhone come fotocamera",
+            "continuity_camera_help_intro": "Scansiona con la fotocamera dell'iPhone — senza trasferire foto.",
+            "continuity_camera_step_1": "Accedi con lo stesso Apple ID su iPhone e Mac.",
+            "continuity_camera_step_2": "Attiva Wi‑Fi e Bluetooth su entrambi i dispositivi.",
+            "continuity_camera_step_3": "Tieni l'iPhone sbloccato e vicino al Mac.",
+            "continuity_camera_step_4": "In modalità Fotocamera Live, scegli l'iPhone dal menu fotocamera sopra.",
+            "continuity_camera_tip": "Se non compare, apri il Centro di Controllo sul Mac e seleziona l'iPhone in Fotocamera.",
+            "countdown_hold_still": "Resta fermo…",
+            "scan_status_title_waiting": "Pronto per la scansione",
+            "scan_status_title_adjust": "Regola la carta",
+            "scan_status_title_ready": "Documento rilevato",
+            "scan_status_waiting": "Allinea la carta d'identità nel riquadro",
+            "scan_status_move_closer": "Avvicinati — testo insufficiente",
+            "scan_status_align_document": "Centra la carta e riduci i riflessi",
+            "scan_status_need_identity": "Mostra più chiaramente nome, cognome o codice fiscale",
+            "scan_status_reading_fields": "Lettura campi — resta fermo",
+            "scan_status_ready": "Documento riconosciuto — avvio conto alla rovescia",
+            "scan_status_capturing": "Acquisizione in corso…",
+            "scan_status_countdown": "Resta fermo per il conto alla rovescia",
+            "scan_status_hold": "Tieni la carta nell'inquadratura",
+            "scan_status_lost": "Carta persa — allineala di nuovo",
+            "scan_status_countdown_hint": "Il conto alla rovescia parte quando il documento è riconosciuto due volte di seguito.",
+            "new_scan": "Nuova scansione",
+            "new_scan_help": "Scarta questa scansione e riapri la fotocamera per una nuova acquisizione",
+            "new_image": "Nuova immagine",
+            "new_image_help": "Cancella la scansione corrente e torna alla schermata di importazione",
+            "status_import_ready": "Importa un'immagine — trascina, incolla o sfoglia un file",
+            "status_ready": "Pronto",
+            "status_scan_complete": "Scansione completata — controlla i campi estratti",
+            "status_scan_unreadable": "Immagine caricata ma nessun campo ID leggibile",
+            "status_image_pasted": "Immagine incollata dagli appunti",
+            "status_paste_failed": "Niente da incollare — copia prima un'immagine (modalità Carica Immagine)",
+            "status_image_dropped": "Immagine importata",
+            "status_drop_failed": "Impossibile importare il file — usa PNG, JPEG o HEIC",
+            "status_image_load_failed": "Impossibile aprire il file immagine selezionato",
+            "status_json_copied": "JSON copiato negli appunti",
+            "status_sync_failed": "Sincronizzazione non riuscita: %@",
+            "status_camera_ready": "Fotocamera pronta — allinea la carta d'identità",
+            "status_open_browser": "Apri nel browser"
         ]
         let dict = (lang == "it" ? it : en)
         return dict[key] ?? key

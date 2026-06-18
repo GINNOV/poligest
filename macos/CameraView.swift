@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import AppKit
+import CoreImage
 
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var session = AVCaptureSession()
@@ -14,6 +15,9 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private let videoOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "camera.frame.queue", qos: .userInteractive)
     private var activeInput: AVCaptureDeviceInput?
+    private let bufferLock = NSLock()
+    private var latestPixelBuffer: CVImageBuffer?
+    private let snapshotContext = CIContext()
     
     override init() {
         super.init()
@@ -138,9 +142,36 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
     }
     
+    func snapshotImage() -> NSImage? {
+        bufferLock.lock()
+        let pixelBuffer = latestPixelBuffer
+        bufferLock.unlock()
+        
+        guard let pixelBuffer else { return nil }
+        
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        guard let cgImage = snapshotContext.createCGImage(ciImage, from: ciImage.extent) else {
+            return nil
+        }
+        
+        return NSImage(
+            cgImage: cgImage,
+            size: NSSize(width: cgImage.width, height: cgImage.height)
+        )
+    }
+    
+    func clearSnapshotBuffer() {
+        bufferLock.lock()
+        latestPixelBuffer = nil
+        bufferLock.unlock()
+    }
+    
     // AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        bufferLock.lock()
+        latestPixelBuffer = pixelBuffer
+        bufferLock.unlock()
         onFrameCaptured?(pixelBuffer)
     }
 }
