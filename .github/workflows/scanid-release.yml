@@ -1,0 +1,34 @@
+name: ScanID Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "ScanID version (e.g. 1.3.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ScanID
+        working-directory: macos
+        run: VERSION=${{ inputs.version }} ./build.sh
+
+      - name: Create DMG
+        working-directory: macos
+        run: ./create-dmg.sh
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: scanid-v${{ inputs.version }}
+          name: ScanID ${{ inputs.version }}
+          files: macos/ScanID-${{ inputs.version }}.dmg
+          generate_release_notes: true

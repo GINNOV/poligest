@@ -32,7 +32,7 @@ struct MainView: View {
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
     // Update checking
-    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
@@ -397,11 +397,9 @@ struct MainView: View {
             showWelcomePrompt = true
         }
         
-        if checkForUpdatesAutomatically {
-            let now = Date().timeIntervalSince1970
-            if now - lastUpdateCheck > 86_400 {
-                checkForUpdates(silent: true)
-            }
+        let now = Date().timeIntervalSince1970
+        if checkForUpdatesAutomatically && (lastUpdateCheck == 0 || now - lastUpdateCheck > 86_400) {
+            checkForUpdates(silent: lastUpdateCheck > 0)
         }
     }
     
@@ -1747,7 +1745,7 @@ struct WelcomePromptView: View {
     let lang: String
     let onComplete: () -> Void
     
-    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     
@@ -1824,7 +1822,7 @@ struct SettingsView: View {
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
-    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = false
+    @AppStorage("checkForUpdatesAutomatically") private var checkForUpdatesAutomatically = true
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
