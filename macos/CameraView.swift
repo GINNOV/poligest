@@ -26,6 +26,31 @@ enum CameraPreferences {
     }
 }
 
+enum CameraOrientation {
+    static let continuityCameraRotationAngle: CGFloat = 180
+    
+    static func isContinuityCameraDevice(_ device: AVCaptureDevice?) -> Bool {
+        guard let device else { return false }
+        if device.isContinuityCamera {
+            return true
+        }
+        guard device.deviceType == .external else { return false }
+        let name = device.localizedName.lowercased()
+        return name.contains("iphone") || name.contains("ipad")
+    }
+    
+    static func rotationAngle(for device: AVCaptureDevice?) -> CGFloat {
+        isContinuityCameraDevice(device) ? continuityCameraRotationAngle : 0
+    }
+    
+    static func apply(to connection: AVCaptureConnection?, for device: AVCaptureDevice?) {
+        guard let connection else { return }
+        let angle = rotationAngle(for: device)
+        guard connection.isVideoRotationAngleSupported(angle) else { return }
+        connection.videoRotationAngle = angle
+    }
+}
+
 enum CameraDeviceUI {
     static func index(for device: AVCaptureDevice, in devices: [AVCaptureDevice]) -> Int {
         (devices.firstIndex(where: { $0.uniqueID == device.uniqueID }) ?? 0) + 1
@@ -38,6 +63,7 @@ enum CameraDeviceUI {
 
 struct CameraDevicePicker: View {
     @ObservedObject var cameraManager: CameraManager
+    let lang: String
     
     private var selectedDeviceID: Binding<String> {
         Binding(
@@ -54,28 +80,30 @@ struct CameraDevicePicker: View {
     }
     
     var body: some View {
-        Picker(selection: selectedDeviceID) {
-            ForEach(cameraManager.devices, id: \.uniqueID) { device in
-                Label {
-                    Text(device.localizedName)
-                        .lineLimit(1)
-                } icon: {
-                    Image(systemName: CameraDeviceUI.iconSymbol(for: device, in: cameraManager.devices))
-                }
-                .tag(device.uniqueID)
-            }
-        } label: {
-            if let selected = cameraManager.selectedDevice {
-                Label {
-                    Text(selected.localizedName)
-                        .lineLimit(1)
-                } icon: {
-                    Image(systemName: CameraDeviceUI.iconSymbol(for: selected, in: cameraManager.devices))
+        HStack(spacing: 8) {
+            Text(Localization.string(key: "selected_camera", lang: lang))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            
+            Picker("", selection: selectedDeviceID) {
+                ForEach(cameraManager.devices, id: \.uniqueID) { device in
+                    cameraMenuRow(for: device)
+                        .tag(device.uniqueID)
                 }
             }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(minWidth: 220, idealWidth: 280, maxWidth: 340)
         }
-        .pickerStyle(.menu)
-        .frame(minWidth: 220, idealWidth: 280, maxWidth: 340)
+    }
+    
+    private func cameraMenuRow(for device: AVCaptureDevice) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: CameraDeviceUI.iconSymbol(for: device, in: cameraManager.devices))
+                .foregroundStyle(.secondary)
+            Text(device.localizedName)
+                .lineLimit(1)
+        }
     }
 }
 
@@ -101,8 +129,13 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     private func discoverDevices() {
+        var deviceTypes: [AVCaptureDevice.DeviceType] = [.builtInWideAngleCamera, .external]
+        if #available(macOS 14.0, *) {
+            deviceTypes.append(.continuityCamera)
+        }
+        
         let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .external],
+            deviceTypes: deviceTypes,
             mediaType: .video,
             position: .unspecified
         )
@@ -169,6 +202,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     session.addOutput(videoOutput)
                 }
             }
+            
+            CameraOrientation.apply(
+                to: videoOutput.connection(with: .video),
+                for: videoDevice
+            )
             
             // Optimize for OCR (Full HD 1080p is preferred for high accuracy OCR)
             if session.canSetSessionPreset(.hd1920x1080) {
@@ -247,6 +285,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         bufferLock.unlock()
     }
     
+    func applyPreviewRotation(to previewLayer: AVCaptureVideoPreviewLayer) {
+        CameraOrientation.apply(to: previewLayer.connection, for: selectedDevice)
+    }
+    
     // AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
@@ -286,12 +328,15 @@ struct CameraPreviewView: NSViewRepresentable {
         
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraManager.session)
         previewLayer.videoGravity = .resizeAspectFill
+        cameraManager.applyPreviewRotation(to: previewLayer)
         view.previewLayer = previewLayer
         
         return view
     }
     
     func updateNSView(_ nsView: PreviewNSView, context: Context) {
-        // Frame updates are handled automatically via NSView.layout()
+        if let previewLayer = nsView.previewLayer {
+            cameraManager.applyPreviewRotation(to: previewLayer)
+        }
     }
 }

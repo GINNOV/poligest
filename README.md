@@ -80,9 +80,9 @@ Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS wit
 
 ### Download
 
-Latest release: [ScanID 1.3.1](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.1)
+Latest release: [ScanID 1.3.2](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.2)
 
-Direct DMG: [ScanID-1.3.1.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.1/ScanID-1.3.1.dmg)
+Direct DMG: [ScanID-1.3.2.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.2/ScanID-1.3.2.dmg)
 
 Open the DMG, drag `ScanID.app` to Applications.
 
@@ -155,8 +155,8 @@ Server-side overrides (Vercel env or code defaults):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SCANID_LATEST_VERSION` | `1.3.1` | Version string reported to the app |
-| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.1.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.1/ScanID-1.3.1.dmg) | Direct asset URL (DMG or ZIP) |
+| `SCANID_LATEST_VERSION` | `1.3.2` | Version string reported to the app |
+| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.2.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.2/ScanID-1.3.2.dmg) | Direct asset URL (DMG or ZIP) |
 | `SCANID_RELEASE_NOTES` | _(empty)_ | Shown in the update dialog |
 
 ---

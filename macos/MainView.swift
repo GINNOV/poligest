@@ -44,7 +44,6 @@ struct MainView: View {
     // Interactive UI State
     @State private var captureApproved = false
     @State private var showWelcomePrompt = false
-    @State private var showContinuityCameraHelp = false
     @State private var isShowingSettings = false
     @State private var showingConfirmationAlert = false
     @State private var pendingPatientToCreate: PendingPatient? = nil
@@ -329,25 +328,10 @@ struct MainView: View {
         if scanMode == .camera && !isCameraFrozen {
             if !cameraManager.devices.isEmpty {
                 ToolbarItem(placement: .navigation) {
-                    CameraDevicePicker(cameraManager: cameraManager)
+                    CameraDevicePicker(cameraManager: cameraManager, lang: appLanguage)
                 }
             }
             
-            ToolbarItem(placement: .navigation) {
-                Button(action: { showContinuityCameraHelp = true }) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 22, height: 22)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(2)
-                .popover(isPresented: $showContinuityCameraHelp, arrowEdge: .bottom) {
-                    ContinuityCameraHelpView(lang: appLanguage)
-                }
-                .help(Localization.string(key: "continuity_camera_help_title", lang: appLanguage))
-            }
         }
         
         ToolbarItemGroup(placement: .primaryAction) {
@@ -639,53 +623,99 @@ struct MainView: View {
     
     @ViewBuilder
     private var emptyResultsPanel: some View {
+        if scanMode == .camera && captureState != .captured {
+            cameraInstructionsPanel
+        } else {
+            awaitingScanPanel
+        }
+    }
+    
+    private var cameraInstructionsPanel: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                ContinuityCameraHelpContent(lang: appLanguage, style: .prominent)
+                    .padding(24)
+            }
+            
+            Divider()
+            
+            if isAwaitingCaptureApproval {
+                liveScanStatusBanner(
+                    icon: "hand.tap",
+                    iconColor: .cyan,
+                    titleKey: "capture_approval_title",
+                    messageKey: "capture_approval_body"
+                )
+            } else {
+                liveScanStatusBanner(
+                    icon: scanFeedbackIcon(for: liveScan.feedbackKey),
+                    iconColor: scanFeedbackColor(for: liveScan.feedbackKey),
+                    titleKey: scanStatusTitleKey(for: liveScan.feedbackKey),
+                    messageKey: liveScan.feedbackKey,
+                    hintKey: autoCaptureCountdown && liveScan.captureState == .scanning
+                        ? "scan_status_countdown_hint"
+                        : nil
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    private var awaitingScanPanel: some View {
         VStack(spacing: 16) {
             Spacer()
-            if scanMode == .camera && isAwaitingCaptureApproval {
-                Image(systemName: "hand.tap")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text(Localization.string(key: "capture_approval_title", lang: appLanguage))
-                    .font(.headline)
-                Text(Localization.string(key: "capture_approval_body", lang: appLanguage))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            } else if scanMode == .camera && activeCameraPhase != .captured {
-                Image(systemName: scanFeedbackIcon(for: liveScan.feedbackKey))
-                    .font(.system(size: 48))
-                    .foregroundStyle(scanFeedbackColor(for: liveScan.feedbackKey))
-                Text(Localization.string(key: scanStatusTitleKey(for: liveScan.feedbackKey), lang: appLanguage))
-                    .font(.headline)
-                Text(Localization.string(key: liveScan.feedbackKey, lang: appLanguage))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                if autoCaptureCountdown && liveScan.captureState == .scanning {
-                    Text(Localization.string(key: "scan_status_countdown_hint", lang: appLanguage))
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
-            } else {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text(Localization.string(key: "awaiting_scan_title", lang: appLanguage))
-                    .font(.headline)
-                Text(Localization.string(key: "awaiting_scan_body", lang: appLanguage))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
+            Image(systemName: "doc.text.magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(Localization.string(key: "awaiting_scan_title", lang: appLanguage))
+                .font(.headline)
+            Text(Localization.string(key: "awaiting_scan_body", lang: appLanguage))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    private func liveScanStatusBanner(
+        icon: String,
+        iconColor: Color,
+        titleKey: String,
+        messageKey: String,
+        hintKey: String? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(iconColor)
+                    .frame(width: 28)
+                
+                Text(Localization.string(key: titleKey, lang: appLanguage))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+            }
+            
+            Text(Localization.string(key: messageKey, lang: appLanguage))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            if let hintKey {
+                Text(Localization.string(key: hintKey, lang: appLanguage))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
     
     private func scanStatusTitleKey(for feedbackKey: String) -> String {
@@ -2818,53 +2848,95 @@ extension MainView {
 // MARK: - Supporting Views
 
 struct ContinuityCameraHelpContent: View {
+    enum Style {
+        case compact
+        case prominent
+    }
+    
     let lang: String
+    var style: Style = .compact
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: style == .prominent ? 20 : 8) {
+            if style == .prominent {
+                Label(
+                    Localization.string(key: "continuity_camera_help_title", lang: lang),
+                    systemImage: "iphone.and.arrow.forward"
+                )
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundStyle(.primary)
+                .symbolRenderingMode(.hierarchical)
+                .labelStyle(.titleAndIcon)
+            }
+            
             Text(Localization.string(key: "continuity_camera_help_intro", lang: lang))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(style == .prominent ? .title3 : .caption)
+                .fontWeight(style == .prominent ? .semibold : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .secondary)
                 .fixedSize(horizontal: false, vertical: true)
             
-            ForEach(1...4, id: \.self) { step in
-                HStack(alignment: .top, spacing: 8) {
-                    Text("\(step).")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 16, alignment: .trailing)
-                    Text(Localization.string(key: "continuity_camera_step_\(step)", lang: lang))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: style == .prominent ? 14 : 8) {
+                ForEach(1...4, id: \.self) { step in
+                    stepRow(step)
                 }
             }
             
             Text(Localization.string(key: "continuity_camera_tip", lang: lang))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(style == .prominent ? .body : .caption2)
+                .fontWeight(style == .prominent ? .medium : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .tertiary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 2)
+                .padding(style == .prominent ? 14 : 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    if style == .prominent {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.cyan.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
+                            )
+                    }
+                }
         }
     }
-}
-
-struct ContinuityCameraHelpView: View {
-    let lang: String
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(
-                Localization.string(key: "continuity_camera_help_title", lang: lang),
-                systemImage: "iphone.and.arrow.forward"
-            )
-            .font(.headline)
+    @ViewBuilder
+    private func stepRow(_ step: Int) -> some View {
+        HStack(alignment: .top, spacing: style == .prominent ? 14 : 8) {
+            if style == .prominent {
+                ZStack {
+                    Circle()
+                        .fill(Color.cyan.opacity(0.18))
+                        .frame(width: 36, height: 36)
+                    Text("\(step)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.cyan)
+                }
+            } else {
+                Text("\(step).")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, alignment: .trailing)
+            }
             
-            ContinuityCameraHelpContent(lang: lang)
+            Text(Localization.string(key: "continuity_camera_step_\(step)", lang: lang))
+                .font(style == .prominent ? .body : .caption)
+                .fontWeight(style == .prominent ? .medium : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, style == .prominent ? 6 : 0)
+                .padding(.horizontal, style == .prominent ? 12 : 0)
+                .background {
+                    if style == .prominent {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                    }
+                }
         }
-        .padding(16)
-        .frame(width: 300)
     }
 }
 
@@ -3159,6 +3231,7 @@ struct Localization {
         let en = [
             "scan_mode": "Scan Mode",
             "live_camera": "Live Camera",
+            "selected_camera": "Selected camera",
             "upload_image": "Upload Image",
             "select_file": "Select File...",
             "paste_image": "Paste Image",
@@ -3318,6 +3391,7 @@ struct Localization {
         let it = [
             "scan_mode": "Modalità Scansione",
             "live_camera": "Fotocamera Live",
+            "selected_camera": "Fotocamera selezionata",
             "upload_image": "Carica Immagine",
             "select_file": "Seleziona File...",
             "paste_image": "Incolla Immagine",
