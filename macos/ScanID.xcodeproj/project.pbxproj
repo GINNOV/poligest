@@ -17,6 +17,7 @@
 		DA3B398D926110DE8DE85FBE /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E14E9594A7E82BF6D614A05 /* MainView.swift */; };
 		F1A2B3C4D5E6F708192A3B4C /* ZoomableImageWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6F708192A3B4D /* ZoomableImageWrapper.swift */; };
 		F2B3C4D5E6F708192A3B4C5D /* UpdateInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */; };
+		C3D4E5F60718293A4B5C6D7E /* countdown.wav in Resources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293A4B5C6D7F /* countdown.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		EECF55C8D9B50305D41C50DC /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		F1A2B3C4D5E6F708192A3B4D /* ZoomableImageWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomableImageWrapper.swift; sourceTree = "<group>"; };
 		F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstaller.swift; sourceTree = "<group>"; };
+		C3D4E5F60718293A4B5C6D7F /* countdown.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = countdown.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +53,7 @@
 			files = (
 				B300CFD92606F9E100000001 /* Assets.xcassets in Resources */,
 				B300CFDA2606F9E100000003 /* BelfioreCodes.json in Resources */,
+				C3D4E5F60718293A4B5C6D7E /* countdown.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,6 +65,7 @@
 			children = (
 				866C48AEA1A9E5053496971D /* Info.plist */,
 				B300CFD92606F9E100000003 /* BelfioreCodes.json */,
+				C3D4E5F60718293A4B5C6D7F /* countdown.wav */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";

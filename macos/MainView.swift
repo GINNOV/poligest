@@ -7,7 +7,10 @@ struct MainView: View {
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var liveScan = LiveScanController()
     @StateObject private var statusBar = StatusBarController()
-    @State private var scanMode: ScanMode = .image
+    @State private var scanMode: ScanMode = {
+        let stored = UserDefaults.standard.string(forKey: "defaultScanMode") ?? "image"
+        return stored == "camera" ? .camera : .image
+    }()
     @State private var selectedImage: NSImage?
     @State private var capturedCameraImage: NSImage?
     @State private var cgImageForOCR: CGImage?
@@ -34,8 +37,12 @@ struct MainView: View {
     @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
+    @AppStorage("requireCaptureApproval") private var requireCaptureApproval = false
+    @AppStorage("detectOnlyExpectedFields") private var detectOnlyExpectedFields = true
+    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = false
     
     // Interactive UI State
+    @State private var captureApproved = false
     @State private var showWelcomePrompt = false
     @State private var showContinuityCameraHelp = false
     @State private var isShowingSettings = false
@@ -57,6 +64,7 @@ struct MainView: View {
     
     @State private var captureZoomScale: CGFloat = 1.0
     @State private var captureZoomOffset: CGSize = .zero
+    @State private var autoZoomAppliedForCurrentCapture = false
     
     struct PendingPatient: Identifiable {
         let id = UUID()
@@ -118,6 +126,22 @@ struct MainView: View {
         isCameraFrozen || (scanMode == .image && selectedImage != nil)
     }
     
+    private var isAwaitingCaptureApproval: Bool {
+        requireCaptureApproval && !captureApproved && captureState != .captured
+    }
+    
+    private var isCaptureDetectionActive: Bool {
+        !requireCaptureApproval || captureApproved
+    }
+    
+    private var liveDisplayedRecognizedItems: [RecognizedItem] {
+        displayedRecognizedItems(from: liveScan.recognizedItems, parsed: Self.parseRecognizedItems(liveScan.recognizedItems))
+    }
+    
+    private var capturedDisplayedRecognizedItems: [RecognizedItem] {
+        displayedRecognizedItems(from: recognizedItems, parsed: parsedData)
+    }
+    
     var body: some View {
         mainWorkspace
             .toolbar { mainToolbar }
@@ -127,6 +151,10 @@ struct MainView: View {
                 handleScanModeChange(oldMode, newMode)
             }
             .onChange(of: autoCaptureCountdown) { _, _ in setupCameraFrameCallback() }
+            .onChange(of: requireCaptureApproval) { _, _ in
+                captureApproved = false
+                liveScan.reset()
+            }
             .onChange(of: syncStatus) { _, newValue in
                 reflectSyncStatusInStatusBar(newValue)
             }
@@ -172,6 +200,7 @@ struct MainView: View {
             } message: { details in
                 confirmationAlertMessage(for: details)
             }
+            .onExitCommand(perform: cancelActiveCapture)
     }
     
     private var mainWorkspace: some View {
@@ -298,34 +327,26 @@ struct MainView: View {
         }
         
         if scanMode == .camera && !isCameraFrozen {
-            ToolbarItem(placement: .navigation) {
-                HStack(spacing: 6) {
-                    if !cameraManager.devices.isEmpty {
-                        Picker("", selection: Binding(
-                            get: { cameraManager.selectedDevice },
-                            set: { device in
-                                if let device = device {
-                                    cameraManager.changeCamera(to: device)
-                                }
-                            }
-                        )) {
-                            ForEach(cameraManager.devices, id: \.uniqueID) { device in
-                                Text(device.localizedName).tag(Optional(device))
-                            }
-                        }
-                        .frame(width: 150)
-                    }
-                    
-                    Button(action: { showContinuityCameraHelp = true }) {
-                        Image(systemName: "info.circle")
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                    .popover(isPresented: $showContinuityCameraHelp, arrowEdge: .bottom) {
-                        ContinuityCameraHelpView(lang: appLanguage)
-                    }
-                    .help(Localization.string(key: "continuity_camera_help_title", lang: appLanguage))
+            if !cameraManager.devices.isEmpty {
+                ToolbarItem(placement: .navigation) {
+                    CameraDevicePicker(cameraManager: cameraManager)
                 }
+            }
+            
+            ToolbarItem(placement: .navigation) {
+                Button(action: { showContinuityCameraHelp = true }) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22, height: 22)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(2)
+                .popover(isPresented: $showContinuityCameraHelp, arrowEdge: .bottom) {
+                    ContinuityCameraHelpView(lang: appLanguage)
+                }
+                .help(Localization.string(key: "continuity_camera_help_title", lang: appLanguage))
             }
         }
         
@@ -498,7 +519,7 @@ struct MainView: View {
                 .padding(24)
             
             GeometryReader { geo in
-                ForEach(liveScan.recognizedItems) { item in
+                ForEach(liveDisplayedRecognizedItems) { item in
                     let rect = mapBoundingBox(item.boundingBox, to: geo.size)
                     boundingBoxMenu(for: item, rect: rect)
                         .position(x: rect.midX, y: rect.midY)
@@ -509,7 +530,11 @@ struct MainView: View {
                 CountdownOverlay(seconds: seconds, lang: appLanguage)
             }
             
-            if liveScan.captureState == .scanning || liveScan.captureState == .countdown {
+            if isAwaitingCaptureApproval {
+                CaptureApprovalOverlay(lang: appLanguage, onStart: approveCaptureStart)
+            }
+            
+            if isCaptureDetectionActive && (liveScan.captureState == .scanning || liveScan.captureState == .countdown) {
                 GeometryReader { geo in
                     let h = geo.size.height
                     Color.cyan.opacity(0.3)
@@ -550,6 +575,17 @@ struct MainView: View {
                     boundingBoxesOverlay(for: image)
                 }
         }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear {
+                        applyAutoZoomIfNeeded(for: image, containerSize: geo.size)
+                    }
+                    .onChange(of: capturedDisplayedRecognizedItems.count) { _, _ in
+                        applyAutoZoomIfNeeded(for: image, containerSize: geo.size)
+                    }
+            }
+        }
         .cornerRadius(12)
         .padding(12)
     }
@@ -558,7 +594,7 @@ struct MainView: View {
     private func boundingBoxesOverlay(for image: NSImage) -> some View {
         GeometryReader { geo in
             let contentRect = fitRect(for: image.size, in: geo.size)
-            ForEach(recognizedItems) { item in
+            ForEach(capturedDisplayedRecognizedItems) { item in
                 let rect = mapBoundingBox(item.boundingBox, to: contentRect.size)
                 boundingBoxMenu(for: item, rect: rect)
                     .position(x: rect.midX + contentRect.origin.x, y: rect.midY + contentRect.origin.y)
@@ -566,9 +602,30 @@ struct MainView: View {
         }
     }
     
+    private func displayedRecognizedItems(from items: [RecognizedItem], parsed: IDData) -> [RecognizedItem] {
+        guard detectOnlyExpectedFields else { return items }
+        return CaptureDetection.filterItems(items, matching: parsed)
+    }
+    
+    private func applyAutoZoomIfNeeded(for image: NSImage, containerSize: CGSize) {
+        guard autoZoomOnCapture, captureState == .captured, !autoZoomAppliedForCurrentCapture else { return }
+        let items = capturedDisplayedRecognizedItems
+        guard !items.isEmpty else { return }
+        
+        autoZoomAppliedForCurrentCapture = true
+        CaptureAutoZoom.apply(
+            to: items,
+            imageSize: image.size,
+            containerSize: containerSize,
+            scale: &captureZoomScale,
+            offset: &captureZoomOffset
+        )
+    }
+    
     private func resetCaptureZoom() {
         captureZoomScale = 1.0
         captureZoomOffset = .zero
+        autoZoomAppliedForCurrentCapture = false
     }
     
     private func zoomInCapture() {
@@ -586,7 +643,18 @@ struct MainView: View {
     private var emptyResultsPanel: some View {
         VStack(spacing: 16) {
             Spacer()
-            if scanMode == .camera && activeCameraPhase != .captured {
+            if scanMode == .camera && isAwaitingCaptureApproval {
+                Image(systemName: "hand.tap")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+                Text(Localization.string(key: "capture_approval_title", lang: appLanguage))
+                    .font(.headline)
+                Text(Localization.string(key: "capture_approval_body", lang: appLanguage))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            } else if scanMode == .camera && activeCameraPhase != .captured {
                 Image(systemName: scanFeedbackIcon(for: liveScan.feedbackKey))
                     .font(.system(size: 48))
                     .foregroundStyle(scanFeedbackColor(for: liveScan.feedbackKey))
@@ -848,9 +916,16 @@ struct MainView: View {
         return "{}"
     }
     
+    private func approveCaptureStart() {
+        captureApproved = true
+        liveScan.reset()
+        statusBar.show(key: "status_camera_ready", style: .info, autoDismiss: 3)
+    }
+    
     private func setupCameraFrameCallback() {
         cameraManager.onFrameCaptured = { pixelBuffer in
             guard self.scanMode == .camera else { return }
+            guard self.isCaptureDetectionActive else { return }
             guard self.captureState != .captured, self.liveScan.captureState != .captured else { return }
             
             IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
@@ -873,6 +948,7 @@ struct MainView: View {
                         self.recognizedItems = self.liveScan.recognizedItems
                         self.parsedData = parsed
                         self.captureState = .captured
+                        self.autoZoomAppliedForCurrentCapture = false
                         self.reportScanComplete()
                         self.playSuccessSound()
                         self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
@@ -940,6 +1016,7 @@ struct MainView: View {
             if Self.shouldAcceptCapture(parsed) {
                 self.parsedData = parsed
                 self.captureState = .captured
+                self.autoZoomAppliedForCurrentCapture = false
                 self.reportScanComplete()
                 self.playSuccessSound()
                 self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
@@ -955,6 +1032,7 @@ struct MainView: View {
         cgImageForOCR = nil
         isDragging = false
         copied = false
+        captureApproved = false
         resetCaptureZoom()
         cameraManager.clearSnapshotBuffer()
         clearParsedResults()
@@ -974,6 +1052,30 @@ struct MainView: View {
         cameraManager.stopSession()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             self.cameraManager.startSession()
+        }
+    }
+    
+    private func cancelActiveCapture() {
+        guard scanMode == .camera else { return }
+        guard !showWelcomePrompt, !isShowingSettings, pendingUpdate == nil, !showingConfirmationAlert else { return }
+        
+        if captureState == .captured {
+            startNewCameraScan()
+            return
+        }
+        
+        guard isCaptureDetectionActive else { return }
+        
+        switch liveScan.captureState {
+        case .scanning, .countdown:
+            liveScan.reset()
+            statusBar.show(key: "status_capture_cancelled", style: .info, autoDismiss: 3)
+        case .idle, .captured:
+            if requireCaptureApproval && captureApproved {
+                captureApproved = false
+                liveScan.reset()
+                statusBar.showIdle()
+            }
         }
     }
     
@@ -1002,12 +1104,7 @@ struct MainView: View {
     }
     
     private func playCountdownBeep() {
-        DispatchQueue.main.async {
-            if let sound = NSSound(named: "Pop") {
-                sound.volume = 0.35
-                sound.play()
-            }
-        }
+        CountdownSound.play()
     }
     
     // MARK: - Sync API Calls
@@ -1731,6 +1828,11 @@ struct SettingsView: View {
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
     @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
+    @AppStorage("requireCaptureApproval") private var requireCaptureApproval = false
+    @AppStorage("defaultScanMode") private var defaultScanMode = "image"
+    @AppStorage("rememberLastCamera") private var rememberLastCamera = false
+    @AppStorage("detectOnlyExpectedFields") private var detectOnlyExpectedFields = true
+    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = false
     
     @State private var selectedSection: SettingsSection = .general
     @State private var showToken = false
@@ -1738,8 +1840,11 @@ struct SettingsView: View {
     
     enum SettingsSection: String, CaseIterable, Identifiable {
         case general
+        case camera
+        case detection
         case sorriso
         case updates
+        case developer
         
         var id: String { rawValue }
         
@@ -1747,18 +1852,27 @@ struct SettingsView: View {
             switch self {
             case .general:
                 return Localization.string(key: "settings_sidebar_general", lang: lang)
+            case .camera:
+                return Localization.string(key: "settings_sidebar_camera", lang: lang)
+            case .detection:
+                return Localization.string(key: "settings_sidebar_detection", lang: lang)
             case .sorriso:
                 return Localization.string(key: "settings_sidebar_sorriso", lang: lang)
             case .updates:
                 return Localization.string(key: "settings_sidebar_updates", lang: lang)
+            case .developer:
+                return Localization.string(key: "settings_sidebar_developer", lang: lang)
             }
         }
         
         var icon: String {
             switch self {
             case .general: return "gearshape"
+            case .camera: return "camera"
+            case .detection: return "viewfinder.circle"
             case .sorriso: return "person.crop.circle.badge.plus"
             case .updates: return "arrow.triangle.2.circlepath"
+            case .developer: return "chevron.left.forwardslash.chevron.right"
             }
         }
     }
@@ -1787,10 +1901,16 @@ struct SettingsView: View {
                     switch selectedSection {
                     case .general:
                         generalSection
+                    case .camera:
+                        cameraSection
+                    case .detection:
+                        detectionSection
                     case .sorriso:
                         sorrisoSection
                     case .updates:
                         updatesSection
+                    case .developer:
+                        developerSection
                     }
                 }
                 .padding(24)
@@ -1844,10 +1964,16 @@ struct SettingsView: View {
         switch section {
         case .general:
             return Localization.string(key: "settings_general_subtitle", lang: appLanguage)
+        case .camera:
+            return Localization.string(key: "settings_camera_subtitle", lang: appLanguage)
+        case .detection:
+            return Localization.string(key: "settings_detection_subtitle", lang: appLanguage)
         case .sorriso:
             return Localization.string(key: "settings_sorriso_subtitle", lang: appLanguage)
         case .updates:
             return Localization.string(key: "settings_updates_subtitle", lang: appLanguage)
+        case .developer:
+            return Localization.string(key: "settings_developer_subtitle", lang: appLanguage)
         }
     }
     
@@ -1868,7 +1994,11 @@ struct SettingsView: View {
                     .frame(width: 140)
                 }
             }
-            
+        }
+    }
+    
+    private var developerSection: some View {
+        VStack(spacing: 16) {
             SettingsCard {
                 SettingsToggleRow(
                     title: Localization.string(key: "pref_json", lang: appLanguage),
@@ -1880,9 +2010,85 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                 }
             }
-            
-            SettingsCard(title: Localization.string(key: "settings_camera_group", lang: appLanguage)) {
+        }
+    }
+    
+    private var detectionSection: some View {
+        VStack(spacing: 16) {
+            SettingsCard {
                 VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_detect_only_expected", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_detect_only_expected_desc", lang: appLanguage),
+                        icon: "rectangle.dashed.badge.record"
+                    ) {
+                        Toggle("", isOn: $detectOnlyExpectedFields)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    
+                    Divider().padding(.vertical, 4)
+                    
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_auto_zoom", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_auto_zoom_desc", lang: appLanguage),
+                        icon: "plus.magnifyingglass"
+                    ) {
+                        Toggle("", isOn: $autoZoomOnCapture)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                }
+            }
+        }
+    }
+    
+    private var cameraSection: some View {
+        VStack(spacing: 16) {
+            SettingsCard(title: Localization.string(key: "settings_camera_startup_group", lang: appLanguage)) {
+                VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_default_scan_mode", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_default_scan_mode_desc", lang: appLanguage),
+                        icon: "viewfinder"
+                    ) {
+                        Picker("", selection: $defaultScanMode) {
+                            Text(Localization.string(key: "live_camera", lang: appLanguage)).tag("camera")
+                            Text(Localization.string(key: "upload_image", lang: appLanguage)).tag("image")
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(width: 160)
+                    }
+                    
+                    Divider().padding(.vertical, 4)
+                    
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_remember_last_camera", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_remember_last_camera_desc", lang: appLanguage),
+                        icon: "camera.rotate"
+                    ) {
+                        Toggle("", isOn: $rememberLastCamera)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                }
+            }
+            
+            SettingsCard(title: Localization.string(key: "settings_camera_capture_group", lang: appLanguage)) {
+                VStack(spacing: 4) {
+                    SettingsToggleRow(
+                        title: Localization.string(key: "pref_require_capture_approval", lang: appLanguage),
+                        subtitle: Localization.string(key: "pref_require_capture_approval_desc", lang: appLanguage),
+                        icon: "hand.tap"
+                    ) {
+                        Toggle("", isOn: $requireCaptureApproval)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                    }
+                    
+                    Divider().padding(.vertical, 4)
+                    
                     SettingsToggleRow(
                         title: Localization.string(key: "pref_auto_countdown", lang: appLanguage),
                         subtitle: Localization.string(key: "pref_auto_countdown_desc", lang: appLanguage),
@@ -1892,20 +2098,20 @@ struct SettingsView: View {
                             .labelsHidden()
                             .toggleStyle(.switch)
                     }
-                    
-                    Divider().padding(.vertical, 4)
-                    
-                    DisclosureGroup {
-                        ContinuityCameraHelpContent(lang: appLanguage)
-                            .padding(.top, 4)
-                    } label: {
-                        Label(
-                            Localization.string(key: "continuity_camera_help_title", lang: appLanguage),
-                            systemImage: "iphone.and.arrow.forward"
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                    }
+                }
+            }
+            
+            SettingsCard {
+                DisclosureGroup {
+                    ContinuityCameraHelpContent(lang: appLanguage)
+                        .padding(.top, 4)
+                } label: {
+                    Label(
+                        Localization.string(key: "continuity_camera_help_title", lang: appLanguage),
+                        systemImage: "iphone.and.arrow.forward"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
                 }
             }
         }
@@ -2383,6 +2589,31 @@ struct AppStatusBar: View {
     }
 }
 
+// MARK: - Countdown Sound
+
+enum CountdownSound {
+    private static let resourceURL = Bundle.main.url(forResource: "countdown", withExtension: "wav")
+    private static var cachedSound: NSSound?
+    
+    static func play() {
+        DispatchQueue.main.async {
+            guard let resourceURL else { return }
+            
+            if cachedSound == nil {
+                cachedSound = NSSound(contentsOf: resourceURL, byReference: true)
+            }
+            
+            guard let sound = cachedSound else { return }
+            if sound.isPlaying {
+                sound.stop()
+            }
+            sound.currentTime = 0
+            sound.volume = 0.5
+            sound.play()
+        }
+    }
+}
+
 // MARK: - Live Scan Controller
 
 @MainActor
@@ -2636,6 +2867,49 @@ struct ContinuityCameraHelpView: View {
         }
         .padding(16)
         .frame(width: 300)
+    }
+}
+
+struct CaptureApprovalOverlay: View {
+    let lang: String
+    let onStart: () -> Void
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.45)
+            
+            VStack(spacing: 16) {
+                Image(systemName: "viewfinder")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.white.opacity(0.9))
+                
+                Text(Localization.string(key: "capture_approval_title", lang: lang))
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                
+                Text(Localization.string(key: "capture_approval_body", lang: lang))
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 280)
+                
+                Button(action: onStart) {
+                    Label(
+                        Localization.string(key: "capture_approval_button", lang: lang),
+                        systemImage: "play.fill"
+                    )
+                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cyan)
+            }
+            .padding(28)
+        }
+        .cornerRadius(12)
+        .padding(12)
     }
 }
 
@@ -2956,9 +3230,21 @@ struct Localization {
             "welcome_dont_check": "Don't Check",
             "welcome_check_automatically": "Check Automatically",
             "settings_sidebar_general": "General",
+            "settings_sidebar_camera": "Camera",
+            "settings_sidebar_detection": "Detection",
             "settings_sidebar_sorriso": "Sorriso",
             "settings_sidebar_updates": "Updates",
-            "settings_general_subtitle": "Language and developer options for the app.",
+            "settings_sidebar_developer": "Developer",
+            "settings_general_subtitle": "Language preferences for the app.",
+            "settings_developer_subtitle": "Advanced debugging and export options.",
+            "settings_camera_subtitle": "Startup mode, capture behavior, and iPhone camera setup.",
+            "settings_detection_subtitle": "Control which OCR text is highlighted and how captures are framed.",
+            "pref_detect_only_expected": "Detect only expected fields",
+            "pref_detect_only_expected_desc": "Hide bounding boxes for text that is not a recognized ID field.",
+            "pref_auto_zoom": "Auto zoom",
+            "pref_auto_zoom_desc": "After a scan completes, zoom and center on the detected fields.",
+            "settings_camera_startup_group": "Startup",
+            "settings_camera_capture_group": "Capture",
             "settings_sorriso_subtitle": "Connect ScanID to your Sorriso server and control patient sync.",
             "settings_updates_subtitle": "Keep ScanID up to date with automatic or manual checks.",
             "settings_connection_group": "Connection",
@@ -2976,7 +3262,15 @@ struct Localization {
             "pref_open_browser_desc": "Open the patient chart in your browser after sync completes.",
             "pref_check_updates_desc": "Check once per day on launch for a newer ScanID release.",
             "pref_auto_download_desc": "Download and offer to install updates without manual steps.",
-            "settings_camera_group": "Camera",
+            "pref_default_scan_mode": "Default scan mode",
+            "pref_default_scan_mode_desc": "Which mode to show when ScanID opens.",
+            "pref_remember_last_camera": "Remember last camera",
+            "pref_remember_last_camera_desc": "Reopen ScanID with the camera you used last time.",
+            "pref_require_capture_approval": "Require approval to start scan",
+            "pref_require_capture_approval_desc": "Show a Start Scan button before detecting the ID card. When off, detection begins automatically.",
+            "capture_approval_title": "Ready to scan",
+            "capture_approval_body": "Position the ID card in frame, then start scanning when you are ready.",
+            "capture_approval_button": "Start Scan",
             "pref_auto_countdown": "Countdown before capture",
             "pref_auto_countdown_desc": "When an ID is detected in frame, wait 3 seconds before locking the scan.",
             "continuity_camera_help_title": "Use iPhone as camera",
@@ -3020,6 +3314,7 @@ struct Localization {
             "status_json_copied": "JSON copied to clipboard",
             "status_sync_failed": "Sync failed: %@",
             "status_camera_ready": "Camera ready — align the ID card",
+            "status_capture_cancelled": "Capture cancelled",
             "status_open_browser": "Open in browser"
         ]
         let it = [
@@ -3094,9 +3389,21 @@ struct Localization {
             "welcome_dont_check": "Non controllare",
             "welcome_check_automatically": "Controlla automaticamente",
             "settings_sidebar_general": "Generali",
+            "settings_sidebar_camera": "Fotocamera",
+            "settings_sidebar_detection": "Rilevamento",
             "settings_sidebar_sorriso": "Sorriso",
             "settings_sidebar_updates": "Aggiornamenti",
-            "settings_general_subtitle": "Lingua e opzioni per sviluppatori.",
+            "settings_sidebar_developer": "Sviluppatore",
+            "settings_general_subtitle": "Preferenze di lingua dell'app.",
+            "settings_developer_subtitle": "Opzioni avanzate di debug ed esportazione.",
+            "settings_camera_subtitle": "Modalità all'avvio, acquisizione e fotocamera iPhone.",
+            "settings_detection_subtitle": "Controlla quali testi OCR evidenziare e come inquadrare le acquisizioni.",
+            "pref_detect_only_expected": "Rileva solo i campi attesi",
+            "pref_detect_only_expected_desc": "Nasconde i riquadri per il testo che non corrisponde a un campo riconosciuto.",
+            "pref_auto_zoom": "Zoom automatico",
+            "pref_auto_zoom_desc": "Al termine della scansione, ingrandisce e centra sui campi rilevati.",
+            "settings_camera_startup_group": "Avvio",
+            "settings_camera_capture_group": "Acquisizione",
             "settings_sorriso_subtitle": "Collega ScanID al server Sorriso e gestisci la sincronizzazione.",
             "settings_updates_subtitle": "Mantieni ScanID aggiornato con controlli automatici o manuali.",
             "settings_connection_group": "Connessione",
@@ -3114,16 +3421,24 @@ struct Localization {
             "pref_open_browser_desc": "Apri la cartella paziente nel browser dopo la sincronizzazione.",
             "pref_check_updates_desc": "Controlla una volta al giorno all'avvio se esiste una nuova versione.",
             "pref_auto_download_desc": "Scarica e propone l'installazione degli aggiornamenti automaticamente.",
-            "settings_camera_group": "Fotocamera",
+            "pref_default_scan_mode": "Modalità scansione predefinita",
+            "pref_default_scan_mode_desc": "Modalità mostrata all'apertura di ScanID.",
+            "pref_remember_last_camera": "Ricorda ultima fotocamera",
+            "pref_remember_last_camera_desc": "Riapre ScanID con la fotocamera usata l'ultima volta.",
+            "pref_require_capture_approval": "Richiedi conferma per avviare la scansione",
+            "pref_require_capture_approval_desc": "Mostra un pulsante Avvia scansione prima di rilevare la carta. Se disattivato, il rilevamento parte automaticamente.",
+            "capture_approval_title": "Pronto per la scansione",
+            "capture_approval_body": "Posiziona la carta d'identità nell'inquadratura, poi avvia la scansione quando sei pronto.",
+            "capture_approval_button": "Avvia scansione",
             "pref_auto_countdown": "Conto alla rovescia prima della cattura",
             "pref_auto_countdown_desc": "Quando un documento è rilevato nell'inquadratura, attendi 3 secondi prima di confermare la scansione.",
             "continuity_camera_help_title": "Usa iPhone come fotocamera",
             "continuity_camera_help_intro": "Scansiona con la fotocamera dell'iPhone — senza trasferire foto.",
-            "continuity_camera_step_1": "Accedi con lo stesso Apple ID su iPhone e Mac.",
-            "continuity_camera_step_2": "Attiva Wi‑Fi e Bluetooth su entrambi i dispositivi.",
-            "continuity_camera_step_3": "Tieni l'iPhone sbloccato e vicino al Mac.",
-            "continuity_camera_step_4": "In modalità Fotocamera Live, scegli l'iPhone dal menu fotocamera sopra.",
-            "continuity_camera_tip": "Se non compare, apri il Centro di Controllo sul Mac e seleziona l'iPhone in Fotocamera.",
+            "continuity_camera_step_1": "Posizionare lo scanner di fianco al portatile",
+            "continuity_camera_step_2": "Posizionare la carta di identità.",
+            "continuity_camera_step_3": "Sbloca il telefono e posizionalo sullo scanner.",
+            "continuity_camera_step_4": "Attiva la scansione se non è impostata per partire in automatico",
+            "continuity_camera_tip": "Crea/Aggiorna la cartella.",
             "countdown_hold_still": "Resta fermo…",
             "scan_status_title_waiting": "Pronto per la scansione",
             "scan_status_title_adjust": "Regola la carta",
@@ -3158,6 +3473,7 @@ struct Localization {
             "status_json_copied": "JSON copiato negli appunti",
             "status_sync_failed": "Sincronizzazione non riuscita: %@",
             "status_camera_ready": "Fotocamera pronta — allinea la carta d'identità",
+            "status_capture_cancelled": "Acquisizione annullata",
             "status_open_browser": "Apri nel browser"
         ]
         let dict = (lang == "it" ? it : en)

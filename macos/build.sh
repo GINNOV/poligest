@@ -53,6 +53,7 @@ if [ -n "$ICON_NAME" ]; then
 fi
 rm -f "$PARTIAL_PLIST"
 cp BelfioreCodes.json ScanID.app/Contents/Resources/BelfioreCodes.json
+cp countdown.wav ScanID.app/Contents/Resources/countdown.wav
 
 # Allow overriding the version for releases: VERSION=1.2.0 bash build.sh
 if [ -n "${VERSION:-}" ]; then

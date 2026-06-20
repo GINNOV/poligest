@@ -3,6 +3,82 @@ import AVFoundation
 import AppKit
 import CoreImage
 
+enum CameraPreferences {
+    static let rememberLastCameraKey = "rememberLastCamera"
+    static let lastCameraDeviceIDKey = "lastCameraDeviceID"
+    
+    static var rememberLastCamera: Bool {
+        UserDefaults.standard.bool(forKey: rememberLastCameraKey)
+    }
+    
+    static func saveLastCamera(_ device: AVCaptureDevice) {
+        guard rememberLastCamera else { return }
+        UserDefaults.standard.set(device.uniqueID, forKey: lastCameraDeviceIDKey)
+    }
+    
+    static func preferredDevice(from devices: [AVCaptureDevice]) -> AVCaptureDevice? {
+        guard rememberLastCamera else { return nil }
+        guard let savedID = UserDefaults.standard.string(forKey: lastCameraDeviceIDKey),
+              !savedID.isEmpty else {
+            return nil
+        }
+        return devices.first(where: { $0.uniqueID == savedID })
+    }
+}
+
+enum CameraDeviceUI {
+    static func index(for device: AVCaptureDevice, in devices: [AVCaptureDevice]) -> Int {
+        (devices.firstIndex(where: { $0.uniqueID == device.uniqueID }) ?? 0) + 1
+    }
+    
+    static func iconSymbol(for device: AVCaptureDevice, in devices: [AVCaptureDevice]) -> String {
+        "\(min(index(for: device, in: devices), 50)).circle"
+    }
+}
+
+struct CameraDevicePicker: View {
+    @ObservedObject var cameraManager: CameraManager
+    
+    private var selectedDeviceID: Binding<String> {
+        Binding(
+            get: {
+                cameraManager.selectedDevice?.uniqueID
+                    ?? cameraManager.devices.first?.uniqueID
+                    ?? ""
+            },
+            set: { id in
+                guard let device = cameraManager.devices.first(where: { $0.uniqueID == id }) else { return }
+                cameraManager.changeCamera(to: device)
+            }
+        )
+    }
+    
+    var body: some View {
+        Picker(selection: selectedDeviceID) {
+            ForEach(cameraManager.devices, id: \.uniqueID) { device in
+                Label {
+                    Text(device.localizedName)
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: CameraDeviceUI.iconSymbol(for: device, in: cameraManager.devices))
+                }
+                .tag(device.uniqueID)
+            }
+        } label: {
+            if let selected = cameraManager.selectedDevice {
+                Label {
+                    Text(selected.localizedName)
+                        .lineLimit(1)
+                } icon: {
+                    Image(systemName: CameraDeviceUI.iconSymbol(for: selected, in: cameraManager.devices))
+                }
+            }
+        }
+        .pickerStyle(.menu)
+        .frame(minWidth: 220, idealWidth: 280, maxWidth: 340)
+    }
+}
+
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var session = AVCaptureSession()
     @Published var isPermissionDenied = false
@@ -31,7 +107,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             position: .unspecified
         )
         self.devices = discoverySession.devices
-        self.selectedDevice = AVCaptureDevice.default(for: .video)
+        if let preferred = CameraPreferences.preferredDevice(from: devices) {
+            self.selectedDevice = preferred
+        } else {
+            self.selectedDevice = AVCaptureDevice.default(for: .video)
+        }
     }
     
     func checkPermissionAndStart() {
@@ -116,6 +196,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     func changeCamera(to device: AVCaptureDevice) {
         selectedDevice = device
+        CameraPreferences.saveLastCamera(device)
         if session.isRunning {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.session.stopRunning()
