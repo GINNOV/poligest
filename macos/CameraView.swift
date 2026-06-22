@@ -26,31 +26,6 @@ enum CameraPreferences {
     }
 }
 
-enum CameraOrientation {
-    static let continuityCameraRotationAngle: CGFloat = 180
-    
-    static func isContinuityCameraDevice(_ device: AVCaptureDevice?) -> Bool {
-        guard let device else { return false }
-        if device.isContinuityCamera {
-            return true
-        }
-        guard device.deviceType == .external else { return false }
-        let name = device.localizedName.lowercased()
-        return name.contains("iphone") || name.contains("ipad")
-    }
-    
-    static func rotationAngle(for device: AVCaptureDevice?) -> CGFloat {
-        isContinuityCameraDevice(device) ? continuityCameraRotationAngle : 0
-    }
-    
-    static func apply(to connection: AVCaptureConnection?, for device: AVCaptureDevice?) {
-        guard let connection else { return }
-        let angle = rotationAngle(for: device)
-        guard connection.isVideoRotationAngleSupported(angle) else { return }
-        connection.videoRotationAngle = angle
-    }
-}
-
 enum CameraDeviceUI {
     static func index(for device: AVCaptureDevice, in devices: [AVCaptureDevice]) -> Int {
         (devices.firstIndex(where: { $0.uniqueID == device.uniqueID }) ?? 0) + 1
@@ -113,6 +88,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var isRunning = false
     @Published var devices: [AVCaptureDevice] = []
     @Published var selectedDevice: AVCaptureDevice?
+    @Published private(set) var previewRotationAngle: CGFloat = 0
     
     var onFrameCaptured: ((CVImageBuffer) -> Void)?
     
@@ -123,9 +99,19 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var latestPixelBuffer: CVImageBuffer?
     private let snapshotContext = CIContext()
     
+    private weak var previewLayer: AVCaptureVideoPreviewLayer?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var previewRotationObservation: NSKeyValueObservation?
+    private var captureRotationObservation: NSKeyValueObservation?
+    
     override init() {
         super.init()
         discoverDevices()
+    }
+    
+    deinit {
+        previewRotationObservation?.invalidate()
+        captureRotationObservation?.invalidate()
     }
     
     private func discoverDevices() {
@@ -175,7 +161,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         session.beginConfiguration()
         
-        // Use selected device or default
         let deviceToUse = selectedDevice ?? AVCaptureDevice.default(for: .video)
         guard let videoDevice = deviceToUse else {
             print("No video device found")
@@ -195,7 +180,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             }
             
             if session.canAddOutput(videoOutput) {
-                // Ensure output isn't already added
                 if !session.outputs.contains(videoOutput) {
                     videoOutput.setSampleBufferDelegate(self, queue: queue)
                     videoOutput.alwaysDiscardsLateVideoFrames = true
@@ -203,12 +187,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 }
             }
             
-            CameraOrientation.apply(
-                to: videoOutput.connection(with: .video),
-                for: videoDevice
-            )
+            applyRotationFromCoordinator()
             
-            // Optimize for OCR (Full HD 1080p is preferred for high accuracy OCR)
             if session.canSetSessionPreset(.hd1920x1080) {
                 session.sessionPreset = .hd1920x1080
             } else if session.canSetSessionPreset(.hd1280x720) {
@@ -219,11 +199,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             
             session.commitConfiguration()
             
-            // Start session in background
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.session.startRunning()
                 DispatchQueue.main.async {
                     self?.isRunning = self?.session.isRunning ?? false
+                    self?.refreshPreviewRotation()
                 }
             }
         } catch {
@@ -235,6 +215,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     func changeCamera(to device: AVCaptureDevice) {
         selectedDevice = device
         CameraPreferences.saveLastCamera(device)
+        configureRotationCoordinator()
         if session.isRunning {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.session.stopRunning()
@@ -242,6 +223,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     self?.setupSession()
                 }
             }
+        } else {
+            setupSession()
         }
     }
     
@@ -285,11 +268,80 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         bufferLock.unlock()
     }
     
-    func applyPreviewRotation(to previewLayer: AVCaptureVideoPreviewLayer) {
-        CameraOrientation.apply(to: previewLayer.connection, for: selectedDevice)
+    func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
+        previewLayer = layer
+        configureRotationCoordinator()
+        refreshPreviewRotation()
     }
     
-    // AVCaptureVideoDataOutputSampleBufferDelegate
+    func refreshPreviewRotation() {
+        applyRotationFromCoordinator()
+    }
+    
+    func previewRect(forNormalizedBoundingBox box: CGRect) -> CGRect? {
+        guard let previewLayer else { return nil }
+        return previewLayer.layerRectConverted(fromMetadataOutputRect: box)
+    }
+    
+    private func configureRotationCoordinator() {
+        previewRotationObservation?.invalidate()
+        captureRotationObservation?.invalidate()
+        rotationCoordinator = nil
+        
+        guard let device = selectedDevice ?? AVCaptureDevice.default(for: .video),
+              let previewLayer else {
+            return
+        }
+        
+        let coordinator = AVCaptureDevice.RotationCoordinator(
+            device: device,
+            previewLayer: previewLayer
+        )
+        rotationCoordinator = coordinator
+        
+        previewRotationObservation = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelPreview,
+            options: [.initial, .new]
+        ) { [weak self] _, _ in
+            self?.applyRotationFromCoordinator()
+        }
+        
+        captureRotationObservation = coordinator.observe(
+            \.videoRotationAngleForHorizonLevelCapture,
+            options: [.initial, .new]
+        ) { [weak self] _, _ in
+            self?.applyRotationFromCoordinator()
+        }
+    }
+    
+    private func applyRotationFromCoordinator() {
+        guard let coordinator = rotationCoordinator else { return }
+        
+        let previewAngle = coordinator.videoRotationAngleForHorizonLevelPreview
+        let captureAngle = coordinator.videoRotationAngleForHorizonLevelCapture
+        
+        if let connection = previewLayer?.connection,
+           connection.isVideoRotationAngleSupported(previewAngle) {
+            connection.videoRotationAngle = previewAngle
+        }
+        
+        let wasRunning = session.isRunning
+        if wasRunning {
+            session.beginConfiguration()
+        }
+        if let connection = videoOutput.connection(with: .video),
+           connection.isVideoRotationAngleSupported(captureAngle) {
+            connection.videoRotationAngle = captureAngle
+        }
+        if wasRunning {
+            session.commitConfiguration()
+        }
+        
+        DispatchQueue.main.async {
+            self.previewRotationAngle = previewAngle
+        }
+    }
+    
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         bufferLock.lock()
@@ -300,14 +352,22 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 }
 
 class PreviewNSView: NSView {
+    weak var cameraManager: CameraManager?
+    
     var previewLayer: AVCaptureVideoPreviewLayer? {
         didSet {
             oldValue?.removeFromSuperlayer()
             if let layer = previewLayer {
                 layer.frame = bounds
                 self.layer?.addSublayer(layer)
+                cameraManager?.attachPreviewLayer(layer)
             }
         }
+    }
+    
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        cameraManager?.refreshPreviewRotation()
     }
     
     override func layout() {
@@ -316,6 +376,7 @@ class PreviewNSView: NSView {
         CATransaction.setDisableActions(true)
         previewLayer?.frame = bounds
         CATransaction.commit()
+        cameraManager?.refreshPreviewRotation()
     }
 }
 
@@ -325,18 +386,17 @@ struct CameraPreviewView: NSViewRepresentable {
     func makeNSView(context: Context) -> PreviewNSView {
         let view = PreviewNSView()
         view.wantsLayer = true
+        view.cameraManager = cameraManager
         
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraManager.session)
         previewLayer.videoGravity = .resizeAspectFill
-        cameraManager.applyPreviewRotation(to: previewLayer)
         view.previewLayer = previewLayer
         
         return view
     }
     
     func updateNSView(_ nsView: PreviewNSView, context: Context) {
-        if let previewLayer = nsView.previewLayer {
-            cameraManager.applyPreviewRotation(to: previewLayer)
-        }
+        nsView.cameraManager = cameraManager
+        cameraManager.refreshPreviewRotation()
     }
 }

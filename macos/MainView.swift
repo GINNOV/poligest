@@ -532,11 +532,12 @@ struct MainView: View {
             DocumentGuideOverlay(lang: appLanguage)
                 .padding(24)
             
-            GeometryReader { geo in
+            GeometryReader { _ in
                 ForEach(liveDisplayedRecognizedItems) { item in
-                    let rect = mapBoundingBox(item.boundingBox, to: geo.size)
-                    boundingBoxMenu(for: item, rect: rect)
-                        .position(x: rect.midX, y: rect.midY)
+                    if let rect = cameraManager.previewRect(forNormalizedBoundingBox: item.boundingBox) {
+                        boundingBoxMenu(for: item, rect: rect)
+                            .position(x: rect.midX, y: rect.midY)
+                    }
                 }
             }
             
