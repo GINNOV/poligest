@@ -381,8 +381,7 @@ struct MainView: View {
             showWelcomePrompt = true
         }
         
-        let now = Date().timeIntervalSince1970
-        if checkForUpdatesAutomatically && (lastUpdateCheck == 0 || now - lastUpdateCheck > 86_400) {
+        if checkForUpdatesAutomatically {
             checkForUpdates(silent: lastUpdateCheck > 0)
         }
     }
@@ -3599,6 +3598,7 @@ class UpdateDownloader: NSObject, URLSessionDownloadDelegate {
         
         do {
             try FileManager.default.moveItem(at: location, to: destinationUrl)
+            UpdateInstaller.stripQuarantine(at: destinationUrl)
             onCompletion?(destinationUrl, nil)
         } catch {
             onCompletion?(nil, error)
