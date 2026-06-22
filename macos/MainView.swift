@@ -573,6 +573,9 @@ struct MainView: View {
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .cornerRadius(12)
         .padding(12)
+        .onAppear {
+            cameraManager.startSession()
+        }
     }
     
     @ViewBuilder
@@ -3144,24 +3147,24 @@ struct CaptureApprovalOverlay: View {
     let onStart: () -> Void
     
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.45)
-            
-            VStack(spacing: 16) {
+        VStack {
+            HStack(alignment: .center, spacing: 14) {
                 Image(systemName: "viewfinder")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.cyan)
+                    .frame(width: 28)
                 
-                Text(Localization.string(key: "capture_approval_title", lang: lang))
-                    .font(.title3)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Localization.string(key: "capture_approval_title", lang: lang))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(Localization.string(key: "capture_approval_body", lang: lang))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 
-                Text(Localization.string(key: "capture_approval_body", lang: lang))
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.85))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 280)
+                Spacer(minLength: 8)
                 
                 Button(action: onStart) {
                     Label(
@@ -3169,16 +3172,24 @@ struct CaptureApprovalOverlay: View {
                         systemImage: "play.fill"
                     )
                     .font(.headline)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.cyan)
+                .controlSize(.large)
             }
-            .padding(28)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
+            )
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            
+            Spacer()
         }
-        .cornerRadius(12)
-        .padding(12)
+        .allowsHitTesting(true)
     }
 }
 

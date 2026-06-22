@@ -365,8 +365,21 @@ class PreviewNSView: NSView {
         }
     }
     
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.cgColor
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.black.cgColor
+    }
+    
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        cameraManager?.startSession()
         cameraManager?.refreshPreviewRotation()
     }
     
@@ -385,8 +398,8 @@ struct CameraPreviewView: NSViewRepresentable {
     
     func makeNSView(context: Context) -> PreviewNSView {
         let view = PreviewNSView()
-        view.wantsLayer = true
         view.cameraManager = cameraManager
+        cameraManager.startSession()
         
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraManager.session)
         previewLayer.videoGravity = .resizeAspectFill
@@ -397,6 +410,13 @@ struct CameraPreviewView: NSViewRepresentable {
     
     func updateNSView(_ nsView: PreviewNSView, context: Context) {
         nsView.cameraManager = cameraManager
+        
+        if let previewLayer = nsView.previewLayer,
+           previewLayer.session !== cameraManager.session {
+            previewLayer.session = cameraManager.session
+        }
+        
+        cameraManager.startSession()
         cameraManager.refreshPreviewRotation()
     }
 }
