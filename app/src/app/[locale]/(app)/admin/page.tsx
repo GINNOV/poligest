@@ -218,7 +218,7 @@ export default async function AdminPage() {
     },
     {
       key: "scanid",
-      title: "Integrazione ScanID",
+      title: "Sistema: Integrazione ScanID",
       description: "Visualizza la chiave API e la guida alla configurazione per lo scanner macOS.",
       href: "/admin/scanid",
       badge: "macOS",
