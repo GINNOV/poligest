@@ -1,0 +1,29 @@
+name: macOS Verify
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - macos/**
+      - .github/workflows/macos-verify.yml
+  push:
+    branches: [main]
+    paths:
+      - macos/**
+      - .github/workflows/macos-verify.yml
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run IDParser tests
+        run: ./verify.sh
+
+      - name: Build ScanID (Xcode)
+        run: xcodebuild -scheme ScanID -configuration Debug build -destination 'platform=macOS'

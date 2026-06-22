@@ -1,4 +1,5 @@
 #!/bin/bash
+# CI: GitHub Actions runs this via .github/workflows/macos-verify.yml (and scanid-release.yml).
 set -e
 
 # Create a temporary test runner source file
