@@ -4,6 +4,8 @@ const { findUniqueMock } = vi.hoisted(() => ({
   findUniqueMock: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     wacomConfig: {
