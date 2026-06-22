@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAdminBackupReminderBody,
   buildAdminBackupReminderCandidates,
+  buildAdminBackupReminderHtml,
   buildRecurringCandidates,
   filterRecurringCandidates,
   getAdminBackupReminderMonthKey,
@@ -252,6 +253,8 @@ describe("recurring messages domain", () => {
     });
     expect(candidates[0]?.subject).toContain("backup mensile");
     expect(candidates[0]?.body).toContain("Passaggi consigliati:");
+    expect(candidates[0]?.html).toContain("Backup mensile PoliGest");
+    expect(candidates[0]?.html).toContain("<ol");
   });
 
   it("formats the monthly key and italian backup instructions", () => {
@@ -269,6 +272,17 @@ describe("recurring messages domain", () => {
     expect(body).toContain("1. Accedi alla dashboard amministrativa di PoliGest.");
     expect(body).toContain("6. Verifica che i file si aprano correttamente");
     expect(body).toContain("https://poligest.example.com/admin/reset");
+
+    const html = buildAdminBackupReminderHtml({
+      adminName: "Mario",
+      adminResetUrl: "https://poligest.example.com/admin/reset",
+      monthLabel: "novembre 2026",
+    });
+
+    expect(html).toContain("Ciao <strong>Mario</strong>,");
+    expect(html).toContain("Apri Admin &gt; Sistema: Database");
+    expect(html).toContain('href="https://poligest.example.com/admin/reset"');
+    expect(html).toContain("<ol");
   });
 
   it("materializes subject and body templates", () => {

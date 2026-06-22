@@ -51,7 +51,17 @@ export type AdminBackupReminderCandidate = {
   auditEntityId: string;
   subject: string;
   body: string;
+  html: string;
 };
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -247,6 +257,15 @@ export function getAdminBackupReminderMonthKey(date: Date) {
   return `${year}-${month}`;
 }
 
+const ADMIN_BACKUP_REMINDER_STEPS = [
+  "Accedi alla dashboard amministrativa di PoliGest.",
+  "Apri la sezione Admin > Sistema: Database.",
+  'Nella scheda "Esporta dati" lascia selezionate le tabelle necessarie.',
+  'Premi "Esporta selezione" e salva il file JSON in una cartella sicura.',
+  "Dalla stessa pagina esporta anche il CSV del magazzino, se ti serve una copia operativa.",
+  "Verifica che i file si aprano correttamente e annota la data del backup.",
+] as const;
+
 export function buildAdminBackupReminderBody(params: {
   adminName: string | null;
   adminResetUrl: string;
@@ -259,17 +278,64 @@ export function buildAdminBackupReminderBody(params: {
     `ti ricordiamo di eseguire il backup mensile di PoliGest per ${params.monthLabel}.`,
     "",
     "Passaggi consigliati:",
-    "1. Accedi alla dashboard amministrativa di PoliGest.",
-    "2. Apri la sezione Admin > Sistema: Database.",
-    "3. Nella scheda \"Esporta dati\" lascia selezionate le tabelle necessarie.",
-    "4. Premi \"Esporta selezione\" e salva il file JSON in una cartella sicura.",
-    "5. Dalla stessa pagina esporta anche il CSV del magazzino, se ti serve una copia operativa.",
-    "6. Verifica che i file si aprano correttamente e annota la data del backup.",
+    ...ADMIN_BACKUP_REMINDER_STEPS.map((step, index) => `${index + 1}. ${step}`),
     "",
     `Link diretto: ${params.adminResetUrl}`,
     "",
     "Suggerimento: conserva almeno una copia locale e una copia in uno spazio cloud protetto.",
   ].join("\n");
+}
+
+export function buildAdminBackupReminderHtml(params: {
+  adminName: string | null;
+  adminResetUrl: string;
+  monthLabel: string;
+}) {
+  const greetingName = params.adminName?.trim() ? escapeHtml(params.adminName.trim()) : null;
+  const greeting = greetingName ? `Ciao <strong>${greetingName}</strong>,` : "Ciao,";
+  const monthLabel = escapeHtml(params.monthLabel);
+  const adminResetUrl = escapeHtml(params.adminResetUrl);
+  const steps = ADMIN_BACKUP_REMINDER_STEPS.map(
+    (step) => `<li style="margin-bottom:10px;">${escapeHtml(step)}</li>`,
+  ).join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#18181b;line-height:1.5;">
+      <div style="background-color:#047857;padding:24px;text-align:center;border-radius:16px 16px 0 0;">
+        <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#d1fae5;">
+          Manutenzione sistema
+        </p>
+        <h1 style="margin:8px 0 0;font-size:24px;color:#ffffff;">Backup mensile PoliGest</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:#d1fae5;">${monthLabel}</p>
+      </div>
+      <div style="padding:24px;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 16px 16px;background:#ffffff;">
+        <p style="margin:0 0 16px;font-size:15px;color:#3f3f46;">${greeting}</p>
+        <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;">
+          ti ricordiamo di eseguire il backup mensile di PoliGest per <strong>${monthLabel}</strong>.
+        </p>
+
+        <div style="margin:0 0 24px;padding:18px;border:1px solid #e4e4e7;border-radius:12px;background:#fafafa;">
+          <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#18181b;">Passaggi consigliati</p>
+          <ol style="margin:0;padding-left:20px;font-size:14px;color:#52525b;">${steps}</ol>
+        </div>
+
+        <div style="text-align:center;margin:0 0 24px;">
+          <a href="${adminResetUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:#047857;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;">
+            Apri Admin &gt; Sistema: Database
+          </a>
+        </div>
+
+        <p style="margin:0 0 8px;font-size:13px;color:#71717a;text-align:center;">
+          Link diretto:
+          <a href="${adminResetUrl}" style="color:#047857;text-decoration:none;">${adminResetUrl}</a>
+        </p>
+
+        <p style="margin:24px 0 0;padding-top:20px;border-top:1px dashed #e4e4e7;font-size:13px;color:#71717a;text-align:center;">
+          <strong>Suggerimento:</strong> conserva almeno una copia locale e una copia in uno spazio cloud protetto.
+        </p>
+      </div>
+    </div>
+  `;
 }
 
 export function buildAdminBackupReminderCandidates(params: {
@@ -289,6 +355,12 @@ export function buildAdminBackupReminderCandidates(params: {
         return null;
       }
 
+      const reminderParams = {
+        adminName: admin.name,
+        adminResetUrl: params.adminResetUrl,
+        monthLabel,
+      };
+
       return {
         userId: admin.id,
         email: admin.email,
@@ -296,11 +368,8 @@ export function buildAdminBackupReminderCandidates(params: {
         monthKey,
         auditEntityId,
         subject: `Promemoria backup mensile PoliGest - ${monthLabel}`,
-        body: buildAdminBackupReminderBody({
-          adminName: admin.name,
-          adminResetUrl: params.adminResetUrl,
-          monthLabel,
-        }),
+        body: buildAdminBackupReminderBody(reminderParams),
+        html: buildAdminBackupReminderHtml(reminderParams),
       };
     })
     .filter((candidate): candidate is AdminBackupReminderCandidate => candidate !== null);

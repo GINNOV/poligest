@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { RecurringMessageStatus, Role } from "@prisma/client";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, sendEmailWithHtml } from "@/lib/email";
 import { errorResponse } from "@/lib/error-response";
 import {
   buildAdminBackupReminderCandidates,
@@ -197,7 +197,7 @@ export async function GET(req: Request) {
     let adminBackupProcessed = 0;
     for (const candidate of adminBackupCandidates) {
       try {
-        await sendEmail(candidate.email, candidate.subject, candidate.body);
+        await sendEmailWithHtml(candidate.email, candidate.subject, candidate.body, candidate.html);
         await logAudit(null, {
           action: "admin.backup_reminder_sent",
           entity: "System",
