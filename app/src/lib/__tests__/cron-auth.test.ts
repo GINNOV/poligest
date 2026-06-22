@@ -24,6 +24,23 @@ describe("cron auth", () => {
     vi.unstubAllEnvs();
   });
 
+  it("returns false when CRON_SECRET is unset", async () => {
+    vi.stubEnv("CRON_SECRET", "");
+
+    await expect(
+      validateCronSecret(new Request("https://example.test/api/job", {
+        headers: { authorization: "Bearer secret" },
+      })),
+    ).resolves.toBe(false);
+    await expect(
+      validateCronSecret(new Request("https://example.test/api/job", {
+        headers: { "x-cron-secret": "secret" },
+      })),
+    ).resolves.toBe(false);
+
+    vi.unstubAllEnvs();
+  });
+
   it("does not report unauthorized cron probes as application errors", async () => {
     const { errorResponse } = await import("@/lib/error-response");
     const response = unauthorizedCronResponse();
