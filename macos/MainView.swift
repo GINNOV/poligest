@@ -798,17 +798,68 @@ struct MainView: View {
                             .padding(.horizontal)
                         
                         VStack(spacing: 0) {
-                            FieldRow(label: Localization.string(key: "field_surname", lang: appLanguage), value: parsedData.surname, icon: "person.text.rectangle")
-                            FieldRow(label: Localization.string(key: "field_name", lang: appLanguage), value: parsedData.name, icon: "person")
-                            FieldRow(label: Localization.string(key: "field_cf", lang: appLanguage), value: parsedData.codiceFiscale, icon: "number.square", highlight: true)
-                            FieldRow(label: Localization.string(key: "field_doc_num", lang: appLanguage), value: parsedData.documentNumber, icon: "doc.text.fill")
-                            FieldRow(label: Localization.string(key: "field_dob", lang: appLanguage), value: parsedData.dateOfBirth, icon: "calendar")
-                            FieldRow(label: Localization.string(key: "field_pob", lang: appLanguage), value: parsedData.placeOfBirth, icon: "mappin.and.ellipse")
-                            FieldRow(label: Localization.string(key: "field_sex", lang: appLanguage), value: parsedData.gender, icon: "figure.male.female")
-                            FieldRow(label: Localization.string(key: "field_expiry", lang: appLanguage), value: parsedData.expiryDate, icon: "calendar.badge.exclamationmark")
-                            FieldRow(label: Localization.string(key: "field_nationality", lang: appLanguage), value: parsedData.nationality, icon: "globe")
-                            if let cardNum = parsedData.cardNumber {
-                                FieldRow(label: Localization.string(key: "field_card_num", lang: appLanguage), value: cardNum, icon: "creditcard")
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_surname", lang: appLanguage),
+                                text: optionalStringBinding(\.surname),
+                                icon: "person.text.rectangle",
+                                onCommit: { handleParsedFieldCommit(recalculateCF: true, refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_name", lang: appLanguage),
+                                text: optionalStringBinding(\.name),
+                                icon: "person",
+                                onCommit: { handleParsedFieldCommit(recalculateCF: true, refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_cf", lang: appLanguage),
+                                text: optionalStringBinding(\.codiceFiscale),
+                                icon: "number.square",
+                                highlight: true,
+                                onCommit: { handleParsedFieldCommit(refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_doc_num", lang: appLanguage),
+                                text: optionalStringBinding(\.documentNumber),
+                                icon: "doc.text.fill",
+                                onCommit: { handleParsedFieldCommit() }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_dob", lang: appLanguage),
+                                text: optionalStringBinding(\.dateOfBirth),
+                                icon: "calendar",
+                                onCommit: { handleParsedFieldCommit(recalculateCF: true, refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_pob", lang: appLanguage),
+                                text: optionalStringBinding(\.placeOfBirth),
+                                icon: "mappin.and.ellipse",
+                                onCommit: { handleParsedFieldCommit(recalculateCF: true, refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_sex", lang: appLanguage),
+                                text: optionalStringBinding(\.gender),
+                                icon: "figure.male.female",
+                                onCommit: { handleParsedFieldCommit(recalculateCF: true, refreshLookup: true) }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_expiry", lang: appLanguage),
+                                text: optionalStringBinding(\.expiryDate),
+                                icon: "calendar.badge.exclamationmark",
+                                onCommit: { handleParsedFieldCommit() }
+                            )
+                            EditableFieldRow(
+                                label: Localization.string(key: "field_nationality", lang: appLanguage),
+                                text: optionalStringBinding(\.nationality),
+                                icon: "globe",
+                                onCommit: { handleParsedFieldCommit() }
+                            )
+                            if parsedData.cardNumber != nil || parsedData.documentType.contains("TESSERA") {
+                                EditableFieldRow(
+                                    label: Localization.string(key: "field_card_num", lang: appLanguage),
+                                    text: optionalStringBinding(\.cardNumber),
+                                    icon: "creditcard",
+                                    onCommit: { handleParsedFieldCommit() }
+                                )
                             }
                         }
                         .background(Color(nsColor: .controlBackgroundColor))
@@ -818,9 +869,34 @@ struct MainView: View {
                     .padding(.top)
                     
                     if parsedData.documentType != "UNKNOWN" {
-                        if case .success = syncStatus {
-                            EmptyView()
-                        } else {
+                        switch syncStatus {
+                        case .success(let patientId, let isUpdate):
+                            PatientRecordSuccessCard(
+                                isUpdate: isUpdate,
+                                patientId: patientId,
+                                patientName: [parsedData.surname, parsedData.name]
+                                    .compactMap { $0 }
+                                    .filter { !$0.isEmpty }
+                                    .joined(separator: " "),
+                                serverUrl: serverUrl,
+                                lang: appLanguage,
+                                onOpen: { openPatientRecord(patientId: patientId) }
+                            )
+                            .padding(.horizontal)
+                        case .syncing:
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text(Localization.string(
+                                    key: isUpdatingExistingPatient ? "sync_progress_update" : "sync_progress_create",
+                                    lang: appLanguage
+                                ))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal)
+                        default:
                             Button(action: {
                                 self.beginPatientSync()
                             }) {
@@ -1134,9 +1210,34 @@ struct MainView: View {
         CountdownSound.play()
     }
     
+    // MARK: - Parsed Field Editing
+    
+    private func optionalStringBinding(_ keyPath: WritableKeyPath<IDData, String?>) -> Binding<String> {
+        Binding(
+            get: { parsedData[keyPath: keyPath] ?? "" },
+            set: { newValue in
+                parsedData[keyPath: keyPath] = newValue.isEmpty ? nil : newValue
+                if case .success = syncStatus {
+                    syncStatus = .idle
+                }
+            }
+        )
+    }
+    
+    private func handleParsedFieldCommit(recalculateCF: Bool = false, refreshLookup: Bool = false) {
+        if recalculateCF {
+            parsedData.calculateCodiceFiscaleIfPossible()
+        }
+        if refreshLookup {
+            refreshPatientLookup(for: parsedData)
+        }
+    }
+    
     // MARK: - Sync API Calls
     
     private func beginPatientSync() {
+        parsedData.calculateCodiceFiscaleIfPossible()
+        
         let fName = parsedData.name ?? "Sconosciuto"
         let lName = parsedData.surname ?? "Sconosciuto"
         
@@ -1200,6 +1301,15 @@ struct MainView: View {
         }
     }
     
+    private func patientRecordURL(patientId: String) -> URL? {
+        URL(string: "\(serverUrl)/pazienti/\(patientId)")
+    }
+    
+    private func openPatientRecord(patientId: String) {
+        guard let url = patientRecordURL(patientId: patientId) else { return }
+        NSWorkspace.shared.open(url)
+    }
+    
     private func triggerPatientSync(
         firstName: String,
         lastName: String,
@@ -1224,9 +1334,7 @@ struct MainView: View {
                     self.syncStatus = .success(patientId: syncResult.patientId, isUpdate: syncResult.isUpdate)
                     
                     if self.openInBrowser {
-                        if let patientUrl = URL(string: "\(self.serverUrl)/pazienti/\(syncResult.patientId)") {
-                            NSWorkspace.shared.open(patientUrl)
-                        }
+                        self.openPatientRecord(patientId: syncResult.patientId)
                     }
                 case .failure(let error):
                     self.syncStatus = .failure(error: error.localizedDescription)
@@ -2426,6 +2534,70 @@ struct SettingsView: View {
     }
 }
 
+struct PatientRecordSuccessCard: View {
+    let isUpdate: Bool
+    let patientId: String
+    let patientName: String
+    let serverUrl: String
+    let lang: String
+    let onOpen: () -> Void
+    
+    private var patientUrl: String {
+        "\(serverUrl)/pazienti/\(patientId)"
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.green)
+                    .symbolRenderingMode(.hierarchical)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(Localization.string(
+                        key: isUpdate ? "sync_success_update" : "sync_success_create",
+                        lang: lang
+                    ))
+                    .font(.headline)
+                    
+                    if !patientName.isEmpty {
+                        Text(patientName)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            
+            Button(action: onOpen) {
+                Label(
+                    Localization.string(key: "sync_open_record_button", lang: lang),
+                    systemImage: "arrow.up.forward.app"
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 2)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            
+            Text(patientUrl)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.green.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.green.opacity(0.25), lineWidth: 1)
+        )
+    }
+}
+
 struct SettingsCard<Content: View>: View {
     var title: String?
     @ViewBuilder var content: Content
@@ -3036,11 +3208,12 @@ struct DocumentGuideOverlay: View {
     }
 }
 
-struct FieldRow: View {
+struct EditableFieldRow: View {
     let label: String
-    let value: String?
+    @Binding var text: String
     let icon: String
     var highlight: Bool = false
+    var onCommit: (() -> Void)? = nil
     
     @State private var isHovering = false
     @State private var copied = false
@@ -3059,35 +3232,29 @@ struct FieldRow: View {
             Divider()
                 .frame(height: 16)
             
-            if let val = value, !val.isEmpty {
-                Text(val)
-                    .fontWeight(highlight ? .semibold : .regular)
-                    .foregroundColor(highlight ? .cyan : .primary)
-                
-                Spacer()
-                
-                if isHovering {
-                    Button(action: {
-                        let pasteboard = NSPasteboard.general
-                        pasteboard.clearContents()
-                        pasteboard.setString(val, forType: .string)
-                        copied = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            copied = false
-                        }
-                    }) {
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 11))
-                            .foregroundColor(copied ? .green : .secondary)
+            TextField("", text: $text, prompt: Text("—").foregroundColor(.secondary.opacity(0.5)))
+                .textFieldStyle(.plain)
+                .fontWeight(highlight ? .semibold : .regular)
+                .foregroundColor(highlight ? .cyan : .primary)
+                .onSubmit { onCommit?() }
+            
+            if isHovering && !text.isEmpty {
+                Button(action: {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(text, forType: .string)
+                    copied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        copied = false
                     }
-                    .buttonStyle(.plain)
-                    .transition(.opacity)
-                    .help(copied ? "Copied!" : "Copy value")
+                }) {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 11))
+                        .foregroundColor(copied ? .green : .secondary)
                 }
-            } else {
-                Text("—")
-                    .foregroundColor(.secondary.opacity(0.5))
-                Spacer()
+                .buttonStyle(.plain)
+                .transition(.opacity)
+                .help(copied ? "Copied!" : "Copy value")
             }
         }
         .padding(.vertical, 10)
@@ -3265,6 +3432,7 @@ struct Localization {
             "sync_progress_update": "Updating patient record...",
             "sync_success_create": "Patient record created successfully!",
             "sync_success_update": "Patient record updated successfully!",
+            "sync_open_record_button": "Open Patient Record in Sorriso",
             "create_success": "Patient record created successfully!",
             "create_fail": "Failed to create patient: %@",
             "create": "Create",
@@ -3425,6 +3593,7 @@ struct Localization {
             "sync_progress_update": "Aggiornamento cartella paziente in corso...",
             "sync_success_create": "Cartella paziente creata con successo!",
             "sync_success_update": "Cartella paziente aggiornata con successo!",
+            "sync_open_record_button": "Apri cartella paziente in Sorriso",
             "create_success": "Cartella paziente creata con successo!",
             "create_fail": "Impossibile creare cartella: %@",
             "create": "Crea",
