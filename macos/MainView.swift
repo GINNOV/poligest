@@ -3148,24 +3148,8 @@ struct CaptureApprovalOverlay: View {
     
     var body: some View {
         VStack {
-            HStack(alignment: .center, spacing: 14) {
-                Image(systemName: "viewfinder")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.cyan)
-                    .frame(width: 28)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(Localization.string(key: "capture_approval_title", lang: lang))
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(Localization.string(key: "capture_approval_body", lang: lang))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                
-                Spacer(minLength: 8)
-                
+            HStack {
+                Spacer()
                 Button(action: onStart) {
                     Label(
                         Localization.string(key: "capture_approval_button", lang: lang),
@@ -3177,19 +3161,11 @@ struct CaptureApprovalOverlay: View {
                 .tint(.cyan)
                 .controlSize(.large)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
-            )
             .padding(.horizontal, 20)
             .padding(.top, 20)
             
             Spacer()
         }
-        .allowsHitTesting(true)
     }
 }
 
