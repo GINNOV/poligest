@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { fetchWacomLicenseFromApi } from "@/lib/wacom-config";
+import { fetchWacomLicenseFromApi } from "@/lib/wacom-license-client";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
 type Props = {

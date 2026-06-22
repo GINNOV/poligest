@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchWacomLicenseFromApi } from "@/lib/wacom-config";
+import { fetchWacomLicenseFromApi } from "@/lib/wacom-license-client";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
 type Point = { x: number; y: number };

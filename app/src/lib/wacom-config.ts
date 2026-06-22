@@ -1,12 +1,10 @@
+import "server-only";
+
 import { prisma } from "@/lib/prisma";
+import { WACOM_CONFIG_ID, type WacomLicenseConfig } from "@/lib/wacom-license-types";
 
-export const WACOM_CONFIG_ID = "default";
-
-export type WacomLicenseConfig = {
-  licenseKey: string;
-  licenseSecret: string;
-  source: "db" | "env";
-};
+export { WACOM_CONFIG_ID };
+export type { WacomLicenseConfig };
 
 let cachedConfig: { value: WacomLicenseConfig | null; fetchedAt: number } = {
   value: null,
@@ -63,28 +61,4 @@ export function maskWacomValue(value?: string | null, show = 8) {
   const trimmed = value.trim();
   if (trimmed.length <= show) return "*".repeat(trimmed.length);
   return `${trimmed.slice(0, show)}${"*".repeat(Math.max(0, trimmed.length - show - 2))}${trimmed.slice(-2)}`;
-}
-
-export async function fetchWacomLicenseFromApi(): Promise<WacomLicenseConfig | null> {
-  const response = await fetch("/api/wacom/license", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error("Impossibile recuperare la licenza Wacom.");
-  }
-
-  const payload = (await response.json()) as {
-    configured?: boolean;
-    licenseKey?: string;
-    licenseSecret?: string;
-    source?: "db" | "env";
-  };
-
-  if (!payload.configured || !payload.licenseKey || !payload.licenseSecret) {
-    return null;
-  }
-
-  return {
-    licenseKey: payload.licenseKey,
-    licenseSecret: payload.licenseSecret,
-    source: payload.source ?? "db",
-  };
 }
