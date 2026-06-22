@@ -16,7 +16,7 @@ if [[ ! -f "$ROOT/.vercel/project.json" ]]; then
   exit 1
 fi
 
-IFS=$'\t' read -r VERSION DOWNLOAD_URL NOTES < <(node -e '
+VERSION=$(node -e '
 const fs = require("fs");
 const src = fs.readFileSync(process.argv[1], "utf8");
 const version = src.match(/SCANID_LATEST_VERSION \|\| "([^"]+)"/)?.[1];
@@ -26,7 +26,25 @@ const notes = src.match(/SCANID_RELEASE_NOTES \|\|\s*\n?\s*"([^"]+)"/)?.[1]
   ?? src.match(/SCANID_RELEASE_NOTES \|\| "([^"]+)"/)?.[1]
   ?? "";
 if (!version || !downloadUrl) process.exit(1);
-process.stdout.write(`${version}\t${downloadUrl}\t${notes}`);
+process.stdout.write(version);
+' "$META_FILE")
+
+DOWNLOAD_URL=$(node -e '
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[1], "utf8");
+const downloadUrl = src.match(/SCANID_DOWNLOAD_URL \|\|\s*\n?\s*"([^"]+)"/)?.[1]
+  ?? src.match(/SCANID_DOWNLOAD_URL \|\| "([^"]+)"/)?.[1];
+if (!downloadUrl) process.exit(1);
+process.stdout.write(downloadUrl);
+' "$META_FILE")
+
+NOTES=$(node -e '
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[1], "utf8");
+const notes = src.match(/SCANID_RELEASE_NOTES \|\|\s*\n?\s*"([^"]+)"/)?.[1]
+  ?? src.match(/SCANID_RELEASE_NOTES \|\| "([^"]+)"/)?.[1]
+  ?? "";
+process.stdout.write(notes);
 ' "$META_FILE")
 
 if [[ -z "$VERSION" || -z "$DOWNLOAD_URL" ]]; then
