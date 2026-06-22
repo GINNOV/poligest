@@ -5,13 +5,13 @@ export type ScanIdMeta = {
 };
 
 export function getScanIdMeta(): ScanIdMeta {
-  const version = process.env.SCANID_LATEST_VERSION || "1.3.4";
+  const version = process.env.SCANID_LATEST_VERSION || "1.3.5";
   const downloadUrl =
     process.env.SCANID_DOWNLOAD_URL ||
-    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.4/ScanID-1.3.4.dmg";
+    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.5/ScanID-1.3.5.dmg";
   const notes =
     process.env.SCANID_RELEASE_NOTES ||
-    "Editable scanned fields, prominent patient record link after sync, and sync progress in results panel.";
+    "Fixes aggressive update prompts: silent checks no longer interrupt, Later is remembered, and checks run once per day.";
 
   return {
     version,

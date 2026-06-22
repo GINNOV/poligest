@@ -36,6 +36,7 @@ struct MainView: View {
     @AppStorage("autoDownloadAndInstallUpdates") private var autoDownloadAndInstallUpdates = false
     @AppStorage("hasCompletedWelcomePrompt") private var hasCompletedWelcomePrompt = false
     @AppStorage("lastUpdateCheck") private var lastUpdateCheck: Double = 0
+    @AppStorage("dismissedUpdateVersion") private var dismissedUpdateVersion = ""
     @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
     @AppStorage("requireCaptureApproval") private var requireCaptureApproval = false
     @AppStorage("detectOnlyExpectedFields") private var detectOnlyExpectedFields = true
@@ -52,6 +53,7 @@ struct MainView: View {
     @State private var syncStatus: SyncStatus = .idle
     @State private var pendingUpdate: PendingUpdate? = nil
     @State private var isCheckingForUpdates = false
+    @State private var didPerformStartupUpdateCheck = false
     
     // Update downloading state
     @State private var downloadProgress: Double = 0.0
@@ -162,9 +164,7 @@ struct MainView: View {
             }
             .sheet(isPresented: $showWelcomePrompt) {
                 WelcomePromptView(isPresented: $showWelcomePrompt, lang: appLanguage) {
-                    if checkForUpdatesAutomatically {
-                        checkForUpdates(silent: true)
-                    }
+                    performStartupUpdateCheckIfNeeded()
                 }
                 .interactiveDismissDisabled()
             }
@@ -377,12 +377,42 @@ struct MainView: View {
         
         if lastUpdateCheck > 0 {
             hasCompletedWelcomePrompt = true
-        } else if !hasCompletedWelcomePrompt {
-            showWelcomePrompt = true
         }
         
-        if checkForUpdatesAutomatically {
-            checkForUpdates(silent: lastUpdateCheck > 0)
+        if !hasCompletedWelcomePrompt {
+            showWelcomePrompt = true
+            return
+        }
+        
+        performStartupUpdateCheckIfNeeded()
+    }
+    
+    private func performStartupUpdateCheckIfNeeded() {
+        guard !didPerformStartupUpdateCheck else { return }
+        didPerformStartupUpdateCheck = true
+        guard checkForUpdatesAutomatically else { return }
+        
+        let now = Date().timeIntervalSince1970
+        guard lastUpdateCheck == 0 || now - lastUpdateCheck > 86_400 else { return }
+        
+        checkForUpdates(silent: lastUpdateCheck > 0)
+    }
+    
+    private func shouldPromptForUpdate(version: String, forcePrompt: Bool) -> Bool {
+        if forcePrompt { return true }
+        guard !dismissedUpdateVersion.isEmpty else { return true }
+        return isNewerVersion(version, than: dismissedUpdateVersion)
+    }
+    
+    private func presentUpdateIfNeeded(_ update: PendingUpdate, silent: Bool, forcePrompt: Bool = false) {
+        guard shouldPromptForUpdate(version: update.version, forcePrompt: forcePrompt) else { return }
+        guard !silent || forcePrompt else { return }
+        
+        pendingUpdate = update
+        
+        if autoDownloadAndInstallUpdates,
+           let downloadURL = URL(string: update.downloadUrl) {
+            startUpdateDownload(url: downloadURL)
         }
     }
     
@@ -424,6 +454,9 @@ struct MainView: View {
                 installDownloadedUpdate()
             },
             onLater: {
+                if let version = pendingUpdate?.version {
+                    dismissedUpdateVersion = version
+                }
                 downloader?.cancel()
                 isDownloading = false
                 downloadProgress = 0.0
@@ -1590,7 +1623,7 @@ struct MainView: View {
         return false
     }
     
-    private func checkForUpdates(silent: Bool = false) {
+    private func checkForUpdates(silent: Bool = false, forcePrompt: Bool = false) {
         guard !isCheckingForUpdates else { return }
         isCheckingForUpdates = true
         
@@ -1634,12 +1667,7 @@ struct MainView: View {
                                 downloadUrl: downloadUrl,
                                 notes: json["notes"] as? String
                             )
-                            self.pendingUpdate = update
-                            
-                            if self.autoDownloadAndInstallUpdates,
-                               let downloadURL = URL(string: update.downloadUrl) {
-                                self.startUpdateDownload(url: downloadURL)
-                            }
+                            self.presentUpdateIfNeeded(update, silent: silent, forcePrompt: forcePrompt)
                         }
                     } else if !silent {
                         // Up to date
@@ -2488,7 +2516,6 @@ struct SettingsView: View {
                                 downloadUrl: download,
                                 notes: json["notes"] as? String
                             )
-                            // Dismiss settings to reveal update sheet in MainView
                             self.isPresented = false
                         }
                     } else {
