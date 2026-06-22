@@ -227,8 +227,8 @@ export default async function AdminPage() {
     },
     {
       key: "wacom",
-      title: "Integrazione Wacom",
-      description: "Stato licenza, SDK e guida per il tablet firma STU-430 nei consensi e preventivi.",
+      title: "Sistema: Integrazione Wacom",
+      description: "Gestisci licenza e SDK del tablet firma STU-430 per consensi e preventivi.",
       href: "/admin/wacom",
       badge: "Firma digitale",
       tone: "primary",
