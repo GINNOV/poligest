@@ -18,7 +18,13 @@ type WacomSigSDK = {
   };
   Config: new () => {
     source: { mouse: boolean; touch: boolean; pen: boolean; stu: boolean };
+    centered: boolean;
+    modal: boolean;
+    width: number;
+    height: number;
+    fitMode: { value: number };
   };
+  FIT_MODE: { FIXED: { value: number } };
   STUDevice: {
     isHIDSupported: () => boolean;
     requestDevices: () => Promise<unknown[]>;

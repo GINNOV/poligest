@@ -4,6 +4,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import {
+  createWacomCaptureConfig,
+  ensureWacomDialogStub,
+  prepareWacomCaptureViewport,
+} from "@/lib/wacom-capture";
 import { fetchWacomLicenseFromApi } from "@/lib/wacom-license-client";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
@@ -42,21 +47,7 @@ type WacomStuDeviceInstance = { delete?: () => void };
 type WacomStuDeviceFactory = LoadedWacomSdk["STUDevice"] & {
   new (device: unknown): WacomStuDeviceInstance;
 };
-type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]> & {
-  sigCaptDialog?: {
-    getButton: () => number;
-    onDown: () => void;
-    onMove: () => void;
-    onUp: () => void;
-    clickButton: () => void;
-    clear: () => void;
-    cancel: () => void;
-    accept: () => void;
-    clearTimeOnSurface: () => void;
-    startCapture: () => void;
-    stopCapture: () => void;
-  };
-};
+type WacomDialogInstance = InstanceType<LoadedWacomSdk["StuCaptDialog"]>;
 
 const renderInline = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {
@@ -443,6 +434,7 @@ export function PatientConsentSection({
     if (wacomLoading) return;
     setSignatureError(null);
     setWacomLoading(true);
+    const restoreViewport = prepareWacomCaptureViewport();
     try {
       const sigSDK = await loadWacomSignatureSdk();
       if (!sigSDK) {
@@ -468,28 +460,9 @@ export function PatientConsentSection({
       }
 
       const stuDevice = new (sigSDK.STUDevice as WacomStuDeviceFactory)(devices[0]);
-      const config = new sigSDK.Config();
-      config.source.mouse = false;
-      config.source.touch = false;
-      config.source.pen = false;
-      config.source.stu = true;
-
+      const config = createWacomCaptureConfig(sigSDK);
       const dialog = new sigSDK.StuCaptDialog(stuDevice, config) as WacomDialogInstance;
-      if (!dialog.sigCaptDialog) {
-        dialog.sigCaptDialog = {
-          getButton: () => -1,
-          onDown: () => {},
-          onMove: () => {},
-          onUp: () => {},
-          clickButton: () => {},
-          clear: () => {},
-          cancel: () => {},
-          accept: () => {},
-          clearTimeOnSurface: () => {},
-          startCapture: () => {},
-          stopCapture: () => {},
-        };
-      }
+      ensureWacomDialogStub(dialog);
       dialog.addEventListener(sigSDK.EventType.OK, async () => {
         const image = await renderWacomSignature(sigSDK, sigObj);
         updateSignature(image);
@@ -497,15 +470,18 @@ export function PatientConsentSection({
         setIsOpen(false);
         dialog.delete?.();
         stuDevice.delete?.();
+        restoreViewport();
       });
       dialog.addEventListener(sigSDK.EventType.CANCEL, () => {
         dialog.delete?.();
         stuDevice.delete?.();
+        restoreViewport();
       });
 
       const wacomTitle = moduleLabel ? `Consenso ${moduleLabel}` : "Consenso informato";
       await dialog.open(sigObj, patientName, wacomTitle, null, sigSDK.KeyType.SHA512, null);
     } catch (error) {
+      restoreViewport();
       setSignatureError(error instanceof Error ? error.message : "Errore acquisizione firma Wacom.");
     } finally {
       setWacomLoading(false);

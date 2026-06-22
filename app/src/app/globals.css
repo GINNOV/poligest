@@ -306,3 +306,17 @@ input[type="file"]::file-selector-button {
     filter: none !important;
   }
 }
+
+/* Wacom capture dialog: keep preview centered in the viewport */
+#modal-background.active {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 10000 !important;
+}
+
+#signatureWindow {
+  position: fixed !important;
+  z-index: 10001 !important;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+}
