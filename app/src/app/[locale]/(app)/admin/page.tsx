@@ -226,6 +226,15 @@ export default async function AdminPage() {
       icon: "📱",
     },
     {
+      key: "wacom",
+      title: "Integrazione Wacom",
+      description: "Stato licenza, SDK e guida per il tablet firma STU-430 nei consensi e preventivi.",
+      href: "/admin/wacom",
+      badge: "Firma digitale",
+      tone: "primary",
+      icon: "✍️",
+    },
+    {
       key: "reset",
       title: t("reset"),
       description: "Ripristino del sistema ai dati di esempio ed esportazione dati.",

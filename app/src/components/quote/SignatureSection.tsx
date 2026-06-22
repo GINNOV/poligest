@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchWacomLicenseFromApi } from "@/lib/wacom-config";
 import { loadWacomSignatureSdk } from "@/lib/wacom-signature";
 
 type Point = { x: number; y: number };
@@ -196,14 +197,13 @@ export function SignatureSection({
         throw new Error("Il browser non supporta WebHID per il tablet STU.");
       }
 
-      const key = process.env.NEXT_PUBLIC_WACOM_SIGNATURE_KEY ?? "";
-      const secret = process.env.NEXT_PUBLIC_WACOM_SIGNATURE_SECRET ?? "";
-      if (!key || !secret) {
-        throw new Error("Licenza Wacom mancante. Configura le chiavi NEXT_PUBLIC_WACOM_SIGNATURE_*.");
+      const license = await fetchWacomLicenseFromApi();
+      if (!license) {
+        throw new Error("Licenza Wacom mancante. Configurala in Amministrazione > Integrazione Wacom.");
       }
 
       const sigObj = new sigSDK.SigObj();
-      await sigObj.setLicence(key, secret);
+      await sigObj.setLicence(license.licenseKey, license.licenseSecret);
 
       const devices = await sigSDK.STUDevice.requestDevices();
       if (devices.length === 0) {

@@ -63,6 +63,7 @@ async function resetSystem(formData: FormData) {
     prisma.smsLog.deleteMany(),
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
+    prisma.wacomConfig.deleteMany(),
     prisma.emailTemplate.deleteMany(),
     prisma.dailyReminderLog.deleteMany(),
     prisma.dailyReminderConfig.deleteMany(),
@@ -347,6 +348,11 @@ async function resetSystem(formData: FormData) {
         const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
         if (entries.length) await tx.smsProviderConfig.createMany({ data: entries });
       }
+
+      if (selected.includes("wacomConfig")) {
+        const entries = tableData("wacomConfig") as Prisma.WacomConfigCreateManyInput[];
+        if (entries.length) await tx.wacomConfig.createMany({ data: entries });
+      }
     });
   }
 
@@ -407,6 +413,7 @@ async function importData(formData: FormData) {
     await tx.smsLog.deleteMany();
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
+    await tx.wacomConfig.deleteMany();
     await tx.emailTemplate.deleteMany();
     await tx.practiceWeeklyReportLog.deleteMany();
     await tx.practiceWeeklyReportConfig.deleteMany();
@@ -674,6 +681,11 @@ async function importData(formData: FormData) {
     if (selected.includes("smsProviderConfig")) {
       const entries = tableData("smsProviderConfig") as Prisma.SmsProviderConfigCreateManyInput[];
       if (entries.length) await tx.smsProviderConfig.createMany({ data: entries });
+    }
+
+    if (selected.includes("wacomConfig")) {
+      const entries = tableData("wacomConfig") as Prisma.WacomConfigCreateManyInput[];
+      if (entries.length) await tx.wacomConfig.createMany({ data: entries });
     }
   });
 

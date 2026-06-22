@@ -13,6 +13,7 @@ export const exportTables = [
   { key: "smsTemplates", label: "Template SMS", category: "Sistema" },
   { key: "smsLogs", label: "Log SMS", category: "Sistema" },
   { key: "smsProviderConfig", label: "Config ClickSend", category: "Configurazione" },
+  { key: "wacomConfig", label: "Config Wacom", category: "Configurazione" },
   { key: "emailTemplates", label: "Template email", category: "Sistema" },
   { key: "dailyReminderConfig", label: "Config promemoria quotidiano", category: "Configurazione" },
   { key: "dailyReminderLogs", label: "Log promemoria quotidiano", category: "Sistema" },

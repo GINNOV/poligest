@@ -174,6 +174,16 @@ model SmsProviderConfig {
   @@index([createdAt])
 }
 
+model WacomConfig {
+  id            String   @id
+  licenseKey    String
+  licenseSecret String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([createdAt])
+}
+
 model FeatureInstruction {
   id           String   @id @default(cuid())
   pathPattern  String   // regex or prefix to match current path, e.g. "/pazienti/[id]"
