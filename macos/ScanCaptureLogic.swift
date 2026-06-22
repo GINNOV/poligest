@@ -12,6 +12,9 @@ enum ScanCaptureState {
 
 enum CameraOrientation {
     static let continuityCameraRotationAngle: CGFloat = 180
+    /// Portrait-mounted Continuity Camera over a flat, horizontal ID card needs an extra
+    /// quarter turn so the preview matches the card's physical orientation.
+    static let continuityDocumentScanOffset: CGFloat = 90
 
     struct DeviceTraits {
         let isContinuityCamera: Bool
@@ -47,6 +50,30 @@ enum CameraOrientation {
 
     static func fallbackRotationAngle(traits: DeviceTraits) -> CGFloat {
         isContinuityCameraDevice(traits: traits) ? continuityCameraRotationAngle : 0
+    }
+
+    static func normalizeRotationAngle(_ angle: CGFloat) -> CGFloat {
+        var normalized = angle.truncatingRemainder(dividingBy: 360)
+        if normalized < 0 {
+            normalized += 360
+        }
+        return normalized
+    }
+
+    static func documentScanRotationOffset(for device: AVCaptureDevice?) -> CGFloat {
+        isContinuityCameraDevice(device) ? continuityDocumentScanOffset : 0
+    }
+
+    static func documentScanRotationOffset(traits: DeviceTraits) -> CGFloat {
+        isContinuityCameraDevice(traits: traits) ? continuityDocumentScanOffset : 0
+    }
+
+    static func resolveScanRotationAngle(baseAngle: CGFloat, device: AVCaptureDevice?) -> CGFloat {
+        normalizeRotationAngle(baseAngle + documentScanRotationOffset(for: device))
+    }
+
+    static func resolveScanRotationAngle(baseAngle: CGFloat, traits: DeviceTraits) -> CGFloat {
+        normalizeRotationAngle(baseAngle + documentScanRotationOffset(traits: traits))
     }
 
     static func apply(to connection: AVCaptureConnection?, angle: CGFloat) {

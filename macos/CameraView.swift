@@ -312,14 +312,14 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         previewRotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelPreview,
-            options: [.new]
+            options: [.initial, .new]
         ) { [weak self] _, _ in
             self?.applyStableRotation()
         }
         
         captureRotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelCapture,
-            options: [.new]
+            options: [.initial, .new]
         ) { [weak self] _, _ in
             self?.applyStableRotation()
         }
@@ -329,8 +329,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         let device = selectedDevice ?? AVCaptureDevice.default(for: .video)
         let fallbackAngle = CameraOrientation.fallbackRotationAngle(for: device)
         
-        let previewAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelPreview ?? fallbackAngle
-        let captureAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? fallbackAngle
+        let basePreviewAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelPreview ?? fallbackAngle
+        let baseCaptureAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? fallbackAngle
+        let previewAngle = CameraOrientation.resolveScanRotationAngle(baseAngle: basePreviewAngle, device: device)
+        let captureAngle = CameraOrientation.resolveScanRotationAngle(baseAngle: baseCaptureAngle, device: device)
         
         if force || previewAngle != lastAppliedPreviewAngle {
             CameraOrientation.apply(to: previewLayer?.connection, angle: previewAngle)

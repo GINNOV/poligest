@@ -427,6 +427,38 @@ assertOrientation(CameraOrientation.visionOrientation(for: 270), .left, "Vision 
 assertOrientation(CameraOrientation.visionOrientation(for: -90), .left, "Vision orientation -90°")
 assertOrientation(CameraOrientation.visionOrientation(for: 450), .right, "Vision orientation wraps 450° to 90°")
 
+let continuityTraits = CameraOrientation.DeviceTraits(
+    isContinuityCamera: true,
+    isExternal: false,
+    localizedName: "iPhone Camera"
+)
+let builtInTraits = CameraOrientation.DeviceTraits(
+    isContinuityCamera: false,
+    isExternal: false,
+    localizedName: "FaceTime HD Camera"
+)
+
+assertEqual(
+    CameraOrientation.resolveScanRotationAngle(baseAngle: 0, traits: continuityTraits),
+    90,
+    "Continuity camera adds 90° document-scan offset to horizon rotation"
+)
+assertEqual(
+    CameraOrientation.resolveScanRotationAngle(baseAngle: 180, traits: continuityTraits),
+    270,
+    "Continuity camera offset wraps with 180° horizon rotation"
+)
+assertEqual(
+    CameraOrientation.resolveScanRotationAngle(baseAngle: 0, traits: builtInTraits),
+    0,
+    "Built-in webcam keeps horizon rotation without offset"
+)
+assertEqual(
+    CameraOrientation.normalizeRotationAngle(-90),
+    270,
+    "Rotation angle normalization wraps negatives"
+)
+
 print("\n=== Running Scan Capture Logic Unit Tests ===")
 
 let unorderedItems = [
