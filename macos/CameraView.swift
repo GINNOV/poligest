@@ -90,7 +90,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var devices: [AVCaptureDevice] = []
     @Published var selectedDevice: AVCaptureDevice?
     
-    private(set) var captureVisionOrientation: CGImagePropertyOrientation = .up
+    private(set) var ocrVisionOrientation: CGImagePropertyOrientation = .up
     
     var onFrameCaptured: ((CVImageBuffer) -> Void)?
     
@@ -107,6 +107,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var captureRotationObservation: NSKeyValueObservation?
     private var lastAppliedPreviewAngle: CGFloat?
     private var lastAppliedCaptureAngle: CGFloat?
+    private var snapshotDisplayOrientation: CGImagePropertyOrientation = .up
+    private var latestSnapshotDisplayOrientation: CGImagePropertyOrientation = .up
     
     override init() {
         super.init()
@@ -254,12 +256,17 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     func snapshotImage() -> NSImage? {
         bufferLock.lock()
         let pixelBuffer = latestPixelBuffer
+        let displayOrientation = latestSnapshotDisplayOrientation
         bufferLock.unlock()
         
         guard let pixelBuffer else { return nil }
         
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        guard let cgImage = snapshotContext.createCGImage(ciImage, from: ciImage.extent) else {
+        let ciImage = CameraOrientation.orientedCIImage(
+            CIImage(cvPixelBuffer: pixelBuffer),
+            orientation: displayOrientation
+        )
+        let extent = ciImage.extent.integral
+        guard let cgImage = snapshotContext.createCGImage(ciImage, from: extent) else {
             return nil
         }
         
@@ -342,14 +349,17 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if force || captureAngle != lastAppliedCaptureAngle {
             CameraOrientation.apply(to: videoOutput.connection(with: .video), angle: captureAngle)
             lastAppliedCaptureAngle = captureAngle
-            captureVisionOrientation = CameraOrientation.visionOrientation(for: captureAngle)
+            ocrVisionOrientation = CameraOrientation.visionOrientationForOCR(baseCaptureAngle: baseCaptureAngle)
+            snapshotDisplayOrientation = CameraOrientation.visionOrientation(for: captureAngle)
         }
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let displayOrientation = snapshotDisplayOrientation
         bufferLock.lock()
         latestPixelBuffer = pixelBuffer
+        latestSnapshotDisplayOrientation = displayOrientation
         bufferLock.unlock()
         onFrameCaptured?(pixelBuffer)
     }

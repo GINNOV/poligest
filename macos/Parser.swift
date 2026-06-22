@@ -97,22 +97,80 @@ class IDParser {
     /// Parses OCR observations (with layout) and returns structured data.
     static func parse(ocrItems: [OCRTextItem], fallbackLines: [String]? = nil) -> IDData {
         let spatialItems = filterOCRNoise(ocrItems)
+        let documentItems = documentClusterItems(from: spatialItems.isEmpty ? ocrItems : spatialItems)
         let groupedLines = linesFromOCRItems(ocrItems)
         let lines = groupedLines.isEmpty ? (fallbackLines ?? ocrItems.map(\.text)) : groupedLines
         
         var data = parse(lines: lines)
         data.rawText = lines
         
+        if let cf = resolveSpatialCodiceFiscale(from: documentItems) {
+            data.codiceFiscale = cf
+        }
+
+        if let placeOfBirth = resolveSpatialPlaceOfBirth(
+            from: documentItems,
+            dateOfBirth: data.dateOfBirth,
+            surname: data.surname,
+            name: data.name
+        ),
+           isPlausiblePlaceOfBirth(placeOfBirth, surname: data.surname, name: data.name) {
+            data.placeOfBirth = placeOfBirth
+        }
+        
         if let regionNames = resolveNamesFromLabelRegions(
-            from: spatialItems.isEmpty ? ocrItems : spatialItems,
+            from: documentItems,
             codiceFiscale: data.codiceFiscale,
             placeOfBirth: data.placeOfBirth
         ) {
-            data.surname = regionNames.surname
-            data.name = regionNames.name
+            applySpatialNames(regionNames, to: &data)
         }
         
+        if let gender = resolveSpatialGender(from: documentItems) {
+            data.gender = gender
+        }
+        if let dateOfBirth = resolveSpatialDate(
+            from: documentItems,
+            labels: ["data di nascita", "data nascita", "birth date", "date of birth"]
+        ) {
+            data.dateOfBirth = dateOfBirth
+        }
+        if let expiryDate = resolveSpatialDate(
+            from: documentItems,
+            labels: ["data di scadenza", "scadenza", "expiry", "expiry date"]
+        ) {
+            data.expiryDate = expiryDate
+        }
+        if let nationality = resolveSpatialNationality(from: documentItems) {
+            data.nationality = nationality
+        }
+
+        sanitizeExtractedValues(&data, lines: lines)
+        sanitizePlaceOfBirth(&data)
+        reconcileNamesWithCodiceFiscale(&data, lines: lines)
+        
         return data
+    }
+
+    /// Higher is better. Used to pick the best parse between live fallback and post-capture OCR.
+    static func parseQualityScore(_ data: IDData) -> Int {
+        var score = 0
+        if data.documentType != "UNKNOWN" { score += 1 }
+        if data.codiceFiscale != nil { score += 2 }
+        if data.surname != nil { score += 1 }
+        if data.name != nil { score += 1 }
+        if data.dateOfBirth != nil { score += 1 }
+        if data.placeOfBirth != nil { score += 1 }
+        if let name = data.name, isCardHeaderText(name) { score -= 8 }
+        if let place = data.placeOfBirth, let surname = data.surname,
+           place.caseInsensitiveCompare(surname) == .orderedSame { score -= 6 }
+        if let codiceFiscale = data.codiceFiscale,
+           let surname = data.surname,
+           let name = data.name,
+           namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            score += 10
+        }
+        return score
     }
     
     /// Parses an array of lines detected by OCR and returns structured data
@@ -186,12 +244,12 @@ class IDParser {
         // Find Surname and Name (surname first so name extraction can skip it)
         let surnameLabels = ["cognome", "surname"]
         let nameLabels = ["nome", "name", "given name", "given"]
-        data.surname = extractField(in: cleanedLines, labels: surnameLabels, validator: isValidNameOrSurname)
+        data.surname = extractField(in: cleanedLines, labels: surnameLabels, validator: isPlausiblePersonName)
         let surnameLabelIndex = findLabelIndex(in: cleanedLines, labels: surnameLabels)
         data.name = extractField(
             in: cleanedLines,
             labels: nameLabels,
-            validator: isValidNameOrSurname,
+            validator: isPlausiblePersonName,
             excludeValues: Set([data.surname].compactMap { $0 }),
             preferLabelAfterIndex: surnameLabelIndex
         )
@@ -199,34 +257,7 @@ class IDParser {
         // Find Place of Birth
         data.placeOfBirth = findPlaceOfBirth(in: cleanedLines, dateOfBirth: data.dateOfBirth)
         
-        // Reconcile scrambled Tessera Sanitaria OCR ordering using codice fiscale
-        if let codiceFiscale = data.codiceFiscale {
-            var excludeValues = Set<String>()
-            if let placeOfBirth = data.placeOfBirth {
-                excludeValues.insert(placeOfBirth)
-            }
-            if let corrected = resolveNamesFromCodiceFiscale(
-                in: cleanedLines,
-                codiceFiscale: codiceFiscale,
-                excludeValues: excludeValues
-            ) ?? correctMisassignedNamesFromCodiceFiscale(
-                surname: data.surname,
-                name: data.name,
-                codiceFiscale: codiceFiscale,
-                placeOfBirth: data.placeOfBirth,
-                lines: cleanedLines,
-                excludeValues: excludeValues
-            ) ?? correctSurnameAndName(
-                surname: data.surname,
-                name: data.name,
-                candidates: collectNameCandidates(in: cleanedLines),
-                codiceFiscale: codiceFiscale,
-                excludeValues: excludeValues
-            ) {
-                data.surname = corrected.surname
-                data.name = corrected.name
-            }
-        }
+        reconcileNamesWithCodiceFiscale(&data, lines: cleanedLines)
         
         // Find Gender
         data.gender = findGender(in: cleanedLines)
@@ -249,6 +280,10 @@ class IDParser {
                 placeOfBirth: pob
             )
         }
+
+        sanitizeExtractedValues(&data, lines: cleanedLines)
+        sanitizePlaceOfBirth(&data)
+        refineFieldsForDocumentSide(&data)
         
         return data
     }
@@ -260,6 +295,12 @@ class IDParser {
         "crea una cartella",
         "tessera sanitaria front",
         "sorriso",
+        "detected data",
+        "json output",
+        "copy json",
+        "copia json",
+        "sincronizza",
+        "estratto",
     ]
     
     private static func filterOCRNoise(_ items: [OCRTextItem]) -> [OCRTextItem] {
@@ -267,6 +308,257 @@ class IDParser {
             let lower = item.text.lowercased()
             return !ocrNoiseSubstrings.contains { lower.contains($0) }
         }
+    }
+    
+    /// Keeps OCR observations that belong to the physical card, not the app's own UI panel.
+    private static func documentClusterItems(from items: [OCRTextItem]) -> [OCRTextItem] {
+        guard items.count > 1 else { return items }
+        
+        let cognomeLabels = items.filter { item in
+            ["cognome", "surname"].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        
+        // Duplicate Cognome labels usually means the results panel is visible in-frame.
+        // The physical card is leftmost; the app UI is on the right.
+        if cognomeLabels.count >= 2, let anchor = cognomeLabels.min(by: { $0.midX < $1.midX }) {
+            let clustered = clusterItems(around: anchor, in: items)
+            if clustered.count >= 3 { return clustered }
+        }
+        
+        let cfAnchors = items.filter { item in
+            findCodiceFiscale(in: [item.text]) != nil
+        }
+        
+        if let anchor = cfAnchors.min(by: { $0.midX < $1.midX }) ?? cfAnchors.first {
+            let clustered = clusterItems(around: anchor, in: items)
+            if clustered.count >= 3 { return clustered }
+        }
+        
+        let filtered = items.filter { !isAppPanelNoise($0.text) }
+        return filtered.isEmpty ? items : filtered
+    }
+    
+    private static func clusterItems(
+        around anchor: OCRTextItem,
+        in items: [OCRTextItem],
+        maxDx: CGFloat = 0.38,
+        maxDy: CGFloat = 0.50
+    ) -> [OCRTextItem] {
+        items.filter { item in
+            abs(item.midX - anchor.midX) <= maxDx && abs(item.midY - anchor.midY) <= maxDy
+        }
+    }
+    
+    private static func isAppPanelNoise(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return ocrNoiseSubstrings.contains { lower.contains($0) }
+    }
+    
+    private static func extractFirstDate(from text: String) -> String? {
+        findDates(in: [text]).first
+    }
+    
+    private static func extractGenderToken(from text: String) -> String? {
+        let clean = text.uppercased().trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        if clean == "M" || clean == "F" { return clean }
+        
+        for label in ["sesso", "sex", "gender"] {
+            if let range = findLabelRangeWithWordBoundaries(in: text, label: label) {
+                let suffix = String(text[range.upperBound...])
+                if let cleaned = cleanSuffixValue(suffix) {
+                    let upper = cleaned.uppercased()
+                    if upper.contains("M") { return "M" }
+                    if upper.contains("F") { return "F" }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveSpatialCodiceFiscale(from items: [OCRTextItem]) -> String? {
+        let labelItems = items.filter { item in
+            ["codice fiscale", "cod. fiscale", "cod fisc", "fiscal code"].contains {
+                lineMatchesLabel(item.text, label: $0)
+            }
+        }
+        
+        for label in labelItems {
+            if let value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: { text in
+                    let stripped = text.replacingOccurrences(of: " ", with: "")
+                    return isLikelyCodiceFiscale(stripped) || repairCodiceFiscale(stripped) != nil
+                }
+            ) {
+                let stripped = value.replacingOccurrences(of: " ", with: "")
+                if let repaired = repairCodiceFiscale(stripped) {
+                    return repaired
+                }
+                if isLikelyCodiceFiscale(stripped) {
+                    return stripped.uppercased()
+                }
+            }
+            
+            for searchLabel in ["codice fiscale", "cod. fiscale", "cod fisc", "fiscal code"] {
+                if let range = findLabelRangeWithWordBoundaries(in: label.text, label: searchLabel),
+                   let suffix = cleanSuffixValue(String(label.text[range.upperBound...])) {
+                    let stripped = suffix.replacingOccurrences(of: " ", with: "")
+                    if let repaired = repairCodiceFiscale(stripped) {
+                        return repaired
+                    }
+                    if isLikelyCodiceFiscale(stripped) {
+                        return stripped.uppercased()
+                    }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveSpatialGender(from items: [OCRTextItem]) -> String? {
+        let labelItems = items.filter { item in
+            ["sesso", "sex", "gender"].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        
+        for label in labelItems {
+            if let value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: { extractGenderToken(from: $0) != nil }
+            ), let gender = extractGenderToken(from: value) {
+                return gender
+            }
+            
+            if let gender = extractGenderToken(from: label.text) {
+                return gender
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveSpatialPlaceOfBirth(
+        from items: [OCRTextItem],
+        dateOfBirth: String?,
+        surname: String? = nil,
+        name: String? = nil
+    ) -> String? {
+        let labelItems = items.filter { item in
+            [
+                "luogo di nascita",
+                "luogo e data di nascita",
+                "place of birth",
+                "place and date of birth",
+            ].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        
+        for label in labelItems {
+            if var value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: { text in
+                    let clean = text.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                    return !clean.isEmpty
+                        && isPlausiblePlaceOfBirth(clean, surname: surname, name: name)
+                        && !lineContainsDate(text)
+                        && extractGenderToken(from: text) == nil
+                }
+            ) {
+                if let dateOfBirth {
+                    value = value.replacingOccurrences(of: dateOfBirth, with: "")
+                        .replacingOccurrences(of: dateOfBirth.replacingOccurrences(of: "/", with: "."), with: "")
+                }
+                value = dateRegex.stringByReplacingMatches(
+                    in: value,
+                    options: [],
+                    range: NSRange(location: 0, length: value.utf16.count),
+                    withTemplate: ""
+                )
+                let clean = value.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                if isPlausiblePlaceOfBirth(clean, surname: surname, name: name) {
+                    return clean
+                }
+            }
+            
+            for searchLabel in ["luogo di nascita", "luogo e data di nascita", "place of birth"] {
+                if let range = findLabelRangeWithWordBoundaries(in: label.text, label: searchLabel),
+                   var suffix = cleanSuffixValue(String(label.text[range.upperBound...])) {
+                    if let dateOfBirth {
+                        suffix = suffix.replacingOccurrences(of: dateOfBirth, with: "")
+                    }
+                    suffix = dateRegex.stringByReplacingMatches(
+                        in: suffix,
+                        options: [],
+                        range: NSRange(location: 0, length: suffix.utf16.count),
+                        withTemplate: ""
+                    )
+                    let clean = suffix.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
+                    if isPlausiblePlaceOfBirth(clean, surname: surname, name: name) {
+                        return clean
+                    }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveSpatialDate(from items: [OCRTextItem], labels searchLabels: [String]) -> String? {
+        let labelItems = items.filter { item in
+            searchLabels.contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        
+        for label in labelItems {
+            if let value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: lineContainsDate
+            ), let date = extractFirstDate(from: value) {
+                return date
+            }
+            
+            for searchLabel in searchLabels {
+                if let range = findLabelRangeWithWordBoundaries(in: label.text, label: searchLabel),
+                   let date = extractFirstDate(from: String(label.text[range.upperBound...])) {
+                    return date
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func resolveSpatialNationality(from items: [OCRTextItem]) -> String? {
+        let labelItems = items.filter { item in
+            ["cittadinanza", "nationality"].contains { lineMatchesLabel(item.text, label: $0) }
+        }
+        let allowedChars = CharacterSet.letters.union(CharacterSet.whitespaces)
+        let isValidNationality = { (val: String) -> Bool in
+            val.count > 1 && val.count < 15 && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
+        }
+        
+        for label in labelItems {
+            if let value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: isValidNationality
+            ) {
+                return value.uppercased()
+            }
+            
+            for searchLabel in ["cittadinanza", "nationality"] {
+                if let range = findLabelRangeWithWordBoundaries(in: label.text, label: searchLabel),
+                   let cleaned = cleanSuffixValue(String(label.text[range.upperBound...])),
+                   isValidNationality(cleaned) {
+                    return cleaned.uppercased()
+                }
+            }
+        }
+        
+        return nil
     }
     
     private static func linesFromOCRItems(_ items: [OCRTextItem], rowThreshold: CGFloat = 0.035) -> [String] {
@@ -294,6 +586,189 @@ class IDParser {
         let allowed = CharacterSet.letters.union(CharacterSet.whitespaces)
             .union(CharacterSet(charactersIn: "-'’"))
         return !value.isEmpty && value.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+
+    private static func isProvinceCode(_ value: String) -> Bool {
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return clean.count == 2 && clean.allSatisfy(\.isLetter)
+    }
+
+    private static let cardHeaderPhrases = [
+        "repubblica italiana",
+        "tessera sanitaria",
+        "servizio sanitario nazionale",
+        "carta di identita",
+        "carta d'identita",
+        "ministero della salute",
+        "ministero dell'interno",
+        "unione europea",
+        "assistenza sanitaria",
+        "health insurance card",
+    ]
+
+    private static func isCardHeaderText(_ value: String) -> Bool {
+        let normalized = value
+            .lowercased()
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+        return cardHeaderPhrases.contains { normalized.contains($0) }
+    }
+
+    private static func isLikelyPlaceName(_ value: String) -> Bool {
+        let upper = value.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !upper.isEmpty else { return false }
+
+        let placeMarkers = [
+            " SUL ", " SULLA ", " SUI ", " SU ", " DEL ", " DELLA ", " DEI ", " DELL'", " DI ",
+            " NEL ", " NELLA ", " NEI ", " NELLE ",
+        ]
+        if placeMarkers.contains(where: { upper.contains($0) }) {
+            return true
+        }
+
+        let words = upper.split(separator: " ")
+        if words.count >= 2, let first = words.first, first.count <= 2 {
+            return true
+        }
+
+        return false
+    }
+
+    private static func isPlausiblePersonName(_ value: String) -> Bool {
+        isValidNameOrSurname(value)
+            && value.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3
+            && !isProvinceCode(value)
+            && !isLikelyPlaceName(value)
+            && !isCardHeaderText(value)
+    }
+
+    private static func isPlausiblePlaceOfBirth(
+        _ value: String,
+        surname: String?,
+        name: String?
+    ) -> Bool {
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean.count > 2 else { return false }
+        guard !isLabelLine(clean), !isCardHeaderText(clean) else { return false }
+        if let surname, clean.caseInsensitiveCompare(surname) == .orderedSame { return false }
+        if let name, clean.caseInsensitiveCompare(name) == .orderedSame { return false }
+        return true
+    }
+
+    private static func applySpatialNames(
+        _ regionNames: (surname: String, name: String),
+        to data: inout IDData
+    ) {
+        if let codiceFiscale = data.codiceFiscale {
+            guard namesMatchCodiceFiscale(
+                surname: regionNames.surname,
+                name: regionNames.name,
+                codiceFiscale: codiceFiscale
+            ) else {
+                return
+            }
+        } else if data.surname != nil && data.name != nil {
+            return
+        }
+
+        data.surname = regionNames.surname
+        data.name = regionNames.name
+    }
+
+    private static func reconcileNamesWithCodiceFiscale(_ data: inout IDData, lines: [String]) {
+        guard let codiceFiscale = data.codiceFiscale else { return }
+
+        if let surname = data.surname,
+           let name = data.name,
+           namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            return
+        }
+
+        var excludeValues = Set<String>()
+        if let placeOfBirth = data.placeOfBirth {
+            excludeValues.insert(placeOfBirth)
+        }
+
+        if let corrected = resolveNamesFromCodiceFiscale(
+            in: lines,
+            codiceFiscale: codiceFiscale,
+            excludeValues: excludeValues
+        ) ?? correctMisassignedNamesFromCodiceFiscale(
+            surname: data.surname,
+            name: data.name,
+            codiceFiscale: codiceFiscale,
+            placeOfBirth: data.placeOfBirth,
+            lines: lines,
+            excludeValues: excludeValues
+        ) ?? correctSurnameAndName(
+            surname: data.surname,
+            name: data.name,
+            candidates: collectNameCandidates(in: lines),
+            codiceFiscale: codiceFiscale,
+            excludeValues: excludeValues
+        ) {
+            data.surname = corrected.surname
+            data.name = corrected.name
+        }
+    }
+
+    private static func sanitizePlaceOfBirth(_ data: inout IDData) {
+        guard let placeOfBirth = data.placeOfBirth else { return }
+        if !isPlausiblePlaceOfBirth(placeOfBirth, surname: data.surname, name: data.name) {
+            data.placeOfBirth = nil
+        }
+    }
+
+    private static func sanitizeExtractedValues(_ data: inout IDData, lines: [String]) {
+        if let codiceFiscale = data.codiceFiscale {
+            data.codiceFiscale = findCodiceFiscale(in: [codiceFiscale]) ?? codiceFiscale
+                .replacingOccurrences(of: " ", with: "")
+                .uppercased()
+        }
+        if let dateOfBirth = data.dateOfBirth {
+            data.dateOfBirth = findDates(in: [dateOfBirth]).first ?? dateOfBirth
+        }
+        if let expiryDate = data.expiryDate {
+            data.expiryDate = findDates(in: [expiryDate]).first ?? expiryDate
+        }
+        if let surname = data.surname, !isPlausiblePersonName(surname) {
+            data.surname = nil
+        }
+        if let name = data.name, !isPlausiblePersonName(name) {
+            data.name = nil
+        }
+    }
+
+    private static func refineFieldsForDocumentSide(_ data: inout IDData) {
+        switch data.documentType {
+        case "TESSERA_SANITARIA_BACK":
+            data.surname = nil
+            data.name = nil
+            data.dateOfBirth = nil
+            data.placeOfBirth = nil
+            data.gender = nil
+            data.nationality = nil
+            data.documentNumber = nil
+        case "CIE_BACK":
+            guard data.rawText.contains(where: isMRZLine) else {
+                data.surname = nil
+                data.name = nil
+                data.codiceFiscale = nil
+                data.dateOfBirth = nil
+                data.placeOfBirth = nil
+                data.gender = nil
+                data.expiryDate = nil
+                data.nationality = nil
+                data.cardNumber = nil
+                return
+            }
+        case "CIE_FRONT":
+            data.cardNumber = nil
+        case "TESSERA_SANITARIA_FRONT":
+            data.documentNumber = nil
+            data.nationality = nil
+        default:
+            break
+        }
     }
     
     private static func isGenderOnlyValue(_ value: String) -> Bool {
@@ -529,13 +1004,17 @@ class IDParser {
             }
         }
         
-        return cfValidated ?? codeValidated ?? (codiceFiscale == nil ? firstPair : nil)
+        if codiceFiscale != nil {
+            return cfValidated ?? codeValidated
+        }
+        return cfValidated ?? codeValidated ?? firstPair
     }
     
     private static func findSpatialValue(
         near label: OCRTextItem,
         in items: [OCRTextItem],
-        placeOfBirth: String?
+        validator: (String) -> Bool,
+        excludeValues: Set<String> = []
     ) -> String? {
         let rowTolerance: CGFloat = 0.04
         var candidates: [(String, CGFloat)] = []
@@ -543,16 +1022,8 @@ class IDParser {
         for item in items {
             let text = item.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty,
-                  isValidNameOrSurname(text),
-                  !isLabelLine(text),
-                  !isGenderOnlyValue(text),
-                  !lineContainsDate(text),
-                  !isLikelyCodiceFiscale(text) else {
-                continue
-            }
-            
-            if let placeOfBirth,
-               text.caseInsensitiveCompare(placeOfBirth) == .orderedSame {
+                  validator(text),
+                  !excludeValues.contains(where: { $0.caseInsensitiveCompare(text) == .orderedSame }) else {
                 continue
             }
             
@@ -569,6 +1040,31 @@ class IDParser {
         }
         
         return candidates.min(by: { $0.1 < $1.1 })?.0
+    }
+    
+    private static func findSpatialValue(
+        near label: OCRTextItem,
+        in items: [OCRTextItem],
+        placeOfBirth: String?
+    ) -> String? {
+        var excludeValues = Set<String>()
+        if let placeOfBirth {
+            excludeValues.insert(placeOfBirth)
+        }
+        
+        return findSpatialValue(
+            near: label,
+            in: items,
+            validator: { text in
+                isPlausiblePersonName(text)
+                    && !isLabelLine(text)
+                    && !isCardHeaderText(text)
+                    && !isGenderOnlyValue(text)
+                    && !lineContainsDate(text)
+                    && !isLikelyCodiceFiscale(text.replacingOccurrences(of: " ", with: ""))
+            },
+            excludeValues: excludeValues
+        )
     }
     
     private static func correctMisassignedNamesFromCodiceFiscale(
@@ -670,6 +1166,7 @@ class IDParser {
                 .filter { $0.count >= 16 }
             for block in blocks {
                 let blockChars = Array(block)
+                guard blockChars.count >= 16 else { continue }
                 for start in 0...(blockChars.count - 16) {
                     let candidate = String(blockChars[start..<(start + 16)])
                     
@@ -798,8 +1295,10 @@ class IDParser {
     }
     
     private static func isSubsequence(_ sub: [String], in parent: [String]) -> Bool {
-        guard sub.count <= parent.count else { return false }
-        for i in 0...(parent.count - sub.count) {
+        guard !sub.isEmpty, sub.count <= parent.count else { return false }
+        let lastStart = parent.count - sub.count
+        guard lastStart >= 0 else { return false }
+        for i in 0...lastStart {
             if Array(parent[i..<(i + sub.count)]) == sub {
                 return true
             }
@@ -885,33 +1384,47 @@ class IDParser {
     }
 
     private static func findLabelRangeWithWordBoundaries(in line: String, label: String) -> Range<String.Index>? {
-        let lower = line.lowercased()
-        var searchStartIndex = lower.startIndex
-        
-        while let range = lower.range(of: label, range: searchStartIndex..<lower.endIndex) {
+        let trimmedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLabel.isEmpty, !line.isEmpty else { return nil }
+
+        var searchStartIndex = line.startIndex
+
+        while searchStartIndex < line.endIndex {
+            let searchRange = searchStartIndex..<line.endIndex
+            guard searchRange.lowerBound <= searchRange.upperBound else { break }
+
+            guard let range = line.range(
+                of: trimmedLabel,
+                options: [.caseInsensitive],
+                range: searchRange
+            ) else {
+                break
+            }
+
             var isBeforeBoundary = true
-            if range.lowerBound > lower.startIndex {
-                let beforeChar = lower[lower.index(before: range.lowerBound)]
+            if range.lowerBound > line.startIndex {
+                let beforeChar = line[line.index(before: range.lowerBound)]
                 if beforeChar.isLetter || beforeChar.isNumber {
                     isBeforeBoundary = false
                 }
             }
-            
+
             var isAfterBoundary = true
-            if range.upperBound < lower.endIndex {
-                let afterChar = lower[range.upperBound]
+            if range.upperBound < line.endIndex {
+                let afterChar = line[range.upperBound]
                 if afterChar.isLetter || afterChar.isNumber {
                     isAfterBoundary = false
                 }
             }
-            
+
             if isBeforeBoundary && isAfterBoundary {
                 return range
             }
-            
-            searchStartIndex = range.upperBound
+
+            guard range.upperBound < line.endIndex else { break }
+            searchStartIndex = line.index(after: range.lowerBound)
         }
-        
+
         return nil
     }
 
@@ -967,7 +1480,7 @@ class IDParser {
                         cleaned = dateRegex.stringByReplacingMatches(in: cleaned, options: [], range: NSRange(location: 0, length: cleaned.utf16.count), withTemplate: "")
                         
                         let cleanPlace = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
-                        if !cleanPlace.isEmpty && cleanPlace.count > 2 && !isLabelLine(cleanPlace) {
+                        if !cleanPlace.isEmpty && cleanPlace.count > 2 && !isLabelLine(cleanPlace) && !isCardHeaderText(cleanPlace) {
                             return cleanPlace
                         }
                     }
@@ -988,7 +1501,7 @@ class IDParser {
                     place = dateRegex.stringByReplacingMatches(in: place, options: [], range: NSRange(location: 0, length: place.utf16.count), withTemplate: "")
                     
                     let cleanPlace = place.trimmingCharacters(in: CharacterSet(charactersIn: " ,.-/\t"))
-                    if !cleanPlace.isEmpty && cleanPlace.count > 2 {
+                    if !cleanPlace.isEmpty && cleanPlace.count > 2 && !isCardHeaderText(cleanPlace) {
                         return cleanPlace
                     }
                 }
@@ -1093,13 +1606,15 @@ class IDParser {
     
     private static func determineDocumentType(lines: [String], data: IDData) -> String {
         let fullText = lines.joined(separator: " ").lowercased()
+        if data.cardNumber != nil {
+            return "TESSERA_SANITARIA_BACK"
+        }
         
         // 1. Tessera Sanitaria check
         if fullText.contains("tessera sanitaria") || 
            fullText.contains("servizio sanitario nazionale") || 
            fullText.contains("health insurance card") || 
-           fullText.contains("tessera europea") ||
-           data.cardNumber != nil {
+           fullText.contains("tessera europea") {
             if data.codiceFiscale != nil && (fullText.contains("cognome") || fullText.contains("nome")) {
                 return "TESSERA_SANITARIA_FRONT"
             } else {
@@ -1120,17 +1635,22 @@ class IDParser {
             if fullText.contains("indirizzo") || 
                fullText.contains("residenza") || 
                fullText.contains("mrz") || 
-               lines.contains(where: { $0.count == 30 && ($0.hasPrefix("I") || $0.hasPrefix("C") || $0.hasPrefix("A")) }) {
+               lines.contains(where: isMRZLine) {
                 return "CIE_BACK"
             }
             return "CIE_FRONT"
         }
         
-        if data.cardNumber != nil {
-            return "TESSERA_SANITARIA_BACK"
-        }
-        
         return "UNKNOWN"
+    }
+
+    private static func isMRZLine(_ line: String) -> Bool {
+        let normalized = line
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\t", with: "")
+            .uppercased()
+        return normalized.count == 30
+            && (normalized.hasPrefix("I") || normalized.hasPrefix("C") || normalized.hasPrefix("A"))
     }
     
     // MARK: - MRZ Parser for TD1 Format

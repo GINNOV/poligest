@@ -80,9 +80,9 @@ Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS wit
 
 ### Download
 
-Latest release: [ScanID 1.3.2](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.2)
+Latest release: [ScanID 1.3.6](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.6)
 
-Direct DMG: [ScanID-1.3.2.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.2/ScanID-1.3.2.dmg)
+Direct DMG: [ScanID-1.3.6.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.6/ScanID-1.3.6.dmg)
 
 Open the DMG, drag `ScanID.app` to Applications.
 
@@ -115,6 +115,18 @@ VERSION=1.2.0 ./build.sh && ./create-dmg.sh
 ```
 
 (or edit `CFBundleShortVersionString` in `macos/Info.plist`)
+
+For a Gatekeeper-approved distribution build, sign with a Developer ID Application
+identity and notarize the DMG:
+
+```bash
+export SCANID_CODE_SIGN_IDENTITY="Developer ID Application: Your Team"
+export SCANID_NOTARY_PROFILE="notarytool-profile"
+VERSION=1.2.0 ./build.sh && ./create-dmg.sh
+```
+
+Without a Developer ID identity and notarization, the build is only ad-hoc signed
+and `spctl` will reject it even when it is not quarantined.
 
 ### Releasing a new version
 
@@ -155,8 +167,8 @@ Server-side overrides (Vercel env or code defaults):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SCANID_LATEST_VERSION` | `1.3.2` | Version string reported to the app |
-| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.2.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.2/ScanID-1.3.2.dmg) | Direct asset URL (DMG or ZIP) |
+| `SCANID_LATEST_VERSION` | `1.3.6` | Version string reported to the app |
+| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.6.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.6/ScanID-1.3.6.dmg) | Direct asset URL (DMG or ZIP) |
 | `SCANID_RELEASE_NOTES` | _(empty)_ | Shown in the update dialog |
 
 ---

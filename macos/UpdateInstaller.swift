@@ -65,7 +65,7 @@ enum UpdateInstaller {
     static func stripQuarantine(at url: URL) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/xattr")
-        process.arguments = ["-d", "com.apple.quarantine", url.path]
+        process.arguments = ["-cr", url.path]
         process.standardOutput = nil
         process.standardError = nil
         try? process.run()
@@ -134,8 +134,24 @@ enum UpdateInstaller {
         DOWNLOADED_FILE=\(qDownloadedFile)
         
         strip_quarantine() {
-          /usr/bin/xattr -d com.apple.quarantine "$1" 2>/dev/null || true
           /usr/bin/xattr -cr "$1" 2>/dev/null || true
+        }
+
+        has_quarantine() {
+          /usr/bin/xattr -pr com.apple.quarantine "$1" >/dev/null 2>&1
+        }
+
+        verify_installed_app() {
+          local app="$1"
+          if has_quarantine "$app"; then
+            echo "ERROR: Installed app is still quarantined: $app"
+            return 1
+          fi
+
+          if ! /usr/bin/codesign --verify --deep --strict "$app"; then
+            echo "ERROR: Installed app failed codesign verification: $app"
+            return 1
+          fi
         }
         
         replace_app() {
@@ -144,18 +160,21 @@ enum UpdateInstaller {
           strip_quarantine "$src"
           if /usr/bin/ditto "$src" "$dest"; then
             strip_quarantine "$dest"
-            /usr/bin/codesign -s - --force --deep "$dest" 2>/dev/null || true
-            return 0
+            if verify_installed_app "$dest"; then
+              return 0
+            fi
           fi
           /bin/rm -rf "$dest"
           if /usr/bin/ditto "$src" "$dest"; then
             strip_quarantine "$dest"
-            /usr/bin/codesign -s - --force --deep "$dest" 2>/dev/null || true
-            return 0
+            if verify_installed_app "$dest"; then
+              return 0
+            fi
           fi
           local esc_src="${src//\'/\'\\\'\'}"
           local esc_dest="${dest//\'/\'\\\'\'}"
-          /usr/bin/osascript -e "do shell script \\"/bin/rm -rf '$esc_dest' && /usr/bin/ditto '$esc_src' '$esc_dest' && /usr/bin/xattr -cr '$esc_dest' && /usr/bin/codesign -s - --force --deep '$esc_dest'\\" with administrator privileges"
+          /usr/bin/osascript -e "do shell script \\"/bin/rm -rf '$esc_dest' && /usr/bin/ditto '$esc_src' '$esc_dest' && /usr/bin/xattr -cr '$esc_dest' && /usr/bin/codesign --verify --deep --strict '$esc_dest'\\" with administrator privileges"
+          verify_installed_app "$dest"
         }
         
         while /bin/kill -0 "$PID" 2>/dev/null; do

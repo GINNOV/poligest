@@ -97,6 +97,7 @@ struct ScanIDApp: App {
         }
         .windowStyle(.titleBar)
         .commands {
+            ScanCommands()
             CommandGroup(replacing: .appInfo) {
                 Button("About ScanID") {
                     AboutWindowController.shared.show()

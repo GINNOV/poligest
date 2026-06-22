@@ -65,8 +65,6 @@ struct MainView: View {
     
     @State private var captureZoomScale: CGFloat = 1.0
     @State private var captureZoomOffset: CGSize = .zero
-    @State private var autoZoomAppliedForCurrentCapture = false
-    
     struct PendingPatient: Identifiable {
         let id = UUID()
         let firstName: String
@@ -86,11 +84,6 @@ struct MainView: View {
         let version: String
         let downloadUrl: String
         let notes: String?
-    }
-    
-    enum ScanMode {
-        case camera
-        case image
     }
     
     enum SyncStatus: Equatable {
@@ -119,6 +112,10 @@ struct MainView: View {
     private var showsZoomableCapture: Bool {
         isCameraFrozen || (scanMode == .image && selectedImage != nil)
     }
+
+    private var currentFixtureImage: NSImage? {
+        scanMode == .camera ? capturedCameraImage : selectedImage
+    }
     
     private var isAwaitingCaptureApproval: Bool {
         requireCaptureApproval && !captureApproved && captureState != .captured
@@ -143,7 +140,15 @@ struct MainView: View {
             .onDisappear(perform: handleDisappear)
             .onChange(of: scanMode) { oldMode, newMode in
                 handleScanModeChange(oldMode, newMode)
+                syncMenuActions()
             }
+            .onChange(of: appLanguage) { _, _ in syncMenuActions() }
+            .onChange(of: captureZoomScale) { _, _ in syncMenuActions() }
+            .onChange(of: captureZoomOffset) { _, _ in syncMenuActions() }
+            .onChange(of: captureState) { _, _ in syncMenuActions() }
+            .onChange(of: selectedImage) { _, _ in syncMenuActions() }
+            .onChange(of: capturedCameraImage) { _, _ in syncMenuActions() }
+            .onReceive(cameraManager.objectWillChange) { _ in syncMenuActions() }
             .onChange(of: autoCaptureCountdown) { _, _ in setupCameraFrameCallback() }
             .onChange(of: requireCaptureApproval) { _, _ in
                 captureApproved = false
@@ -355,7 +360,40 @@ struct MainView: View {
         }
     }
     
+    private func wireMenuActions() {
+        let menu = ScanMenuActions.shared
+        menu.onScanModeSelected = { scanMode = $0 }
+        menu.onNewCameraScan = startNewCameraScan
+        menu.onNewImageImport = startNewImageImport
+        menu.onPasteImage = pasteFromClipboard
+        menu.onExportFixture = exportOCRFixture
+        menu.onZoomIn = zoomInCapture
+        menu.onZoomOut = zoomOutCapture
+        menu.onResetZoom = resetCaptureZoom
+        menu.onSelectCamera = { id in
+            guard let device = cameraManager.devices.first(where: { $0.uniqueID == id }) else { return }
+            cameraManager.changeCamera(to: device)
+        }
+        menu.onOpenSettings = { isShowingSettings = true }
+    }
+
+    private func syncMenuActions() {
+        ScanMenuActions.shared.update(
+            language: appLanguage,
+            scanMode: scanMode,
+            showsZoomableCapture: showsZoomableCapture,
+            captureZoomScale: captureZoomScale,
+            captureZoomOffset: captureZoomOffset,
+            canExportFixture: currentFixtureImage != nil,
+            showsCameraPicker: scanMode == .camera && !isCameraFrozen && !cameraManager.devices.isEmpty,
+            devices: cameraManager.devices,
+            selectedDevice: cameraManager.selectedDevice
+        )
+    }
+
     private func handleAppear() {
+        wireMenuActions()
+        syncMenuActions()
         if serverUrl == "http://localhost:3000" {
             serverUrl = "https://sorrisosplendente.com"
         }
@@ -583,17 +621,6 @@ struct MainView: View {
                     boundingBoxesOverlay(for: image)
                 }
         }
-        .background {
-            GeometryReader { geo in
-                Color.clear
-                    .onAppear {
-                        applyAutoZoomIfNeeded(for: image, containerSize: geo.size)
-                    }
-                    .onChange(of: capturedDisplayedRecognizedItems.count) { _, _ in
-                        applyAutoZoomIfNeeded(for: image, containerSize: geo.size)
-                    }
-            }
-        }
         .cornerRadius(12)
         .padding(12)
     }
@@ -615,25 +642,9 @@ struct MainView: View {
         return CaptureDetection.filterItems(items, matching: parsed)
     }
     
-    private func applyAutoZoomIfNeeded(for image: NSImage, containerSize: CGSize) {
-        guard autoZoomOnCapture, captureState == .captured, !autoZoomAppliedForCurrentCapture else { return }
-        let items = capturedDisplayedRecognizedItems
-        guard !items.isEmpty else { return }
-        
-        autoZoomAppliedForCurrentCapture = true
-        CaptureAutoZoom.apply(
-            to: items,
-            imageSize: image.size,
-            containerSize: containerSize,
-            scale: &captureZoomScale,
-            offset: &captureZoomOffset
-        )
-    }
-    
     private func resetCaptureZoom() {
         captureZoomScale = 1.0
         captureZoomOffset = .zero
-        autoZoomAppliedForCurrentCapture = false
     }
     
     private func zoomInCapture() {
@@ -1055,7 +1066,7 @@ struct MainView: View {
     private func finalizeCameraCapture() {
         capturedCameraImage = cameraManager.snapshotImage()
         cameraManager.stopSession()
-        autoZoomAppliedForCurrentCapture = false
+        resetCaptureZoom()
         
         let fallbackItems = liveScan.recognizedItems
         let fallbackParsed = ScanCaptureLogic.parseRecognizedItems(fallbackItems)
@@ -1065,20 +1076,30 @@ struct MainView: View {
             applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
             return
         }
+        let frameQuality = IDScanner.assessFrameQuality(cgImage)
         
-        IDScanner.recognizeText(in: cgImage) { items in
-            let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
-            var parsed = ScanCaptureLogic.parseRecognizedItems(sortedItems)
-            parsed.calculateCodiceFiscaleIfPossible()
-
-            let results = ScanCaptureLogic.selectCaptureResults(
-                freshParsed: parsed,
-                freshItems: sortedItems,
-                fallbackItems: fallbackItems,
-                fallbackParsed: fallbackParsed
-            )
-            self.applyCapturedScanResults(items: results.items, parsed: results.parsed)
+        let completeCapture = { (displayImage: NSImage, items: [RecognizedItem], parsed: IDData) in
+            self.capturedCameraImage = displayImage
+            if ScanCaptureLogic.shouldAcceptCapture(parsed, frameQuality: frameQuality) {
+                self.applyCapturedScanResults(items: items, parsed: parsed)
+            } else {
+                self.recognizedItems = items
+                self.parsedData = parsed
+                self.captureState = .idle
+                self.statusBar.show(key: "status_scan_unreadable", style: .warning, autoDismiss: 6)
+                self.liveScan.reset()
+            }
         }
+        
+        ScanCaptureLogic.recognizeTextWithOptionalAutoCrop(
+            image: image,
+            cgImage: cgImage,
+            autoCrop: autoZoomOnCapture,
+            boundsItems: [],
+            fallbackItems: fallbackItems,
+            fallbackParsed: fallbackParsed,
+            completion: completeCapture
+        )
     }
     
     private func applyCapturedScanResults(items: [RecognizedItem], parsed: IDData) {
@@ -1095,12 +1116,17 @@ struct MainView: View {
             guard self.scanMode == .camera else { return }
             guard self.isCaptureDetectionActive else { return }
             guard self.captureState != .captured, self.liveScan.captureState != .captured else { return }
+            let frameQuality = IDScanner.assessFrameQuality(pixelBuffer)
             
-            IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
+            IDScanner.recognizeTextInLiveBuffer(
+                pixelBuffer,
+                orientation: self.cameraManager.ocrVisionOrientation
+            ) { items in
                 let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
                 
                 self.liveScan.processFrame(
                     sortedItems: sortedItems,
+                    frameQuality: frameQuality,
                     autoCountdown: UserDefaults.standard.bool(forKey: "autoCaptureCountdown"),
                     onScanSound: { self.playSubtleScanSound() },
                     onCountdownBeep: { self.playCountdownBeep() },
@@ -1152,19 +1178,18 @@ struct MainView: View {
             return
         }
         clearParsedResults()
-        self.selectedImage = nsImage
-        self.cgImageForOCR = cgImage
+        resetCaptureZoom()
+        let frameQuality = IDScanner.assessFrameQuality(cgImage)
         
-        IDScanner.recognizeText(in: cgImage) { items in
-            let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
-            self.recognizedItems = sortedItems
-            var parsed = ScanCaptureLogic.parseRecognizedItems(sortedItems)
-            parsed.calculateCodiceFiscaleIfPossible()
+        let emptyFallback = IDData(documentType: "UNKNOWN", rawText: [])
+        let applyStaticResults = { (displayImage: NSImage, items: [RecognizedItem], parsed: IDData) in
+            self.selectedImage = displayImage
+            self.cgImageForOCR = displayImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
+            self.recognizedItems = items
             
-            if ScanCaptureLogic.shouldAcceptCapture(parsed) {
+            if ScanCaptureLogic.shouldAcceptCapture(parsed, frameQuality: frameQuality) {
                 self.parsedData = parsed
                 self.captureState = .captured
-                self.autoZoomAppliedForCurrentCapture = false
                 self.reportScanComplete()
                 self.playSuccessSound()
                 self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
@@ -1172,6 +1197,16 @@ struct MainView: View {
                 self.statusBar.show(key: "status_scan_unreadable", style: .warning, autoDismiss: 6)
             }
         }
+        
+        ScanCaptureLogic.recognizeTextWithOptionalAutoCrop(
+            image: nsImage,
+            cgImage: cgImage,
+            autoCrop: autoZoomOnCapture,
+            boundsItems: [],
+            fallbackItems: [],
+            fallbackParsed: emptyFallback,
+            completion: applyStaticResults
+        )
     }
     
     private func resetAllStateOnly() {
@@ -1810,6 +1845,167 @@ struct MainView: View {
         if panel.runModal() == .OK, let url = panel.url {
             try? jsonString.write(to: url, atomically: true, encoding: .utf8)
         }
+    }
+
+    private struct FixtureExportManifest: Encodable {
+        let fixtures: [FixtureExportEntry]
+    }
+
+    private struct FixtureExportEntry: Encodable {
+        let name: String
+        let image: String
+        let expect: String
+        let quality: String
+        let captureSource: String
+        let documentSide: String
+        let condition: String
+        let expected: FixtureExportExpected?
+    }
+
+    private struct FixtureExportExpected: Encodable {
+        let documentType: String
+        let surname: String?
+        let name: String?
+        let codiceFiscale: String?
+        let documentNumber: String?
+        let dateOfBirth: String?
+        let placeOfBirth: String?
+        let gender: String?
+        let expiryDate: String?
+        let nationality: String?
+        let cardNumber: String?
+    }
+
+    private func exportOCRFixture() {
+        guard let image = currentFixtureImage,
+              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            statusBar.show(
+                key: "status_fixture_export_failed",
+                style: .error,
+                args: [Localization.string(key: "status_image_load_failed", lang: appLanguage)],
+                autoDismiss: 6
+            )
+            return
+        }
+
+        let panel = NSOpenPanel()
+        panel.title = Localization.string(key: "export_ocr_fixture", lang: appLanguage)
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+
+        guard panel.runModal() == .OK, let rootURL = panel.url else { return }
+
+        let timestamp = Self.fixtureTimestampFormatter.string(from: Date())
+        let baseName = fixtureBaseName(timestamp: timestamp)
+        let exportURL = rootURL.appendingPathComponent(baseName, isDirectory: true)
+        let imageName = "\(baseName).png"
+        let imageURL = exportURL.appendingPathComponent(imageName)
+        let manifestURL = exportURL.appendingPathComponent("manifest.json")
+
+        do {
+            try FileManager.default.createDirectory(at: exportURL, withIntermediateDirectories: true)
+            guard let pngData = pngData(from: cgImage) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            try pngData.write(to: imageURL, options: .atomic)
+            let manifest = FixtureExportManifest(fixtures: [
+                fixtureExportEntry(name: baseName, imageName: imageName, cgImage: cgImage)
+            ])
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(manifest)
+            try data.write(to: manifestURL, options: .atomic)
+            statusBar.show(key: "status_fixture_exported", style: .success, autoDismiss: 6)
+        } catch {
+            statusBar.show(key: "status_fixture_export_failed", style: .error, args: [error.localizedDescription], autoDismiss: nil)
+        }
+    }
+
+    private static let fixtureTimestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return formatter
+    }()
+
+    private func fixtureBaseName(timestamp: String) -> String {
+        let identifier = parsedData.codiceFiscale
+            ?? parsedData.documentNumber
+            ?? parsedData.cardNumber
+            ?? parsedData.documentType
+        let sanitized = identifier
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return ["scanid", timestamp, sanitized.isEmpty ? "fixture" : sanitized]
+            .joined(separator: "-")
+    }
+
+    private func pngData(from cgImage: CGImage) -> Data? {
+        let bitmap = NSBitmapImageRep(cgImage: cgImage)
+        return bitmap.representation(using: .png, properties: [:])
+    }
+
+    private func fixtureExportEntry(name: String, imageName: String, cgImage: CGImage) -> FixtureExportEntry {
+        let quality = IDScanner.assessFrameQuality(cgImage)
+        let accepted = ScanCaptureLogic.shouldAcceptCapture(parsedData, frameQuality: quality)
+        return FixtureExportEntry(
+            name: name,
+            image: imageName,
+            expect: accepted ? "accept" : "reject",
+            quality: quality.isUsableForCapture ? "usable" : "unusable",
+            captureSource: fixtureCaptureSource(),
+            documentSide: fixtureDocumentSide(accepted: accepted),
+            condition: fixtureCondition(accepted: accepted, quality: quality),
+            expected: accepted ? FixtureExportExpected(
+                documentType: parsedData.documentType,
+                surname: parsedData.surname,
+                name: parsedData.name,
+                codiceFiscale: parsedData.codiceFiscale,
+                documentNumber: parsedData.documentNumber,
+                dateOfBirth: parsedData.dateOfBirth,
+                placeOfBirth: parsedData.placeOfBirth,
+                gender: parsedData.gender,
+                expiryDate: parsedData.expiryDate,
+                nationality: parsedData.nationality,
+                cardNumber: parsedData.cardNumber
+            ) : nil
+        )
+    }
+
+    private func fixtureCaptureSource() -> String {
+        switch scanMode {
+        case .image:
+            return "imported"
+        case .camera:
+            return CameraOrientation.isContinuityCameraDevice(cameraManager.selectedDevice) ? "continuity" : "webcam"
+        }
+    }
+
+    private func fixtureDocumentSide(accepted: Bool) -> String {
+        guard accepted else { return "negative" }
+        switch parsedData.documentType {
+        case "CIE_FRONT":
+            return "cie_front"
+        case "CIE_BACK":
+            return "cie_back"
+        case "TESSERA_SANITARIA_FRONT":
+            return "tessera_front"
+        case "TESSERA_SANITARIA_BACK":
+            return "tessera_back"
+        default:
+            return "unknown"
+        }
+    }
+
+    private func fixtureCondition(accepted: Bool, quality: CaptureFrameQuality) -> String {
+        if !quality.isUsableForCapture {
+            return quality.failureReasons.first?
+                .replacingOccurrences(of: " ", with: "-")
+                ?? "quality-rejected"
+        }
+        return accepted ? "good" : "negative"
     }
     
     // MARK: - Mapping Coordinates
@@ -2952,25 +3148,19 @@ struct CaptureApprovalOverlay: View {
     let onStart: () -> Void
     
     var body: some View {
-        VStack {
-            HStack {
-                Spacer()
-                Button(action: onStart) {
-                    Label(
-                        Localization.string(key: "capture_approval_button", lang: lang),
-                        systemImage: "play.fill"
-                    )
-                    .font(.headline)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.cyan)
-                .controlSize(.large)
+        ZStack {
+            Button(action: onStart) {
+                Label(
+                    Localization.string(key: "capture_approval_button", lang: lang),
+                    systemImage: "play.fill"
+                )
+                .font(.headline)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            
-            Spacer()
+            .buttonStyle(.borderedProminent)
+            .tint(.cyan)
+            .controlSize(.large)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -3218,9 +3408,12 @@ struct Localization {
             "scan_mode": "Scan Mode",
             "live_camera": "Live Camera",
             "selected_camera": "Selected camera",
+            "camera_menu": "Camera",
+            "camera_menu_unavailable": "No camera available",
             "upload_image": "Upload Image",
             "select_file": "Select File...",
             "paste_image": "Paste Image",
+            "export_ocr_fixture": "Export OCR Fixture...",
             "reset": "Reset",
             "camera_denied": "Camera Access Denied",
             "camera_denied_desc": "Please enable Camera permissions for this app in System Settings > Privacy & Security.",
@@ -3300,7 +3493,7 @@ struct Localization {
             "pref_detect_only_expected": "Detect only expected fields",
             "pref_detect_only_expected_desc": "Hide bounding boxes for text that is not a recognized ID field.",
             "pref_auto_zoom": "Auto zoom",
-            "pref_auto_zoom_desc": "After a scan completes, zoom and center on the detected fields.",
+            "pref_auto_zoom_desc": "After capture, crop to the card edges and run a high-quality OCR pass on the cropped image.",
             "settings_camera_startup_group": "Startup",
             "settings_camera_capture_group": "Capture",
             "settings_sorriso_subtitle": "Connect ScanID to your Sorriso server and control patient sync.",
@@ -3370,6 +3563,8 @@ struct Localization {
             "status_drop_failed": "Could not import dropped file — use PNG, JPEG, or HEIC",
             "status_image_load_failed": "Could not open the selected image file",
             "status_json_copied": "JSON copied to clipboard",
+            "status_fixture_exported": "OCR fixture exported",
+            "status_fixture_export_failed": "Could not export OCR fixture: %@",
             "status_sync_failed": "Sync failed: %@",
             "status_camera_ready": "Camera ready — align the ID card",
             "status_capture_cancelled": "Capture cancelled",
@@ -3379,9 +3574,12 @@ struct Localization {
             "scan_mode": "Modalità Scansione",
             "live_camera": "Fotocamera Live",
             "selected_camera": "Fotocamera selezionata",
+            "camera_menu": "Fotocamera",
+            "camera_menu_unavailable": "Nessuna fotocamera disponibile",
             "upload_image": "Carica Immagine",
             "select_file": "Seleziona File...",
             "paste_image": "Incolla Immagine",
+            "export_ocr_fixture": "Esporta fixture OCR...",
             "reset": "Ripristina",
             "camera_denied": "Accesso Fotocamera Negato",
             "camera_denied_desc": "Abilita i permessi della fotocamera nelle Impostazioni di Sistema > Privacy e Sicurezza.",
@@ -3461,7 +3659,7 @@ struct Localization {
             "pref_detect_only_expected": "Rileva solo i campi attesi",
             "pref_detect_only_expected_desc": "Nasconde i riquadri per il testo che non corrisponde a un campo riconosciuto.",
             "pref_auto_zoom": "Zoom automatico",
-            "pref_auto_zoom_desc": "Al termine della scansione, ingrandisce e centra sui campi rilevati.",
+            "pref_auto_zoom_desc": "Dopo l'acquisizione, ritaglia ai bordi della tessera e riesegue l'OCR in alta qualità sul ritaglio.",
             "settings_camera_startup_group": "Avvio",
             "settings_camera_capture_group": "Acquisizione",
             "settings_sorriso_subtitle": "Collega ScanID al server Sorriso e gestisci la sincronizzazione.",
@@ -3531,6 +3729,8 @@ struct Localization {
             "status_drop_failed": "Impossibile importare il file — usa PNG, JPEG o HEIC",
             "status_image_load_failed": "Impossibile aprire il file immagine selezionato",
             "status_json_copied": "JSON copiato negli appunti",
+            "status_fixture_exported": "Fixture OCR esportata",
+            "status_fixture_export_failed": "Impossibile esportare la fixture OCR: %@",
             "status_sync_failed": "Sincronizzazione non riuscita: %@",
             "status_camera_ready": "Fotocamera pronta — allinea la carta d'identità",
             "status_capture_cancelled": "Acquisizione annullata",
@@ -3600,4 +3800,3 @@ class UpdateDownloader: NSObject, URLSessionDownloadDelegate {
         }
     }
 }
-

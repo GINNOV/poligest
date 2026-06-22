@@ -5,13 +5,13 @@ export type ScanIdMeta = {
 };
 
 export function getScanIdMeta(): ScanIdMeta {
-  const version = process.env.SCANID_LATEST_VERSION || "1.3.5";
+  const version = process.env.SCANID_LATEST_VERSION || "1.3.6";
   const downloadUrl =
     process.env.SCANID_DOWNLOAD_URL ||
-    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.5/ScanID-1.3.5.dmg";
+    "https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.6/ScanID-1.3.6.dmg";
   const notes =
     process.env.SCANID_RELEASE_NOTES ||
-    "Fixes aggressive update prompts: silent checks no longer interrupt, Later is remembered, and checks run once per day.";
+    "Fixes auto-update installation so downloaded updates are not left quarantined and the installed app signature is preserved.";
 
   return {
     version,

@@ -20,6 +20,7 @@
 		C3D4E5F60718293A4B5C6D7E /* countdown.wav in Resources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293A4B5C6D7F /* countdown.wav */; };
 		A1B2C3D4E5F60718293A4B5C /* ScanCaptureLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* ScanCaptureLogic.swift */; };
 		B2C3D4E5F60718293A4B5C6D /* LiveScanController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F60718293A4B5C6E /* LiveScanController.swift */; };
+		C4D5E6F708192A3B4C5D6E7F /* ScanMenuActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D5E6F708192A3B4C5D6E80 /* ScanMenuActions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		C3D4E5F60718293A4B5C6D7F /* countdown.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = countdown.wav; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B5D /* ScanCaptureLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanCaptureLogic.swift; sourceTree = "<group>"; };
 		B2C3D4E5F60718293A4B5C6E /* LiveScanController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveScanController.swift; sourceTree = "<group>"; };
+		C4D5E6F708192A3B4C5D6E80 /* ScanMenuActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanMenuActions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +89,7 @@
 				F2B3C4D5E6F708192A3B4C5E /* UpdateInstaller.swift */,
 				A1B2C3D4E5F60718293A4B5D /* ScanCaptureLogic.swift */,
 				B2C3D4E5F60718293A4B5C6E /* LiveScanController.swift */,
+				C4D5E6F708192A3B4C5D6E80 /* ScanMenuActions.swift */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -178,6 +181,7 @@
 				F2B3C4D5E6F708192A3B4C5D /* UpdateInstaller.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* ScanCaptureLogic.swift in Sources */,
 				B2C3D4E5F60718293A4B5C6D /* LiveScanController.swift in Sources */,
+				C4D5E6F708192A3B4C5D6E7F /* ScanMenuActions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

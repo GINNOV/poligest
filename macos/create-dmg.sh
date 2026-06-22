@@ -112,6 +112,21 @@ hdiutil convert "$TEMP_DMG" \
   -o "$OUTPUT_DMG" \
   -ov >/dev/null
 
+DMG_SIGN_IDENTITY="${SCANID_DMG_CODE_SIGN_IDENTITY:-${SCANID_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY:-}}}"
+if [ -n "$DMG_SIGN_IDENTITY" ] && [ "$DMG_SIGN_IDENTITY" != "-" ]; then
+  echo "==> Code signing DMG with identity: ${DMG_SIGN_IDENTITY}"
+  codesign -s "$DMG_SIGN_IDENTITY" --force --timestamp "$OUTPUT_DMG"
+fi
+
+if [ -n "${SCANID_NOTARY_PROFILE:-}" ]; then
+  echo "==> Submitting DMG for notarization with keychain profile: ${SCANID_NOTARY_PROFILE}"
+  xcrun notarytool submit "$OUTPUT_DMG" --keychain-profile "$SCANID_NOTARY_PROFILE" --wait
+  echo "==> Stapling notarization ticket..."
+  xcrun stapler staple "$OUTPUT_DMG"
+fi
+
+codesign --verify "$OUTPUT_DMG" 2>/dev/null || true
+
 # Cleanup
 rm -f "$TEMP_DMG"
 rm -rf "$STAGING_DIR"

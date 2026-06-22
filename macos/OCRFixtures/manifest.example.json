@@ -1,0 +1,44 @@
+{
+  "fixtures": [
+    {
+      "name": "continuity-cie-front-good",
+      "image": "continuity/cie-front-good.png",
+      "expect": "accept",
+      "quality": "usable",
+      "captureSource": "continuity",
+      "documentSide": "cie_front",
+      "condition": "good",
+      "expected": {
+        "documentType": "CIE_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90A15H501Y",
+        "documentNumber": "CA12345AA",
+        "dateOfBirth": "15/08/1990",
+        "placeOfBirth": "ROMA",
+        "gender": "M",
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      }
+    },
+    {
+      "name": "continuity-partial-card-reject",
+      "image": "continuity/partial-card.png",
+      "expect": "reject",
+      "quality": "ignore",
+      "captureSource": "continuity",
+      "documentSide": "negative",
+      "condition": "partial-frame"
+    },
+    {
+      "name": "continuity-glare-reject",
+      "image": "continuity/glare.png",
+      "expect": "reject",
+      "quality": "unusable",
+      "captureSource": "continuity",
+      "documentSide": "negative",
+      "condition": "glare"
+    }
+  ]
+}

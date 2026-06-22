@@ -19,6 +19,7 @@ final class LiveScanController: ObservableObject {
 
     func processFrame(
         sortedItems: [RecognizedItem],
+        frameQuality: CaptureFrameQuality? = nil,
         autoCountdown: Bool,
         onScanSound: () -> Void,
         onCountdownBeep: @escaping () -> Void,
@@ -29,7 +30,11 @@ final class LiveScanController: ObservableObject {
         recognizedItems = sortedItems
         let parsed = ScanCaptureLogic.parseRecognizedItems(sortedItems)
         let hasText = !sortedItems.isEmpty
-        let isReady = ScanCaptureLogic.shouldAcceptCapture(parsed)
+        let isReady = ScanCaptureLogic.shouldAcceptLiveFrame(
+            parsed: parsed,
+            items: sortedItems,
+            frameQuality: frameQuality
+        )
 
         if captureState == .countdown {
             handleCountdownFrame(
@@ -67,16 +72,20 @@ final class LiveScanController: ObservableObject {
             readyStreak += 1
             feedbackKey = autoCountdown ? "scan_status_ready" : "scan_status_capturing"
 
-            if autoCountdown {
-                if readyStreak >= readyStreakRequired {
+            if readyStreak >= readyStreakRequired {
+                if autoCountdown {
                     startCountdown(with: parsed, onCountdownBeep: onCountdownBeep, onFinalize: onFinalize)
+                } else {
+                    finalize(parsed, onFinalize: onFinalize)
                 }
-            } else {
-                finalize(parsed, onFinalize: onFinalize)
             }
         } else {
             readyStreak = 0
-            feedbackKey = ScanCaptureLogic.scanFeedbackKey(for: parsed, itemCount: sortedItems.count)
+            feedbackKey = ScanCaptureLogic.scanFeedbackKey(
+                for: parsed,
+                items: sortedItems,
+                frameQuality: frameQuality
+            )
         }
     }
 

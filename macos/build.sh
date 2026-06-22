@@ -20,9 +20,12 @@ swiftc -O \
   -o ScanID.app/Contents/MacOS/ScanID \
   App.swift \
   MainView.swift \
+  LiveScanController.swift \
   CameraView.swift \
   ZoomableImageWrapper.swift \
   UpdateInstaller.swift \
+  ScanMenuActions.swift \
+  ScanCaptureLogic.swift \
   Scanner.swift \
   Parser.swift \
   BelfioreCodes.swift
@@ -65,9 +68,19 @@ fi
 echo "3. Setting execution permissions..."
 chmod +x ScanID.app/Contents/MacOS/ScanID
 
-echo "4. Ad-hoc code signing app bundle..."
-codesign -s - --force ScanID.app/Contents/MacOS/ScanID
-codesign -s - --force ScanID.app
+SIGN_IDENTITY="${SCANID_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY:--}}"
+
+if [ "$SIGN_IDENTITY" = "-" ]; then
+  echo "4. Ad-hoc code signing app bundle..."
+  codesign -s - --force --timestamp=none ScanID.app/Contents/MacOS/ScanID
+  codesign -s - --force --timestamp=none ScanID.app
+else
+  echo "4. Code signing app bundle with identity: ${SIGN_IDENTITY}"
+  codesign -s "$SIGN_IDENTITY" --force --options runtime --timestamp ScanID.app/Contents/MacOS/ScanID
+  codesign -s "$SIGN_IDENTITY" --force --options runtime --timestamp ScanID.app
+fi
+
+codesign --verify --deep --strict ScanID.app
 
 echo "=== Build Completed Successfully! ==="
 echo "You can launch the app using: open ScanID.app"
