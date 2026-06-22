@@ -137,6 +137,35 @@ enum UpdateInstaller {
           /usr/bin/xattr -cr "$1" 2>/dev/null || true
         }
 
+        sentinel_unquarantine() {
+          local app="$1"
+          local sentinel_app="/Applications/Sentinel.app"
+
+          if [[ ! -d "$sentinel_app" ]]; then
+            echo "Sentinel is not installed at $sentinel_app; falling back to direct xattr quarantine removal."
+            strip_quarantine "$app"
+            return 0
+          fi
+
+          echo "Running Sentinel post-install quarantine removal for $app"
+          /usr/bin/open -g -a "$sentinel_app" "$app" || {
+            echo "WARNING: Sentinel launch failed; falling back to direct xattr quarantine removal."
+            strip_quarantine "$app"
+            return 0
+          }
+
+          for _ in {1..50}; do
+            if ! has_quarantine "$app"; then
+              echo "Sentinel removed quarantine from $app"
+              return 0
+            fi
+            /bin/sleep 0.2
+          done
+
+          echo "WARNING: Sentinel did not clear quarantine within timeout; falling back to direct xattr quarantine removal."
+          strip_quarantine "$app"
+        }
+
         has_quarantine() {
           /usr/bin/xattr -pr com.apple.quarantine "$1" >/dev/null 2>&1
         }
@@ -159,21 +188,22 @@ enum UpdateInstaller {
           local dest="$2"
           strip_quarantine "$src"
           if /usr/bin/ditto "$src" "$dest"; then
-            strip_quarantine "$dest"
+            sentinel_unquarantine "$dest"
             if verify_installed_app "$dest"; then
               return 0
             fi
           fi
           /bin/rm -rf "$dest"
           if /usr/bin/ditto "$src" "$dest"; then
-            strip_quarantine "$dest"
+            sentinel_unquarantine "$dest"
             if verify_installed_app "$dest"; then
               return 0
             fi
           fi
           local esc_src="${src//\'/\'\\\'\'}"
           local esc_dest="${dest//\'/\'\\\'\'}"
-          /usr/bin/osascript -e "do shell script \\"/bin/rm -rf '$esc_dest' && /usr/bin/ditto '$esc_src' '$esc_dest' && /usr/bin/xattr -cr '$esc_dest' && /usr/bin/codesign --verify --deep --strict '$esc_dest'\\" with administrator privileges"
+          /usr/bin/osascript -e "do shell script \\"/bin/rm -rf '$esc_dest' && /usr/bin/ditto '$esc_src' '$esc_dest'\\" with administrator privileges"
+          sentinel_unquarantine "$dest"
           verify_installed_app "$dest"
         }
         
