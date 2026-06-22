@@ -8,7 +8,10 @@ import { NextResponse } from "next/server";
  */
 export async function validateCronSecret(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
+  if (!secret) {
+    console.error("[cron-auth] CRON_SECRET is not configured");
+    return false;
+  }
 
   const authHeader = req.headers.get("authorization");
   if (authHeader === `Bearer ${secret}`) return true;
