@@ -4,45 +4,6 @@ import AppKit
 import CoreImage
 import ImageIO
 
-enum CameraOrientation {
-    static let continuityCameraRotationAngle: CGFloat = 180
-    
-    static func isContinuityCameraDevice(_ device: AVCaptureDevice?) -> Bool {
-        guard let device else { return false }
-        if device.isContinuityCamera {
-            return true
-        }
-        guard device.deviceType == .external else { return false }
-        let name = device.localizedName.lowercased()
-        return name.contains("iphone") || name.contains("ipad")
-    }
-    
-    static func fallbackRotationAngle(for device: AVCaptureDevice?) -> CGFloat {
-        isContinuityCameraDevice(device) ? continuityCameraRotationAngle : 0
-    }
-    
-    static func apply(to connection: AVCaptureConnection?, angle: CGFloat) {
-        guard let connection else { return }
-        guard connection.isVideoRotationAngleSupported(angle) else { return }
-        if connection.videoRotationAngle != angle {
-            connection.videoRotationAngle = angle
-        }
-    }
-    
-    static func visionOrientation(for rotationAngle: CGFloat) -> CGImagePropertyOrientation {
-        switch Int(round(rotationAngle).truncatingRemainder(dividingBy: 360)) {
-        case 90, -270:
-            return .right
-        case 180, -180:
-            return .down
-        case 270, -90:
-            return .left
-        default:
-            return .up
-        }
-    }
-}
-
 enum CameraPreferences {
     static let rememberLastCameraKey = "rememberLastCamera"
     static let lastCameraDeviceIDKey = "lastCameraDeviceID"

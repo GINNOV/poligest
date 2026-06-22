@@ -5,6 +5,9 @@ set -e
 # Create a temporary test runner source file
 cat << 'EOF' > main.swift
 import Foundation
+import CoreGraphics
+import ImageIO
+import AVFoundation
 
 func assertEqual(_ actual: String?, _ expected: String?, _ message: String) {
     if actual == expected {
@@ -12,6 +15,42 @@ func assertEqual(_ actual: String?, _ expected: String?, _ message: String) {
     } else {
         print("❌ FAIL: \(message) - Expected: \(String(describing: expected)), Got: \(String(describing: actual))")
     }
+}
+
+func assertTrue(_ condition: Bool, _ message: String) {
+    if condition {
+        print("✅ PASS: \(message)")
+    } else {
+        print("❌ FAIL: \(message)")
+    }
+}
+
+func assertEqual(_ actual: CGFloat, _ expected: CGFloat, _ message: String) {
+    if actual == expected {
+        print("✅ PASS: \(message)")
+    } else {
+        print("❌ FAIL: \(message) - Expected: \(expected), Got: \(actual)")
+    }
+}
+
+func assertEqual(_ actual: ScanCaptureState, _ expected: ScanCaptureState, _ message: String) {
+    if actual == expected {
+        print("✅ PASS: \(message)")
+    } else {
+        print("❌ FAIL: \(message) - Expected: \(expected), Got: \(actual)")
+    }
+}
+
+func assertOrientation(_ actual: CGImagePropertyOrientation, _ expected: CGImagePropertyOrientation, _ message: String) {
+    if actual == expected {
+        print("✅ PASS: \(message)")
+    } else {
+        print("❌ FAIL: \(message) - Expected: \(expected.rawValue), Got: \(actual.rawValue)")
+    }
+}
+
+func makeItem(_ text: String, x: CGFloat, y: CGFloat) -> RecognizedItem {
+    RecognizedItem(text: text, boundingBox: CGRect(x: x, y: y, width: 0.2, height: 0.04))
 }
 
 print("=== Running IDParser Unit Tests ===")
@@ -339,11 +378,170 @@ let tsNoSurnameLines = [
 let parsedTSNoSurname = IDParser.parse(lines: tsNoSurnameLines)
 assertEqual(parsedTSNoSurname.name, "PONTECAGNANO FAIANO", "TS No Surname OCR Name (known gap)")
 
+print("\n=== Running Camera Orientation Unit Tests ===")
+
+assertEqual(
+    CameraOrientation.fallbackRotationAngle(traits: CameraOrientation.DeviceTraits(
+        isContinuityCamera: true,
+        isExternal: false,
+        localizedName: "FaceTime HD Camera"
+    )),
+    180,
+    "Continuity camera flag uses 180° fallback"
+)
+assertEqual(
+    CameraOrientation.fallbackRotationAngle(traits: CameraOrientation.DeviceTraits(
+        isContinuityCamera: false,
+        isExternal: true,
+        localizedName: "iPhone Camera"
+    )),
+    180,
+    "External iPhone-named device uses 180° fallback"
+)
+assertEqual(
+    CameraOrientation.fallbackRotationAngle(traits: CameraOrientation.DeviceTraits(
+        isContinuityCamera: false,
+        isExternal: true,
+        localizedName: "iPad Camera"
+    )),
+    180,
+    "External iPad-named device uses 180° fallback"
+)
+assertEqual(
+    CameraOrientation.fallbackRotationAngle(traits: CameraOrientation.DeviceTraits(
+        isContinuityCamera: false,
+        isExternal: false,
+        localizedName: "FaceTime HD Camera"
+    )),
+    0,
+    "Built-in webcam keeps 0° fallback"
+)
+assertEqual(CameraOrientation.fallbackRotationAngle(for: nil), 0, "Nil device keeps 0° fallback")
+assertTrue(CameraOrientation.looksLikeContinuityCameraName("Mark's iPhone Camera"), "iPhone name hint")
+assertTrue(!CameraOrientation.looksLikeContinuityCameraName("Logitech BRIO"), "Non-continuity name hint")
+
+assertOrientation(CameraOrientation.visionOrientation(for: 0), .up, "Vision orientation 0°")
+assertOrientation(CameraOrientation.visionOrientation(for: 90), .right, "Vision orientation 90°")
+assertOrientation(CameraOrientation.visionOrientation(for: 180), .down, "Vision orientation 180°")
+assertOrientation(CameraOrientation.visionOrientation(for: 270), .left, "Vision orientation 270°")
+assertOrientation(CameraOrientation.visionOrientation(for: -90), .left, "Vision orientation -90°")
+assertOrientation(CameraOrientation.visionOrientation(for: 450), .right, "Vision orientation wraps 450° to 90°")
+
+print("\n=== Running Scan Capture Logic Unit Tests ===")
+
+let unorderedItems = [
+    makeItem("B", x: 0.70, y: 0.50),
+    makeItem("A", x: 0.20, y: 0.50),
+    makeItem("C", x: 0.45, y: 0.80),
+]
+let sortedItems = ScanCaptureLogic.sortedRecognizedItems(unorderedItems)
+assertEqual(sortedItems.map(\.text).joined(separator: ","), "C,A,B", "sortedRecognizedItems orders top-to-bottom then left-to-right")
+
+let unknownParsed = IDData(documentType: "UNKNOWN", rawText: [])
+assertTrue(!ScanCaptureLogic.shouldAcceptCapture(unknownParsed), "UNKNOWN without fields is rejected")
+
+var surnameOnly = IDData(documentType: "UNKNOWN", rawText: [])
+surnameOnly.surname = "ROSSI"
+assertTrue(ScanCaptureLogic.shouldAcceptCapture(surnameOnly), "Surname alone is accepted")
+
+var typedParsed = IDData(documentType: "CIE_FRONT", rawText: [])
+assertTrue(ScanCaptureLogic.shouldAcceptCapture(typedParsed), "Known document type is accepted")
+
+assertEqual(ScanCaptureLogic.scanFeedbackKey(for: unknownParsed, itemCount: 2), "scan_status_move_closer", "Few OCR items suggest move closer")
+assertEqual(ScanCaptureLogic.scanFeedbackKey(for: unknownParsed, itemCount: 5), "scan_status_align_document", "Unknown document suggests alignment")
+var partialParsed = IDData(documentType: "CIE_FRONT", rawText: [])
+assertEqual(ScanCaptureLogic.scanFeedbackKey(for: partialParsed, itemCount: 6), "scan_status_need_identity", "Missing identity fields feedback")
+partialParsed.documentNumber = "CA12345AA"
+assertEqual(ScanCaptureLogic.scanFeedbackKey(for: partialParsed, itemCount: 6), "scan_status_need_identity", "Document number without identity still needs identity")
+partialParsed.surname = "ROSSI"
+assertEqual(ScanCaptureLogic.scanFeedbackKey(for: partialParsed, itemCount: 6), "scan_status_reading_fields", "Partial identity feedback")
+
+let fallbackItems = [makeItem("fallback", x: 0.5, y: 0.5)]
+let fallbackParsed = IDData(documentType: "UNKNOWN", rawText: ["fallback"])
+var freshParsed = IDData(documentType: "UNKNOWN", rawText: [])
+freshParsed.codiceFiscale = "RSSMRA90A15H501Y"
+let freshItems = [makeItem("RSSMRA90A15H501Y", x: 0.5, y: 0.5)]
+let accepted = ScanCaptureLogic.selectCaptureResults(
+    freshParsed: freshParsed,
+    freshItems: freshItems,
+    fallbackItems: fallbackItems,
+    fallbackParsed: fallbackParsed
+)
+assertEqual(accepted.parsed.codiceFiscale, "RSSMRA90A15H501Y", "selectCaptureResults prefers accepted fresh parse")
+assertEqual(accepted.items.first?.text, "RSSMRA90A15H501Y", "selectCaptureResults keeps fresh items when accepted")
+
+let rejectedFresh = IDData(documentType: "UNKNOWN", rawText: [])
+let rejected = ScanCaptureLogic.selectCaptureResults(
+    freshParsed: rejectedFresh,
+    freshItems: [makeItem("noise", x: 0.1, y: 0.1)],
+    fallbackItems: fallbackItems,
+    fallbackParsed: fallbackParsed
+)
+assertEqual(rejected.items.first?.text, "fallback", "selectCaptureResults falls back when fresh parse rejected")
+
+print("\n=== Running Live Scan Controller Unit Tests ===")
+
+let liveScanSemaphore = DispatchSemaphore(value: 0)
+Task { @MainActor in
+    let controller = LiveScanController()
+    controller.processFrame(
+        sortedItems: [],
+        autoCountdown: false,
+        onScanSound: {},
+        onCountdownBeep: {},
+        onFinalize: { _ in }
+    )
+    assertEqual(controller.captureState, .idle, "Empty frame keeps live scan idle")
+    assertEqual(controller.feedbackKey, "scan_status_waiting", "Empty frame shows waiting feedback")
+
+    controller.reset()
+    let readyItems = [
+        makeItem("REPUBBLICA ITALIANA", x: 0.5, y: 0.9),
+        makeItem("CARTA DI IDENTITÀ", x: 0.5, y: 0.82),
+        makeItem("Cognome / Surname", x: 0.2, y: 0.7),
+        makeItem("ROSSI", x: 0.2, y: 0.62),
+        makeItem("Nome / Name", x: 0.7, y: 0.7),
+        makeItem("MARIO", x: 0.7, y: 0.62),
+    ]
+    var finalized = false
+    controller.processFrame(
+        sortedItems: readyItems,
+        autoCountdown: false,
+        onScanSound: {},
+        onCountdownBeep: {},
+        onFinalize: { _ in finalized = true }
+    )
+    assertEqual(controller.captureState, .captured, "Ready frame finalizes immediately without countdown")
+    assertTrue(finalized, "Ready frame invokes finalize callback")
+    assertEqual(controller.feedbackKey, "scan_status_captured", "Captured feedback after finalize")
+
+    let scanningController = LiveScanController()
+    let sparseItems = [
+        makeItem("noise", x: 0.1, y: 0.1),
+        makeItem("more", x: 0.2, y: 0.2),
+        makeItem("text", x: 0.3, y: 0.3),
+    ]
+    scanningController.processFrame(
+        sortedItems: sparseItems,
+        autoCountdown: false,
+        onScanSound: {},
+        onCountdownBeep: {},
+        onFinalize: { _ in }
+    )
+    assertEqual(scanningController.captureState, .scanning, "Unreadable text keeps scanning state")
+    assertEqual(scanningController.feedbackKey, "scan_status_align_document", "Unreadable text alignment feedback")
+
+    liveScanSemaphore.signal()
+}
+while liveScanSemaphore.wait(timeout: .now() + 0.05) == .timedOut {
+    RunLoop.current.run(mode: .default, before: Date(timeIntervalSinceNow: 0.05))
+}
+
 print("\n=== Verification Complete ===")
 EOF
 
 # Compile
-swiftc Parser.swift BelfioreCodes.swift main.swift -o test_runner
+swiftc Parser.swift BelfioreCodes.swift Scanner.swift ScanCaptureLogic.swift LiveScanController.swift main.swift -o test_runner
 
 # Run
 ./test_runner

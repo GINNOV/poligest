@@ -19,7 +19,7 @@ struct MainView: View {
     @State private var isDragging = false
     @State private var copied = false
     @State private var animatingScanLine = false
-    @State private var captureState: CaptureState = .idle
+    @State private var captureState: ScanCaptureState = .idle
     @State private var lastSoundTime: TimeInterval = 0
     
     // Web App Integration Settings
@@ -88,13 +88,6 @@ struct MainView: View {
         let notes: String?
     }
     
-    enum CaptureState {
-        case idle
-        case scanning
-        case countdown
-        case captured
-    }
-    
     enum ScanMode {
         case camera
         case image
@@ -115,7 +108,7 @@ struct MainView: View {
         captureState == .captured
     }
     
-    private var activeCameraPhase: CaptureState {
+    private var activeCameraPhase: ScanCaptureState {
         scanMode == .camera ? liveScan.captureState : .idle
     }
     
@@ -136,7 +129,7 @@ struct MainView: View {
     }
     
     private var liveDisplayedRecognizedItems: [RecognizedItem] {
-        displayedRecognizedItems(from: liveScan.recognizedItems, parsed: Self.parseRecognizedItems(liveScan.recognizedItems))
+        displayedRecognizedItems(from: liveScan.recognizedItems, parsed: ScanCaptureLogic.parseRecognizedItems(liveScan.recognizedItems))
     }
     
     private var capturedDisplayedRecognizedItems: [RecognizedItem] {
@@ -1059,23 +1052,13 @@ struct MainView: View {
         statusBar.show(key: "status_camera_ready", style: .info, autoDismiss: 3)
     }
     
-    private static func sortedRecognizedItems(_ items: [RecognizedItem]) -> [RecognizedItem] {
-        items.sorted { item1, item2 in
-            let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
-            if yDiff < 0.035 {
-                return item1.boundingBox.minX < item2.boundingBox.minX
-            }
-            return item1.boundingBox.midY > item2.boundingBox.midY
-        }
-    }
-    
     private func finalizeCameraCapture() {
         capturedCameraImage = cameraManager.snapshotImage()
         cameraManager.stopSession()
         autoZoomAppliedForCurrentCapture = false
         
         let fallbackItems = liveScan.recognizedItems
-        let fallbackParsed = Self.parseRecognizedItems(fallbackItems)
+        let fallbackParsed = ScanCaptureLogic.parseRecognizedItems(fallbackItems)
         
         guard let image = capturedCameraImage,
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
@@ -1084,15 +1067,17 @@ struct MainView: View {
         }
         
         IDScanner.recognizeText(in: cgImage) { items in
-            let sortedItems = Self.sortedRecognizedItems(items)
-            var parsed = Self.parseRecognizedItems(sortedItems)
+            let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
+            var parsed = ScanCaptureLogic.parseRecognizedItems(sortedItems)
             parsed.calculateCodiceFiscaleIfPossible()
-            
-            if Self.shouldAcceptCapture(parsed) {
-                self.applyCapturedScanResults(items: sortedItems, parsed: parsed)
-            } else {
-                self.applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
-            }
+
+            let results = ScanCaptureLogic.selectCaptureResults(
+                freshParsed: parsed,
+                freshItems: sortedItems,
+                fallbackItems: fallbackItems,
+                fallbackParsed: fallbackParsed
+            )
+            self.applyCapturedScanResults(items: results.items, parsed: results.parsed)
         }
     }
     
@@ -1112,7 +1097,7 @@ struct MainView: View {
             guard self.captureState != .captured, self.liveScan.captureState != .captured else { return }
             
             IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
-                let sortedItems = Self.sortedRecognizedItems(items)
+                let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
                 
                 self.liveScan.processFrame(
                     sortedItems: sortedItems,
@@ -1171,18 +1156,12 @@ struct MainView: View {
         self.cgImageForOCR = cgImage
         
         IDScanner.recognizeText(in: cgImage) { items in
-            let sortedItems = items.sorted { item1, item2 in
-                let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
-                if yDiff < 0.035 {
-                    return item1.boundingBox.minX < item2.boundingBox.minX
-                }
-                return item1.boundingBox.midY > item2.boundingBox.midY
-            }
+            let sortedItems = ScanCaptureLogic.sortedRecognizedItems(items)
             self.recognizedItems = sortedItems
-            var parsed = Self.parseRecognizedItems(sortedItems)
+            var parsed = ScanCaptureLogic.parseRecognizedItems(sortedItems)
             parsed.calculateCodiceFiscaleIfPossible()
             
-            if Self.shouldAcceptCapture(parsed) {
+            if ScanCaptureLogic.shouldAcceptCapture(parsed) {
                 self.parsedData = parsed
                 self.captureState = .captured
                 self.autoZoomAppliedForCurrentCapture = false
@@ -2873,209 +2852,6 @@ enum CountdownSound {
     }
 }
 
-// MARK: - Live Scan Controller
-
-@MainActor
-final class LiveScanController: ObservableObject {
-    @Published private(set) var captureState: MainView.CaptureState = .idle
-    @Published private(set) var recognizedItems: [RecognizedItem] = []
-    @Published private(set) var feedbackKey: String = "scan_status_waiting"
-    @Published private(set) var countdownSeconds: Int?
-    
-    private var countdownTask: Task<Void, Never>?
-    private var pendingCaptureData: IDData?
-    private var readyStreak = 0
-    private var emptyStreak = 0
-    
-    private let readyStreakRequired = 2
-    private let emptyStreakToReset = 3
-    private let emptyStreakToCancelCountdown = 4
-    
-    func processFrame(
-        sortedItems: [RecognizedItem],
-        autoCountdown: Bool,
-        onScanSound: () -> Void,
-        onCountdownBeep: @escaping () -> Void,
-        onFinalize: @escaping (IDData) -> Void
-    ) {
-        guard captureState != .captured else { return }
-        
-        recognizedItems = sortedItems
-        let parsed = MainView.parseRecognizedItems(sortedItems)
-        let hasText = !sortedItems.isEmpty
-        let isReady = MainView.shouldAcceptCapture(parsed)
-        
-        if captureState == .countdown {
-            handleCountdownFrame(
-                sortedItems: sortedItems,
-                parsed: parsed,
-                hasText: hasText,
-                isReady: isReady,
-                onCountdownBeep: onCountdownBeep,
-                onFinalize: onFinalize
-            )
-            return
-        }
-        
-        guard hasText else {
-            readyStreak = 0
-            emptyStreak += 1
-            if emptyStreak >= emptyStreakToReset && captureState != .idle {
-                captureState = .idle
-            }
-            feedbackKey = "scan_status_waiting"
-            return
-        }
-        
-        emptyStreak = 0
-        
-        if captureState == .idle {
-            captureState = .scanning
-        }
-        
-        if captureState == .scanning {
-            onScanSound()
-        }
-        
-        if isReady {
-            readyStreak += 1
-            feedbackKey = autoCountdown ? "scan_status_ready" : "scan_status_capturing"
-            
-            if autoCountdown {
-                if readyStreak >= readyStreakRequired {
-                    startCountdown(with: parsed, onCountdownBeep: onCountdownBeep, onFinalize: onFinalize)
-                }
-            } else {
-                finalize(parsed, onFinalize: onFinalize)
-            }
-        } else {
-            readyStreak = 0
-            feedbackKey = MainView.scanFeedbackKey(for: parsed, itemCount: sortedItems.count)
-        }
-    }
-    
-    private func handleCountdownFrame(
-        sortedItems: [RecognizedItem],
-        parsed: IDData,
-        hasText: Bool,
-        isReady: Bool,
-        onCountdownBeep: () -> Void,
-        onFinalize: (IDData) -> Void
-    ) {
-        guard hasText else {
-            emptyStreak += 1
-            if emptyStreak >= emptyStreakToCancelCountdown {
-                cancelCountdown()
-                feedbackKey = "scan_status_lost"
-            } else {
-                feedbackKey = "scan_status_hold"
-            }
-            return
-        }
-        
-        emptyStreak = 0
-        feedbackKey = "scan_status_countdown"
-        
-        if isReady {
-            pendingCaptureData = parsed
-        }
-    }
-    
-    private func startCountdown(
-        with parsed: IDData,
-        onCountdownBeep: @escaping () -> Void,
-        onFinalize: @escaping (IDData) -> Void
-    ) {
-        guard captureState == .scanning, countdownTask == nil else { return }
-        
-        pendingCaptureData = parsed
-        captureState = .countdown
-        countdownSeconds = 3
-        feedbackKey = "scan_status_countdown"
-        onCountdownBeep()
-        
-        countdownTask = Task {
-            for remaining in stride(from: 2, through: 1, by: -1) {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                if Task.isCancelled { return }
-                countdownSeconds = remaining
-                onCountdownBeep()
-            }
-            
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
-            if Task.isCancelled { return }
-            
-            guard captureState == .countdown, let pending = pendingCaptureData else { return }
-            countdownTask = nil
-            finalize(pending, onFinalize: onFinalize)
-        }
-    }
-    
-    private func finalize(_ parsed: IDData, onFinalize: (IDData) -> Void) {
-        countdownTask?.cancel()
-        countdownTask = nil
-        countdownSeconds = nil
-        pendingCaptureData = nil
-        captureState = .captured
-        feedbackKey = "scan_status_captured"
-        onFinalize(parsed)
-    }
-    
-    private func cancelCountdown() {
-        countdownTask?.cancel()
-        countdownTask = nil
-        countdownSeconds = nil
-        pendingCaptureData = nil
-        readyStreak = 0
-        captureState = .idle
-    }
-    
-    func reset() {
-        cancelCountdown()
-        captureState = .idle
-        recognizedItems = []
-        emptyStreak = 0
-        readyStreak = 0
-        feedbackKey = "scan_status_waiting"
-    }
-}
-
-extension MainView {
-    static func parseRecognizedItems(_ items: [RecognizedItem]) -> IDData {
-        let textLines = items.sortedLines()
-        let ocrItems = items.map {
-            OCRTextItem(
-                text: $0.text,
-                midX: $0.boundingBox.midX,
-                midY: $0.boundingBox.midY
-            )
-        }
-        return IDParser.parse(ocrItems: ocrItems, fallbackLines: textLines)
-    }
-    
-    static func shouldAcceptCapture(_ parsed: IDData) -> Bool {
-        parsed.documentType != "UNKNOWN"
-            || parsed.codiceFiscale != nil
-            || parsed.surname != nil
-            || parsed.name != nil
-            || parsed.documentNumber != nil
-            || parsed.cardNumber != nil
-    }
-    
-    static func scanFeedbackKey(for parsed: IDData, itemCount: Int) -> String {
-        if itemCount < 3 {
-            return "scan_status_move_closer"
-        }
-        if parsed.documentType == "UNKNOWN" {
-            return "scan_status_align_document"
-        }
-        if parsed.surname == nil && parsed.name == nil && parsed.codiceFiscale == nil {
-            return "scan_status_need_identity"
-        }
-        return "scan_status_reading_fields"
-    }
-}
-
 // MARK: - Supporting Views
 
 struct ContinuityCameraHelpContent: View {
@@ -3720,7 +3496,7 @@ struct Localization {
             "continuity_camera_help_intro": "Scansiona con la fotocamera dell'iPhone — senza trasferire foto.",
             "continuity_camera_step_1": "Posizionare lo scanner di fianco al portatile",
             "continuity_camera_step_2": "Posizionare la carta di identità.",
-            "continuity_camera_step_3": "Sbloca il telefono e posizionalo sullo scanner.",
+            "continuity_camera_step_3": "Sblocca il telefono e posizionalo sullo scanner.",
             "continuity_camera_step_4": "Attiva la scansione se non è impostata per partire in automatico",
             "continuity_camera_tip": "Crea/Aggiorna la cartella.",
             "countdown_hold_still": "Resta fermo…",
