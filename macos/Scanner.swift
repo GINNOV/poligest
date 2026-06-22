@@ -2,6 +2,7 @@ import Foundation
 import Vision
 import CoreGraphics
 import CoreVideo
+import ImageIO
 import QuartzCore
 
 struct RecognizedItem: Identifiable, Codable {
@@ -201,7 +202,11 @@ class IDScanner {
     }
     
     /// Recognizes text in a live CVImageBuffer with rate limiting for camera processing
-    static func recognizeTextInLiveBuffer(_ pixelBuffer: CVImageBuffer, completion: @escaping ([RecognizedItem]) -> Void) {
+    static func recognizeTextInLiveBuffer(
+        _ pixelBuffer: CVImageBuffer,
+        orientation: CGImagePropertyOrientation = .up,
+        completion: @escaping ([RecognizedItem]) -> Void
+    ) {
         let currentTime = CACurrentMediaTime()
         
         // Skip if already processing a frame or if it's too soon since the last one
@@ -232,12 +237,15 @@ class IDScanner {
             }
         }
         
-        request.recognitionLevel = .accurate
+        request.recognitionLevel = .fast
         request.recognitionLanguages = ["it-IT", "en-US"]
-        request.usesLanguageCorrection = true
+        request.usesLanguageCorrection = false
         
-        // Use default orientation since the buffer usually matches camera orientation
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
+        let handler = VNImageRequestHandler(
+            cvPixelBuffer: pixelBuffer,
+            orientation: orientation,
+            options: [:]
+        )
         
         DispatchQueue.global(qos: .userInitiated).async {
             do {

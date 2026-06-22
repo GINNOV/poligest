@@ -2,6 +2,46 @@ import SwiftUI
 import AVFoundation
 import AppKit
 import CoreImage
+import ImageIO
+
+enum CameraOrientation {
+    static let continuityCameraRotationAngle: CGFloat = 180
+    
+    static func isContinuityCameraDevice(_ device: AVCaptureDevice?) -> Bool {
+        guard let device else { return false }
+        if device.isContinuityCamera {
+            return true
+        }
+        guard device.deviceType == .external else { return false }
+        let name = device.localizedName.lowercased()
+        return name.contains("iphone") || name.contains("ipad")
+    }
+    
+    static func fallbackRotationAngle(for device: AVCaptureDevice?) -> CGFloat {
+        isContinuityCameraDevice(device) ? continuityCameraRotationAngle : 0
+    }
+    
+    static func apply(to connection: AVCaptureConnection?, angle: CGFloat) {
+        guard let connection else { return }
+        guard connection.isVideoRotationAngleSupported(angle) else { return }
+        if connection.videoRotationAngle != angle {
+            connection.videoRotationAngle = angle
+        }
+    }
+    
+    static func visionOrientation(for rotationAngle: CGFloat) -> CGImagePropertyOrientation {
+        switch Int(round(rotationAngle).truncatingRemainder(dividingBy: 360)) {
+        case 90, -270:
+            return .right
+        case 180, -180:
+            return .down
+        case 270, -90:
+            return .left
+        default:
+            return .up
+        }
+    }
+}
 
 enum CameraPreferences {
     static let rememberLastCameraKey = "rememberLastCamera"
@@ -88,7 +128,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     @Published var isRunning = false
     @Published var devices: [AVCaptureDevice] = []
     @Published var selectedDevice: AVCaptureDevice?
-    @Published private(set) var previewRotationAngle: CGFloat = 0
+    
+    private(set) var captureVisionOrientation: CGImagePropertyOrientation = .up
     
     var onFrameCaptured: ((CVImageBuffer) -> Void)?
     
@@ -103,6 +144,8 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
     private var previewRotationObservation: NSKeyValueObservation?
     private var captureRotationObservation: NSKeyValueObservation?
+    private var lastAppliedPreviewAngle: CGFloat?
+    private var lastAppliedCaptureAngle: CGFloat?
     
     override init() {
         super.init()
@@ -187,7 +230,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 }
             }
             
-            applyRotationFromCoordinator()
+            applyStableRotation(force: true)
             
             if session.canSetSessionPreset(.hd1920x1080) {
                 session.sessionPreset = .hd1920x1080
@@ -203,7 +246,6 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                 self?.session.startRunning()
                 DispatchQueue.main.async {
                     self?.isRunning = self?.session.isRunning ?? false
-                    self?.refreshPreviewRotation()
                 }
             }
         } catch {
@@ -215,7 +257,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     func changeCamera(to device: AVCaptureDevice) {
         selectedDevice = device
         CameraPreferences.saveLastCamera(device)
-        configureRotationCoordinator()
+        resetRotationState()
+        if previewLayer != nil {
+            configureRotationCoordinator()
+        }
+        
         if session.isRunning {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 self?.session.stopRunning()
@@ -271,16 +317,20 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
         previewLayer = layer
         configureRotationCoordinator()
-        refreshPreviewRotation()
-    }
-    
-    func refreshPreviewRotation() {
-        applyRotationFromCoordinator()
+        applyStableRotation(force: true)
     }
     
     func previewRect(forNormalizedBoundingBox box: CGRect) -> CGRect? {
         guard let previewLayer else { return nil }
         return previewLayer.layerRectConverted(fromMetadataOutputRect: box)
+    }
+    
+    private func resetRotationState() {
+        previewRotationObservation?.invalidate()
+        captureRotationObservation?.invalidate()
+        rotationCoordinator = nil
+        lastAppliedPreviewAngle = nil
+        lastAppliedCaptureAngle = nil
     }
     
     private func configureRotationCoordinator() {
@@ -301,44 +351,35 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         
         previewRotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelPreview,
-            options: [.initial, .new]
+            options: [.new]
         ) { [weak self] _, _ in
-            self?.applyRotationFromCoordinator()
+            self?.applyStableRotation()
         }
         
         captureRotationObservation = coordinator.observe(
             \.videoRotationAngleForHorizonLevelCapture,
-            options: [.initial, .new]
+            options: [.new]
         ) { [weak self] _, _ in
-            self?.applyRotationFromCoordinator()
+            self?.applyStableRotation()
         }
     }
     
-    private func applyRotationFromCoordinator() {
-        guard let coordinator = rotationCoordinator else { return }
+    private func applyStableRotation(force: Bool = false) {
+        let device = selectedDevice ?? AVCaptureDevice.default(for: .video)
+        let fallbackAngle = CameraOrientation.fallbackRotationAngle(for: device)
         
-        let previewAngle = coordinator.videoRotationAngleForHorizonLevelPreview
-        let captureAngle = coordinator.videoRotationAngleForHorizonLevelCapture
+        let previewAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelPreview ?? fallbackAngle
+        let captureAngle = rotationCoordinator?.videoRotationAngleForHorizonLevelCapture ?? fallbackAngle
         
-        if let connection = previewLayer?.connection,
-           connection.isVideoRotationAngleSupported(previewAngle) {
-            connection.videoRotationAngle = previewAngle
+        if force || previewAngle != lastAppliedPreviewAngle {
+            CameraOrientation.apply(to: previewLayer?.connection, angle: previewAngle)
+            lastAppliedPreviewAngle = previewAngle
         }
         
-        let wasRunning = session.isRunning
-        if wasRunning {
-            session.beginConfiguration()
-        }
-        if let connection = videoOutput.connection(with: .video),
-           connection.isVideoRotationAngleSupported(captureAngle) {
-            connection.videoRotationAngle = captureAngle
-        }
-        if wasRunning {
-            session.commitConfiguration()
-        }
-        
-        DispatchQueue.main.async {
-            self.previewRotationAngle = previewAngle
+        if force || captureAngle != lastAppliedCaptureAngle {
+            CameraOrientation.apply(to: videoOutput.connection(with: .video), angle: captureAngle)
+            lastAppliedCaptureAngle = captureAngle
+            captureVisionOrientation = CameraOrientation.visionOrientation(for: captureAngle)
         }
     }
     
@@ -377,29 +418,21 @@ class PreviewNSView: NSView {
         layer?.backgroundColor = NSColor.black.cgColor
     }
     
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        cameraManager?.startSession()
-        cameraManager?.refreshPreviewRotation()
-    }
-    
     override func layout() {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         previewLayer?.frame = bounds
         CATransaction.commit()
-        cameraManager?.refreshPreviewRotation()
     }
 }
 
 struct CameraPreviewView: NSViewRepresentable {
-    @ObservedObject var cameraManager: CameraManager
+    let cameraManager: CameraManager
     
     func makeNSView(context: Context) -> PreviewNSView {
         let view = PreviewNSView()
         view.cameraManager = cameraManager
-        cameraManager.startSession()
         
         let previewLayer = AVCaptureVideoPreviewLayer(session: cameraManager.session)
         previewLayer.videoGravity = .resizeAspectFill
@@ -410,13 +443,5 @@ struct CameraPreviewView: NSViewRepresentable {
     
     func updateNSView(_ nsView: PreviewNSView, context: Context) {
         nsView.cameraManager = cameraManager
-        
-        if let previewLayer = nsView.previewLayer,
-           previewLayer.session !== cameraManager.session {
-            previewLayer.session = cameraManager.session
-        }
-        
-        cameraManager.startSession()
-        cameraManager.refreshPreviewRotation()
     }
 }

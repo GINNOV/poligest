@@ -573,9 +573,6 @@ struct MainView: View {
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .cornerRadius(12)
         .padding(12)
-        .onAppear {
-            cameraManager.startSession()
-        }
     }
     
     @ViewBuilder
@@ -1062,6 +1059,52 @@ struct MainView: View {
         statusBar.show(key: "status_camera_ready", style: .info, autoDismiss: 3)
     }
     
+    private static func sortedRecognizedItems(_ items: [RecognizedItem]) -> [RecognizedItem] {
+        items.sorted { item1, item2 in
+            let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
+            if yDiff < 0.035 {
+                return item1.boundingBox.minX < item2.boundingBox.minX
+            }
+            return item1.boundingBox.midY > item2.boundingBox.midY
+        }
+    }
+    
+    private func finalizeCameraCapture() {
+        capturedCameraImage = cameraManager.snapshotImage()
+        cameraManager.stopSession()
+        autoZoomAppliedForCurrentCapture = false
+        
+        let fallbackItems = liveScan.recognizedItems
+        let fallbackParsed = Self.parseRecognizedItems(fallbackItems)
+        
+        guard let image = capturedCameraImage,
+              let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
+            return
+        }
+        
+        IDScanner.recognizeText(in: cgImage) { items in
+            let sortedItems = Self.sortedRecognizedItems(items)
+            var parsed = Self.parseRecognizedItems(sortedItems)
+            parsed.calculateCodiceFiscaleIfPossible()
+            
+            if Self.shouldAcceptCapture(parsed) {
+                self.applyCapturedScanResults(items: sortedItems, parsed: parsed)
+            } else {
+                self.applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
+            }
+        }
+    }
+    
+    private func applyCapturedScanResults(items: [RecognizedItem], parsed: IDData) {
+        recognizedItems = items
+        parsedData = parsed
+        captureState = .captured
+        reportScanComplete()
+        playSuccessSound()
+        refreshPatientLookup(for: parsed, autoSyncAfterLookup: autoCreatePatient)
+    }
+    
     private func setupCameraFrameCallback() {
         cameraManager.onFrameCaptured = { pixelBuffer in
             guard self.scanMode == .camera else { return }
@@ -1069,29 +1112,15 @@ struct MainView: View {
             guard self.captureState != .captured, self.liveScan.captureState != .captured else { return }
             
             IDScanner.recognizeTextInLiveBuffer(pixelBuffer) { items in
-                let sortedItems = items.sorted { item1, item2 in
-                    let yDiff = abs(item1.boundingBox.midY - item2.boundingBox.midY)
-                    if yDiff < 0.035 {
-                        return item1.boundingBox.minX < item2.boundingBox.minX
-                    }
-                    return item1.boundingBox.midY > item2.boundingBox.midY
-                }
+                let sortedItems = Self.sortedRecognizedItems(items)
                 
                 self.liveScan.processFrame(
                     sortedItems: sortedItems,
                     autoCountdown: UserDefaults.standard.bool(forKey: "autoCaptureCountdown"),
                     onScanSound: { self.playSubtleScanSound() },
                     onCountdownBeep: { self.playCountdownBeep() },
-                    onFinalize: { parsed in
-                        self.capturedCameraImage = self.cameraManager.snapshotImage()
-                        self.cameraManager.stopSession()
-                        self.recognizedItems = self.liveScan.recognizedItems
-                        self.parsedData = parsed
-                        self.captureState = .captured
-                        self.autoZoomAppliedForCurrentCapture = false
-                        self.reportScanComplete()
-                        self.playSuccessSound()
-                        self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
+                    onFinalize: { _ in
+                        self.finalizeCameraCapture()
                     }
                 )
             }
