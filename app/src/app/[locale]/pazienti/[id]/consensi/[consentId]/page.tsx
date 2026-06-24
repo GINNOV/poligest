@@ -5,6 +5,11 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export async function generateMetadata() {
+  return createPageMetadata(PAGE_TITLES.consenso);
+}
 
 const renderInline = (text: string) =>
   text.split(/(\*\*[^*]+\*\*)/g).map((segment, idx) => {

@@ -13,6 +13,7 @@ import {
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
+  type DoctorTimeOff,
   type PracticeClosure,
   type PracticeWeeklyClosure,
 } from "@/lib/scheduling-warnings";
@@ -24,6 +25,7 @@ type Props = {
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures: PracticeWeeklyClosure[];
+  doctorTimeOffs?: DoctorTimeOff[];
   action: (formData: FormData) => Promise<void>;
   onSuccess?: () => void;
   initialStartsAt?: string;
@@ -40,6 +42,7 @@ export function AppointmentCreateForm({
   availabilityWindows,
   practiceClosures,
   practiceWeeklyClosures,
+  doctorTimeOffs = [],
   action,
   onSuccess,
   initialStartsAt,
@@ -183,6 +186,7 @@ export function AppointmentCreateForm({
         availabilityWindows,
         practiceClosures,
         practiceWeeklyClosures,
+        doctorTimeOffs,
         ignorePracticeClosureWarnings: ignoreClosureWarnings,
         ignoreDoctorAvailabilityWarnings: ignoreAvailabilityWarnings,
       });

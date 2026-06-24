@@ -1,11 +1,6 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, Role } from "@prisma/client";
-
-export const metadata: Metadata = {
-  title: "DASHBOARD",
-};
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   eachDayOfInterval,
@@ -26,6 +21,9 @@ import {
 import { DashboardAppointmentsList } from "@/components/dashboard-appointments-list";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { getAppointmentWhatsappReminderCounts } from "@/lib/appointments/agenda";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.giornata);
 
 const statusLabels: Record<AppointmentStatus, string> = {
   TO_CONFIRM: "Da confermare",
@@ -64,6 +62,34 @@ const formatLocalDateTime = (date: Date) => {
     date.getHours()
   )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
+
+type DashboardLayout = "rows" | "cards";
+
+function buildDashboardHref({
+  view,
+  day,
+  doctor,
+  layout,
+}: {
+  view?: "week" | "day";
+  day?: string;
+  doctor?: string;
+  layout?: DashboardLayout;
+}) {
+  const params = new URLSearchParams();
+  if (view === "day" && day) {
+    params.set("view", "day");
+    params.set("day", day);
+  }
+  if (doctor && doctor !== "all") {
+    params.set("doctor", doctor);
+  }
+  if (layout === "cards") {
+    params.set("layout", "cards");
+  }
+  const query = params.toString();
+  return query ? `/dashboard?${query}` : "/dashboard";
+}
 
 type PatientAward = {
   key: string;
@@ -285,6 +311,8 @@ export default async function DashboardPage({
 
   const viewParam = typeof params.view === "string" ? params.view : undefined;
   const view = viewParam === "day" ? "day" : "week";
+  const layoutParam = typeof params.layout === "string" ? params.layout : undefined;
+  const layout: DashboardLayout = layoutParam === "cards" ? "cards" : "rows";
 
   const selectedDayParam = typeof params.day === "string" ? params.day : undefined;
   const selectedDay =
@@ -704,7 +732,12 @@ export default async function DashboardPage({
           {perDay.map((day) => (
             <Link
               key={day.key}
-              href={`/dashboard?view=day&day=${day.key}`}
+              href={buildDashboardHref({
+                view: "day",
+                day: day.key,
+                doctor: selectedDoctor,
+                layout,
+              })}
               className={`flex flex-col items-center gap-2 rounded-xl border px-2 py-2 transition ${
                 day.key === selectedDay
                   ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30"
@@ -735,7 +768,7 @@ export default async function DashboardPage({
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Filtra per...</h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
               <Link
-                href="/dashboard"
+                href={buildDashboardHref({ view: "week", doctor: selectedDoctor, layout })}
                 className={`rounded-full px-2 py-1 ${
                   view === "week"
                     ? "bg-emerald-700 text-white"
@@ -745,7 +778,12 @@ export default async function DashboardPage({
                 Settimana
               </Link>
               <Link
-                href={`/dashboard?view=day&day=${selectedDay}`}
+                href={buildDashboardHref({
+                  view: "day",
+                  day: selectedDay,
+                  doctor: selectedDoctor,
+                  layout,
+                })}
                 className={`rounded-full px-2 py-1 ${
                   view === "day"
                   ? "bg-emerald-700 text-white"
@@ -753,6 +791,38 @@ export default async function DashboardPage({
                 }`}
               >
                 Oggi
+              </Link>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              <Link
+                href={buildDashboardHref({
+                  view,
+                  day: selectedDay,
+                  doctor: selectedDoctor,
+                  layout: "rows",
+                })}
+                className={`rounded-full px-2 py-1 ${
+                  layout === "rows"
+                    ? "bg-emerald-700 text-white"
+                    : "hover:text-emerald-700"
+                }`}
+              >
+                Righe
+              </Link>
+              <Link
+                href={buildDashboardHref({
+                  view,
+                  day: selectedDay,
+                  doctor: selectedDoctor,
+                  layout: "cards",
+                })}
+                className={`rounded-full px-2 py-1 ${
+                  layout === "cards"
+                    ? "bg-emerald-700 text-white"
+                    : "hover:text-emerald-700"
+                }`}
+              >
+                Schede
               </Link>
             </div>
             {!isPatient && (
@@ -812,11 +882,12 @@ export default async function DashboardPage({
           </span>        </div>
         <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
           <DashboardAppointmentsList
-            key={appointmentsForList.map((appt) => appt.id).join("|")}
+            key={`${layout}|${appointmentsForList.map((appt) => appt.id).join("|")}`}
             appointments={appointmentsForList}
             whatsappTemplateBody={whatsappTemplateBody}
             nowIso={nowIso}
             emptyLabel={t("empty")}
+            layout={layout}
           />
         </div>
       </section>

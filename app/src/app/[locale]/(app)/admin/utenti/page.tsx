@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
@@ -469,6 +470,8 @@ async function stopImpersonation() {
 
   revalidatePath("/");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.utenti);
 
 export default async function AdminUsersPage({
   searchParams,

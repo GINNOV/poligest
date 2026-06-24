@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -117,6 +118,8 @@ interface DailyReminderLogRecord {
     email: string;
   };
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.promemoriaQuotidiano);
 
 export default async function AdminDailyReminderPage() {
   try {

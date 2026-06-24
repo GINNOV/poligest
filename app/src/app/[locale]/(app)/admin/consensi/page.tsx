@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -68,6 +69,8 @@ async function deleteConsentModule(formData: FormData) {
 
   revalidatePath("/[locale]/admin/consensi", "page");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.moduliConsenso);
 
 export default async function AdminConsentModulesPage() {
   await requireUser([Role.ADMIN]);

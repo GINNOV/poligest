@@ -21,6 +21,7 @@ type WeekDay = {
   label: string;
   isToday: boolean;
   isPracticeClosed?: boolean;
+  isDoctorOnTimeOff?: boolean;
   availabilityWindows: AvailabilityWindow[];
   appointments: CalendarAppointment[];
 };
@@ -148,6 +149,7 @@ type Props = {
   availabilityWindows: { doctorId: string; dayOfWeek: number; startMinute: number; endMinute: number }[];
   practiceClosures: { startsAt: string; endsAt: string; title?: string | null; type?: string }[];
   practiceWeeklyClosures: { dayOfWeek: number; title?: string | null }[];
+  doctorTimeOffs: { doctorId: string; startsAt: string; endsAt: string; title?: string | null }[];
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -167,6 +169,7 @@ export function CalendarWeekView({
   availabilityWindows,
   practiceClosures,
   practiceWeeklyClosures,
+  doctorTimeOffs,
   action,
   updateAction,
   deleteAction,
@@ -476,7 +479,13 @@ export function CalendarWeekView({
                     })}
                   </div>
 
-                  {day.isPracticeClosed ? (
+                  {day.isDoctorOnTimeOff ? (
+                    <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-amber-50/75 ring-1 ring-inset ring-amber-200/80 dark:bg-amber-950/30 dark:ring-amber-900/60">
+                      <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-amber-800 shadow-sm ring-1 ring-amber-200/70 dark:bg-zinc-950/85 dark:text-amber-200 dark:ring-amber-900/70">
+                        FERIE
+                      </div>
+                    </div>
+                  ) : day.isPracticeClosed ? (
                     <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-rose-50/70 ring-1 ring-inset ring-rose-200/70 dark:bg-rose-950/30 dark:ring-rose-900/60">
                       <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-rose-700 shadow-sm ring-1 ring-rose-200/70 dark:bg-zinc-950/85 dark:text-rose-200 dark:ring-rose-900/70">
                         CHIUSO
@@ -559,6 +568,7 @@ export function CalendarWeekView({
                   availabilityWindows={availabilityWindows}
                   practiceClosures={practiceClosures}
                   practiceWeeklyClosures={practiceWeeklyClosures}
+                  doctorTimeOffs={doctorTimeOffs}
                   action={updateAction}
                   displayTimeZone={displayTimeZone}
                   onSuccess={() => {
@@ -590,6 +600,7 @@ export function CalendarWeekView({
                 availabilityWindows={availabilityWindows}
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
+                doctorTimeOffs={doctorTimeOffs}
                 action={action}
                 displayTimeZone={displayTimeZone}
                 onSuccess={() => {

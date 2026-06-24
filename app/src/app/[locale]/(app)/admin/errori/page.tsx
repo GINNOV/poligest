@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -19,6 +20,8 @@ type ErrorMetadata = {
     humanReadableMessage?: string;
   };
 };
+
+export const metadata = createPageMetadata(PAGE_TITLES.errori);
 
 export default async function AdminErrorsPage({
   searchParams,

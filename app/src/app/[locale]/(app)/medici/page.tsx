@@ -1,8 +1,11 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
+
+export const metadata = createPageMetadata(PAGE_TITLES.medici);
 
 async function createDoctor(formData: FormData) {
   "use server";

@@ -1,17 +1,15 @@
 import Image from "next/image";
-import type { Metadata } from "next";
 import { AutoPrintOnLoad } from "@/components/auto-print-on-load";
 import { PrintButton } from "@/components/print-button";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { Role } from "@prisma/client";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Lista appuntamenti del giorno",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.listaAppuntamenti);
 
 const LOCALE = "it-IT";
 const TIME_ZONE = "Europe/Rome";

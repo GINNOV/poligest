@@ -1,7 +1,10 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { InstructionManager } from "@/components/instruction-manager";
+
+export const metadata = createPageMetadata(PAGE_TITLES.istruzioni);
 
 export default async function AdminInstructionsPage() {
   await requireUser([Role.ADMIN]);

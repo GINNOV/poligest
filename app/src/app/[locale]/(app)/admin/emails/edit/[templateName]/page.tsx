@@ -3,8 +3,20 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { EmailTemplateForm } from "@/components/EmailTemplateForm";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ templateName: string }>;
+}) {
+  const { templateName } = await params;
+  const template = await getEmailTemplateByName(templateName);
+  const title = template?.name ?? templateName;
+  return createPageMetadata(`${PAGE_TITLES.modificaEmail}: ${title}`);
+}
 
 export default async function EmailTemplateEditPage({
   params,

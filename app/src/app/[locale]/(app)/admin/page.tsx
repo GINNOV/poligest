@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +16,8 @@ type AdminShortcut = {
   disabled?: boolean;
   icon?: string;
 };
+
+export const metadata = createPageMetadata(PAGE_TITLES.amministrazione);
 
 export default async function AdminPage() {
   await requireUser([Role.ADMIN]);

@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { calendarOccupyingAppointmentFilter } from "@/lib/appointments/agenda-domain";
 
 export async function GET(req: Request) {
   await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -27,6 +28,7 @@ export async function GET(req: Request) {
 
     const count = await prisma.appointment.count({
       where: {
+        ...calendarOccupyingAppointmentFilter(),
         doctorId,
         id: excludeId ? { not: excludeId } : undefined,
         startsAt: { lt: endDate },

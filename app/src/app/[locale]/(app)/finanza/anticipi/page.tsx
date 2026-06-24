@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
@@ -5,6 +6,8 @@ import { createDoctorPayment, amendDoctorPayment, archiveDoctorPayment } from ".
 import { AmendDoctorPaymentButton } from "@/components/amend-doctor-payment-button";
 import { ArchiveDoctorPaymentButton } from "@/components/archive-doctor-payment-button";
 import { Button } from "@/components/ui/button";
+
+export const metadata = createPageMetadata(PAGE_TITLES.anticipi);
 
 export const revalidate = 60;
 

@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -63,6 +64,8 @@ async function saveFeatureUpdate(formData: FormData) {
 
   revalidatePath("/admin/aggiornamenti");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.aggiornamenti);
 
 export default async function AdminUpdatesPage() {
   await requireUser([Role.ADMIN]);

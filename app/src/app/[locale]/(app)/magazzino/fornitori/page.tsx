@@ -1,8 +1,11 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { createSupplier, deleteSupplier, updateSupplier } from "../actions";
 import { PhoneInput } from "@/components/phone-input";
+
+export const metadata = createPageMetadata(PAGE_TITLES.fornitori);
 
 export const revalidate = 60;
 

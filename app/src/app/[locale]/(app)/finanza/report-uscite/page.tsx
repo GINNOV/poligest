@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { format, isValid, startOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
@@ -5,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
+
+export const metadata = createPageMetadata(PAGE_TITLES.reportUscite);
 
 export const revalidate = 60;
 

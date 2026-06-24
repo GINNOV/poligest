@@ -3,6 +3,7 @@ import path from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 type Params = { slug?: string[] };
 
@@ -38,6 +39,20 @@ async function loadDocsIndex(): Promise<DocMeta[]> {
     if (b.slug === "index") return 1;
     return a.slug.localeCompare(b.slug);
   });
+}
+
+export async function generateMetadata({ params }: { params: Promise<Params> }) {
+  const resolvedParams = await params;
+  const slugParts = Array.isArray(resolvedParams.slug) ? resolvedParams.slug.filter(Boolean) : [];
+
+  if (slugParts.some((part) => !/^[a-zA-Z0-9_-]+$/.test(part))) {
+    return createPageMetadata(PAGE_TITLES.documentazione);
+  }
+
+  const requestedSlug = slugParts.length ? slugParts.join("/") : "index";
+  const docs = await loadDocsIndex();
+  const title = docs.find((doc) => doc.slug === requestedSlug)?.title ?? toTitle(requestedSlug);
+  return createPageMetadata(title);
 }
 
 export default async function DocsPage({ params }: { params: Promise<Params> }) {

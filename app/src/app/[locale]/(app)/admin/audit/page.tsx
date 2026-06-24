@@ -1,9 +1,12 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import Link from "next/link";
 import { AuditRecordNav } from "@/components/admin/AuditRecordNav";
+
+export const metadata = createPageMetadata(PAGE_TITLES.audit);
 
 export default async function AuditPage({
   params,

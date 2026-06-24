@@ -1,9 +1,12 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Image from "next/image";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { ScanIdClient } from "./ScanIdClient";
 import { getScanIdMeta } from "@/lib/scanid-meta";
+
+export const metadata = createPageMetadata(PAGE_TITLES.scanid);
 
 export default async function ScanIdAdminPage() {
   await requireUser([Role.ADMIN]);

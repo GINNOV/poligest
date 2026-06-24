@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
@@ -18,10 +17,9 @@ import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { isValidDate } from "@/lib/date";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
-  title: "CERCA DUPLICATI",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.cercaDuplicati);
 
 type PatientDuplicateStatus = "complete" | "partial" | "critical";
 

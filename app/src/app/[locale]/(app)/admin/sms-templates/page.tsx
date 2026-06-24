@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
@@ -42,6 +43,8 @@ async function upsertWhatsappTemplate(formData: FormData) {
   });
   revalidatePath("/admin/sms-templates");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.messaggiSms);
 
 export default async function SmsTemplatesPage() {
   await requireUser([Role.ADMIN]);

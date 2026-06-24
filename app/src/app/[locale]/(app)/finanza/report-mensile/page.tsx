@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { format, isValid, startOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
@@ -7,6 +8,8 @@ import { PatientPaymentKind, PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 import { classifyMonthlyPatientPayment } from "@/lib/finance/reports";
+
+export const metadata = createPageMetadata(PAGE_TITLES.reportMensile);
 
 export const revalidate = 60;
 

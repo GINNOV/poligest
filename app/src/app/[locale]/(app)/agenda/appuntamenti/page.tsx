@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { AppointmentStatus, Role } from "@prisma/client";
@@ -21,6 +22,8 @@ import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import {
   formatDateInDisplayTimeZone,
 } from "@/lib/user-display-time-zone";
+
+export const metadata = createPageMetadata(PAGE_TITLES.appuntamenti);
 
 export const revalidate = 0;
 

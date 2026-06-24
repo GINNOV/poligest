@@ -15,6 +15,7 @@ import {
   appendCalendarQueryParam,
   ensureCalendarReturnTo,
 } from "@/lib/calendar/domain";
+import { parseDoctorTimeOffDateRange } from "@/lib/doctor-time-off";
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -333,4 +334,94 @@ export async function deleteAppointment(formData: FormData) {
   revalidatePath("/agenda");
   const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
   redirect(returnTo);
+}
+
+export async function createDoctorTimeOff(formData: FormData) {
+  const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+
+  try {
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+    const timeZone = getCalendarFormTimeZone(formData);
+    const doctorId = (formData.get("doctorId") as string) || "";
+    const startDate = (formData.get("startDate") as string) || "";
+    const endDate = (formData.get("endDate") as string) || startDate;
+    const title = (formData.get("title") as string)?.trim() || "Ferie";
+
+    if (!doctorId) {
+      throw new Error("Seleziona un medico.");
+    }
+
+    const doctor = await prisma.doctor.findUnique({ where: { id: doctorId }, select: { id: true } });
+    if (!doctor) {
+      throw new Error("Medico non trovato.");
+    }
+
+    const { startsAt, endsAt } = parseDoctorTimeOffDateRange(startDate, endDate, timeZone);
+
+    const timeOff = await prisma.doctorTimeOff.create({
+      data: {
+        doctorId,
+        title,
+        startsAt,
+        endsAt,
+      },
+    });
+
+    await logAudit(user, {
+      action: "doctorTimeOff.created",
+      entity: "DoctorTimeOff",
+      entityId: timeOff.id,
+      metadata: { doctorId, title, startDate, endDate },
+    });
+
+    revalidatePath("/calendar");
+    redirect(returnTo);
+  } catch (err: unknown) {
+    if (isNextRedirectError(err)) throw err;
+    const message =
+      typeof (err as { message?: unknown })?.message === "string"
+        ? ((err as { message: string }).message ?? "")
+        : "Errore durante il salvataggio delle ferie.";
+    redirect(appendCalendarQueryParam(returnTo, "error", message));
+  }
+}
+
+export async function deleteDoctorTimeOff(formData: FormData) {
+  const returnTo = ensureCalendarReturnTo((formData.get("returnTo") as string) || "");
+
+  try {
+    const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+    const timeOffId = (formData.get("timeOffId") as string) || "";
+
+    if (!timeOffId) {
+      throw new Error("Periodo ferie non valido.");
+    }
+
+    const existing = await prisma.doctorTimeOff.findUnique({
+      where: { id: timeOffId },
+      select: { id: true, doctorId: true, title: true },
+    });
+    if (!existing) {
+      throw new Error("Periodo ferie non trovato.");
+    }
+
+    await prisma.doctorTimeOff.delete({ where: { id: timeOffId } });
+
+    await logAudit(user, {
+      action: "doctorTimeOff.deleted",
+      entity: "DoctorTimeOff",
+      entityId: existing.id,
+      metadata: { doctorId: existing.doctorId, title: existing.title },
+    });
+
+    revalidatePath("/calendar");
+    redirect(returnTo);
+  } catch (err: unknown) {
+    if (isNextRedirectError(err)) throw err;
+    const message =
+      typeof (err as { message?: unknown })?.message === "string"
+        ? ((err as { message: string }).message ?? "")
+        : "Errore durante la rimozione delle ferie.";
+    redirect(appendCalendarQueryParam(returnTo, "error", message));
+  }
 }

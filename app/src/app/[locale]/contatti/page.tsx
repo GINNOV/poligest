@@ -1,6 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.contatti);
 
 const studio = {
   name: "Studio Associato Dottori Agovino e Angrisano",

@@ -1,4 +1,4 @@
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, type Prisma } from "@prisma/client";
 
 export const DEFAULT_AGENDA_APPOINTMENT_DURATION_MINUTES = 30;
 
@@ -50,6 +50,12 @@ export function adjustAppointmentEndsAt(
 
 export function isAppointmentStatus(value: string): value is AppointmentStatus {
   return Object.values(AppointmentStatus).includes(value as AppointmentStatus);
+}
+
+export function calendarOccupyingAppointmentFilter(): Pick<Prisma.AppointmentWhereInput, "status"> {
+  return {
+    status: { not: AppointmentStatus.CANCELLED },
+  };
 }
 
 export function isSameAgendaAppointmentSlot(

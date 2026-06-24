@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -326,6 +327,8 @@ async function saveWeeklyClosures(formData: FormData) {
 
   revalidatePath("/admin/calendario");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.calendarioStudio);
 
 export default async function AdminCalendarSettingsPage({
   searchParams,

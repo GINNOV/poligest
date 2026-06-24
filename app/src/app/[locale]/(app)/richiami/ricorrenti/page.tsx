@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -6,6 +7,8 @@ import { Role } from "@prisma/client";
 import { RECURRING_MESSAGE_DEFAULTS } from "@/lib/recurring-messages";
 import { updateRecurringConfig } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+
+export const metadata = createPageMetadata(PAGE_TITLES.comunicazioniRicorrenti);
 
 export default async function RichiamiRicorrentiPage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);

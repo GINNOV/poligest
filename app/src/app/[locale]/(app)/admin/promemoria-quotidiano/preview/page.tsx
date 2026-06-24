@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
@@ -11,6 +12,8 @@ type PreviewDailyReminderPageProps = {
     date?: string;
   }>;
 };
+
+export const metadata = createPageMetadata(PAGE_TITLES.anteprimaPromemoriaQuotidiano);
 
 export default async function PreviewDailyReminderPage({ searchParams }: PreviewDailyReminderPageProps) {
   await requireUser([Role.ADMIN]);

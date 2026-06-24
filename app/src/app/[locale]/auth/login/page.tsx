@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 import { getMissingStackEnvKeys, getStackSignInUrl, isStackAuthConfigured } from "@/lib/stack-app";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.accesso);
 
 export default function LoginPage() {
   if (isStackAuthConfigured()) {

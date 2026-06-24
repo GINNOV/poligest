@@ -4,14 +4,12 @@ import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { buildStockMovementFilters } from "../../stock-movement-filters";
-import type { Metadata } from "next";
 import { format } from "date-fns";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Lista movimenti",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.listaMovimenti);
 
 type MovimentiPrintPageProps = {
   searchParams?: Promise<{ mq?: string; from?: string; to?: string }>;

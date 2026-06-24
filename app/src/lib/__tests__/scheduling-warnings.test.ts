@@ -55,6 +55,24 @@ describe("computeSchedulingWarning", () => {
     expect(availabilityWarning).toContain("fuori dalla disponibilità del medico");
   });
 
+  it("warns when booking during doctor time off", () => {
+    const warning = computeSchedulingWarning({
+      ...baseParams,
+      practiceClosures: [],
+      doctorTimeOffs: [
+        {
+          doctorId: "doctor-1",
+          startsAt: "2026-05-13T00:00:00.000Z",
+          endsAt: "2026-05-13T23:59:59.999Z",
+          title: "Ferie estive",
+        },
+      ],
+    });
+
+    expect(warning).toContain("Il medico risulta in ferie");
+    expect(warning).toContain("Ferie estive");
+  });
+
   it("can bypass doctor availability warnings independently from closure warnings", () => {
     const availabilityBypassWarning = computeSchedulingWarning({
       ...baseParams,

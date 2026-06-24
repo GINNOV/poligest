@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { getTranslations } from "next-intl/server";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
@@ -23,6 +24,8 @@ async function applyRetentionAction() {
     redirect(`/admin/privacy?retentionError=${encodeURIComponent("Retention non riuscita.")}`);
   }
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.privacy);
 
 export default async function AdminPrivacyPage({
   searchParams,

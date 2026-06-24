@@ -5,16 +5,14 @@ import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
-import type { Metadata } from "next";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Preventivo",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.preventivo);
 
 export default async function QuotePrintPage({
   params,

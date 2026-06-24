@@ -1,12 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
-  title: "FINANZA",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.finanza);
 
 const TILES = [
   {

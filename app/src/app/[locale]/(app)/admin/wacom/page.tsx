@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +42,8 @@ async function saveWacomConfig(formData: FormData) {
   clearWacomConfigCache();
   revalidatePath("/admin/wacom");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.wacom);
 
 export default async function WacomAdminPage() {
   await requireUser([Role.ADMIN]);

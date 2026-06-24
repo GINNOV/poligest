@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -7,6 +8,8 @@ import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { getAnamnesisConditions } from "@/lib/anamnesis";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { PatientCreateForm } from "@/components/patient-create-form";
+
+export const metadata = createPageMetadata(PAGE_TITLES.nuovoPaziente);
 
 export default async function NuovoPazientePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);

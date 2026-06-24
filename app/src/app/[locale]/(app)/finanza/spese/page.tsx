@@ -1,14 +1,12 @@
 import { prisma } from "@/lib/prisma";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "SPESE",
-};
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { FinanceExpenseFields } from "@/components/finance-forms";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { recordExpense } from "../actions";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.spese);
 
 export const revalidate = 60;
 

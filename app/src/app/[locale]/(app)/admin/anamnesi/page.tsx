@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { Role } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,8 @@ function getAnamnesisClient() {
   }
   return client;
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.anamnesi);
 
 export default async function AnamnesisSettingsPage() {
   await requireUser([Role.ADMIN]);

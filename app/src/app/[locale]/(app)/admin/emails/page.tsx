@@ -1,7 +1,10 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { getAllEmailTemplates } from "@/lib/email-templates";
+
+export const metadata = createPageMetadata(PAGE_TITLES.messaggiEmail);
 
 export const revalidate = 60;
 

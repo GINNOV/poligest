@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
@@ -35,6 +36,8 @@ async function saveAccess(formData: FormData) {
 
   revalidatePath("/admin/feature-access");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.accessoFunzionalita);
 
 export default async function FeatureAccessPage() {
   await requireUser([Role.ADMIN]);
