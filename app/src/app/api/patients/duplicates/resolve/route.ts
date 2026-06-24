@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
 import { DELETE_CONFIRMATION_TEXT, hasTypedConfirmation } from "@/lib/destructive-action-guard";
 import { errorResponse } from "@/lib/error-response";
+import { deletePatientWithRelations } from "@/lib/patients/delete-patient";
 
 export async function POST(req: Request) {
   const user = await requireUser([Role.ADMIN]);
@@ -77,7 +78,11 @@ export async function POST(req: Request) {
       });
     }
 
-    await prisma.$transaction(uniqueDeleteIds.map((patientId) => prisma.patient.delete({ where: { id: patientId } })));
+    await prisma.$transaction(async (tx) => {
+      for (const patientId of uniqueDeleteIds) {
+        await deletePatientWithRelations(patientId, tx);
+      }
+    });
 
     await logAudit(user, {
       action: "patient.duplicates_resolved",

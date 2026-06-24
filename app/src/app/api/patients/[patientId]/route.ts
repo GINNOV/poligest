@@ -10,6 +10,7 @@ import {
 } from "@/lib/destructive-action-guard";
 import { errorResponse } from "@/lib/error-response";
 import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
+import { deletePatientWithRelations } from "@/lib/patients/delete-patient";
 import { mergeMissingPatientFieldsFromMacosScan } from "@/lib/patients/macos-patient-sync";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ patientId: string }> }) {
@@ -92,7 +93,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ patie
       });
     }
 
-    await prisma.patient.delete({ where: { id: patientId } });
+    await prisma.$transaction(async (tx) => {
+      await deletePatientWithRelations(patientId, tx);
+    });
 
     await logAudit(user, {
       action: "patient.deleted",

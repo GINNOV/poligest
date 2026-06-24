@@ -55,7 +55,11 @@ export function PatientDeleteButton({
       }
     } catch (error) {
       console.error("[patient-delete] failed", error);
-      emitToast("Impossibile eliminare il paziente", "error");
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Impossibile eliminare il paziente";
+      emitToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
