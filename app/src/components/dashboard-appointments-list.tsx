@@ -334,9 +334,9 @@ export function DashboardAppointmentsList({
 
   if (layout === "rows") {
     const rowHeaderClass =
-      "whitespace-nowrap px-6 py-4 text-left text-2xl font-semibold uppercase tracking-wide";
+      "whitespace-nowrap px-5 py-3 text-left text-sm font-semibold uppercase tracking-wide";
     const rowDataClass =
-      "px-6 py-5 text-[3.5rem] leading-none font-semibold text-zinc-900 dark:text-zinc-50";
+      "px-5 py-4 text-[1.75rem] leading-tight font-semibold text-zinc-900 dark:text-zinc-50";
 
     return (
       <>
