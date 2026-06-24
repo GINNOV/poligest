@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import {
+  getPatientOptionValue,
+  resolvePatientFromQuery,
+  type PatientSearchOption,
+} from "@/lib/patient-search";
 
-type PatientOption = {
-  id: string;
-  fullName: string;
-  phone?: string | null;
-  taxId?: string | null;
-};
+type PatientOption = PatientSearchOption;
 
 type Props = {
   name: string;
@@ -33,7 +33,9 @@ export function PatientSearchCombobox({
     () => patients.find((patient) => patient.id === defaultValue) ?? null,
     [defaultValue, patients],
   );
-  const [query, setQuery] = useState(defaultPatient?.fullName ?? "");
+  const [query, setQuery] = useState(
+    defaultPatient ? getPatientOptionValue(defaultPatient) : "",
+  );
   const [selectedId, setSelectedId] = useState(defaultValue);
   const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
 
@@ -41,7 +43,7 @@ export function PatientSearchCombobox({
     setPrevDefaultValue(defaultValue);
     setSelectedId(defaultValue);
     const p = patients.find((patient) => patient.id === defaultValue);
-    setQuery(p?.fullName ?? "");
+    setQuery(p ? getPatientOptionValue(p) : "");
   }
 
   const listId = `${name}-options`;
@@ -66,11 +68,7 @@ export function PatientSearchCombobox({
               return;
             }
 
-            const normalizedQuery = nextQuery.trim().toLowerCase();
-            const match = patients.find(
-              (patient) => patient.fullName.toLowerCase() === normalizedQuery,
-            );
-            
+            const match = resolvePatientFromQuery(nextQuery, patients);
             const nextId = match?.id ?? "";
             setSelectedId(nextId);
             onSelect?.(nextId);
@@ -117,9 +115,8 @@ export function PatientSearchCombobox({
       <datalist id={listId}>
         {allowNew && <option value="+ Nuovo cliente" />}
         {patients.map((patient) => {
-          const details = [patient.phone, patient.taxId].filter(Boolean).join(" - ");
-          const label = details ? `${patient.fullName} (${details})` : patient.fullName;
-          return <option key={patient.id} value={patient.fullName} label={label} />;
+          const optionValue = getPatientOptionValue(patient);
+          return <option key={patient.id} value={optionValue} />;
         })}
       </datalist>
     </>
