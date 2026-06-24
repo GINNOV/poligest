@@ -140,14 +140,21 @@ function AppointmentActions({
   whatsappHref,
   startsAtLocal,
   className,
+  variant = "stack",
 }: {
   appt: ParsedAppointment;
   whatsappHref: string | null;
   startsAtLocal: string;
   className?: string;
+  variant?: "stack" | "compact";
 }) {
+  const isCompact = variant === "compact";
+  const containerClass = isCompact
+    ? "flex flex-wrap items-center justify-end gap-2 text-xs [&_button]:!w-auto [&_button]:shrink-0 [&_span]:!w-auto [&_form]:!w-auto [&_select]:!w-auto [&_select]:min-w-[9rem]"
+    : (className ?? "grid w-full grid-cols-1 gap-2 text-xs sm:w-auto");
+
   return (
-    <div className={className ?? "grid w-full grid-cols-1 gap-2 text-xs sm:w-auto"}>
+    <div className={containerClass}>
       <AgendaReminderButton
         appointmentId={appt.id}
         whatsappHref={whatsappHref}
@@ -160,13 +167,15 @@ function AppointmentActions({
         options={statusOptions}
         action={updateAppointmentStatusAction}
         returnTo="/dashboard"
-        className="w-full"
+        className={isCompact ? "w-auto" : "w-full"}
       />
       <Link
         href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctor?.id ? `&doctor=${appt.doctor.id}` : ""}`}
-        className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
+        className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40 ${
+          isCompact ? "px-3 py-1.5 text-[10px] whitespace-nowrap" : "gap-2 px-4 py-2 text-[10px]"
+        }`}
       >
-        MODIFICA / CALENDARIO 🗓️
+        {isCompact ? "Calendario 🗓️" : "MODIFICA / CALENDARIO 🗓️"}
       </Link>
     </div>
   );
@@ -334,23 +343,28 @@ export function DashboardAppointmentsList({
 
   if (layout === "rows") {
     const rowHeaderClass =
-      "whitespace-nowrap px-5 py-3 text-left text-sm font-semibold uppercase tracking-wide";
+      "whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide";
     const rowDataClass =
-      "px-5 py-4 text-[1.75rem] leading-tight font-semibold text-zinc-900 dark:text-zinc-50";
+      "px-3 py-3 text-[1.375rem] leading-snug font-semibold text-zinc-900 dark:text-zinc-50";
 
     return (
       <>
         <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800">
+          <table className="w-full min-w-[56rem] table-fixed divide-y divide-zinc-100 dark:divide-zinc-800">
+            <colgroup>
+              <col className="w-[5.5rem]" />
+              <col className="w-[19%]" />
+              <col className="w-[16%]" />
+              <col className="w-[27%]" />
+              <col className="w-[38%]" />
+            </colgroup>
             <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
               <tr>
                 <th className={rowHeaderClass}>Ora</th>
                 <th className={rowHeaderClass}>Paziente</th>
                 <th className={rowHeaderClass}>Telefono</th>
-                <th className={`${rowHeaderClass} whitespace-normal`}>Prestazione</th>
-                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
-                  Azioni
-                </th>
+                <th className={rowHeaderClass}>Prestazione</th>
+                <th className={`${rowHeaderClass} text-right`}>Azioni</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -372,38 +386,42 @@ export function DashboardAppointmentsList({
                   <Fragment key={appt.id}>
                     {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} colSpan={5} /> : null}
                     <tr className={rowClass}>
-                      <td className={`${rowDataClass} whitespace-nowrap`}>
+                      <td className={`${rowDataClass} whitespace-nowrap align-middle tabular-nums`}>
                         {isMounted
                           ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
                           : "—"}
                         {isPast ? (
-                          <span className="mt-2 block text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                             Passato
                           </span>
                         ) : null}
                       </td>
-                      <td className={`${rowDataClass} whitespace-nowrap`}>
+                      <td className={`${rowDataClass} max-w-0 align-middle`}>
                         <Link
                           href={`/pazienti/${appt.patient.id}`}
-                          className="hover:text-emerald-700 dark:hover:text-emerald-300"
+                          className="block truncate hover:text-emerald-700 dark:hover:text-emerald-300"
+                          title={`${appt.patient.lastName} ${appt.patient.firstName}`}
                         >
                           {appt.patient.lastName} {appt.patient.firstName}
                         </Link>
                       </td>
-                      <td className={`${rowDataClass} whitespace-nowrap text-zinc-700 dark:text-zinc-300`}>
-                        {patientPhone ?? "—"}
-                      </td>
-                      <td className={`${rowDataClass} text-zinc-800 dark:text-zinc-200`}>
-                        <span>
-                          {getServiceIcon(appt.serviceType, appt.title)} {serviceLabel}
+                      <td className={`${rowDataClass} max-w-0 align-middle tabular-nums text-zinc-700 dark:text-zinc-300`}>
+                        <span className="block truncate" title={patientPhone ?? undefined}>
+                          {patientPhone ?? "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-top">
+                      <td className={`${rowDataClass} max-w-0 align-middle text-zinc-800 dark:text-zinc-200`}>
+                        <span className="block truncate" title={serviceLabel}>
+                          <span className="mr-1 text-base">{getServiceIcon(appt.serviceType, appt.title)}</span>
+                          {serviceLabel}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 align-middle">
                         <AppointmentActions
                           appt={appt}
                           whatsappHref={whatsappHref}
                           startsAtLocal={startsAtLocal}
-                          className="grid min-w-[11rem] grid-cols-1 gap-2 text-xs"
+                          variant="compact"
                         />
                       </td>
                     </tr>
