@@ -8,6 +8,8 @@ import { put } from "@vercel/blob";
 import { LocalizedFileInput } from "@/components/localized-file-input";
 import { AvatarCameraCapture } from "@/components/avatar-camera-capture";
 import { ProfilePasswordForm } from "@/components/profile-password-form";
+import { updateProfilePassword } from "@/lib/profile-password";
+import { getOptionalStackServerApp } from "@/lib/stack-app";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -175,6 +177,8 @@ async function assignAward(formData: FormData) {
 
 export default async function ProfilePage() {
   const currentUser = await requireUser();
+  const stackServerApp = getOptionalStackServerApp();
+  const stackUser = stackServerApp ? await stackServerApp.getUser() : null;
 
   const [user, awards, isDoctorAccount, patients, patientRecord] = await Promise.all([
     prisma.user.findUnique({
@@ -324,7 +328,12 @@ export default async function ProfilePage() {
             </form>
           </div>
 
-          <ProfilePasswordForm />
+          {stackUser ? (
+            <ProfilePasswordForm
+              hasPassword={stackUser.hasPassword}
+              updateProfilePassword={updateProfilePassword}
+            />
+          ) : null}
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PIN personale</h2>
