@@ -333,17 +333,24 @@ export function DashboardAppointmentsList({
   }
 
   if (layout === "rows") {
+    const rowHeaderClass =
+      "whitespace-nowrap px-6 py-4 text-left text-2xl font-semibold uppercase tracking-wide";
+    const rowDataClass =
+      "px-6 py-5 text-[3.5rem] leading-none font-semibold text-zinc-900 dark:text-zinc-50";
+
     return (
       <>
         <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <table className="min-w-full divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
-            <thead className="bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+          <table className="min-w-full divide-y divide-zinc-100 dark:divide-zinc-800">
+            <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
               <tr>
-                <th className="whitespace-nowrap px-4 py-3 text-left">Ora</th>
-                <th className="whitespace-nowrap px-4 py-3 text-left">Paziente</th>
-                <th className="whitespace-nowrap px-4 py-3 text-left">Telefono</th>
-                <th className="px-4 py-3 text-left">Prestazione</th>
-                <th className="whitespace-nowrap px-4 py-3 text-left">Azioni</th>
+                <th className={rowHeaderClass}>Ora</th>
+                <th className={rowHeaderClass}>Paziente</th>
+                <th className={rowHeaderClass}>Telefono</th>
+                <th className={`${rowHeaderClass} whitespace-normal`}>Prestazione</th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">
+                  Azioni
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -365,17 +372,17 @@ export function DashboardAppointmentsList({
                   <Fragment key={appt.id}>
                     {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} colSpan={5} /> : null}
                     <tr className={rowClass}>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-50">
+                      <td className={`${rowDataClass} whitespace-nowrap`}>
                         {isMounted
                           ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
                           : "—"}
                         {isPast ? (
-                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                          <span className="mt-2 block text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
                             Passato
                           </span>
                         ) : null}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-900 dark:text-zinc-50">
+                      <td className={`${rowDataClass} whitespace-nowrap`}>
                         <Link
                           href={`/pazienti/${appt.patient.id}`}
                           className="hover:text-emerald-700 dark:hover:text-emerald-300"
@@ -383,11 +390,11 @@ export function DashboardAppointmentsList({
                           {appt.patient.lastName} {appt.patient.firstName}
                         </Link>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-zinc-700 dark:text-zinc-300">
+                      <td className={`${rowDataClass} whitespace-nowrap text-zinc-700 dark:text-zinc-300`}>
                         {patientPhone ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-zinc-800 dark:text-zinc-200">
-                        <span className="font-medium">
+                      <td className={`${rowDataClass} text-zinc-800 dark:text-zinc-200`}>
+                        <span>
                           {getServiceIcon(appt.serviceType, appt.title)} {serviceLabel}
                         </span>
                       </td>
