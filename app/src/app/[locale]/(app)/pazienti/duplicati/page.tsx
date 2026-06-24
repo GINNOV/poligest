@@ -300,49 +300,40 @@ export default async function PazientiDuplicatiPage({
         </form>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Legenda stato schede</h2>
-            <DuplicateLegendHelpTooltip />
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-sm">
-            {(["complete", "partial", "critical"] as const).map((status) => {
-              const badge = getStatusBadge(status);
-              return (
-                <span
-                  key={status}
-                  className={`rounded-full border px-3 py-1 font-semibold ${badge.className}`}
-                >
-                  {badge.label}
-                </span>
-              );
-            })}
-          </div>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Il colore della scheda cambia in base a quanti dati chiave mancano: email, telefono, data di nascita e codice fiscale.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-sm">
-            {getAttachmentBadges({ hasPayments: true, hasDentalRecords: false }).map((badge) => (
-              <span
-                key={badge.key}
-                className={`rounded-full border px-3 py-1 font-semibold ${badge.className}`}
-              >
-                {badge.label}
-              </span>
-            ))}
-            {getAttachmentBadges({ hasPayments: false, hasDentalRecords: true }).map((badge) => (
-              <span
-                key={badge.key}
-                className={`rounded-full border px-3 py-1 font-semibold ${badge.className}`}
-              >
-                {badge.label}
-              </span>
-            ))}
-          </div>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Le etichette blu e viola segnalano schede con pagamenti o cartella clinica collegati: da valutare con attenzione prima di eliminarle.
-          </p>
-      </section>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300">
+        <span className="font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Legenda</span>
+        <DuplicateLegendHelpTooltip />
+        {(["complete", "partial", "critical"] as const).map((status) => {
+          const badge = getStatusBadge(status);
+          return (
+            <span
+              key={status}
+              className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          );
+        })}
+        <span aria-hidden className="text-zinc-300 dark:text-zinc-600">
+          |
+        </span>
+        {getAttachmentBadges({ hasPayments: true, hasDentalRecords: false }).map((badge) => (
+          <span
+            key={badge.key}
+            className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
+          >
+            Pagamenti
+          </span>
+        ))}
+        {getAttachmentBadges({ hasPayments: false, hasDentalRecords: true }).map((badge) => (
+          <span
+            key={badge.key}
+            className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
+          >
+            Cartella clinica
+          </span>
+        ))}
+      </div>
 
       {groups.length === 0 ? (
         <section className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-5 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
