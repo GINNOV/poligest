@@ -91,16 +91,6 @@ export function ProfilePasswordForm({
         </button>
       ) : (
         <form action={formAction} className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {hasPassword ? (
-            <PasswordField
-              id="old-password"
-              label="Password attuale"
-              name="oldPassword"
-              autoComplete="current-password"
-              error={state.fieldErrors?.oldPassword}
-            />
-          ) : null}
-
           <PasswordField
             id="new-password"
             label="Nuova password"

@@ -11,18 +11,12 @@ export type ProfilePasswordFormState = {
   success?: boolean;
   error?: string;
   fieldErrors?: {
-    oldPassword?: string;
     newPassword?: string;
     newPasswordRepeat?: string;
   };
 };
 
-function formatPasswordError(
-  error: KnownErrors["PasswordRequirementsNotMet"] | KnownErrors["PasswordConfirmationMismatch"],
-) {
-  if (KnownErrors.PasswordConfirmationMismatch.isInstance(error)) {
-    return "La password attuale non è corretta.";
-  }
+function formatPasswordError(error: KnownErrors["PasswordRequirementsNotMet"]) {
   if (KnownErrors.PasswordTooShort.isInstance(error)) {
     const minLength = error.constructorArgs[0];
     return `La password è troppo corta. Lunghezza minima: ${minLength} caratteri.`;
@@ -46,14 +40,9 @@ export async function updateProfilePassword(
     return { error: "Sessione non valida. Accedi di nuovo e riprova." };
   }
 
-  const oldPassword = (formData.get("oldPassword") as string) ?? "";
   const newPassword = (formData.get("newPassword") as string) ?? "";
   const newPasswordRepeat = (formData.get("newPasswordRepeat") as string) ?? "";
   const fieldErrors: NonNullable<ProfilePasswordFormState["fieldErrors"]> = {};
-
-  if (stackUser.hasPassword && !oldPassword.trim()) {
-    fieldErrors.oldPassword = "Inserisci la password attuale.";
-  }
 
   if (!newPassword.trim()) {
     fieldErrors.newPassword = "Inserisci la nuova password.";
@@ -75,14 +64,9 @@ export async function updateProfilePassword(
   }
 
   try {
-    const result = stackUser.hasPassword
-      ? await stackUser.updatePassword({ oldPassword, newPassword })
-      : await stackUser.setPassword({ password: newPassword });
+    const result = await stackUser.setPassword({ password: newPassword });
 
     if (result) {
-      if (KnownErrors.PasswordConfirmationMismatch.isInstance(result)) {
-        return { fieldErrors: { oldPassword: formatPasswordError(result) } };
-      }
       return { fieldErrors: { newPassword: formatPasswordError(result) } };
     }
   } catch (error) {
