@@ -9,6 +9,15 @@ const mocks = vi.hoisted(() => {
     patient: {
       findMany: vi.fn(),
     },
+    patientPayment: {
+      groupBy: vi.fn(),
+    },
+    dentalRecord: {
+      groupBy: vi.fn(),
+    },
+    auditLog: {
+      findMany: vi.fn(),
+    },
   };
 
   return { requireUser, requireFeatureAccess, prisma };
@@ -26,6 +35,10 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
+vi.mock("@/lib/user-display-time-zone.server", () => ({
+  getUserDisplayTimeZone: vi.fn().mockResolvedValue("Europe/Rome"),
+}));
+
 vi.mock("@/components/patient-duplicate-resolve-button", () => ({
   PatientDuplicateResolveButton: () => null,
 }));
@@ -41,6 +54,9 @@ describe("PazientiDuplicatiPage", () => {
     vi.clearAllMocks();
     mocks.requireUser.mockResolvedValue({ id: "staff-1", role: Role.ADMIN });
     mocks.requireFeatureAccess.mockResolvedValue(undefined);
+    mocks.prisma.patientPayment.groupBy.mockResolvedValue([]);
+    mocks.prisma.dentalRecord.groupBy.mockResolvedValue([]);
+    mocks.prisma.auditLog.findMany.mockResolvedValue([]);
   });
 
   it("renders duplicate groups when one persisted birth date is invalid", async () => {

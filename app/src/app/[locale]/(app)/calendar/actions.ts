@@ -46,8 +46,9 @@ async function resolvePatientIdForAppointment(params: {
   newFirstName?: string | null;
   newLastName?: string | null;
   newPhone?: string | null;
+  actor: { id: string; role: Role };
 }) {
-  const { selectedPatientId, newEmail, newFirstName, newLastName, newPhone } = params;
+  const { selectedPatientId, newEmail, newFirstName, newLastName, newPhone, actor } = params;
   const normalizedEmail = newEmail?.trim().toLowerCase() || null;
   const normalizedFirstName = normalizePersonName(newFirstName ?? "");
   const normalizedLastName = normalizePersonName(newLastName ?? "");
@@ -69,6 +70,17 @@ async function resolvePatientIdForAppointment(params: {
         email: normalizedEmail,
       },
     });
+
+    await logAudit(actor, {
+      action: "patient.created",
+      entity: "Patient",
+      entityId: patient.id,
+      metadata: {
+        source: "appointment",
+        patientName: `${normalizedLastName} ${normalizedFirstName}`.trim(),
+      },
+    });
+
     return patient.id;
   }
 
@@ -158,6 +170,7 @@ export async function createAppointment(formData: FormData) {
       newFirstName,
       newLastName,
       newPhone,
+      actor: user,
     });
 
     const appointment = await prisma.appointment.create({

@@ -6,16 +6,40 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { formatPhone } from "@/lib/phone";
-import { filterPotentialDuplicateGroups, findPotentialPatientDuplicates } from "@/lib/patients/duplicate-detection";
+import { formatAuditActor } from "@/lib/audit";
+import {
+  filterPotentialDuplicateGroups,
+  findPotentialPatientDuplicates,
+  formatDuplicateSignalValue,
+} from "@/lib/patients/duplicate-detection";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { isValidDate } from "@/lib/date";
+import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
+import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 
 export const metadata: Metadata = {
   title: "CERCA DUPLICATI",
 };
 
 type PatientDuplicateStatus = "complete" | "partial" | "critical";
+
+type PatientCreationInfo = {
+  createdAt: Date;
+  createdBy: string;
+};
+
+function formatCreatedAt(value: Date | string | null | undefined, timeZone: string) {
+  if (!value) return "—";
+  return formatDateInDisplayTimeZone(
+    new Date(value),
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+    timeZone,
+  );
+}
 
 function formatBirthDate(value: Date | null) {
   if (!isValidDate(value)) return "—";
@@ -28,15 +52,11 @@ function formatBirthDate(value: Date | null) {
 }
 
 function formatSignalValue(kind: "taxId" | "email" | "phone" | "nameBirthDate", value: string) {
+  const normalizedValue = formatDuplicateSignalValue(kind, value);
   if (kind === "phone") {
-    return formatPhone(value);
+    return formatPhone(normalizedValue);
   }
-  if (kind === "nameBirthDate") {
-    const [lastName, firstName, birthDate] = value.split("|");
-    const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
-    return `${displayName} · ${birthDate}`;
-  }
-  return value;
+  return normalizedValue;
 }
 
 function getPatientMissingFields(patient: {
@@ -80,6 +100,35 @@ function getStatusBadge(status: PatientDuplicateStatus) {
           "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200",
       };
   }
+}
+
+type PatientAttachmentFlags = {
+  hasPayments: boolean;
+  hasDentalRecords: boolean;
+};
+
+function getAttachmentBadges(flags: PatientAttachmentFlags) {
+  const badges: Array<{ key: string; label: string; className: string }> = [];
+
+  if (flags.hasPayments) {
+    badges.push({
+      key: "payments",
+      label: "Ha pagamenti",
+      className:
+        "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200",
+    });
+  }
+
+  if (flags.hasDentalRecords) {
+    badges.push({
+      key: "dental-records",
+      label: "Ha cartella clinica",
+      className:
+        "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/30 dark:text-violet-200",
+    });
+  }
+
+  return badges;
 }
 
 function getCardClassName(status: PatientDuplicateStatus) {
@@ -130,8 +179,76 @@ export default async function PazientiDuplicatiPage({
 
   const allGroups = findPotentialPatientDuplicates(patients);
   const groups = filterPotentialDuplicateGroups(allGroups, searchQuery);
-  const totalPatients = new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))).size;
+  const duplicatePatientIds = Array.from(
+    new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))),
+  );
+  const totalPatients = duplicatePatientIds.length;
   const hasSearch = searchQuery.length > 0;
+
+  const attachmentFlagsByPatientId = new Map<string, PatientAttachmentFlags>();
+  const createdInfoByPatientId = new Map<string, PatientCreationInfo>();
+  let displayTimeZone = "Europe/Rome";
+
+  if (duplicatePatientIds.length > 0) {
+    const [paymentGroups, dentalRecordGroups, createdLogs, resolvedDisplayTimeZone] = await Promise.all([
+      prisma.patientPayment.groupBy({
+        by: ["patientId"],
+        where: { patientId: { in: duplicatePatientIds } },
+        _count: { _all: true },
+      }),
+      prisma.dentalRecord.groupBy({
+        by: ["patientId"],
+        where: { patientId: { in: duplicatePatientIds } },
+        _count: { _all: true },
+      }),
+      prisma.auditLog.findMany({
+        where: {
+          action: "patient.created",
+          entity: "Patient",
+          entityId: { in: duplicatePatientIds },
+        },
+        orderBy: { createdAt: "asc" },
+        select: {
+          entityId: true,
+          createdAt: true,
+          role: true,
+          metadata: true,
+          user: { select: { name: true, email: true } },
+        },
+      }),
+      getUserDisplayTimeZone(),
+    ]);
+    displayTimeZone = resolvedDisplayTimeZone;
+
+    for (const patientId of duplicatePatientIds) {
+      attachmentFlagsByPatientId.set(patientId, {
+        hasPayments: false,
+        hasDentalRecords: false,
+      });
+    }
+
+    for (const group of paymentGroups) {
+      const flags = attachmentFlagsByPatientId.get(group.patientId);
+      if (flags) {
+        flags.hasPayments = group._count._all > 0;
+      }
+    }
+
+    for (const group of dentalRecordGroups) {
+      const flags = attachmentFlagsByPatientId.get(group.patientId);
+      if (flags) {
+        flags.hasDentalRecords = group._count._all > 0;
+      }
+    }
+
+    for (const log of createdLogs) {
+      if (!log.entityId || createdInfoByPatientId.has(log.entityId)) continue;
+      createdInfoByPatientId.set(log.entityId, {
+        createdAt: log.createdAt,
+        createdBy: formatAuditActor(log),
+      });
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -201,12 +318,33 @@ export default async function PazientiDuplicatiPage({
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
             Il colore della scheda cambia in base a quanti dati chiave mancano: email, telefono, data di nascita e codice fiscale.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2 text-sm">
+            {getAttachmentBadges({ hasPayments: true, hasDentalRecords: false }).map((badge) => (
+              <span
+                key={badge.key}
+                className={`rounded-full border px-3 py-1 font-semibold ${badge.className}`}
+              >
+                {badge.label}
+              </span>
+            ))}
+            {getAttachmentBadges({ hasPayments: false, hasDentalRecords: true }).map((badge) => (
+              <span
+                key={badge.key}
+                className={`rounded-full border px-3 py-1 font-semibold ${badge.className}`}
+              >
+                {badge.label}
+              </span>
+            ))}
+          </div>
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+            Le etichette blu e viola segnalano schede con pagamenti o cartella clinica collegati: da valutare con attenzione prima di eliminarle.
+          </p>
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Come funziona il controllo</h2>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            La ricerca segnala gruppi che condividono almeno uno tra codice fiscale, email, telefono oppure la combinazione di nome, cognome e data di nascita.
+            La ricerca segnala gruppi che condividono codice fiscale, nome con data di nascita, oppure la stessa email o telefono solo se anche nome e cognome coincidono.
           </p>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
             Apri le schede del gruppo, scegli quella piu completa come riferimento, trasferisci eventuali dati mancanti e poi valuta se tenere una sola scheda operativa per evitare errori su agenda, richiami e consensi.
@@ -254,6 +392,18 @@ export default async function PazientiDuplicatiPage({
                     `${(patient.lastName ?? "").trim()} ${(patient.firstName ?? "").trim()}`.trim() || "Paziente senza nome";
                   const missingFields = getPatientMissingFields(patient);
                   const status = getPatientStatus(missingFields.length);
+                  const attachmentFlags =
+                    attachmentFlagsByPatientId.get(patient.id) ?? {
+                      hasPayments: false,
+                      hasDentalRecords: false,
+                    };
+                  const attachmentBadges = getAttachmentBadges(attachmentFlags);
+                  const createdInfo = createdInfoByPatientId.get(patient.id);
+                  const createdAtLabel = formatCreatedAt(
+                    createdInfo?.createdAt ?? patient.createdAt,
+                    displayTimeZone,
+                  );
+                  const createdByLabel = createdInfo?.createdBy ?? "Origine non tracciata";
 
                   return (
                     <div
@@ -266,6 +416,18 @@ export default async function PazientiDuplicatiPage({
                           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                             ID {patient.id}
                           </p>
+                          {attachmentBadges.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {attachmentBadges.map((badge) => (
+                                <span
+                                  key={`${patient.id}-${badge.key}`}
+                                  className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${badge.className}`}
+                                >
+                                  {badge.label}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           {status === "complete" && user.role === Role.ADMIN ? (
@@ -304,6 +466,14 @@ export default async function PazientiDuplicatiPage({
                         <div>
                           <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Codice fiscale</dt>
                           <dd className="mt-1 break-all">{patient.taxId ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata il</dt>
+                          <dd className="mt-1">{createdAtLabel}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata da</dt>
+                          <dd className="mt-1">{createdByLabel}</dd>
                         </div>
                       </dl>
 

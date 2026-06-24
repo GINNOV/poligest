@@ -24,7 +24,7 @@ export type AuditLogActorView = {
 
 export function formatAuditActor(
   log: AuditLogActorView | null | undefined,
-  fallback = "Sistema",
+  fallback = "Origine non tracciata",
 ): string {
   if (!log) return fallback;
 
