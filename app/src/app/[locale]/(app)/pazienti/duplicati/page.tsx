@@ -12,6 +12,7 @@ import {
   findPotentialPatientDuplicates,
   formatDuplicateSignalValue,
 } from "@/lib/patients/duplicate-detection";
+import { DuplicateLegendHelpTooltip } from "@/components/duplicate-legend-help-tooltip";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { isValidDate } from "@/lib/date";
@@ -299,9 +300,11 @@ export default async function PazientiDuplicatiPage({
         </form>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Legenda stato schede</h2>
+      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Legenda stato schede</h2>
+            <DuplicateLegendHelpTooltip />
+          </div>
           <div className="mt-3 flex flex-wrap gap-2 text-sm">
             {(["complete", "partial", "critical"] as const).map((status) => {
               const badge = getStatusBadge(status);
@@ -339,17 +342,6 @@ export default async function PazientiDuplicatiPage({
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
             Le etichette blu e viola segnalano schede con pagamenti o cartella clinica collegati: da valutare con attenzione prima di eliminarle.
           </p>
-        </div>
-
-        <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Come funziona il controllo</h2>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            La ricerca segnala gruppi che condividono codice fiscale, nome con data di nascita, oppure la stessa email o telefono solo se anche nome e cognome coincidono.
-          </p>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Apri le schede del gruppo, scegli quella piu completa come riferimento, trasferisci eventuali dati mancanti e poi valuta se tenere una sola scheda operativa per evitare errori su agenda, richiami e consensi.
-          </p>
-        </div>
       </section>
 
       {groups.length === 0 ? (
