@@ -20,8 +20,6 @@ import { ASSISTANT_ROLE } from "@/lib/roles";
 import { AppStartRedirect } from "@/components/app-start-redirect";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
-import { getScanIdMeta } from "@/lib/scanid-meta";
-
 async function stopImpersonation() {
   "use server";
 
@@ -139,7 +137,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   };
   const signOutUrl = getStackSignOutUrl();
   const version = getAppVersion();
-  const scanIdMeta = getScanIdMeta();
   const deployedAt = getDeployDate();
   const navLinks = [
     { href: "/dashboard", label: "Giornata" },
@@ -245,8 +242,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 practiceTimeZone={practiceTimeZone}
                 displayTimeZone={displayTimeZone}
                 canManagePracticeTimeZone={isManagerOrAdmin}
-                scanIdDownloadUrl={scanIdMeta.downloadUrl}
-                scanIdVersion={scanIdMeta.version}
               />
             ) : null}
           </div>

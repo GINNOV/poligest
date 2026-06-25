@@ -126,6 +126,8 @@ struct MainView: View {
     
     @State private var captureZoomScale: CGFloat = 1.0
     @State private var captureZoomOffset: CGSize = .zero
+    @State private var patientEmail = ""
+    @State private var patientPhone = ""
     struct PendingPatient: Identifiable {
         let id = UUID()
         let firstName: String
@@ -133,6 +135,8 @@ struct MainView: View {
         let birthDate: String?
         let gender: String?
         let codiceFiscale: String?
+        let email: String?
+        let phone: String?
         let existingPatientId: String?
         
         var isUpdate: Bool {
@@ -629,6 +633,8 @@ struct MainView: View {
                 birthDate: details.birthDate,
                 gender: details.gender,
                 codiceFiscale: details.codiceFiscale,
+                email: details.email,
+                phone: details.phone,
                 existingPatientId: details.existingPatientId
             )
         }
@@ -1030,6 +1036,32 @@ struct MainView: View {
                     .padding(.top)
                     
                     if parsedData.documentType != "UNKNOWN" {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(Localization.string(key: "contact_fields", lang: appLanguage))
+                                .font(.headline)
+                                .padding(.horizontal)
+                            
+                            VStack(spacing: 0) {
+                                EditableFieldRow(
+                                    label: Localization.string(key: "field_email", lang: appLanguage),
+                                    text: patientEmailBinding,
+                                    icon: "envelope",
+                                    onCommit: { handleContactFieldCommit() }
+                                )
+                                EditableFieldRow(
+                                    label: Localization.string(key: "field_phone", lang: appLanguage),
+                                    text: patientPhoneBinding,
+                                    icon: "phone",
+                                    onCommit: { handleContactFieldCommit() }
+                                )
+                            }
+                            .background(Color(nsColor: .controlBackgroundColor))
+                            .cornerRadius(8)
+                            .padding(.horizontal)
+                        }
+                    }
+                    
+                    if parsedData.documentType != "UNKNOWN" {
                         switch syncStatus {
                         case .success(let patientId, let isUpdate):
                             PatientRecordSuccessCard(
@@ -1317,6 +1349,8 @@ struct MainView: View {
         syncStatus = .idle
         pendingPatientToCreate = nil
         existingPatientId = nil
+        patientEmail = ""
+        patientPhone = ""
         patientLookupGeneration += 1
         statusBar.showIdle()
     }
@@ -1464,6 +1498,41 @@ struct MainView: View {
         }
     }
     
+    private var patientEmailBinding: Binding<String> {
+        Binding(
+            get: { patientEmail },
+            set: { newValue in
+                patientEmail = newValue
+                if case .success = syncStatus {
+                    syncStatus = .idle
+                }
+            }
+        )
+    }
+    
+    private var patientPhoneBinding: Binding<String> {
+        Binding(
+            get: { patientPhone },
+            set: { newValue in
+                patientPhone = newValue
+                if case .success = syncStatus {
+                    syncStatus = .idle
+                }
+            }
+        )
+    }
+    
+    private func handleContactFieldCommit() {
+        if case .success = syncStatus {
+            syncStatus = .idle
+        }
+    }
+    
+    private func optionalContactValue(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+    
     // MARK: - Sync API Calls
     
     private func beginPatientSync() {
@@ -1479,6 +1548,8 @@ struct MainView: View {
                 birthDate: parsedData.dateOfBirth,
                 gender: parsedData.gender,
                 codiceFiscale: parsedData.codiceFiscale,
+                email: optionalContactValue(patientEmail),
+                phone: optionalContactValue(patientPhone),
                 existingPatientId: existingPatientId
             )
             showingConfirmationAlert = true
@@ -1489,6 +1560,8 @@ struct MainView: View {
                 birthDate: parsedData.dateOfBirth,
                 gender: parsedData.gender,
                 codiceFiscale: parsedData.codiceFiscale,
+                email: optionalContactValue(patientEmail),
+                phone: optionalContactValue(patientPhone),
                 existingPatientId: existingPatientId
             )
         }
@@ -1547,6 +1620,8 @@ struct MainView: View {
         birthDate: String?,
         gender: String?,
         codiceFiscale: String?,
+        email: String?,
+        phone: String?,
         existingPatientId: String?
     ) {
         self.syncStatus = .syncing
@@ -1557,6 +1632,8 @@ struct MainView: View {
             birthDate: birthDate,
             gender: gender,
             codiceFiscale: codiceFiscale,
+            email: email,
+            phone: phone,
             existingPatientId: existingPatientId
         ) { result in
             DispatchQueue.main.async {
@@ -1643,6 +1720,8 @@ struct MainView: View {
         birthDate: String?,
         gender: String?,
         codiceFiscale: String?,
+        email: String?,
+        phone: String?,
         existingPatientId: String?,
         completion: @escaping (Result<(patientId: String, isUpdate: Bool), Error>) -> Void
     ) {
@@ -1660,7 +1739,9 @@ struct MainView: View {
                 lastName: lastName,
                 birthDate: birthDate,
                 gender: gender,
-                codiceFiscale: codiceFiscale
+                codiceFiscale: codiceFiscale,
+                email: email,
+                phone: phone
             ) { result in
                 switch result {
                 case .success(let patientId):
@@ -1731,7 +1812,16 @@ struct MainView: View {
         }.resume()
     }
     
-    private func createPatientInWebApp(firstName: String, lastName: String, birthDate: String?, gender: String?, codiceFiscale: String?, completion: @escaping (Result<String, Error>) -> Void) {
+    private func createPatientInWebApp(
+        firstName: String,
+        lastName: String,
+        birthDate: String?,
+        gender: String?,
+        codiceFiscale: String?,
+        email: String?,
+        phone: String?,
+        completion: @escaping (Result<String, Error>) -> Void
+    ) {
         let urlString = "\(serverUrl)/api/patients"
         guard let url = URL(string: urlString) else {
             completion(.failure(NSError(domain: "Invalid URL", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid server URL. Check your Preferences."])))
@@ -1752,8 +1842,8 @@ struct MainView: View {
         let body: [String: Any?] = [
             "firstName": firstName,
             "lastName": lastName,
-            "email": nil,
-            "phone": nil,
+            "email": email,
+            "phone": phone,
             "birthDate": birthDate,
             "gender": gender,
             "notes": notes
@@ -4182,6 +4272,9 @@ struct Localization {
             "field_expiry": "Expiry Date",
             "field_nationality": "Nationality",
             "field_card_num": "Card Number (TS Back)",
+            "contact_fields": "Contact (optional)",
+            "field_email": "Email",
+            "field_phone": "Phone",
             "version": "Version",
             "check_for_updates": "Check for Updates",
             "checking_for_updates": "Checking for updates...",
@@ -4363,6 +4456,9 @@ struct Localization {
             "field_expiry": "Scadenza",
             "field_nationality": "Cittadinanza",
             "field_card_num": "Numero Tessera (Retro TS)",
+            "contact_fields": "Contatti (opzionale)",
+            "field_email": "Email",
+            "field_phone": "Telefono",
             "version": "Versione",
             "check_for_updates": "Controlla aggiornamenti",
             "checking_for_updates": "Controllo aggiornamenti in corso...",
