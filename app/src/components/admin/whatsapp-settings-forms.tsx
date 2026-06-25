@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { FormSubmitButton } from "@/components/form-submit-button";
+import { useRef, useState, useTransition, type KeyboardEvent } from "react";
+import { Button } from "@/components/ui/button";
 import type { WhatsAppAdminFormState } from "@/lib/admin/whatsapp-actions";
 
 const inputClassName =
@@ -26,6 +26,32 @@ function FormFeedback({ state }: { state: WhatsAppAdminFormState | null }) {
   );
 }
 
+function useManagedFormAction(action: (formData: FormData) => Promise<WhatsAppAdminFormState>) {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<WhatsAppAdminFormState | null>(null);
+
+  const runAction = () => {
+    const form = formRef.current;
+    if (!form || pending) return;
+    if (!form.reportValidity()) return;
+
+    const formData = new FormData(form);
+    startTransition(async () => {
+      const result = await action(formData);
+      setState(result);
+    });
+  };
+
+  const handleEnter = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key !== "Enter" || event.target instanceof HTMLTextAreaElement) return;
+    event.preventDefault();
+    runAction();
+  };
+
+  return { formRef, pending, state, runAction, handleEnter };
+}
+
 type WhatsAppConfigFormProps = {
   phoneNumberId: string;
   displayPhoneNumber: string;
@@ -39,22 +65,16 @@ export function WhatsAppConfigForm({
   hasStoredApiKey,
   saveAction,
 }: WhatsAppConfigFormProps) {
-  const [pending, startTransition] = useTransition();
-  const [state, setState] = useState<WhatsAppAdminFormState | null>(null);
+  const { formRef, pending, state, runAction, handleEnter } = useManagedFormAction(saveAction);
 
   return (
     <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Aggiorna credenziali</p>
       <form
+        ref={formRef}
         className="space-y-3"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const formData = new FormData(event.currentTarget);
-          startTransition(async () => {
-            const result = await saveAction(formData);
-            setState(result);
-          });
-        }}
+        data-managed-submit="true"
+        onKeyDown={handleEnter}
       >
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Token API Kapso
@@ -89,13 +109,15 @@ export function WhatsAppConfigForm({
           L&apos;ID numero è il valore <code className="font-mono">phone_number_id</code> restituito da Kapso.
           Il numero visualizzato serve solo come riferimento per lo staff.
         </p>
-        <FormSubmitButton
+        <Button
+          type="button"
           loading={pending}
-          pendingLabel="Salvataggio..."
+          loadingLabel="Salvataggio..."
+          onClick={runAction}
           className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
         >
           Salva configurazione
-        </FormSubmitButton>
+        </Button>
         <FormFeedback state={state} />
       </form>
       <p className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
@@ -111,22 +133,16 @@ type WhatsAppTestFormProps = {
 };
 
 export function WhatsAppTestForm({ sendTestAction }: WhatsAppTestFormProps) {
-  const [pending, startTransition] = useTransition();
-  const [state, setState] = useState<WhatsAppAdminFormState | null>(null);
+  const { formRef, pending, state, runAction, handleEnter } = useManagedFormAction(sendTestAction);
 
   return (
     <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 lg:col-span-2">
       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Invio di test</p>
       <form
+        ref={formRef}
         className="grid grid-cols-1 gap-3 md:grid-cols-[1fr,1.4fr,auto] md:items-end"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const formData = new FormData(event.currentTarget);
-          startTransition(async () => {
-            const result = await sendTestAction(formData);
-            setState(result);
-          });
-        }}
+        data-managed-submit="true"
+        onKeyDown={handleEnter}
       >
         <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Numero di destinazione
@@ -140,13 +156,15 @@ export function WhatsAppTestForm({ sendTestAction }: WhatsAppTestFormProps) {
             placeholder="Messaggio di test dal pannello WhatsApp Kapso."
           />
         </label>
-        <FormSubmitButton
+        <Button
+          type="button"
           loading={pending}
-          pendingLabel="Invio..."
+          loadingLabel="Invio..."
+          onClick={runAction}
           className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
         >
           Invia test WhatsApp
-        </FormSubmitButton>
+        </Button>
       </form>
       <FormFeedback state={state} />
     </div>

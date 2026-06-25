@@ -9,6 +9,7 @@ export function PreventDoubleSubmit() {
       const form = submitEvent.target as HTMLFormElement | null;
       if (!form) return;
       if (form.dataset.preventDoubleSubmit === "false") return;
+      if (form.dataset.managedSubmit === "true") return;
 
       const submitter =
         (submitEvent as unknown as { submitter?: HTMLElement }).submitter ??
