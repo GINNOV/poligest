@@ -70,6 +70,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # publish-web-meta pushes a metadata commit; workflow_dispatch checkout is pinned to the dispatch SHA.
+      - name: Sync to latest metadata commit
+        run: git pull --ff-only origin main
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
