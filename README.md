@@ -165,7 +165,7 @@ Extracted fields (surname, name, codice fiscale, birth date, gender, etc.) are p
 
 ScanID polls `GET {serverUrl}/api/scanid/meta` for `version`, `downloadUrl`, and optional `notes`.
 
-- Automatic check on launch, at most once per 24 hours (toggle in preferences).
+- Automatic check on launch when enabled in preferences (shows a dialog when a newer version is available; “Later” dismisses that version until a newer one ships).
 - Manual check via **Check for Updates** in settings.
 - When a newer version is found, a dialog prompts the user to download and install. The install step replaces the app bundle from a DMG or ZIP and relaunches — it does not run fully silently.
 

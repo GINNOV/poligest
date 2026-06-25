@@ -521,11 +521,7 @@ struct MainView: View {
         guard !didPerformStartupUpdateCheck else { return }
         didPerformStartupUpdateCheck = true
         guard checkForUpdatesAutomatically else { return }
-        
-        let now = Date().timeIntervalSince1970
-        guard lastUpdateCheck == 0 || now - lastUpdateCheck > 86_400 else { return }
-        
-        checkForUpdates(silent: lastUpdateCheck > 0)
+        checkForUpdates(silent: false)
     }
     
     private func shouldPromptForUpdate(version: String, forcePrompt: Bool) -> Bool {
@@ -536,7 +532,7 @@ struct MainView: View {
     
     private func presentUpdateIfNeeded(_ update: PendingUpdate, silent: Bool, forcePrompt: Bool = false) {
         guard shouldPromptForUpdate(version: update.version, forcePrompt: forcePrompt) else { return }
-        guard !silent || forcePrompt else { return }
+        guard isNewerVersion(update.version, than: currentVersion) else { return }
         
         pendingUpdate = update
         
