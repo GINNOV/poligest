@@ -15,6 +15,7 @@ export const exportTables = [
   { key: "smsLogs", label: "Log SMS", category: "Sistema" },
   { key: "smsProviderConfig", label: "Config ClickSend", category: "Configurazione" },
   { key: "wacomConfig", label: "Config Wacom", category: "Configurazione" },
+  { key: "kapsoWhatsAppConfig", label: "Config WhatsApp Kapso", category: "Configurazione" },
   { key: "emailTemplates", label: "Template email", category: "Sistema" },
   { key: "dailyReminderConfig", label: "Config promemoria quotidiano", category: "Configurazione" },
   { key: "dailyReminderLogs", label: "Log promemoria quotidiano", category: "Sistema" },

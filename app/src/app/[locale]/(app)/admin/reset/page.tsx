@@ -65,6 +65,7 @@ async function resetSystem(formData: FormData) {
     prisma.smsTemplate.deleteMany(),
     prisma.smsProviderConfig.deleteMany(),
     prisma.wacomConfig.deleteMany(),
+    prisma.kapsoWhatsAppConfig.deleteMany(),
     prisma.emailTemplate.deleteMany(),
     prisma.dailyReminderLog.deleteMany(),
     prisma.dailyReminderConfig.deleteMany(),
@@ -360,6 +361,11 @@ async function resetSystem(formData: FormData) {
         const entries = tableData("wacomConfig") as Prisma.WacomConfigCreateManyInput[];
         if (entries.length) await tx.wacomConfig.createMany({ data: entries });
       }
+
+      if (selected.includes("kapsoWhatsAppConfig")) {
+        const entries = tableData("kapsoWhatsAppConfig") as Prisma.KapsoWhatsAppConfigCreateManyInput[];
+        if (entries.length) await tx.kapsoWhatsAppConfig.createMany({ data: entries });
+      }
     });
   }
 
@@ -421,6 +427,7 @@ async function importData(formData: FormData) {
     await tx.smsTemplate.deleteMany();
     await tx.smsProviderConfig.deleteMany();
     await tx.wacomConfig.deleteMany();
+    await tx.kapsoWhatsAppConfig.deleteMany();
     await tx.emailTemplate.deleteMany();
     await tx.practiceWeeklyReportLog.deleteMany();
     await tx.practiceWeeklyReportConfig.deleteMany();
@@ -699,6 +706,11 @@ async function importData(formData: FormData) {
     if (selected.includes("wacomConfig")) {
       const entries = tableData("wacomConfig") as Prisma.WacomConfigCreateManyInput[];
       if (entries.length) await tx.wacomConfig.createMany({ data: entries });
+    }
+
+    if (selected.includes("kapsoWhatsAppConfig")) {
+      const entries = tableData("kapsoWhatsAppConfig") as Prisma.KapsoWhatsAppConfigCreateManyInput[];
+      if (entries.length) await tx.kapsoWhatsAppConfig.createMany({ data: entries });
     }
   });
 

@@ -22,6 +22,7 @@ const tableQueries = {
   smsLogs: () => prisma.smsLog.findMany(),
   smsProviderConfig: () => prisma.smsProviderConfig.findMany(),
   wacomConfig: () => prisma.wacomConfig.findMany(),
+  kapsoWhatsAppConfig: () => prisma.kapsoWhatsAppConfig.findMany(),
   emailTemplates: () => prisma.emailTemplate.findMany(),
   dailyReminderConfig: () => prisma.dailyReminderConfig.findMany(),
   dailyReminderLogs: () => prisma.dailyReminderLog.findMany(),
