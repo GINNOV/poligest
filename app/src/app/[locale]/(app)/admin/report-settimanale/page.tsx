@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
@@ -120,6 +121,8 @@ async function clearWeeklyReportHistory() {
 
   revalidatePath("/admin/report-settimanale");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.reportSettimanale);
 
 export default async function AdminWeeklyReportPage() {
   try {

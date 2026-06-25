@@ -1,18 +1,16 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { ConsentStatus, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Stampa consensi",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.stampaConsensi);
 
 const consentStatusLabels: Record<ConsentStatus, string> = {
   GRANTED: "Concesso",

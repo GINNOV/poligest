@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
@@ -15,6 +16,8 @@ function parseIsoDate(value: string | undefined) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.anteprimaReportSettimanale);
 
 export default async function PreviewWeeklyReportPage({ searchParams }: PreviewWeeklyReportPageProps) {
   await requireUser([Role.ADMIN]);

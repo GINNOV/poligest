@@ -28,6 +28,7 @@ type CalendarDay = {
   isToday: boolean;
   availabilityColors?: string[];
   isPracticeClosed?: boolean;
+  isDoctorOnTimeOff?: boolean;
   dayOfWeek?: number;
   appointments: CalendarAppointment[];
 };
@@ -143,6 +144,7 @@ type Props = {
   availabilityWindows: { doctorId: string; dayOfWeek: number; startMinute: number; endMinute: number }[];
   practiceClosures: { startsAt: string; endsAt: string; title?: string | null; type?: string }[];
   practiceWeeklyClosures: { dayOfWeek: number; title?: string | null }[];
+  doctorTimeOffs: { doctorId: string; startsAt: string; endsAt: string; title?: string | null }[];
   action: (formData: FormData) => Promise<void>;
   updateAction: (formData: FormData) => Promise<void>;
   deleteAction: (formData: FormData) => Promise<void>;
@@ -167,6 +169,7 @@ export function CalendarMonthView({
   availabilityWindows,
   practiceClosures,
   practiceWeeklyClosures,
+  doctorTimeOffs,
   action,
   updateAction,
   deleteAction,
@@ -287,7 +290,7 @@ export function CalendarMonthView({
             style={index === 0 ? { gridColumnStart: day.dayOfWeek } : undefined}
             className={`group relative flex min-h-[140px] flex-col rounded-xl border p-2 text-left transition ${
               day.inMonth
-                ? day.isPracticeClosed
+                ? day.isPracticeClosed || day.isDoctorOnTimeOff
                   ? "cursor-pointer border-zinc-200 bg-zinc-100 hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600"
                   : day.availabilityColors?.length
                     ? "cursor-pointer border-emerald-200 bg-gradient-to-b from-white to-emerald-50/30 hover:border-emerald-300 hover:to-emerald-50/50 dark:border-emerald-900 dark:from-zinc-950 dark:to-emerald-950/20 dark:hover:border-emerald-700 dark:hover:to-emerald-950/35"
@@ -310,7 +313,9 @@ export function CalendarMonthView({
             </button>
             {day.inMonth ? (
               <div className="mb-2 flex h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                {day.isPracticeClosed ? (
+                {day.isDoctorOnTimeOff ? (
+                  <div className="h-full flex-1 bg-amber-400" />
+                ) : day.isPracticeClosed ? (
                   <div className="h-full flex-1 bg-zinc-400" />
                 ) : day.availabilityColors && day.availabilityColors.length ? (
                   day.availabilityColors.map((color, idx) => (
@@ -334,11 +339,15 @@ export function CalendarMonthView({
                 {day.label}
               </span>
               <div className="flex items-center gap-1">
-                {day.isPracticeClosed && day.inMonth ? (
+                {day.isDoctorOnTimeOff && day.inMonth ? (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                    FERIE
+                  </span>
+                ) : day.isPracticeClosed && day.inMonth ? (
                   <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
                     CHIUSO
                   </span>
-                ) : !day.isPracticeClosed && day.inMonth && !day.availabilityColors?.length ? (
+                ) : !day.isPracticeClosed && !day.isDoctorOnTimeOff && day.inMonth && !day.availabilityColors?.length ? (
                   <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                     Non Disp.
                   </span>
@@ -458,6 +467,7 @@ export function CalendarMonthView({
                 availabilityWindows={availabilityWindows}
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
+                doctorTimeOffs={doctorTimeOffs}
                 action={updateAction}
                 displayTimeZone={displayTimeZone}
                 onSuccess={() => {
@@ -489,6 +499,7 @@ export function CalendarMonthView({
                 availabilityWindows={availabilityWindows}
                 practiceClosures={practiceClosures}
                 practiceWeeklyClosures={practiceWeeklyClosures}
+                doctorTimeOffs={doctorTimeOffs}
                 action={action}
                 displayTimeZone={displayTimeZone}
                 onSuccess={() => {

@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -5,6 +6,8 @@ import { Role } from "@prisma/client";
 import { addStockMovement, deleteStockMovement, updateStockMovement } from "../actions";
 import { buildStockMovementFilters, nonImplantProductWhere } from "../stock-movement-filters";
 import { format } from "date-fns";
+
+export const metadata = createPageMetadata(PAGE_TITLES.movimenti);
 
 export const revalidate = 60;
 

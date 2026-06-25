@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AppointmentStatus } from "@prisma/client";
 import {
   adjustAppointmentEndsAt,
+  calendarOccupyingAppointmentFilter,
   isAppointmentStatus,
   isSameAgendaAppointmentSlot,
   normalizeAgendaSearchValue,
@@ -42,6 +43,12 @@ describe("agenda-domain", () => {
   it("recognizes valid appointment statuses", () => {
     expect(isAppointmentStatus(AppointmentStatus.CONFIRMED)).toBe(true);
     expect(isAppointmentStatus("anything-else")).toBe(false);
+  });
+
+  it("excludes cancelled appointments from calendar occupancy checks", () => {
+    expect(calendarOccupyingAppointmentFilter()).toEqual({
+      status: { not: AppointmentStatus.CANCELLED },
+    });
   });
 
   it("compares appointment slots with a one second tolerance", () => {

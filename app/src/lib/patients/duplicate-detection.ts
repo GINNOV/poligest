@@ -135,6 +135,8 @@ export function findPotentialPatientDuplicates(patients: DuplicatePatientInput[]
   };
 
   for (const patient of normalizedPatients) {
+    const fullNameKey = buildFullNameKey(patient.firstName, patient.lastName);
+
     if (patient.taxId) {
       addSignal({
         kind: "taxId",
@@ -145,26 +147,25 @@ export function findPotentialPatientDuplicates(patients: DuplicatePatientInput[]
     }
 
     const email = normalizeEmail(patient.email);
-    if (email) {
+    if (email && fullNameKey) {
       addSignal({
         kind: "email",
         label: formatSignalLabel("email"),
-        value: email,
+        value: `${fullNameKey}|${email}`,
         patientId: patient.id,
       });
     }
 
     const phone = normalizeItalianPhone(patient.phone);
-    if (phone) {
+    if (phone && fullNameKey) {
       addSignal({
         kind: "phone",
         label: formatSignalLabel("phone"),
-        value: phone,
+        value: `${fullNameKey}|${phone}`,
         patientId: patient.id,
       });
     }
 
-    const fullNameKey = buildFullNameKey(patient.firstName, patient.lastName);
     const birthDateKey = getBirthDateKey(patient.birthDate);
     if (fullNameKey && birthDateKey) {
       addSignal({
@@ -261,6 +262,22 @@ export function findPotentialPatientDuplicates(patients: DuplicatePatientInput[]
       const right = `${b.patients[0]?.lastName ?? ""} ${b.patients[0]?.firstName ?? ""}`;
       return left.localeCompare(right, "it", { sensitivity: "base" });
     });
+}
+
+export function formatDuplicateSignalValue(kind: DuplicateMatchKind, value: string) {
+  if (kind === "phone") {
+    const phone = value.includes("|") ? value.split("|").at(-1) ?? value : value;
+    return phone;
+  }
+  if (kind === "email") {
+    return value.includes("|") ? value.split("|").at(-1) ?? value : value;
+  }
+  if (kind === "nameBirthDate") {
+    const [lastName, firstName, birthDate] = value.split("|");
+    const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
+    return `${displayName} · ${birthDate}`;
+  }
+  return value;
 }
 
 export function filterPotentialDuplicateGroups(groups: PotentialDuplicateGroup[], query: string | null | undefined) {

@@ -1,27 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { formatAuditActor } from "@/lib/audit";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const resolvedParams = await params;
-  const patient = await prisma.patient.findUnique({
-    where: { id: resolvedParams.id },
-    select: { firstName: true, lastName: true },
-  });
-
-  if (!patient) return { title: "Paziente non trovato" };
-
-  return {
-    title: `PAZIENTE: ${patient.lastName} ${patient.firstName}`,
-  };
-}
 import { getRoleFeatureAccess, requireFeatureAccess } from "@/lib/feature-access";
 import { Role, AppointmentStatus, Gender } from "@prisma/client";
 import { FormSubmitButton } from "@/components/form-submit-button";
@@ -55,6 +36,23 @@ import { getPatientDetailPageData } from "@/lib/patients/page-data";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 import { formatOptionalDateInputValue } from "@/lib/date";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const resolvedParams = await params;
+  const patient = await prisma.patient.findUnique({
+    where: { id: resolvedParams.id },
+    select: { firstName: true, lastName: true },
+  });
+
+  if (!patient) return createPageMetadata(PAGE_TITLES.pazienteNonTrovato);
+
+  return createPageMetadata(`Paziente: ${patient.lastName} ${patient.firstName}`);
+}
 
 const consentStatusLabels: Record<string, string> = {
   GRANTED: "Concesso",

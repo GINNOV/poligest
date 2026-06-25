@@ -3,13 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
-import type { Metadata } from "next";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Lista prodotti",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.listaProdotti);
 
 type ProdottiPrintPageProps = {
   searchParams?: Promise<{ q?: string }>;

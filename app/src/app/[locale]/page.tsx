@@ -4,8 +4,11 @@ import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getAppVersion } from "@/lib/version";
+import { PAGE_TITLES } from "@/lib/page-metadata";
 
 import { Button } from "@/components/ui/button";
+
+export const metadata = { title: { absolute: PAGE_TITLES.home } };
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");

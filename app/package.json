@@ -19,6 +19,7 @@
     "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
     "db:normalize-patient-names": "dotenv -e .env.local -- tsx scripts/normalize-patient-names.ts",
+    "db:cleanup-duplicate-patients": "dotenv -e .env.local -- tsx scripts/cleanup-duplicate-patients.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

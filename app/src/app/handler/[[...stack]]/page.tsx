@@ -7,6 +7,9 @@ import { SiteFooter } from "@/components/site-footer";
 import { getAppVersion, getDeployDate } from "@/lib/version";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { redirect } from "next/navigation";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.accesso);
 
 // Optional catch-all so /handler and /handler/* both work for Stack OAuth callbacks.
 export default async function StackAuthHandlerPage(props: {

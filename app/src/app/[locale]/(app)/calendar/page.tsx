@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
@@ -12,6 +11,7 @@ import {
   getCalendarMonthDays,
   resolveCalendarMonthKey,
 } from "@/lib/calendar/domain";
+import { calendarOccupyingAppointmentFilter } from "@/lib/appointments/agenda-domain";
 import { AppointmentStatus, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
@@ -24,18 +24,21 @@ import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync"
 import { CalendarWeekView } from "@/components/calendar-week-view";
 import { CalendarWeekPicker } from "@/components/calendar-week-picker";
 import { CalendarSearch } from "@/components/calendar-search";
+import { CalendarDoctorTimeOffButton } from "@/components/calendar-doctor-time-off-button";
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { isDoctorTimeOffActive, type DoctorTimeOffRecord } from "@/lib/doctor-time-off";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import * as TZ from "@/lib/user-display-time-zone";
 import {
   createAppointment,
+  createDoctorTimeOff,
+  deleteDoctorTimeOff,
   updateAppointment,
   deleteAppointment,
 } from "./actions";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
-  title: "AGENDA",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.calendario);
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -207,6 +210,9 @@ export default async function CalendarPage({
 
   type ServiceRow = { name: string };
 
+  const timeOffRangeStart = closureRangeStart;
+  const timeOffRangeEnd = closureRangeEnd;
+
   const [
     appointmentsRaw,
     patientsRaw,
@@ -214,11 +220,13 @@ export default async function CalendarPage({
     availabilityWindowsRaw,
     practiceClosuresRaw,
     practiceWeeklyClosuresRaw,
+    doctorTimeOffsRaw,
   ] =
     await Promise.all([
     showAllDoctors
       ? prisma.appointment.findMany({
           where: {
+            ...calendarOccupyingAppointmentFilter(),
             startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
           },
           orderBy: { startsAt: "asc" },
@@ -238,6 +246,7 @@ export default async function CalendarPage({
       : selectedDoctorId
         ? prisma.appointment.findMany({
             where: {
+              ...calendarOccupyingAppointmentFilter(),
               doctorId: selectedDoctorId,
               startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
             },
@@ -282,6 +291,17 @@ export default async function CalendarPage({
           orderBy: [{ dayOfWeek: "asc" }],
         })
       : Promise.resolve([]),
+    selectedDoctorId
+      ? prisma.doctorTimeOff.findMany({
+          where: {
+            doctorId: selectedDoctorId,
+            startsAt: { lte: timeOffRangeEnd },
+            endsAt: { gte: timeOffRangeStart },
+          },
+          orderBy: { startsAt: "asc" },
+          select: { id: true, doctorId: true, title: true, startsAt: true, endsAt: true },
+        })
+      : Promise.resolve([]),
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
   const mappedPatients = patientsRaw.map((p) => {
@@ -308,6 +328,13 @@ export default async function CalendarPage({
   const clientWeeklyClosures: ClientWeeklyClosure[] = weeklyClosures.map((row) => ({
     dayOfWeek: row.dayOfWeek,
     title: row.title,
+  }));
+  const clientDoctorTimeOffs: DoctorTimeOffRecord[] = doctorTimeOffsRaw.map((row) => ({
+    id: row.id,
+    doctorId: row.doctorId,
+    title: row.title,
+    startsAt: row.startsAt.toISOString(),
+    endsAt: row.endsAt.toISOString(),
   }));
 
   const doctorColorById = new Map<string, string | null>();
@@ -407,9 +434,17 @@ export default async function CalendarPage({
       (row) => row.isActive && row.dayOfWeek === displayWeekday
     );
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
-    const availabilityColors = dayWindows
-      .map((win) => win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981")
-      .filter((color): color is string => Boolean(color));
+    const isDoctorOnTimeOff = isDoctorTimeOffActive(
+      selectedDoctorId,
+      dayStart,
+      dayEnd,
+      clientDoctorTimeOffs,
+    );
+    const availabilityColors = isDoctorOnTimeOff
+      ? []
+      : dayWindows
+          .map((win) => win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981")
+          .filter((color): color is string => Boolean(color));
 
     return {
       date: key,
@@ -418,6 +453,7 @@ export default async function CalendarPage({
       isToday: isToday(day),
       availabilityColors,
       isPracticeClosed,
+      isDoctorOnTimeOff,
       dayOfWeek: displayWeekday,
       appointments: dayAppointments.map((appt) => {
         const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
@@ -466,17 +502,26 @@ export default async function CalendarPage({
       (row) => row.isActive && row.dayOfWeek === displayWeekday
     );
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
-    const availabilityWindows = dayWindows.map((win) => ({
-      startMinute: win.startMinute,
-      endMinute: win.endMinute,
-      color: win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981",
-      doctorId: win.doctorId,
-    }));
+    const isDoctorOnTimeOff = isDoctorTimeOffActive(
+      selectedDoctorId,
+      dayStart,
+      dayEnd,
+      clientDoctorTimeOffs,
+    );
+    const availabilityWindows = isDoctorOnTimeOff
+      ? []
+      : dayWindows.map((win) => ({
+          startMinute: win.startMinute,
+          endMinute: win.endMinute,
+          color: win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981",
+          doctorId: win.doctorId,
+        }));
     return {
       date: key,
       label: TZ.formatDateInDisplayTimeZone(day, { weekday: "short", day: "numeric" }, displayTimeZone),
       isToday: isToday(day),
       isPracticeClosed,
+      isDoctorOnTimeOff,
       availabilityWindows,
       appointments: dayAppointments.map((appt) => {
         const startsAtLocal = formatCalendarLocalInput(appt.startsAt, displayTimeZone);
@@ -559,6 +604,17 @@ export default async function CalendarPage({
           />
           <div className="flex flex-wrap items-center justify-end gap-3">
             <CalendarSearch />
+            {selectedDoctorId && !showAllDoctors ? (
+              <CalendarDoctorTimeOffButton
+                doctorId={selectedDoctorId}
+                doctorName={doctors.find((doctor) => doctor.id === selectedDoctorId)?.fullName ?? "Medico"}
+                returnTo={returnTo}
+                displayTimeZone={displayTimeZone}
+                timeOffs={clientDoctorTimeOffs}
+                createAction={createDoctorTimeOff}
+                deleteAction={deleteDoctorTimeOff}
+              />
+            ) : null}
             <Link
               href={appendCalendarQueryParam(returnTo, "edit", "new")}
               className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-700 px-3 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500"
@@ -659,6 +715,7 @@ export default async function CalendarPage({
               }))}
               practiceClosures={clientClosures}
               practiceWeeklyClosures={clientWeeklyClosures}
+              doctorTimeOffs={clientDoctorTimeOffs}
               action={createAppointment}
               updateAction={updateAppointment}
               deleteAction={deleteAppointment}
@@ -683,6 +740,7 @@ export default async function CalendarPage({
               }))}
               practiceClosures={clientClosures}
               practiceWeeklyClosures={clientWeeklyClosures}
+              doctorTimeOffs={clientDoctorTimeOffs}
               action={createAppointment}
               updateAction={updateAppointment}
               deleteAction={deleteAppointment}

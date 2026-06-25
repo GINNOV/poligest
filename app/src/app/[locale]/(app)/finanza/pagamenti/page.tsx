@@ -1,10 +1,5 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { Role, type PatientPaymentMethod } from "@prisma/client";
-
-export const metadata: Metadata = {
-  title: "PAGAMENTI",
-};
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serializePatientQuoteDraft } from "@/lib/patients/page-data-domain";
@@ -23,6 +18,9 @@ import {
   formatDateInputValueInTimeZone,
 } from "@/lib/user-display-time-zone";
 import { allocateQuotePayments } from "@/lib/finance/domain-logic";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = createPageMetadata(PAGE_TITLES.pagamenti);
 
 export const revalidate = 60;
 

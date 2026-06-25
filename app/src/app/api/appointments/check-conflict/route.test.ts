@@ -23,6 +23,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
+import { AppointmentStatus } from "@prisma/client";
 import { GET } from "@/app/api/appointments/check-conflict/route";
 
 describe("GET /api/appointments/check-conflict", () => {
@@ -54,6 +55,7 @@ describe("GET /api/appointments/check-conflict", () => {
 
     expect(mocks.prisma.appointment.count).toHaveBeenCalledWith({
       where: {
+        status: { not: AppointmentStatus.CANCELLED },
         doctorId: "doc-1",
         id: { not: "appt-1" },
         startsAt: { lt: new Date("2026-04-08T10:30:00.000Z") },

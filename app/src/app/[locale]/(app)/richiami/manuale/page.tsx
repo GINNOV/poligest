@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -5,6 +6,8 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { sendManualNotification } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+
+export const metadata = createPageMetadata(PAGE_TITLES.promemoriaManuali);
 
 export default async function RichiamiManualePage({
   searchParams,

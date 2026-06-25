@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { Fragment, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AppointmentStatus } from "@prisma/client";
 import { normalizeItalianPhone } from "@/lib/phone";
@@ -31,11 +31,27 @@ type AppointmentItem = {
   reminderSendCount?: number;
 };
 
+type LayoutMode = "rows" | "cards";
+
 type Props = {
   appointments: AppointmentItem[];
   whatsappTemplateBody: string;
   nowIso: string;
   emptyLabel: string;
+  layout?: LayoutMode;
+};
+
+type ParsedAppointment = AppointmentItem & {
+  startsAtDate: Date;
+  endsAtDate: Date;
+};
+
+type AppointmentRowContext = {
+  appt: ParsedAppointment;
+  isMounted: boolean;
+  displayTimeZone: string;
+  now: Date;
+  whatsappTemplateBody: string;
 };
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -72,7 +88,178 @@ const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
   return "🗓️";
 };
 
-export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, nowIso, emptyLabel }: Props) {
+const getServiceLabel = (serviceType?: string | null, title?: string | null) =>
+  serviceType?.trim() || title?.trim() || "—";
+
+function buildAppointmentContext({
+  appt,
+  isMounted,
+  displayTimeZone,
+  whatsappTemplateBody,
+}: Omit<AppointmentRowContext, "now">) {
+  const patientPhone = normalizeItalianPhone(appt.patient.phone);
+  const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
+  const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
+  const whatsappAppointmentDate = isMounted
+    ? formatDateInDisplayTimeZone(
+        appt.startsAtDate,
+        {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        },
+        displayTimeZone
+      )
+    : "";
+  const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
+    firstName: appt.patient.firstName ?? "",
+    lastName: appt.patient.lastName ?? "",
+    doctorName: appointmentDoctor,
+    appointmentDate: whatsappAppointmentDate,
+    serviceType: appt.serviceType ?? "",
+    notes: appt.notes ?? "",
+  });
+  const whatsappHref = whatsappPhone
+    ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
+    : null;
+  const startsAtLocal = formatCalendarLocalInput(appt.startsAtDate, displayTimeZone);
+
+  return {
+    patientPhone,
+    whatsappHref,
+    startsAtLocal,
+    serviceLabel: getServiceLabel(appt.serviceType, appt.title),
+  };
+}
+
+function AppointmentActions({
+  appt,
+  whatsappHref,
+  startsAtLocal,
+  className,
+  variant = "stack",
+}: {
+  appt: ParsedAppointment;
+  whatsappHref: string | null;
+  startsAtLocal: string;
+  className?: string;
+  variant?: "stack" | "compact";
+}) {
+  const isCompact = variant === "compact";
+  const containerClass = isCompact
+    ? "flex flex-wrap items-center justify-end gap-2 text-xs [&_button]:!w-auto [&_button]:shrink-0 [&_span]:!w-auto [&_form]:!w-auto [&_select]:!w-auto [&_select]:min-w-[9rem]"
+    : (className ?? "grid w-full grid-cols-1 gap-2 text-xs sm:w-auto");
+
+  return (
+    <div className={containerClass}>
+      <AgendaReminderButton
+        appointmentId={appt.id}
+        whatsappHref={whatsappHref}
+        initialReminderSent={appt.reminderSent}
+        initialReminderSendCount={appt.reminderSendCount}
+      />
+      <AppointmentStatusAutoSubmit
+        appointmentId={appt.id}
+        defaultValue={appt.status}
+        options={statusOptions}
+        action={updateAppointmentStatusAction}
+        returnTo="/dashboard"
+        className={isCompact ? "w-auto" : "w-full"}
+      />
+      <Link
+        href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctor?.id ? `&doctor=${appt.doctor.id}` : ""}`}
+        className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40 ${
+          isCompact ? "px-3 py-1.5 text-[10px] whitespace-nowrap" : "gap-2 px-4 py-2 text-[10px]"
+        }`}
+      >
+        {isCompact ? "Calendario 🗓️" : "MODIFICA / CALENDARIO 🗓️"}
+      </Link>
+    </div>
+  );
+}
+
+function DayDivider({
+  dayLabel,
+  colSpan,
+}: {
+  dayLabel: string;
+  colSpan?: number;
+}) {
+  if (colSpan) {
+    return (
+      <tr>
+        <td colSpan={colSpan} className="bg-zinc-50 px-4 py-2 dark:bg-zinc-900/60">
+          <div className="flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+              📅 {dayLabel}
+            </span>
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+        📅 {dayLabel}
+      </span>
+      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+    </div>
+  );
+}
+
+function PaginationControls({
+  safeCurrentPage,
+  totalPages,
+  onPageChange,
+}: {
+  safeCurrentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">
+      <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+        Pagina {safeCurrentPage} di {totalPages}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
+          disabled={safeCurrentPage === 1}
+          variant="outline"
+          size="sm"
+        >
+          Indietro
+        </Button>
+        <Button
+          onClick={() => onPageChange(Math.min(totalPages, safeCurrentPage + 1))}
+          disabled={safeCurrentPage === totalPages}
+          variant="outline"
+          size="sm"
+        >
+          Avanti
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardAppointmentsList({
+  appointments,
+  whatsappTemplateBody,
+  nowIso,
+  emptyLabel,
+  layout = "rows",
+}: Props) {
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [page, setPage] = useState(1);
 
@@ -89,18 +276,26 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
   );
 
   const orderedAppointments = useMemo(() => {
-    const parsed = appointments.map((appt) => ({
+    const parsed: ParsedAppointment[] = appointments.map((appt) => ({
       ...appt,
       startsAtDate: new Date(appt.startsAt),
       endsAtDate: new Date(appt.endsAt),
     }));
 
     return parsed.sort((a, b) => {
-      const dateA = a.startsAtDate.toISOString().split("T")[0];
-      const dateB = b.startsAtDate.toISOString().split("T")[0];
+      const dateA = isMounted
+        ? formatDateInputValueInTimeZone(a.startsAtDate, displayTimeZone)
+        : a.startsAtDate.toISOString().split("T")[0];
+      const dateB = isMounted
+        ? formatDateInputValueInTimeZone(b.startsAtDate, displayTimeZone)
+        : b.startsAtDate.toISOString().split("T")[0];
 
       if (dateA !== dateB) {
-        return dateB.localeCompare(dateA); // Latest date first
+        return dateB.localeCompare(dateA);
+      }
+
+      if (layout === "rows") {
+        return a.startsAtDate.getTime() - b.startsAtDate.getTime();
       }
 
       const nameA = `${a.patient.lastName} ${a.patient.firstName}`.toLowerCase();
@@ -108,7 +303,7 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
 
       return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
     });
-  }, [appointments]);
+  }, [appointments, displayTimeZone, isMounted, layout]);
 
   const PAGE_SIZE = 10;
   const totalPages = Math.max(1, Math.ceil(orderedAppointments.length / PAGE_SIZE));
@@ -118,71 +313,156 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
     return orderedAppointments.slice(start, start + PAGE_SIZE);
   }, [orderedAppointments, safeCurrentPage]);
 
+  const getDayMeta = (appt: ParsedAppointment, prevAppt: ParsedAppointment | null) => {
+    const dayKey = isMounted
+      ? formatDateInputValueInTimeZone(appt.startsAtDate, displayTimeZone)
+      : appt.startsAt.slice(0, 10);
+    const dayLabel = isMounted
+      ? formatDateInDisplayTimeZone(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone)
+      : "";
+    const prevDayKey = prevAppt
+      ? isMounted
+        ? formatDateInputValueInTimeZone(prevAppt.startsAtDate, displayTimeZone)
+        : prevAppt.startsAt.slice(0, 10)
+      : null;
+    const showDivider = !prevDayKey || prevDayKey !== dayKey;
+
+    return { dayLabel, showDivider };
+  };
+
+  const getRowClass = (appt: ParsedAppointment) => {
+    const isPast = appt.endsAtDate < now;
+    return isPast
+      ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
+      : statusCardBackgrounds[appt.status];
+  };
+
   if (orderedAppointments.length === 0) {
     return <p className="py-4 text-sm text-zinc-600 dark:text-zinc-300">{emptyLabel}</p>;
+  }
+
+  if (layout === "rows") {
+    const rowHeaderClass =
+      "whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide";
+    const rowDataClass =
+      "px-3 py-3 text-[1.375rem] leading-snug font-semibold text-zinc-900 dark:text-zinc-50";
+
+    return (
+      <>
+        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
+          <table className="w-full min-w-[56rem] table-fixed divide-y divide-zinc-100 dark:divide-zinc-800">
+            <colgroup>
+              <col className="w-[5.5rem]" />
+              <col className="w-[19%]" />
+              <col className="w-[16%]" />
+              <col className="w-[27%]" />
+              <col className="w-[38%]" />
+            </colgroup>
+            <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+              <tr>
+                <th className={rowHeaderClass}>Ora</th>
+                <th className={rowHeaderClass}>Paziente</th>
+                <th className={rowHeaderClass}>Telefono</th>
+                <th className={rowHeaderClass}>Prestazione</th>
+                <th className={`${rowHeaderClass} text-right`}>Azioni</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {paginatedAppointments.map((appt, index) => {
+                const { patientPhone, whatsappHref, startsAtLocal, serviceLabel } = buildAppointmentContext({
+                  appt,
+                  isMounted,
+                  displayTimeZone,
+                  whatsappTemplateBody,
+                });
+                const { dayLabel, showDivider } = getDayMeta(
+                  appt,
+                  index > 0 ? paginatedAppointments[index - 1] : null
+                );
+                const rowClass = getRowClass(appt);
+                const isPast = appt.endsAtDate < now;
+
+                return (
+                  <Fragment key={appt.id}>
+                    {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} colSpan={5} /> : null}
+                    <tr className={rowClass}>
+                      <td className={`${rowDataClass} whitespace-nowrap align-middle tabular-nums`}>
+                        {isMounted
+                          ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
+                          : "—"}
+                        {isPast ? (
+                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                            Passato
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className={`${rowDataClass} max-w-0 align-middle`}>
+                        <Link
+                          href={`/pazienti/${appt.patient.id}`}
+                          className="block truncate hover:text-emerald-700 dark:hover:text-emerald-300"
+                          title={`${appt.patient.lastName} ${appt.patient.firstName}`}
+                        >
+                          {appt.patient.lastName} {appt.patient.firstName}
+                        </Link>
+                      </td>
+                      <td className={`${rowDataClass} max-w-0 align-middle tabular-nums text-zinc-700 dark:text-zinc-300`}>
+                        <span className="block truncate" title={patientPhone ?? undefined}>
+                          {patientPhone ?? "—"}
+                        </span>
+                      </td>
+                      <td className={`${rowDataClass} max-w-0 align-middle text-zinc-800 dark:text-zinc-200`}>
+                        <span className="block truncate" title={serviceLabel}>
+                          <span className="mr-1 text-base">{getServiceIcon(appt.serviceType, appt.title)}</span>
+                          {serviceLabel}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 align-middle">
+                        <AppointmentActions
+                          appt={appt}
+                          whatsappHref={whatsappHref}
+                          startsAtLocal={startsAtLocal}
+                          variant="compact"
+                        />
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <PaginationControls
+          safeCurrentPage={safeCurrentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+        />
+      </>
+    );
   }
 
   return (
     <>
       {paginatedAppointments.map((appt, index) => {
-        const patientPhone = normalizeItalianPhone(appt.patient.phone);
-        const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
-        const appointmentDoctor = appt.doctor?.fullName ?? "da definire";
-        const whatsappAppointmentDate = isMounted ? formatDateInDisplayTimeZone(
-          appt.startsAtDate,
-          {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          },
-          displayTimeZone
-        ) : "";
-
-        const whatsappMessage = renderWhatsappTemplate(whatsappTemplateBody, {
-          firstName: appt.patient.firstName ?? "",
-          lastName: appt.patient.lastName ?? "",
-          doctorName: appointmentDoctor,
-          appointmentDate: whatsappAppointmentDate,
-          serviceType: appt.serviceType ?? "",
-          notes: appt.notes ?? "",
+        const { whatsappHref, startsAtLocal } = buildAppointmentContext({
+          appt,
+          isMounted,
+          displayTimeZone,
+          whatsappTemplateBody,
         });
-        const whatsappHref = whatsappPhone
-          ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
-          : null;
+        const cardClass = getRowClass(appt);
+        const { dayLabel, showDivider } = getDayMeta(
+          appt,
+          index > 0 ? paginatedAppointments[index - 1] : null
+        );
         const isPast = appt.endsAtDate < now;
-        
-        const cardClass = isPast
-          ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
-          : statusCardBackgrounds[appt.status];
-
-        const dayKey = isMounted ? formatDateInputValueInTimeZone(appt.startsAtDate, displayTimeZone) : appt.startsAt.slice(0, 10);
-        const dayLabel = isMounted ? formatDateInDisplayTimeZone(appt.startsAtDate, { dateStyle: "long" }, displayTimeZone) : "";
-        const prevAppt = index > 0 ? paginatedAppointments[index - 1] : null;
-        const prevDayKey = prevAppt 
-          ? (isMounted ? formatDateInputValueInTimeZone(prevAppt.startsAtDate, displayTimeZone) : prevAppt.startsAt.slice(0, 10))
-          : null;
-        const showDivider = !prevDayKey || prevDayKey !== dayKey;
-
-        const outerCardClass = index % 2 === 0
-          ? "border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-950/90"
-          : "border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/80";
-
-        const startsAtLocal = formatCalendarLocalInput(appt.startsAtDate, displayTimeZone);
+        const outerCardClass =
+          index % 2 === 0
+            ? "border-zinc-200 bg-white/90 dark:border-zinc-800 dark:bg-zinc-950/90"
+            : "border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/80";
 
         return (
           <div key={appt.id}>
-            {showDivider && isMounted ? (
-              <div className="mb-3 mt-2 flex items-center gap-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-                <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
-                  📅 {dayLabel}
-                </span>
-                <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-              </div>
-            ) : null}
+            {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} /> : null}
             <div className={`mb-4 rounded-2xl border p-4 shadow-sm ${outerCardClass}`}>
               <div className={`rounded-2xl border p-4 shadow-sm ${cardClass}`}>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -214,17 +494,21 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-zinc-500 dark:text-zinc-400">Quando</span>
                         <span>
-                          {isMounted ? formatDateInDisplayTimeZone(
-                            appt.startsAtDate,
-                            {
-                              weekday: "short",
-                              day: "numeric",
-                              month: "short",
-                            },
-                            displayTimeZone
-                          ) : ""}
-                          {" "}
-                          alle {isMounted ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone) : ""}
+                          {isMounted
+                            ? formatDateInDisplayTimeZone(
+                                appt.startsAtDate,
+                                {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                },
+                                displayTimeZone
+                              )
+                            : ""}{" "}
+                          alle{" "}
+                          {isMounted
+                            ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
+                            : ""}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -241,65 +525,26 @@ export function DashboardAppointmentsList({ appointments, whatsappTemplateBody, 
                       </div>
                     </div>
                     <div className="mt-3 border-t border-zinc-100 pt-3 dark:border-zinc-800/50">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Note</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                        Note
+                      </p>
                       <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 italic">
                         {appt.notes?.trim() ? appt.notes : "Nessuna nota."}
                       </p>
                     </div>
                   </div>
-                  <div className="grid w-full grid-cols-1 gap-2 text-xs sm:w-auto">
-                    <AgendaReminderButton
-                      appointmentId={appt.id}
-                      whatsappHref={whatsappHref}
-                      initialReminderSent={appt.reminderSent}
-                      initialReminderSendCount={appt.reminderSendCount}
-                    />
-                    <AppointmentStatusAutoSubmit
-                      appointmentId={appt.id}
-                      defaultValue={appt.status}
-                      options={statusOptions}
-                      action={updateAppointmentStatusAction}
-                      returnTo="/dashboard"
-                      className="w-full"
-                    />
-                    <Link
-                      href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctor?.id ? `&doctor=${appt.doctor.id}` : ""}`}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-[10px] font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40"
-                    >
-                      MODIFICA / CALENDARIO 🗓️
-                    </Link>
-                  </div>
+                  <AppointmentActions appt={appt} whatsappHref={whatsappHref} startsAtLocal={startsAtLocal} />
                 </div>
               </div>
             </div>
           </div>
         );
       })}
-      {totalPages > 1 ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">
-          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Pagina {safeCurrentPage} di {totalPages}
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              disabled={safeCurrentPage === 1}
-              variant="outline"
-              size="sm"
-            >
-              Indietro
-            </Button>
-            <Button
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={safeCurrentPage === totalPages}
-              variant="outline"
-              size="sm"
-            >
-              Avanti
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      <PaginationControls
+        safeCurrentPage={safeCurrentPage}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
     </>
   );
 }

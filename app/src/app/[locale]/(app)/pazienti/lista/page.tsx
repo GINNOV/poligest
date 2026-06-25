@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,8 @@ import { PatientListFilters } from "@/components/patient-list-filters";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { formatPhone } from "@/lib/phone";
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+
+export const metadata = createPageMetadata(PAGE_TITLES.listaPazienti);
 
 const PAGE_SIZE = 20;
 const BIRTH_DATE_FORMATTER = new Intl.DateTimeFormat("it-IT", {

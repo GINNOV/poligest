@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { format, isValid, startOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
 import { requireUser } from "@/lib/auth";
@@ -7,6 +8,8 @@ import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 import { aggregateDoctorReport } from "@/lib/finance/reports";
 import { ServicesChart } from "./services-chart";
+
+export const metadata = createPageMetadata(PAGE_TITLES.reportMedici);
 
 export const revalidate = 60;
 

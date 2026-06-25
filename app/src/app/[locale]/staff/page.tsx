@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { getStackSignInUrl } from "@/lib/stack-app";
 import Image from "next/image";
+import { PAGE_TITLES } from "@/lib/page-metadata";
+
+export const metadata = { title: { absolute: PAGE_TITLES.areaStaff } };
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");

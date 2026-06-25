@@ -10,6 +10,7 @@ import {
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
+  type DoctorTimeOff,
   type PracticeClosure,
   type PracticeWeeklyClosure,
 } from "@/lib/scheduling-warnings";
@@ -36,6 +37,7 @@ type AppointmentUpdateFormProps = {
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures: PracticeWeeklyClosure[];
+  doctorTimeOffs?: DoctorTimeOff[];
   action: (formData: FormData) => Promise<void>;
   onSuccess?: () => void;
   displayTimeZone?: string;
@@ -50,6 +52,7 @@ export function AppointmentUpdateForm({
   availabilityWindows,
   practiceClosures,
   practiceWeeklyClosures,
+  doctorTimeOffs = [],
   action,
   onSuccess,
   displayTimeZone,
@@ -130,6 +133,7 @@ export function AppointmentUpdateForm({
         availabilityWindows,
         practiceClosures,
         practiceWeeklyClosures,
+        doctorTimeOffs,
         ignorePracticeClosureWarnings: ignoreClosureWarnings,
         ignoreDoctorAvailabilityWarnings: ignoreAvailabilityWarnings,
       });

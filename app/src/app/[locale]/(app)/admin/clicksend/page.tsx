@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
@@ -58,6 +59,8 @@ async function sendTestSms(formData: FormData) {
 
   revalidatePath("/admin/clicksend");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.clicksend);
 
 export default async function ClickSendSettingsPage() {
   await requireUser([Role.ADMIN]);

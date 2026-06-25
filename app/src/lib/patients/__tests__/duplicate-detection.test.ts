@@ -41,11 +41,38 @@ describe("findPotentialPatientDuplicates", () => {
     expect(groups[0].matchSignals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "taxId", value: "RSSMRA80A01H501U" }),
-        expect.objectContaining({ kind: "email", value: "mario@example.com" }),
-        expect.objectContaining({ kind: "phone", value: "+393331234567" }),
+        expect.objectContaining({ kind: "email", value: "rossi|mario|mario@example.com" }),
+        expect.objectContaining({ kind: "phone", value: "rossi|mario|+393331234567" }),
         expect.objectContaining({ kind: "nameBirthDate" }),
       ]),
     );
+  });
+
+  it("ignores different people who only share a phone number", () => {
+    const groups = findPotentialPatientDuplicates([
+      {
+        id: "patient-1",
+        firstName: "Mario",
+        lastName: "Rossi",
+        email: null,
+        phone: "+393331234567",
+        birthDate: new Date("1980-01-01T00:00:00.000Z"),
+        notes: "",
+        createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      },
+      {
+        id: "patient-2",
+        firstName: "Giulia",
+        lastName: "Rossi",
+        email: null,
+        phone: "+393331234567",
+        birthDate: new Date("1990-02-02T00:00:00.000Z"),
+        notes: "",
+        createdAt: new Date("2026-01-02T10:00:00.000Z"),
+      },
+    ]);
+
+    expect(groups).toEqual([]);
   });
 
   it("ignores same-name records when the birth date is missing", () => {

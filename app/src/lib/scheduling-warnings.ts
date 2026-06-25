@@ -17,6 +17,13 @@ export type PracticeWeeklyClosure = {
   title?: string | null;
 };
 
+export type DoctorTimeOff = {
+  doctorId: string;
+  startsAt: string;
+  endsAt: string;
+  title?: string | null;
+};
+
 const WEEKDAY_LABELS: Record<number, string> = {
   1: "Lunedì",
   2: "Martedì",
@@ -47,8 +54,10 @@ export function computeSchedulingWarning(params: {
   availabilityWindows: AvailabilityWindow[];
   practiceClosures: PracticeClosure[];
   practiceWeeklyClosures?: PracticeWeeklyClosure[];
+  doctorTimeOffs?: DoctorTimeOff[];
   ignorePracticeClosureWarnings?: boolean;
   ignoreDoctorAvailabilityWarnings?: boolean;
+  ignoreDoctorTimeOffWarnings?: boolean;
 }): string | null {
   const {
     doctorId,
@@ -57,8 +66,10 @@ export function computeSchedulingWarning(params: {
     availabilityWindows,
     practiceClosures,
     practiceWeeklyClosures,
+    doctorTimeOffs,
     ignorePracticeClosureWarnings,
     ignoreDoctorAvailabilityWarnings,
+    ignoreDoctorTimeOffWarnings,
   } = params;
   if (!doctorId || !startsAt || !endsAt) return null;
 
@@ -97,7 +108,22 @@ export function computeSchedulingWarning(params: {
     sameDay &&
     doctorWindows.some((win) => startMin >= win.startMinute && endMin <= win.endMinute);
 
-  if (!ignoreDoctorAvailabilityWarnings && !withinAnyWindow) {
+  const overlappingTimeOff = (doctorTimeOffs ?? []).find((timeOff) => {
+    if (timeOff.doctorId !== doctorId) return false;
+    const offStart = new Date(timeOff.startsAt);
+    const offEnd = new Date(timeOff.endsAt);
+    if (Number.isNaN(offStart.getTime()) || Number.isNaN(offEnd.getTime())) return false;
+    return intervalsOverlap(start, end, offStart, offEnd);
+  });
+
+  if (!ignoreDoctorTimeOffWarnings && overlappingTimeOff) {
+    const title = overlappingTimeOff.title?.trim();
+    parts.push(
+      `Il medico risulta in ferie in questo periodo${title ? ` (${title})` : ""}. Vuoi procedere comunque?`
+    );
+  }
+
+  if (!ignoreDoctorAvailabilityWarnings && !withinAnyWindow && !overlappingTimeOff) {
     parts.push(
       `L'appuntamento è fuori dalla disponibilità del medico (${dayLabel}). Vuoi procedere comunque?`
     );

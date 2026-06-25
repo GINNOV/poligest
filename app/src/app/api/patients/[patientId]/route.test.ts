@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => {
   const requireUser = vi.fn();
   const logAudit = vi.fn();
   const revalidatePath = vi.fn();
+  const deletePatientWithRelations = vi.fn();
   const errorResponse = vi.fn(
     async ({ message, status = 500 }: { message: string; status?: number }) =>
       Response.json({ error: message, code: "ERR_TEST" }, { status }),
@@ -12,47 +13,6 @@ const mocks = vi.hoisted(() => {
   const prisma = {
     patient: {
       findUnique: vi.fn(),
-      delete: vi.fn(),
-    },
-    quote: {
-      findMany: vi.fn(),
-      deleteMany: vi.fn(),
-    },
-    quoteItem: {
-      deleteMany: vi.fn(),
-    },
-    appointmentReminder: {
-      deleteMany: vi.fn(),
-    },
-    dentalRecord: {
-      deleteMany: vi.fn(),
-    },
-    clinicalNote: {
-      deleteMany: vi.fn(),
-    },
-    recall: {
-      deleteMany: vi.fn(),
-    },
-    recurringMessageLog: {
-      deleteMany: vi.fn(),
-    },
-    appointment: {
-      deleteMany: vi.fn(),
-    },
-    stockMovement: {
-      deleteMany: vi.fn(),
-    },
-    patientConsent: {
-      deleteMany: vi.fn(),
-    },
-    smsLog: {
-      deleteMany: vi.fn(),
-    },
-    cashAdvance: {
-      deleteMany: vi.fn(),
-    },
-    patientPayment: {
-      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -61,6 +21,7 @@ const mocks = vi.hoisted(() => {
     requireUser,
     logAudit,
     revalidatePath,
+    deletePatientWithRelations,
     errorResponse,
     prisma,
   };
@@ -86,6 +47,10 @@ vi.mock("@/lib/prisma", () => ({
   prisma: mocks.prisma,
 }));
 
+vi.mock("@/lib/patients/delete-patient", () => ({
+  deletePatientWithRelations: mocks.deletePatientWithRelations,
+}));
+
 import { DELETE } from "@/app/api/patients/[patientId]/route";
 
 describe("DELETE /api/patients/[patientId]", () => {
@@ -95,31 +60,10 @@ describe("DELETE /api/patients/[patientId]", () => {
     mocks.requireUser.mockResolvedValue({ id: "admin-1", role: "ADMIN" });
     mocks.logAudit.mockResolvedValue(undefined);
     mocks.prisma.patient.findUnique.mockResolvedValue({ id: "patient-1" });
-    mocks.prisma.quote.findMany.mockResolvedValue([{ id: "quote-1" }]);
-    mocks.prisma.$transaction.mockResolvedValue(undefined);
-
-    for (const model of [
-      mocks.prisma.appointmentReminder,
-      mocks.prisma.dentalRecord,
-      mocks.prisma.clinicalNote,
-      mocks.prisma.recall,
-      mocks.prisma.recurringMessageLog,
-      mocks.prisma.appointment,
-      mocks.prisma.stockMovement,
-      mocks.prisma.patientConsent,
-      mocks.prisma.smsLog,
-      mocks.prisma.cashAdvance,
-      mocks.prisma.patientPayment,
-      mocks.prisma.quoteItem,
-      mocks.prisma.quote,
-      mocks.prisma.patient,
-    ]) {
-      if ("deleteMany" in model) {
-        model.deleteMany.mockReturnValue({} as never);
-      }
-    }
-
-    mocks.prisma.patient.delete.mockReturnValue({} as never);
+    mocks.prisma.$transaction.mockImplementation(async (callback: (tx: unknown) => unknown) =>
+      callback(mocks.prisma),
+    );
+    mocks.deletePatientWithRelations.mockResolvedValue(undefined);
   });
 
   it("rejects delete requests without typed confirmation", async () => {
@@ -170,9 +114,7 @@ describe("DELETE /api/patients/[patientId]", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(mocks.prisma.patient.delete).toHaveBeenCalledWith({
-      where: { id: "patient-1" },
-    });
+    expect(mocks.deletePatientWithRelations).toHaveBeenCalledWith("patient-1", mocks.prisma);
     expect(mocks.logAudit).toHaveBeenCalledTimes(2);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti");
   });

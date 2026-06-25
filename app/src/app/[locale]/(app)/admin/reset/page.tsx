@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
@@ -698,6 +699,8 @@ async function importData(formData: FormData) {
 
   revalidatePath("/admin/reset");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.resetDatabase);
 
 export default async function ResetPage({
   searchParams,

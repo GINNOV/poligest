@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import { Prisma, Role } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
@@ -126,6 +127,8 @@ async function deleteService(formData: FormData) {
 
   revalidatePath("/admin/servizi");
 }
+
+export const metadata = createPageMetadata(PAGE_TITLES.servizi);
 
 export default async function ServicesPage() {
   await requireUser([Role.ADMIN]);

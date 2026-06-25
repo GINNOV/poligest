@@ -1,15 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
-export const metadata: Metadata = {
-  title: "RICHIAMI",
-};
+export const metadata = createPageMetadata(PAGE_TITLES.richiami);
 
 const TILE_IMAGE_VERSION = "3";
 

@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { eachDayOfInterval, endOfWeek, format, isWithinInterval, startOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
@@ -6,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { PatientPaymentMethod, Role } from "@prisma/client";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
+
+export const metadata = createPageMetadata(PAGE_TITLES.reportGiornaliero);
 
 export const revalidate = 60;
 

@@ -1,3 +1,4 @@
+import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -7,6 +8,8 @@ import { NotificationChannel, Role } from "@prisma/client";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+
+export const metadata = createPageMetadata(PAGE_TITLES.regoleAutomatiche);
 
 export default async function RichiamiRegolePage() {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
