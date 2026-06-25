@@ -1,32 +1,20 @@
 import { WhatsAppClient } from "@kapso/whatsapp-cloud-api";
+import { getKapsoWhatsAppConfig } from "@/lib/kapso-config";
 import { normalizeItalianPhone } from "@/lib/phone";
 
 const DEFAULT_KAPSO_BASE_URL = "https://api.kapso.ai/meta/whatsapp";
 
-export function isKapsoWhatsAppConfigured() {
-  return Boolean(
-    process.env.KAPSO_API_KEY?.trim() && process.env.KAPSO_WHATSAPP_PHONE_NUMBER_ID?.trim(),
-  );
+export async function isKapsoWhatsAppConfigured() {
+  const config = await getKapsoWhatsAppConfig();
+  return Boolean(config?.apiKey && config?.phoneNumberId);
 }
 
-function getKapsoWhatsAppClient() {
-  const apiKey = process.env.KAPSO_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("KAPSO_API_KEY non configurata.");
+async function getKapsoRuntimeConfig() {
+  const config = await getKapsoWhatsAppConfig();
+  if (!config?.apiKey || !config.phoneNumberId) {
+    throw new Error("Configurazione WhatsApp Kapso mancante.");
   }
-
-  return new WhatsAppClient({
-    baseUrl: process.env.KAPSO_API_BASE_URL?.trim() || DEFAULT_KAPSO_BASE_URL,
-    kapsoApiKey: apiKey,
-  });
-}
-
-function getKapsoPhoneNumberId() {
-  const phoneNumberId = process.env.KAPSO_WHATSAPP_PHONE_NUMBER_ID?.trim();
-  if (!phoneNumberId) {
-    throw new Error("KAPSO_WHATSAPP_PHONE_NUMBER_ID non configurata.");
-  }
-  return phoneNumberId;
+  return config;
 }
 
 export async function sendKapsoWhatsAppText(params: { to: string; body: string }) {
@@ -35,9 +23,14 @@ export async function sendKapsoWhatsAppText(params: { to: string; body: string }
     throw new Error("Numero WhatsApp non valido.");
   }
 
-  const client = getKapsoWhatsAppClient();
+  const config = await getKapsoRuntimeConfig();
+  const client = new WhatsAppClient({
+    baseUrl: process.env.KAPSO_API_BASE_URL?.trim() || DEFAULT_KAPSO_BASE_URL,
+    kapsoApiKey: config.apiKey,
+  });
+
   await client.messages.sendText({
-    phoneNumberId: getKapsoPhoneNumberId(),
+    phoneNumberId: config.phoneNumberId,
     to: phone,
     body: params.body,
   });

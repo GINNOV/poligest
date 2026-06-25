@@ -185,6 +185,17 @@ model WacomConfig {
   @@index([createdAt])
 }
 
+model KapsoWhatsAppConfig {
+  id                 String   @id
+  apiKey             String
+  phoneNumberId      String
+  displayPhoneNumber String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
 model FeatureInstruction {
   id           String   @id @default(cuid())
   pathPattern  String   // regex or prefix to match current path, e.g. "/pazienti/[id]"

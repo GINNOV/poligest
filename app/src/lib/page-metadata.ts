@@ -56,6 +56,7 @@ export const PAGE_TITLES = {
   anamnesi: "Anamnesi",
   messaggiSms: "Messaggi SMS",
   clicksend: "Integrazione Clicksend",
+  whatsapp: "Integrazione WhatsApp",
   scanid: "Integrazione ScanID",
   wacom: "Integrazione Wacom",
   resetDatabase: "Reset database",

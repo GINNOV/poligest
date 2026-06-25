@@ -220,6 +220,15 @@ export default async function AdminPage() {
       icon: "📨",
     },
     {
+      key: "whatsapp",
+      title: "Messaggi WhatsApp",
+      description: "Configura token Kapso e numero WhatsApp per richiami e promemoria automatici.",
+      href: "/admin/whatsapp",
+      badge: "Kapso",
+      tone: "primary",
+      icon: "💬",
+    },
+    {
       key: "scanid",
       title: "Sistema: Integrazione ScanID",
       description: "Visualizza la chiave API e la guida alla configurazione per lo scanner macOS.",
@@ -254,7 +263,8 @@ export default async function AdminPage() {
   const isMessages = (item: AdminShortcut) =>
     item.title.startsWith("Messaggi SMS") ||
     item.title.startsWith("Messaggi Emails") ||
-    item.title.startsWith("Messaggi Clicksend");
+    item.title.startsWith("Messaggi Clicksend") ||
+    item.title.startsWith("Messaggi WhatsApp");
   const systemShortcuts = sortedShortcuts.filter((item) => isSystem(item));
   const messageShortcuts = sortedShortcuts.filter((item) => isMessages(item));
   const primaryShortcuts = sortedShortcuts.filter(
