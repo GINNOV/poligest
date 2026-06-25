@@ -14,6 +14,7 @@ type Props = {
   action: (formData: FormData) => void;
   className?: string;
   returnTo?: string;
+  size?: "default" | "compact";
 };
 
 export function AppointmentStatusAutoSubmit({
@@ -23,6 +24,7 @@ export function AppointmentStatusAutoSubmit({
   action,
   className,
   returnTo,
+  size = "default",
 }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,11 +49,15 @@ export function AppointmentStatusAutoSubmit({
         defaultValue={defaultValue}
         onChange={handleChange}
         disabled={isSaving}
-        className="h-9 w-full rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+        className={
+          size === "compact"
+            ? "h-8 w-auto min-w-[7.5rem] shrink-0 rounded-lg border border-zinc-200 bg-white px-2.5 pr-7 text-[11px] font-medium text-zinc-800 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+            : "h-9 w-full rounded-full border border-zinc-200 bg-white px-3 pr-2 text-[11px] font-semibold uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-70"
+        }
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
-            {option.label.toUpperCase()}
+            {size === "compact" ? option.label : option.label.toUpperCase()}
           </option>
         ))}
       </select>

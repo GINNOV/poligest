@@ -79,6 +79,16 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-violet-200 bg-gradient-to-r from-violet-50 via-white to-violet-50 dark:border-violet-800/60 dark:from-violet-900/20 dark:via-zinc-950 dark:to-violet-900/20",
 };
 
+const statusRowAccents: Record<AppointmentStatus, string> = {
+  TO_CONFIRM: "border-l-amber-400 bg-amber-50/40 dark:border-l-amber-500 dark:bg-amber-950/20",
+  CONFIRMED: "border-l-emerald-400 bg-white dark:border-l-emerald-500 dark:bg-zinc-950",
+  IN_WAITING: "border-l-zinc-300 bg-white dark:border-l-zinc-600 dark:bg-zinc-950",
+  IN_PROGRESS: "border-l-sky-400 bg-sky-50/30 dark:border-l-sky-500 dark:bg-sky-950/20",
+  COMPLETED: "border-l-teal-400 bg-teal-50/30 dark:border-l-teal-500 dark:bg-teal-950/20",
+  CANCELLED: "border-l-rose-400 bg-rose-50/30 dark:border-l-rose-500 dark:bg-rose-950/20",
+  NO_SHOW: "border-l-violet-400 bg-violet-50/30 dark:border-l-violet-500 dark:bg-violet-950/20",
+};
+
 const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
   const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
   if (label.includes("richiamo")) return "🔗";
@@ -150,7 +160,7 @@ function AppointmentActions({
 }) {
   const isCompact = variant === "compact";
   const containerClass = isCompact
-    ? "flex flex-wrap items-center justify-end gap-2 text-xs [&_button]:!w-auto [&_button]:shrink-0 [&_span]:!w-auto [&_form]:!w-auto [&_select]:!w-auto [&_select]:min-w-[9rem]"
+    ? "flex items-center justify-end gap-1.5"
     : (className ?? "grid w-full grid-cols-1 gap-2 text-xs sm:w-auto");
 
   return (
@@ -160,6 +170,7 @@ function AppointmentActions({
         whatsappHref={whatsappHref}
         initialReminderSent={appt.reminderSent}
         initialReminderSendCount={appt.reminderSendCount}
+        size={isCompact ? "compact" : "default"}
       />
       <AppointmentStatusAutoSubmit
         appointmentId={appt.id}
@@ -168,14 +179,33 @@ function AppointmentActions({
         action={updateAppointmentStatusAction}
         returnTo="/dashboard"
         className={isCompact ? "w-auto" : "w-full"}
+        size={isCompact ? "compact" : "default"}
       />
       <Link
         href={`/calendar?view=week&week=${startsAtLocal.split("T")[0]}&edit=${appt.id}${appt.doctor?.id ? `&doctor=${appt.doctor.id}` : ""}`}
-        className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 font-bold text-emerald-800 transition hover:bg-emerald-100 hover:text-emerald-900 dark:border-emerald-800/40 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:bg-emerald-900/40 ${
-          isCompact ? "px-3 py-1.5 text-[10px] whitespace-nowrap" : "gap-2 px-4 py-2 text-[10px]"
+        className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-zinc-200 bg-white font-medium text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-emerald-800/50 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300 ${
+          isCompact ? "h-8 px-2.5 text-[11px] whitespace-nowrap" : "gap-2 px-4 py-2 text-[10px]"
         }`}
       >
-        {isCompact ? "Calendario 🗓️" : "MODIFICA / CALENDARIO 🗓️"}
+        {isCompact ? (
+          <>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5"
+            >
+              <path d="M6 3v2M14 3v2M4 7h12M5 5h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
+            </svg>
+            Calendario
+          </>
+        ) : (
+          "MODIFICA / CALENDARIO 🗓️"
+        )}
       </Link>
     </div>
   );
@@ -330,8 +360,13 @@ export function DashboardAppointmentsList({
     return { dayLabel, showDivider };
   };
 
-  const getRowClass = (appt: ParsedAppointment) => {
+  const getRowClass = (appt: ParsedAppointment, mode: LayoutMode = layout) => {
     const isPast = appt.endsAtDate < now;
+    if (mode === "rows") {
+      return isPast
+        ? "border-l-amber-300 bg-amber-50/50 dark:border-l-amber-500 dark:bg-amber-950/25"
+        : statusRowAccents[appt.status];
+    }
     return isPast
       ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
       : statusCardBackgrounds[appt.status];
@@ -343,31 +378,22 @@ export function DashboardAppointmentsList({
 
   if (layout === "rows") {
     const rowHeaderClass =
-      "whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide";
-    const rowDataClass =
-      "px-3 py-3 text-[1.375rem] leading-snug font-semibold text-zinc-900 dark:text-zinc-50";
+      "whitespace-nowrap px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400";
 
     return (
       <>
-        <div className="relative overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800">
-          <table className="w-full min-w-[56rem] table-fixed divide-y divide-zinc-100 dark:divide-zinc-800">
-            <colgroup>
-              <col className="w-[5.5rem]" />
-              <col className="w-[19%]" />
-              <col className="w-[16%]" />
-              <col className="w-[27%]" />
-              <col className="w-[38%]" />
-            </colgroup>
-            <thead className="bg-zinc-50 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+        <div className="relative overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <table className="w-full min-w-[48rem] divide-y divide-zinc-100 dark:divide-zinc-800">
+            <thead className="bg-zinc-50/80 dark:bg-zinc-900/80">
               <tr>
-                <th className={rowHeaderClass}>Ora</th>
-                <th className={rowHeaderClass}>Paziente</th>
-                <th className={rowHeaderClass}>Telefono</th>
+                <th className={`${rowHeaderClass} w-[4.5rem]`}>Ora</th>
+                <th className={`${rowHeaderClass} min-w-[9rem]`}>Paziente</th>
+                <th className={`${rowHeaderClass} min-w-[8rem]`}>Telefono</th>
                 <th className={rowHeaderClass}>Prestazione</th>
-                <th className={`${rowHeaderClass} text-right`}>Azioni</th>
+                <th className={`${rowHeaderClass} w-[1%] text-right`}>Azioni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
               {paginatedAppointments.map((appt, index) => {
                 const { patientPhone, whatsappHref, startsAtLocal, serviceLabel } = buildAppointmentContext({
                   appt,
@@ -379,44 +405,47 @@ export function DashboardAppointmentsList({
                   appt,
                   index > 0 ? paginatedAppointments[index - 1] : null
                 );
-                const rowClass = getRowClass(appt);
+                const rowClass = getRowClass(appt, "rows");
                 const isPast = appt.endsAtDate < now;
+                const patientName = `${appt.patient.lastName} ${appt.patient.firstName}`.trim();
 
                 return (
                   <Fragment key={appt.id}>
                     {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} colSpan={5} /> : null}
-                    <tr className={rowClass}>
-                      <td className={`${rowDataClass} whitespace-nowrap align-middle tabular-nums`}>
-                        {isMounted
-                          ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
-                          : "—"}
+                    <tr className={`border-l-[3px] transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 ${rowClass}`}>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                        <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
+                          {isMounted
+                            ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
+                            : "—"}
+                        </span>
                         {isPast ? (
-                          <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">
+                          <span className="mt-0.5 block text-[10px] font-medium text-amber-700 dark:text-amber-300">
                             Passato
                           </span>
                         ) : null}
                       </td>
-                      <td className={`${rowDataClass} max-w-0 align-middle`}>
+                      <td className="px-4 py-3 align-middle">
                         <Link
                           href={`/pazienti/${appt.patient.id}`}
-                          className="block truncate hover:text-emerald-700 dark:hover:text-emerald-300"
-                          title={`${appt.patient.lastName} ${appt.patient.firstName}`}
+                          className="text-sm font-medium text-zinc-900 hover:text-emerald-700 dark:text-zinc-50 dark:hover:text-emerald-300"
+                          title={patientName}
                         >
-                          {appt.patient.lastName} {appt.patient.firstName}
+                          {patientName}
                         </Link>
                       </td>
-                      <td className={`${rowDataClass} max-w-0 align-middle tabular-nums text-zinc-700 dark:text-zinc-300`}>
-                        <span className="block truncate" title={patientPhone ?? undefined}>
+                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                        <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400" title={patientPhone ?? undefined}>
                           {patientPhone ?? "—"}
                         </span>
                       </td>
-                      <td className={`${rowDataClass} max-w-0 align-middle text-zinc-800 dark:text-zinc-200`}>
-                        <span className="block truncate" title={serviceLabel}>
-                          <span className="mr-1 text-base">{getServiceIcon(appt.serviceType, appt.title)}</span>
-                          {serviceLabel}
+                      <td className="px-4 py-3 align-middle">
+                        <span className="inline-flex max-w-full items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300" title={serviceLabel}>
+                          <span className="shrink-0 text-sm leading-none opacity-80">{getServiceIcon(appt.serviceType, appt.title)}</span>
+                          <span className="truncate">{serviceLabel}</span>
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 align-middle">
+                      <td className="whitespace-nowrap px-4 py-2.5 align-middle">
                         <AppointmentActions
                           appt={appt}
                           whatsappHref={whatsappHref}
