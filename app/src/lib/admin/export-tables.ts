@@ -2,6 +2,7 @@ export const exportTables = [
   { key: "users", label: "Utenti", category: "Anagrafica" },
   { key: "doctors", label: "Medici", category: "Anagrafica" },
   { key: "doctorAvailabilityWindows", label: "Orari medici", category: "Sistema" },
+  { key: "doctorTimeOffs", label: "Assenze medici", category: "Agenda" },
   { key: "patients", label: "Pazienti", category: "Anagrafica" },
   { key: "consentModules", label: "Moduli consenso", category: "Sistema" },
   { key: "patientConsents", label: "Consensi pazienti", category: "Anagrafica" },

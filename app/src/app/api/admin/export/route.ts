@@ -9,6 +9,7 @@ const tableQueries = {
   users: () => prisma.user.findMany(),
   doctors: () => prisma.doctor.findMany(),
   doctorAvailabilityWindows: () => prisma.doctorAvailabilityWindow.findMany(),
+  doctorTimeOffs: () => prisma.doctorTimeOff.findMany(),
   patients: () => prisma.patient.findMany(),
   consentModules: () => prisma.consentModule.findMany(),
   patientConsents: () => prisma.patientConsent.findMany(),

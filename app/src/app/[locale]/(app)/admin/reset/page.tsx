@@ -89,6 +89,7 @@ async function resetSystem(formData: FormData) {
     prisma.recallRule.deleteMany(),
     prisma.patientConsent.deleteMany(),
     prisma.consentModule.deleteMany(),
+    prisma.doctorTimeOff.deleteMany(),
     prisma.doctorAvailabilityWindow.deleteMany(),
     prisma.doctor.deleteMany(),
     prisma.patient.deleteMany(),
@@ -128,6 +129,11 @@ async function resetSystem(formData: FormData) {
       if (selected.includes("doctorAvailabilityWindows")) {
         const entries = tableData("doctorAvailabilityWindows") as Prisma.DoctorAvailabilityWindowCreateManyInput[];
         if (entries.length) await tx.doctorAvailabilityWindow.createMany({ data: entries });
+      }
+
+      if (selected.includes("doctorTimeOffs")) {
+        const entries = tableData("doctorTimeOffs") as Prisma.DoctorTimeOffCreateManyInput[];
+        if (entries.length) await tx.doctorTimeOff.createMany({ data: entries });
       }
 
       if (selected.includes("patients")) {
@@ -437,6 +443,7 @@ async function importData(formData: FormData) {
     await tx.recallRule.deleteMany();
     await tx.patientConsent.deleteMany();
     await tx.consentModule.deleteMany();
+    await tx.doctorTimeOff.deleteMany();
     await tx.doctorAvailabilityWindow.deleteMany();
     await tx.doctor.deleteMany();
     await tx.patient.deleteMany();
@@ -462,6 +469,11 @@ async function importData(formData: FormData) {
     if (selected.includes("doctorAvailabilityWindows")) {
       const entries = tableData("doctorAvailabilityWindows") as Prisma.DoctorAvailabilityWindowCreateManyInput[];
       if (entries.length) await tx.doctorAvailabilityWindow.createMany({ data: entries });
+    }
+
+    if (selected.includes("doctorTimeOffs")) {
+      const entries = tableData("doctorTimeOffs") as Prisma.DoctorTimeOffCreateManyInput[];
+      if (entries.length) await tx.doctorTimeOff.createMany({ data: entries });
     }
 
     if (selected.includes("patients")) {
