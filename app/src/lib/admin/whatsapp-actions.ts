@@ -15,6 +15,21 @@ export type WhatsAppAdminFormState = {
   error?: string;
 };
 
+function formatKapsoSendError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Invio WhatsApp non riuscito.";
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("active sandbox session required")) {
+    return [
+      "Sessione sandbox Kapso non attiva per questo numero.",
+      "In Kapso vai su WhatsApp → Sandbox, aggiungi il tuo numero di test, invia il codice di attivazione al numero sandbox, poi ripeti il test usando esattamente lo stesso numero (+39...).",
+      "In sandbox puoi inviare solo ai numeri registrati nella sessione.",
+    ].join(" ");
+  }
+
+  return message;
+}
+
 export async function saveKapsoWhatsAppConfig(
   formData: FormData,
 ): Promise<WhatsAppAdminFormState> {
@@ -76,8 +91,6 @@ export async function sendTestWhatsApp(formData: FormData): Promise<WhatsAppAdmi
     revalidatePath("/admin/whatsapp");
     return { success: true };
   } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Invio WhatsApp non riuscito.",
-    };
+    return { error: formatKapsoSendError(error) };
   }
 }

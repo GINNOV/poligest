@@ -84,4 +84,15 @@ describe("whatsapp admin actions", () => {
     await expect(sendTestWhatsApp(formData)).resolves.toEqual({ success: true });
     expect(sendTextMock).toHaveBeenCalledWith({ to: "+393331112233", body: "Ciao" });
   });
+
+  it("returns a helpful message for inactive Kapso sandbox sessions", async () => {
+    sendTextMock.mockRejectedValue(new Error("Active sandbox session required to send messages"));
+
+    const formData = new FormData();
+    formData.set("to", "+393331112233");
+
+    const result = await sendTestWhatsApp(formData);
+    expect(result.error).toContain("Sessione sandbox Kapso non attiva");
+    expect(result.error).toContain("WhatsApp → Sandbox");
+  });
 });

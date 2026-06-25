@@ -166,6 +166,10 @@ export function WhatsAppTestForm({ sendTestAction }: WhatsAppTestFormProps) {
           Invia test WhatsApp
         </Button>
       </form>
+      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        Se usi il numero sandbox Kapso, il destinatario deve essere un numero registrato e attivato in{" "}
+        <span className="font-semibold">Kapso → WhatsApp → Sandbox</span>.
+      </p>
       <FormFeedback state={state} />
     </div>
   );
