@@ -128,6 +128,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var snapshotDisplayOrientation: CGImagePropertyOrientation = .up
     private var latestSnapshotDisplayOrientation: CGImagePropertyOrientation = .up
     private let cameraAccessDisabled: Bool
+    private var isRequestingCameraAccess = false
     
     init(cameraAccessDisabled: Bool = ScanIDLaunchConfiguration.disablesCameraAccess()) {
         self.cameraAccessDisabled = cameraAccessDisabled
@@ -164,20 +165,26 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         guard !cameraAccessDisabled else { return }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
+            isRequestingCameraAccess = false
+            isPermissionDenied = false
             setupSession()
         case .notDetermined:
+            guard !isRequestingCameraAccess else { return }
+            isRequestingCameraAccess = true
+            isPermissionDenied = false
             AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        self?.setupSession()
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        self?.isPermissionDenied = true
+                DispatchQueue.main.async {
+                    guard let self else { return }
+                    self.isRequestingCameraAccess = false
+                    if granted {
+                        self.setupSession()
+                    } else {
+                        self.isPermissionDenied = true
                     }
                 }
             }
         case .denied, .restricted:
+            isRequestingCameraAccess = false
             isPermissionDenied = true
         @unknown default:
             break
@@ -285,6 +292,10 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
 
     func restartSession() {
         guard !cameraAccessDisabled else { return }
+        guard AVCaptureDevice.authorizationStatus(for: .video) == .authorized else {
+            checkPermissionAndStart()
+            return
+        }
         sessionControlQueue.async { [weak self] in
             guard let self else { return }
             if self.session.isRunning {

@@ -238,6 +238,7 @@ struct MainView: View {
             }
             .sheet(isPresented: $showWelcomePrompt) {
                 WelcomePromptView(isPresented: $showWelcomePrompt, lang: appLanguage) {
+                    startCameraSessionIfNeeded()
                     performStartupUpdateCheckIfNeeded()
                 }
                 .interactiveDismissDisabled()
@@ -490,12 +491,6 @@ struct MainView: View {
         }
         setupCameraFrameCallback()
         statusBar.showIdle()
-        if scanMode == .camera {
-            cameraManager.startSession()
-        }
-        if cameraManager.isPermissionDenied {
-            statusBar.show(key: "camera_denied", style: .error, autoDismiss: nil)
-        }
         
         if lastUpdateCheck > 0 {
             hasCompletedWelcomePrompt = true
@@ -506,7 +501,16 @@ struct MainView: View {
             return
         }
         
+        startCameraSessionIfNeeded()
         performStartupUpdateCheckIfNeeded()
+    }
+    
+    private func startCameraSessionIfNeeded() {
+        guard scanMode == .camera else { return }
+        cameraManager.startSession()
+        if cameraManager.isPermissionDenied {
+            statusBar.show(key: "camera_denied", style: .error, autoDismiss: nil)
+        }
     }
     
     private func performStartupUpdateCheckIfNeeded() {
@@ -753,9 +757,37 @@ struct MainView: View {
     private var emptyResultsPanel: some View {
         if scanMode == .camera && captureState != .captured {
             cameraInstructionsPanel
+        } else if scanMode == .image {
+            imageImportInstructionsPanel
         } else {
             awaitingScanPanel
         }
+    }
+    
+    private var imageImportInstructionsPanel: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                ImageImportHelpContent(lang: appLanguage, style: .prominent)
+                    .padding(24)
+            }
+            
+            Divider()
+            
+            HStack(spacing: 12) {
+                Button(action: pasteFromClipboard) {
+                    Label(Localization.string(key: "paste_image", lang: appLanguage), systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(.bordered)
+                
+                Button(action: importImage) {
+                    Label(Localization.string(key: "select_file", lang: appLanguage), systemImage: "folder")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
     
     private var cameraInstructionsPanel: some View {
@@ -1864,6 +1896,9 @@ struct MainView: View {
                 self.downloadError = error.localizedDescription
             } else if let localUrl = localUrl {
                 self.downloadedFileUrl = localUrl
+                if self.autoDownloadAndInstallUpdates {
+                    self.installDownloadedUpdate()
+                }
             }
         }
         self.downloader = dl
@@ -3638,6 +3673,99 @@ enum CountdownSound {
 
 // MARK: - Supporting Views
 
+struct ImageImportHelpContent: View {
+    enum Style {
+        case compact
+        case prominent
+    }
+    
+    let lang: String
+    var style: Style = .compact
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: style == .prominent ? 20 : 8) {
+            if style == .prominent {
+                Label(
+                    Localization.string(key: "image_import_help_title", lang: lang),
+                    systemImage: "photo.on.rectangle.angled"
+                )
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundStyle(.primary)
+                .symbolRenderingMode(.hierarchical)
+                .labelStyle(.titleAndIcon)
+            }
+            
+            Text(Localization.string(key: "image_import_help_intro", lang: lang))
+                .font(style == .prominent ? .title3 : .caption)
+                .fontWeight(style == .prominent ? .semibold : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            VStack(alignment: .leading, spacing: style == .prominent ? 14 : 8) {
+                ForEach(1...4, id: \.self) { step in
+                    imageImportStepRow(step)
+                }
+            }
+            
+            Text(Localization.string(key: "image_import_tip", lang: lang))
+                .font(style == .prominent ? .body : .caption2)
+                .fontWeight(style == .prominent ? .medium : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(style == .prominent ? 14 : 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    if style == .prominent {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color.cyan.opacity(0.12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(Color.cyan.opacity(0.35), lineWidth: 1)
+                            )
+                    }
+                }
+        }
+    }
+    
+    @ViewBuilder
+    private func imageImportStepRow(_ step: Int) -> some View {
+        HStack(alignment: .top, spacing: style == .prominent ? 14 : 8) {
+            if style == .prominent {
+                ZStack {
+                    Circle()
+                        .fill(Color.cyan.opacity(0.18))
+                        .frame(width: 36, height: 36)
+                    Text("\(step)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.cyan)
+                }
+            } else {
+                Text("\(step).")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16, alignment: .trailing)
+            }
+            
+            Text(Localization.string(key: "image_import_step_\(step)", lang: lang))
+                .font(style == .prominent ? .body : .caption)
+                .fontWeight(style == .prominent ? .medium : .regular)
+                .foregroundStyle(style == .prominent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, style == .prominent ? 6 : 0)
+                .padding(.horizontal, style == .prominent ? 12 : 0)
+                .background {
+                    if style == .prominent {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(nsColor: .controlBackgroundColor))
+                    }
+                }
+        }
+    }
+}
+
 struct ContinuityCameraHelpContent: View {
     enum Style {
         case compact
@@ -4116,6 +4244,13 @@ struct Localization {
             "capture_approval_button": "Start Scan",
             "pref_auto_countdown": "Countdown before capture",
             "pref_auto_countdown_desc": "When an ID is detected in frame, wait 3 seconds before locking the scan.",
+            "image_import_help_title": "Import an ID image",
+            "image_import_help_intro": "Use a photo of an Italian ID card — no camera needed.",
+            "image_import_step_1": "Drag a PNG, JPEG, or HEIC file onto the drop zone on the left.",
+            "image_import_step_2": "Or click Browse files... in the drop zone to choose an image from disk.",
+            "image_import_step_3": "Or paste from the clipboard using Paste Image in the toolbar (⌘V).",
+            "image_import_step_4": "Front or back works — Carta d'Identità (CIE) and Tessera Sanitaria are supported.",
+            "image_import_tip": "Use a flat, well-lit photo with the full card visible for best OCR results.",
             "continuity_camera_help_title": "Use iPhone as camera",
             "continuity_camera_help_intro": "Scan with your iPhone camera — no photo transfer needed.",
             "continuity_camera_step_1": "Sign in to the same Apple ID on iPhone and Mac.",
@@ -4290,6 +4425,13 @@ struct Localization {
             "capture_approval_button": "Avvia scansione",
             "pref_auto_countdown": "Conto alla rovescia prima della cattura",
             "pref_auto_countdown_desc": "Quando un documento è rilevato nell'inquadratura, attendi 3 secondi prima di confermare la scansione.",
+            "image_import_help_title": "Importa un'immagine",
+            "image_import_help_intro": "Usa una foto di una carta d'identità italiana — senza fotocamera.",
+            "image_import_step_1": "Trascina un file PNG, JPEG o HEIC nell'area a sinistra.",
+            "image_import_step_2": "Oppure clicca Sfoglia file... nell'area per scegliere un'immagine dal disco.",
+            "image_import_step_3": "Oppure incolla dagli appunti con Incolla Immagine nella barra strumenti (⌘V).",
+            "image_import_step_4": "Fronte o retro — sono supportate Carta d'Identità (CIE) e Tessera Sanitaria.",
+            "image_import_tip": "Per risultati migliori usa una foto piatta, ben illuminata, con tutta la carta visibile.",
             "continuity_camera_help_title": "Usa iPhone come fotocamera",
             "continuity_camera_help_intro": "Scansiona con la fotocamera dell'iPhone — senza trasferire foto.",
             "continuity_camera_step_1": "Posizionare lo scanner di fianco al portatile",
