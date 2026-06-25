@@ -3,18 +3,78 @@ import AVFoundation
 import UniformTypeIdentifiers
 import AppKit
 
+final class FixtureConditionAccessoryPanel: NSView {
+    let picker: NSPopUpButton
+    private let targetPrefix: String
+    private let targetValue: NSTextField
+
+    init(targetTitle: String, conditionTitle: String, targetPrefix: String, picker: NSPopUpButton) {
+        self.picker = picker
+        self.targetPrefix = targetPrefix
+        self.targetValue = NSTextField(labelWithString: "")
+        super.init(frame: .zero)
+
+        let targetLabel = NSTextField(labelWithString: targetTitle)
+        targetLabel.alignment = .right
+        targetValue.font = .monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+
+        let conditionLabel = NSTextField(labelWithString: conditionTitle)
+        conditionLabel.alignment = .right
+
+        let grid = NSGridView(views: [
+            [targetLabel, targetValue],
+            [conditionLabel, picker],
+        ])
+        grid.translatesAutoresizingMaskIntoConstraints = false
+        grid.column(at: 0).xPlacement = .trailing
+        grid.column(at: 1).xPlacement = .leading
+        grid.rowSpacing = 8
+        grid.columnSpacing = 8
+        addSubview(grid)
+
+        NSLayoutConstraint.activate([
+            grid.leadingAnchor.constraint(equalTo: leadingAnchor),
+            grid.trailingAnchor.constraint(equalTo: trailingAnchor),
+            grid.topAnchor.constraint(equalTo: topAnchor),
+            grid.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        picker.target = self
+        picker.action = #selector(conditionChanged(_:))
+        updateTargetValue()
+    }
+
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    @objc private func conditionChanged(_ sender: NSPopUpButton) {
+        updateTargetValue()
+    }
+
+    private func updateTargetValue() {
+        let condition = picker.selectedItem?.title ?? ""
+        targetValue.stringValue = [targetPrefix, condition]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
 struct MainView: View {
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var liveScan = LiveScanController()
     @StateObject private var statusBar = StatusBarController()
     @State private var scanMode: ScanMode = {
+        guard !ScanIDLaunchConfiguration.isLaunchSmokeTest() else { return .image }
         let stored = UserDefaults.standard.string(forKey: "defaultScanMode") ?? "image"
         return stored == "camera" ? .camera : .image
     }()
     @State private var selectedImage: NSImage?
     @State private var capturedCameraImage: NSImage?
+    @State private var capturedCameraOrientation: CameraSnapshotOrientationMetadata?
     @State private var cgImageForOCR: CGImage?
     @State private var recognizedItems: [RecognizedItem] = []
+    @State private var recognizedBarcodes: [DetectedBarcode] = []
     @State private var parsedData: IDData = IDData(documentType: "UNKNOWN", rawText: [])
     @State private var isDragging = false
     @State private var copied = false
@@ -40,7 +100,8 @@ struct MainView: View {
     @AppStorage("autoCaptureCountdown") private var autoCaptureCountdown = false
     @AppStorage("requireCaptureApproval") private var requireCaptureApproval = false
     @AppStorage("detectOnlyExpectedFields") private var detectOnlyExpectedFields = true
-    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = false
+    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = ScanIDDefaults.autoZoomOnCapture
+    @AppStorage("lastOCRFixtureExportDirectory") private var lastOCRFixtureExportDirectory = ""
     
     // Interactive UI State
     @State private var captureApproved = false
@@ -108,6 +169,10 @@ struct MainView: View {
     private var isCameraFrozen: Bool {
         scanMode == .camera && captureState == .captured && capturedCameraImage != nil
     }
+
+    private var canFreezeCameraFrame: Bool {
+        scanMode == .camera && !isCameraFrozen && cameraManager.isRunning
+    }
     
     private var showsZoomableCapture: Bool {
         isCameraFrozen || (scanMode == .image && selectedImage != nil)
@@ -123,6 +188,17 @@ struct MainView: View {
     
     private var isCaptureDetectionActive: Bool {
         !requireCaptureApproval || captureApproved
+    }
+
+    private var installErrorPresentation: Binding<Bool> {
+        Binding(
+            get: { installError != nil },
+            set: { isPresented in
+                if !isPresented {
+                    installError = nil
+                }
+            }
+        )
     }
     
     private var liveDisplayedRecognizedItems: [RecognizedItem] {
@@ -148,7 +224,7 @@ struct MainView: View {
             .onChange(of: captureState) { _, _ in syncMenuActions() }
             .onChange(of: selectedImage) { _, _ in syncMenuActions() }
             .onChange(of: capturedCameraImage) { _, _ in syncMenuActions() }
-            .onReceive(cameraManager.objectWillChange) { _ in syncMenuActions() }
+            .onReceive(cameraManager.objectWillChange) { _ in syncMenuActionsSoon() }
             .onChange(of: autoCaptureCountdown) { _, _ in setupCameraFrameCallback() }
             .onChange(of: requireCaptureApproval) { _, _ in
                 captureApproved = false
@@ -174,10 +250,7 @@ struct MainView: View {
             }
             .alert(
                 Localization.string(key: "update_install_failed", lang: appLanguage),
-                isPresented: Binding(
-                    get: { installError != nil },
-                    set: { if !$0 { installError = nil } }
-                )
+                isPresented: installErrorPresentation
             ) {
                 Button(Localization.string(key: "close", lang: appLanguage), role: .cancel) {
                     installError = nil
@@ -341,6 +414,12 @@ struct MainView: View {
             }
             
             if scanMode == .camera {
+                Button(action: freezeCurrentCameraFrameForFixture) {
+                    Label(Localization.string(key: "freeze_camera_frame", lang: appLanguage), systemImage: "camera.aperture")
+                }
+                .help(Localization.string(key: "freeze_camera_frame_help", lang: appLanguage))
+                .disabled(!canFreezeCameraFrame)
+
                 Button(action: startNewCameraScan) {
                     Label(Localization.string(key: "new_scan", lang: appLanguage), systemImage: "doc.text.viewfinder")
                 }
@@ -366,6 +445,7 @@ struct MainView: View {
         menu.onNewCameraScan = startNewCameraScan
         menu.onNewImageImport = startNewImageImport
         menu.onPasteImage = pasteFromClipboard
+        menu.onFreezeCameraFrame = freezeCurrentCameraFrameForFixture
         menu.onExportFixture = exportOCRFixture
         menu.onZoomIn = zoomInCapture
         menu.onZoomOut = zoomOutCapture
@@ -385,15 +465,26 @@ struct MainView: View {
             captureZoomScale: captureZoomScale,
             captureZoomOffset: captureZoomOffset,
             canExportFixture: currentFixtureImage != nil,
+            canFreezeCameraFrame: canFreezeCameraFrame,
             showsCameraPicker: scanMode == .camera && !isCameraFrozen && !cameraManager.devices.isEmpty,
             devices: cameraManager.devices,
             selectedDevice: cameraManager.selectedDevice
         )
     }
 
+    private func syncMenuActionsSoon() {
+        DispatchQueue.main.async {
+            self.syncMenuActions()
+        }
+    }
+
     private func handleAppear() {
         wireMenuActions()
         syncMenuActions()
+        guard !ScanIDLaunchConfiguration.isLaunchSmokeTest() else {
+            statusBar.showIdle()
+            return
+        }
         if serverUrl == "http://localhost:3000" {
             serverUrl = "https://sorrisosplendente.com"
         }
@@ -1064,48 +1155,96 @@ struct MainView: View {
     }
     
     private func finalizeCameraCapture() {
+        capturedCameraOrientation = cameraManager.snapshotOrientationMetadata()
+        let fallbackSnapshot = cameraManager.snapshotImage()
+        capturedCameraImage = fallbackSnapshot
+        resetCaptureZoom()
+        statusBar.show(key: "scan_status_capturing", style: .info, autoDismiss: nil)
+
+        let fallbackItems = liveScan.recognizedItems
+        let fallbackParsed = ScanCaptureLogic.parseRecognizedItems(fallbackItems)
+
+        cameraManager.captureStillImage { stillImage in
+            self.cameraManager.stopSession()
+
+            let image = stillImage ?? fallbackSnapshot
+            guard let image,
+                  let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                self.applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
+                return
+            }
+            self.capturedCameraImage = image
+            let frameQuality = IDScanner.assessFrameQuality(cgImage)
+
+            let completeCapture = { (displayImage: NSImage, items: [RecognizedItem], barcodes: [DetectedBarcode], parsed: IDData) in
+                self.capturedCameraImage = displayImage
+                if ScanCaptureLogic.shouldAcceptCapture(parsed, items: items, frameQuality: frameQuality) {
+                    self.applyCapturedScanResults(items: items, barcodes: barcodes, parsed: parsed)
+                } else {
+                    self.recognizedItems = items
+                    self.recognizedBarcodes = barcodes
+                    self.parsedData = parsed
+                    self.captureState = .idle
+                    self.statusBar.show(key: "status_scan_unreadable", style: .warning, autoDismiss: 6)
+                    self.liveScan.reset()
+                }
+            }
+
+            ScanCaptureLogic.recognizeTextWithOptionalAutoCrop(
+                image: image,
+                cgImage: cgImage,
+                autoCrop: autoZoomOnCapture,
+                boundsItems: [],
+                fallbackItems: fallbackItems,
+                fallbackParsed: fallbackParsed,
+                completion: completeCapture
+            )
+        }
+    }
+
+    private func freezeCurrentCameraFrameForFixture() {
+        capturedCameraOrientation = cameraManager.snapshotOrientationMetadata()
         capturedCameraImage = cameraManager.snapshotImage()
         cameraManager.stopSession()
         resetCaptureZoom()
-        
+
         let fallbackItems = liveScan.recognizedItems
         let fallbackParsed = ScanCaptureLogic.parseRecognizedItems(fallbackItems)
-        
+
         guard let image = capturedCameraImage,
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            applyCapturedScanResults(items: fallbackItems, parsed: fallbackParsed)
+            statusBar.show(key: "status_camera_frame_unavailable", style: .warning, autoDismiss: 4)
             return
         }
-        let frameQuality = IDScanner.assessFrameQuality(cgImage)
-        
-        let completeCapture = { (displayImage: NSImage, items: [RecognizedItem], parsed: IDData) in
+
+        let applyFrozenFrame = { (displayImage: NSImage, items: [RecognizedItem], barcodes: [DetectedBarcode], parsed: IDData) in
             self.capturedCameraImage = displayImage
-            if ScanCaptureLogic.shouldAcceptCapture(parsed, frameQuality: frameQuality) {
-                self.applyCapturedScanResults(items: items, parsed: parsed)
-            } else {
-                self.recognizedItems = items
-                self.parsedData = parsed
-                self.captureState = .idle
-                self.statusBar.show(key: "status_scan_unreadable", style: .warning, autoDismiss: 6)
-                self.liveScan.reset()
-            }
+            self.recognizedItems = items
+            self.recognizedBarcodes = barcodes
+            self.parsedData = parsed
+            self.captureState = .captured
+            self.liveScan.reset()
+            self.syncMenuActionsSoon()
+            self.statusBar.show(key: "status_camera_frame_frozen", style: .warning, autoDismiss: 6)
         }
-        
+
         ScanCaptureLogic.recognizeTextWithOptionalAutoCrop(
             image: image,
             cgImage: cgImage,
             autoCrop: autoZoomOnCapture,
-            boundsItems: [],
+            boundsItems: fallbackItems,
             fallbackItems: fallbackItems,
             fallbackParsed: fallbackParsed,
-            completion: completeCapture
+            completion: applyFrozenFrame
         )
     }
     
-    private func applyCapturedScanResults(items: [RecognizedItem], parsed: IDData) {
+    private func applyCapturedScanResults(items: [RecognizedItem], barcodes: [DetectedBarcode] = [], parsed: IDData) {
         recognizedItems = items
+        recognizedBarcodes = barcodes
         parsedData = parsed
         captureState = .captured
+        syncMenuActionsSoon()
         reportScanComplete()
         playSuccessSound()
         refreshPatientLookup(for: parsed, autoSyncAfterLookup: autoCreatePatient)
@@ -1138,28 +1277,6 @@ struct MainView: View {
         }
     }
     
-    private func cropToCenter(_ image: NSImage, ratio: CGFloat = 0.5) -> NSImage {
-        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            return image
-        }
-        
-        let width = CGFloat(cgImage.width)
-        let height = CGFloat(cgImage.height)
-        
-        let cropWidth = width * ratio
-        let cropHeight = height * ratio
-        let cropX = (width - cropWidth) / 2
-        let cropY = (height - cropHeight) / 2
-        
-        let cropRect = CGRect(x: cropX, y: cropY, width: cropWidth, height: cropHeight)
-        
-        guard let croppedCgImage = cgImage.cropping(to: cropRect) else {
-            return image
-        }
-        
-        return NSImage(cgImage: croppedCgImage, size: NSSize(width: cropWidth, height: cropHeight))
-    }
-    
     private func clearParsedResults() {
         liveScan.reset()
         parsedData = IDData(documentType: "UNKNOWN", rawText: [])
@@ -1182,14 +1299,16 @@ struct MainView: View {
         let frameQuality = IDScanner.assessFrameQuality(cgImage)
         
         let emptyFallback = IDData(documentType: "UNKNOWN", rawText: [])
-        let applyStaticResults = { (displayImage: NSImage, items: [RecognizedItem], parsed: IDData) in
+        let applyStaticResults = { (displayImage: NSImage, items: [RecognizedItem], barcodes: [DetectedBarcode], parsed: IDData) in
             self.selectedImage = displayImage
             self.cgImageForOCR = displayImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
             self.recognizedItems = items
+            self.recognizedBarcodes = barcodes
             
-            if ScanCaptureLogic.shouldAcceptCapture(parsed, frameQuality: frameQuality) {
+            if ScanCaptureLogic.shouldAcceptCapture(parsed, items: items, frameQuality: frameQuality) {
                 self.parsedData = parsed
                 self.captureState = .captured
+                self.syncMenuActionsSoon()
                 self.reportScanComplete()
                 self.playSuccessSound()
                 self.refreshPatientLookup(for: parsed, autoSyncAfterLookup: self.autoCreatePatient)
@@ -1212,13 +1331,16 @@ struct MainView: View {
     private func resetAllStateOnly() {
         selectedImage = nil
         capturedCameraImage = nil
+        capturedCameraOrientation = nil
         cgImageForOCR = nil
+        recognizedBarcodes = []
         isDragging = false
         copied = false
         captureApproved = false
         resetCaptureZoom()
         cameraManager.clearSnapshotBuffer()
         clearParsedResults()
+        syncMenuActionsSoon()
     }
     
     private func startNewImageImport() {
@@ -1232,10 +1354,7 @@ struct MainView: View {
         guard scanMode == .camera else { return }
         
         statusBar.show(key: "status_camera_ready", style: .info, autoDismiss: 3)
-        cameraManager.stopSession()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            self.cameraManager.startSession()
-        }
+        cameraManager.restartSession()
     }
     
     private func cancelActiveCapture() {
@@ -1856,10 +1975,51 @@ struct MainView: View {
         let image: String
         let expect: String
         let quality: String
+        let ocrProvider: String
         let captureSource: String
         let documentSide: String
         let condition: String
+        let matrixTarget: String
+        let orientation: FixtureExportOrientation?
+        let diagnostics: FixtureExportDiagnostics
+        let observed: FixtureExportFields
+        let observedItems: [FixtureExportRecognizedItem]
+        let observedBarcodes: [FixtureExportBarcode]
         let expected: FixtureExportExpected?
+    }
+
+    private struct FixtureExportOrientation: Encodable {
+        let ocrVisionOrientation: String
+        let snapshotDisplayOrientation: String
+        let basePreviewRotationAngle: Double
+        let scanPreviewRotationAngle: Double
+        let baseCaptureRotationAngle: Double
+        let scanCaptureRotationAngle: Double
+        let rawImageWidth: Int?
+        let rawImageHeight: Int?
+        let imageWidth: Int
+        let imageHeight: Int
+    }
+
+    private struct FixtureExportDiagnostics: Encodable {
+        let frameQuality: String
+        let frameQualityMetrics: FixtureExportFrameQualityMetrics
+        let canCapture: Bool
+        let canGuideLiveScan: Bool
+        let score: Int
+        let markerCount: Int
+        let itemCount: Int
+        let missingFrontNames: Bool
+        let reasons: [String]
+    }
+
+    private struct FixtureExportFrameQualityMetrics: Encodable {
+        let sharpness: Double
+        let glareRatio: Double
+        let darkRatio: Double
+        let meanLuma: Double
+        let usable: Bool
+        let failureReasons: [String]
     }
 
     private struct FixtureExportExpected: Encodable {
@@ -1874,6 +2034,130 @@ struct MainView: View {
         let expiryDate: String?
         let nationality: String?
         let cardNumber: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case documentType
+            case surname
+            case name
+            case codiceFiscale
+            case documentNumber
+            case dateOfBirth
+            case placeOfBirth
+            case gender
+            case expiryDate
+            case nationality
+            case cardNumber
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(documentType, forKey: .documentType)
+            try Self.encodeNullable(surname, forKey: .surname, into: &container)
+            try Self.encodeNullable(name, forKey: .name, into: &container)
+            try Self.encodeNullable(codiceFiscale, forKey: .codiceFiscale, into: &container)
+            try Self.encodeNullable(documentNumber, forKey: .documentNumber, into: &container)
+            try Self.encodeNullable(dateOfBirth, forKey: .dateOfBirth, into: &container)
+            try Self.encodeNullable(placeOfBirth, forKey: .placeOfBirth, into: &container)
+            try Self.encodeNullable(gender, forKey: .gender, into: &container)
+            try Self.encodeNullable(expiryDate, forKey: .expiryDate, into: &container)
+            try Self.encodeNullable(nationality, forKey: .nationality, into: &container)
+            try Self.encodeNullable(cardNumber, forKey: .cardNumber, into: &container)
+        }
+
+        private static func encodeNullable(
+            _ value: String?,
+            forKey key: CodingKeys,
+            into container: inout KeyedEncodingContainer<CodingKeys>
+        ) throws {
+            if let value {
+                try container.encode(value, forKey: key)
+            } else {
+                try container.encodeNil(forKey: key)
+            }
+        }
+    }
+
+    private struct FixtureExportFields: Encodable {
+        let documentType: String
+        let surname: String?
+        let name: String?
+        let codiceFiscale: String?
+        let documentNumber: String?
+        let dateOfBirth: String?
+        let placeOfBirth: String?
+        let gender: String?
+        let expiryDate: String?
+        let nationality: String?
+        let cardNumber: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case documentType
+            case surname
+            case name
+            case codiceFiscale
+            case documentNumber
+            case dateOfBirth
+            case placeOfBirth
+            case gender
+            case expiryDate
+            case nationality
+            case cardNumber
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(documentType, forKey: .documentType)
+            try Self.encodeNullable(surname, forKey: .surname, into: &container)
+            try Self.encodeNullable(name, forKey: .name, into: &container)
+            try Self.encodeNullable(codiceFiscale, forKey: .codiceFiscale, into: &container)
+            try Self.encodeNullable(documentNumber, forKey: .documentNumber, into: &container)
+            try Self.encodeNullable(dateOfBirth, forKey: .dateOfBirth, into: &container)
+            try Self.encodeNullable(placeOfBirth, forKey: .placeOfBirth, into: &container)
+            try Self.encodeNullable(gender, forKey: .gender, into: &container)
+            try Self.encodeNullable(expiryDate, forKey: .expiryDate, into: &container)
+            try Self.encodeNullable(nationality, forKey: .nationality, into: &container)
+            try Self.encodeNullable(cardNumber, forKey: .cardNumber, into: &container)
+        }
+
+        private static func encodeNullable(
+            _ value: String?,
+            forKey key: CodingKeys,
+            into container: inout KeyedEncodingContainer<CodingKeys>
+        ) throws {
+            if let value {
+                try container.encode(value, forKey: key)
+            } else {
+                try container.encodeNil(forKey: key)
+            }
+        }
+    }
+
+    private struct FixtureExportRecognizedItem: Encodable {
+        let text: String
+        let confidence: Float
+        let boundingBox: FixtureExportBoundingBox
+        let imageBounds: FixtureExportImageBounds
+    }
+
+    private struct FixtureExportBarcode: Encodable {
+        let payload: String
+        let confidence: Float
+        let boundingBox: FixtureExportBoundingBox
+        let imageBounds: FixtureExportImageBounds
+    }
+
+    private struct FixtureExportBoundingBox: Encodable {
+        let x: Double
+        let y: Double
+        let width: Double
+        let height: Double
+    }
+
+    private struct FixtureExportImageBounds: Encodable {
+        let x: Double
+        let y: Double
+        let width: Double
+        let height: Double
     }
 
     private func exportOCRFixture() {
@@ -1888,21 +2172,37 @@ struct MainView: View {
             return
         }
 
+        let quality = IDScanner.assessFrameQuality(cgImage)
+        let readiness = ScanCaptureLogic.captureReadiness(parsed: parsedData, items: recognizedItems, frameQuality: quality)
+        let accepted = readiness.canCapture
+        let defaultCondition = ScanCaptureLogic.fixtureConditionLabel(
+            accepted: accepted,
+            readiness: readiness,
+            frameQuality: quality
+        )
+        let conditionPicker = fixtureConditionPicker(defaultCondition: defaultCondition, accepted: accepted)
+
         let panel = NSOpenPanel()
         panel.title = Localization.string(key: "export_ocr_fixture", lang: appLanguage)
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
+        panel.accessoryView = fixtureConditionAccessoryView(picker: conditionPicker, accepted: accepted)
+        panel.directoryURL = fixtureExportDirectoryURL()
 
         guard panel.runModal() == .OK, let rootURL = panel.url else { return }
+        lastOCRFixtureExportDirectory = rootURL.path
 
+        let selectedCondition = conditionPicker.selectedItem?.title ?? defaultCondition
         let timestamp = Self.fixtureTimestampFormatter.string(from: Date())
         let baseName = fixtureBaseName(timestamp: timestamp)
         let exportURL = rootURL.appendingPathComponent(baseName, isDirectory: true)
         let imageName = "\(baseName).png"
         let imageURL = exportURL.appendingPathComponent(imageName)
         let manifestURL = exportURL.appendingPathComponent("manifest.json")
+        let readmeURL = exportURL.appendingPathComponent("README.md")
+        let matrixTarget = fixtureCollectionTarget(accepted: accepted, condition: selectedCondition)
 
         do {
             try FileManager.default.createDirectory(at: exportURL, withIntermediateDirectories: true)
@@ -1911,16 +2211,82 @@ struct MainView: View {
             }
             try pngData.write(to: imageURL, options: .atomic)
             let manifest = FixtureExportManifest(fixtures: [
-                fixtureExportEntry(name: baseName, imageName: imageName, cgImage: cgImage)
+                fixtureExportEntry(
+                    name: baseName,
+                    imageName: imageName,
+                    cgImage: cgImage,
+                    condition: selectedCondition,
+                    matrixTarget: matrixTarget
+                )
             ])
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             let data = try encoder.encode(manifest)
             try data.write(to: manifestURL, options: .atomic)
-            statusBar.show(key: "status_fixture_exported", style: .success, autoDismiss: 6)
+            try fixtureExportReadme(
+                exportURL: exportURL,
+                matrixTarget: matrixTarget
+            ).write(to: readmeURL, atomically: true, encoding: .utf8)
+            statusBar.show(
+                key: "status_fixture_exported",
+                style: .success,
+                args: [matrixTarget],
+                autoDismiss: 6
+            )
+            if scanMode == .camera {
+                startNewCameraScan()
+            } else {
+                syncMenuActionsSoon()
+            }
         } catch {
             statusBar.show(key: "status_fixture_export_failed", style: .error, args: [error.localizedDescription], autoDismiss: nil)
+            syncMenuActionsSoon()
         }
+    }
+
+    private func fixtureExportDirectoryURL() -> URL? {
+        let path = lastOCRFixtureExportDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let rememberedURL = fixtureDirectoryURL(path: path, createIfNeeded: false) {
+            return rememberedURL
+        }
+        let defaultPath = ProcessInfo.processInfo.environment["SCANID_OCR_EXPORTS_DIR"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return fixtureDirectoryURL(path: defaultPath, createIfNeeded: true)
+    }
+
+    private func fixtureDirectoryURL(path: String, createIfNeeded: Bool) -> URL? {
+        guard !path.isEmpty else { return nil }
+        if createIfNeeded {
+            try? FileManager.default.createDirectory(
+                at: URL(fileURLWithPath: path, isDirectory: true),
+                withIntermediateDirectories: true
+            )
+        }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory),
+              isDirectory.boolValue else {
+            return nil
+        }
+        return URL(fileURLWithPath: path, isDirectory: true)
+    }
+
+    private func fixtureConditionPicker(defaultCondition: String, accepted: Bool) -> NSPopUpButton {
+        let picker = NSPopUpButton(frame: .zero, pullsDown: false)
+        picker.addItems(withTitles: ScanCaptureLogic.fixtureConditionChoices(accepted: accepted))
+        picker.selectItem(withTitle: defaultCondition)
+        if picker.selectedItem == nil {
+            picker.selectItem(withTitle: accepted ? "good" : "non-document")
+        }
+        return picker
+    }
+
+    private func fixtureConditionAccessoryView(picker: NSPopUpButton, accepted: Bool) -> NSView {
+        FixtureConditionAccessoryPanel(
+            targetTitle: Localization.string(key: "fixture_target", lang: appLanguage),
+            conditionTitle: Localization.string(key: "fixture_condition", lang: appLanguage),
+            targetPrefix: fixtureCollectionTargetPrefix(accepted: accepted),
+            picker: picker
+        )
     }
 
     private static let fixtureTimestampFormatter: DateFormatter = {
@@ -1947,31 +2313,247 @@ struct MainView: View {
         return bitmap.representation(using: .png, properties: [:])
     }
 
-    private func fixtureExportEntry(name: String, imageName: String, cgImage: CGImage) -> FixtureExportEntry {
+    private func fixtureExportEntry(
+        name: String,
+        imageName: String,
+        cgImage: CGImage,
+        condition: String,
+        matrixTarget: String
+    ) -> FixtureExportEntry {
         let quality = IDScanner.assessFrameQuality(cgImage)
-        let accepted = ScanCaptureLogic.shouldAcceptCapture(parsedData, frameQuality: quality)
+        let readiness = ScanCaptureLogic.captureReadiness(parsed: parsedData, items: recognizedItems, frameQuality: quality)
+        let accepted = readiness.canCapture
         return FixtureExportEntry(
             name: name,
             image: imageName,
             expect: accepted ? "accept" : "reject",
             quality: quality.isUsableForCapture ? "usable" : "unusable",
+            ocrProvider: OCRProvider.vision.name,
             captureSource: fixtureCaptureSource(),
             documentSide: fixtureDocumentSide(accepted: accepted),
-            condition: fixtureCondition(accepted: accepted, quality: quality),
-            expected: accepted ? FixtureExportExpected(
-                documentType: parsedData.documentType,
-                surname: parsedData.surname,
-                name: parsedData.name,
-                codiceFiscale: parsedData.codiceFiscale,
-                documentNumber: parsedData.documentNumber,
-                dateOfBirth: parsedData.dateOfBirth,
-                placeOfBirth: parsedData.placeOfBirth,
-                gender: parsedData.gender,
-                expiryDate: parsedData.expiryDate,
-                nationality: parsedData.nationality,
-                cardNumber: parsedData.cardNumber
-            ) : nil
+            condition: condition,
+            matrixTarget: matrixTarget,
+            orientation: fixtureOrientation(cgImage: cgImage),
+            diagnostics: fixtureDiagnostics(readiness: readiness, frameQuality: quality),
+            observed: fixtureObservedFields(),
+            observedItems: fixtureObservedItems(imageSize: CGSize(width: cgImage.width, height: cgImage.height)),
+            observedBarcodes: fixtureObservedBarcodes(imageSize: CGSize(width: cgImage.width, height: cgImage.height)),
+            expected: accepted ? fixtureExpectedFields() : nil
         )
+    }
+
+    private func fixtureExportReadme(exportURL: URL, matrixTarget: String) -> String {
+        """
+        # ScanID OCR Fixture Export
+
+        Matrix target: \(matrixTarget)
+
+        From the repository root, import this fixture into the current strict
+        matrix slot:
+
+        ```bash
+        ./script/collect_ocr_fixture.sh --export-dir "\(exportURL.path)"
+        ```
+
+        To preflight without importing, add `--dry-run`:
+
+        ```bash
+        ./script/collect_ocr_fixture.sh --dry-run --export-dir "\(exportURL.path)"
+        ```
+
+        If this fixture was exported into the repository `exports/` folder, the
+        newest export can be preflighted without copying its timestamped path:
+
+        ```bash
+        ./script/collect_ocr_fixture.sh --latest-export --expect-target "\(matrixTarget)" --dry-run
+        ```
+
+        To inspect this export before importing it, run:
+
+        ```bash
+        ./script/ocr_fixture_matrix.sh --fixtures-dir "\(exportURL.deletingLastPathComponent().path)" --next
+        ```
+
+        Then check remaining coverage with:
+
+        ```bash
+        ./script/ocr_fixture_matrix.sh
+        ```
+
+        Capture the next target printed by `./script/collect_ocr_fixture.sh`.
+        Do not hand-edit `matrixTarget`; if this target is wrong, re-export the
+        sample from ScanID with the correct source, side, and condition.
+
+        Use only test, generated, or redacted identity data in committed fixtures.
+        """
+    }
+
+    private func fixtureObservedFields() -> FixtureExportFields {
+        FixtureExportFields(
+            documentType: parsedData.documentType,
+            surname: parsedData.surname,
+            name: parsedData.name,
+            codiceFiscale: parsedData.codiceFiscale,
+            documentNumber: parsedData.documentNumber,
+            dateOfBirth: parsedData.dateOfBirth,
+            placeOfBirth: parsedData.placeOfBirth,
+            gender: parsedData.gender,
+            expiryDate: parsedData.expiryDate,
+            nationality: parsedData.nationality,
+            cardNumber: parsedData.cardNumber
+        )
+    }
+
+    private func fixtureExpectedFields() -> FixtureExportExpected {
+        FixtureExportExpected(
+            documentType: parsedData.documentType,
+            surname: parsedData.surname,
+            name: parsedData.name,
+            codiceFiscale: parsedData.codiceFiscale,
+            documentNumber: parsedData.documentNumber,
+            dateOfBirth: parsedData.dateOfBirth,
+            placeOfBirth: parsedData.placeOfBirth,
+            gender: parsedData.gender,
+            expiryDate: parsedData.expiryDate,
+            nationality: parsedData.nationality,
+            cardNumber: parsedData.cardNumber
+        )
+    }
+
+    private func fixtureObservedItems(imageSize: CGSize) -> [FixtureExportRecognizedItem] {
+        recognizedItems.map { item in
+            let boundingBox = clampedFixtureBoundingBox(item.boundingBox)
+            let imageBounds = fixtureImageBounds(for: boundingBox, imageSize: imageSize)
+            return FixtureExportRecognizedItem(
+                text: item.text,
+                confidence: item.confidence,
+                boundingBox: FixtureExportBoundingBox(
+                    x: Double(boundingBox.origin.x),
+                    y: Double(boundingBox.origin.y),
+                    width: Double(boundingBox.width),
+                    height: Double(boundingBox.height)
+                ),
+                imageBounds: FixtureExportImageBounds(
+                    x: Double(imageBounds.origin.x),
+                    y: Double(imageBounds.origin.y),
+                    width: Double(imageBounds.width),
+                    height: Double(imageBounds.height)
+                )
+            )
+        }
+    }
+
+    private func fixtureObservedBarcodes(imageSize: CGSize) -> [FixtureExportBarcode] {
+        recognizedBarcodes.map { barcode in
+            let boundingBox = clampedFixtureBoundingBox(barcode.boundingBox)
+            let imageBounds = fixtureImageBounds(for: boundingBox, imageSize: imageSize)
+            return FixtureExportBarcode(
+                payload: barcode.payload,
+                confidence: barcode.confidence,
+                boundingBox: FixtureExportBoundingBox(
+                    x: Double(boundingBox.origin.x),
+                    y: Double(boundingBox.origin.y),
+                    width: Double(boundingBox.width),
+                    height: Double(boundingBox.height)
+                ),
+                imageBounds: FixtureExportImageBounds(
+                    x: Double(imageBounds.origin.x),
+                    y: Double(imageBounds.origin.y),
+                    width: Double(imageBounds.width),
+                    height: Double(imageBounds.height)
+                )
+            )
+        }
+    }
+
+    private func clampedFixtureBoundingBox(_ boundingBox: CGRect) -> CGRect {
+        let minX = min(max(boundingBox.minX, 0), 1)
+        let minY = min(max(boundingBox.minY, 0), 1)
+        let maxX = min(max(boundingBox.maxX, minX), 1)
+        let maxY = min(max(boundingBox.maxY, minY), 1)
+        return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+    }
+
+    private func fixtureImageBounds(for normalizedBoundingBox: CGRect, imageSize: CGSize) -> CGRect {
+        CGRect(
+            x: normalizedBoundingBox.minX * imageSize.width,
+            y: (1 - normalizedBoundingBox.maxY) * imageSize.height,
+            width: normalizedBoundingBox.width * imageSize.width,
+            height: normalizedBoundingBox.height * imageSize.height
+        )
+    }
+
+    private func fixtureDiagnostics(
+        readiness: ScanCaptureLogic.CaptureReadiness,
+        frameQuality: CaptureFrameQuality
+    ) -> FixtureExportDiagnostics {
+        FixtureExportDiagnostics(
+            frameQuality: frameQuality.diagnosticSummary,
+            frameQualityMetrics: FixtureExportFrameQualityMetrics(
+                sharpness: frameQuality.sharpness,
+                glareRatio: frameQuality.glareRatio,
+                darkRatio: frameQuality.darkRatio,
+                meanLuma: frameQuality.meanLuma,
+                usable: frameQuality.isUsableForCapture,
+                failureReasons: frameQuality.failureReasons
+            ),
+            canCapture: readiness.canCapture,
+            canGuideLiveScan: readiness.canGuideLiveScan,
+            score: readiness.score,
+            markerCount: readiness.markerCount,
+            itemCount: readiness.itemCount,
+            missingFrontNames: fixtureMissingFrontNames(),
+            reasons: readiness.reasons
+        )
+    }
+
+    private func fixtureMissingFrontNames() -> Bool {
+        guard ["CIE_FRONT", "TESSERA_SANITARIA_FRONT"].contains(parsedData.documentType) else {
+            return false
+        }
+        return parsedData.surname == nil || parsedData.name == nil
+    }
+
+    private func fixtureOrientation(cgImage: CGImage) -> FixtureExportOrientation? {
+        guard scanMode == .camera, let capturedCameraOrientation else { return nil }
+        let fullFrameDimensions = fullFrameRawDimensions(
+            for: capturedCameraOrientation,
+            exportedWidth: cgImage.width,
+            exportedHeight: cgImage.height
+        )
+        return FixtureExportOrientation(
+            ocrVisionOrientation: CameraOrientation.orientationName(capturedCameraOrientation.ocrVisionOrientation),
+            snapshotDisplayOrientation: CameraOrientation.orientationName(capturedCameraOrientation.snapshotDisplayOrientation),
+            basePreviewRotationAngle: Double(CameraOrientation.normalizeRotationAngle(capturedCameraOrientation.basePreviewRotationAngle)),
+            scanPreviewRotationAngle: Double(CameraOrientation.normalizeRotationAngle(capturedCameraOrientation.scanPreviewRotationAngle)),
+            baseCaptureRotationAngle: Double(CameraOrientation.normalizeRotationAngle(capturedCameraOrientation.baseCaptureRotationAngle)),
+            scanCaptureRotationAngle: Double(CameraOrientation.normalizeRotationAngle(capturedCameraOrientation.scanCaptureRotationAngle)),
+            rawImageWidth: fullFrameDimensions?.width,
+            rawImageHeight: fullFrameDimensions?.height,
+            imageWidth: cgImage.width,
+            imageHeight: cgImage.height
+        )
+    }
+
+    private func fullFrameRawDimensions(
+        for orientation: CameraSnapshotOrientationMetadata,
+        exportedWidth: Int,
+        exportedHeight: Int
+    ) -> (width: Int, height: Int)? {
+        let rawWidth = orientation.rawImageWidth
+        let rawHeight = orientation.rawImageHeight
+        switch CameraOrientation.orientationName(orientation.snapshotDisplayOrientation) {
+        case "left", "leftMirrored", "right", "rightMirrored":
+            return exportedWidth == rawHeight && exportedHeight == rawWidth
+                ? (rawWidth, rawHeight)
+                : nil
+        case "up", "upMirrored", "down", "downMirrored":
+            return exportedWidth == rawWidth && exportedHeight == rawHeight
+                ? (rawWidth, rawHeight)
+                : nil
+        default:
+            return nil
+        }
     }
 
     private func fixtureCaptureSource() -> String {
@@ -1981,6 +2563,21 @@ struct MainView: View {
         case .camera:
             return CameraOrientation.isContinuityCameraDevice(cameraManager.selectedDevice) ? "continuity" : "webcam"
         }
+    }
+
+    private func fixtureCollectionTarget(accepted: Bool, condition: String) -> String {
+        [
+            fixtureCollectionTargetPrefix(accepted: accepted),
+            condition
+        ].joined(separator: " ")
+    }
+
+    private func fixtureCollectionTargetPrefix(accepted: Bool) -> String {
+        [
+            accepted ? "accept" : "reject",
+            fixtureCaptureSource(),
+            fixtureDocumentSide(accepted: accepted)
+        ].joined(separator: " ")
     }
 
     private func fixtureDocumentSide(accepted: Bool) -> String {
@@ -1999,15 +2596,6 @@ struct MainView: View {
         }
     }
 
-    private func fixtureCondition(accepted: Bool, quality: CaptureFrameQuality) -> String {
-        if !quality.isUsableForCapture {
-            return quality.failureReasons.first?
-                .replacingOccurrences(of: " ", with: "-")
-                ?? "quality-rejected"
-        }
-        return accepted ? "good" : "negative"
-    }
-    
     // MARK: - Mapping Coordinates
     
     private func mapBoundingBox(_ box: CGRect, to size: CGSize) -> CGRect {
@@ -2203,7 +2791,7 @@ struct SettingsView: View {
     @AppStorage("defaultScanMode") private var defaultScanMode = "image"
     @AppStorage("rememberLastCamera") private var rememberLastCamera = false
     @AppStorage("detectOnlyExpectedFields") private var detectOnlyExpectedFields = true
-    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = false
+    @AppStorage("autoZoomOnCapture") private var autoZoomOnCapture = ScanIDDefaults.autoZoomOnCapture
     
     @State private var selectedSection: SettingsSection = .general
     @State private var showToken = false
@@ -3414,6 +4002,10 @@ struct Localization {
             "select_file": "Select File...",
             "paste_image": "Paste Image",
             "export_ocr_fixture": "Export OCR Fixture...",
+            "freeze_camera_frame": "Freeze Current Camera Frame",
+            "freeze_camera_frame_help": "Freeze the current camera frame so it can be exported as an OCR fixture",
+            "fixture_target": "Fixture target",
+            "fixture_condition": "Fixture condition",
             "reset": "Reset",
             "camera_denied": "Camera Access Denied",
             "camera_denied_desc": "Please enable Camera permissions for this app in System Settings > Privacy & Security.",
@@ -3539,6 +4131,8 @@ struct Localization {
             "scan_status_move_closer": "Move closer — not enough text is visible",
             "scan_status_align_document": "Center the card and reduce glare",
             "scan_status_need_identity": "Show name, surname, or tax code more clearly",
+            "scan_status_need_names": "Show name and surname more clearly",
+            "scan_status_sharpen_text": "Move closer and sharpen the text",
             "scan_status_reading_fields": "Reading fields — hold steady",
             "scan_status_ready": "Document recognized — countdown starting",
             "scan_status_capturing": "Capturing…",
@@ -3563,7 +4157,9 @@ struct Localization {
             "status_drop_failed": "Could not import dropped file — use PNG, JPEG, or HEIC",
             "status_image_load_failed": "Could not open the selected image file",
             "status_json_copied": "JSON copied to clipboard",
-            "status_fixture_exported": "OCR fixture exported",
+            "status_camera_frame_frozen": "Camera frame frozen for OCR fixture export",
+            "status_camera_frame_unavailable": "No camera frame is available yet",
+            "status_fixture_exported": "OCR fixture exported: %@",
             "status_fixture_export_failed": "Could not export OCR fixture: %@",
             "status_sync_failed": "Sync failed: %@",
             "status_camera_ready": "Camera ready — align the ID card",
@@ -3580,6 +4176,10 @@ struct Localization {
             "select_file": "Seleziona File...",
             "paste_image": "Incolla Immagine",
             "export_ocr_fixture": "Esporta fixture OCR...",
+            "freeze_camera_frame": "Blocca fotogramma camera",
+            "freeze_camera_frame_help": "Blocca il fotogramma camera corrente per esportarlo come fixture OCR",
+            "fixture_target": "Target fixture",
+            "fixture_condition": "Condizione fixture",
             "reset": "Ripristina",
             "camera_denied": "Accesso Fotocamera Negato",
             "camera_denied_desc": "Abilita i permessi della fotocamera nelle Impostazioni di Sistema > Privacy e Sicurezza.",
@@ -3705,6 +4305,8 @@ struct Localization {
             "scan_status_move_closer": "Avvicinati — testo insufficiente",
             "scan_status_align_document": "Centra la carta e riduci i riflessi",
             "scan_status_need_identity": "Mostra più chiaramente nome, cognome o codice fiscale",
+            "scan_status_need_names": "Mostra più chiaramente nome e cognome",
+            "scan_status_sharpen_text": "Avvicinati e metti a fuoco il testo",
             "scan_status_reading_fields": "Lettura campi — resta fermo",
             "scan_status_ready": "Documento riconosciuto — avvio conto alla rovescia",
             "scan_status_capturing": "Acquisizione in corso…",
@@ -3729,7 +4331,9 @@ struct Localization {
             "status_drop_failed": "Impossibile importare il file — usa PNG, JPEG o HEIC",
             "status_image_load_failed": "Impossibile aprire il file immagine selezionato",
             "status_json_copied": "JSON copiato negli appunti",
-            "status_fixture_exported": "Fixture OCR esportata",
+            "status_camera_frame_frozen": "Fotogramma camera bloccato per esportazione fixture OCR",
+            "status_camera_frame_unavailable": "Nessun fotogramma camera ancora disponibile",
+            "status_fixture_exported": "Fixture OCR esportata: %@",
             "status_fixture_export_failed": "Impossibile esportare la fixture OCR: %@",
             "status_sync_failed": "Sincronizzazione non riuscita: %@",
             "status_camera_ready": "Fotocamera pronta — allinea la carta d'identità",

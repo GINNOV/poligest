@@ -1,0 +1,250 @@
+{
+  "fixtures": [
+    {
+      "name": "synthetic-webcam-cie-front-good",
+      "image": "capture.png",
+      "expect": "accept",
+      "quality": "usable",
+      "ocrProvider": "vision",
+      "captureSource": "webcam",
+      "documentSide": "cie_front",
+      "condition": "good",
+      "matrixTarget": "accept webcam cie_front good",
+      "orientation": {
+        "ocrVisionOrientation": "up",
+        "snapshotDisplayOrientation": "up",
+        "basePreviewRotationAngle": 0,
+        "scanPreviewRotationAngle": 0,
+        "baseCaptureRotationAngle": 0,
+        "scanCaptureRotationAngle": 0,
+        "rawImageWidth": 1400,
+        "rawImageHeight": 880,
+        "imageWidth": 1400,
+        "imageHeight": 880
+      },
+      "diagnostics": {
+        "frameQuality": "usable (sharpness 17.73, glare 0.000, dark 0.053, mean 194.7)",
+        "frameQualityMetrics": {
+          "sharpness": 17.734439834024897,
+          "glareRatio": 0,
+          "darkRatio": 0.05290909090909091,
+          "meanLuma": 194.6509090909091,
+          "usable": true,
+          "failureReasons": []
+        },
+        "canCapture": true,
+        "canGuideLiveScan": true,
+        "score": 32,
+        "markerCount": 7,
+        "itemCount": 11,
+        "missingFrontNames": false,
+        "reasons": []
+      },
+      "observed": {
+        "documentType": "CIE_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90M15H501Y",
+        "documentNumber": "CA12345AA",
+        "dateOfBirth": "15/08/1990",
+        "placeOfBirth": "ROMA",
+        "gender": "M",
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      },
+      "observedItems": [
+        {
+          "boundingBox": {
+            "height": 0.130813958304269,
+            "width": 0.03926098563454372,
+            "x": 0.38106234772352876,
+            "y": 0.8023255795324585
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 115.11628330775673,
+            "width": 54.96537988836121,
+            "x": 533.4872868129403,
+            "y": 58.83720670367977
+          },
+          "text": "SESSO M"
+        },
+        {
+          "boundingBox": {
+            "height": 0.18604651314871645,
+            "width": 0.03926100080663508,
+            "x": 0.5981524126727102,
+            "y": 0.747093023270603
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 163.72093157087048,
+            "width": 54.96540112928911,
+            "x": 837.4133777417943,
+            "y": 58.837207950998874
+          },
+          "text": "NOME MARIO"
+        },
+        {
+          "boundingBox": {
+            "height": 0.2979651096888951,
+            "width": 0.041570487889376506,
+            "x": 0.30715933193926864,
+            "y": 0.6351744231412598
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 262.2092965262277,
+            "width": 58.19868304512711,
+            "x": 430.0230647149761,
+            "y": 58.83721110946365
+          },
+          "text": "CITTADINANZA ITA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.23982557024274553,
+            "width": 0.03926100297407664,
+            "x": 0.6720554106280503,
+            "y": 0.693313960063947
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 211.04650181361606,
+            "width": 54.9654041637073,
+            "x": 940.8775748792705,
+            "y": 58.8372133301106
+          },
+          "text": "COGNOME ROSSI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.359275643484933,
+            "width": 0.07225780270316384,
+            "x": 0.14131660405717184,
+            "y": 0.5745721039101366
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 316.16256626674107,
+            "width": 101.16092378442939,
+            "x": 197.84324568004058,
+            "y": 58.213982292338756
+          },
+          "text": "SCADENZA 15/08/2030"
+        },
+        {
+          "boundingBox": {
+            "height": 0.3168604605538504,
+            "width": 0.04387995546514334,
+            "x": 0.8175519411496507,
+            "y": 0.6162790733689081
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 278.8372052873884,
+            "width": 61.43193765120068,
+            "x": 1144.5727176095108,
+            "y": 58.83721014797252
+          },
+          "text": "CARTA DI IDENTITA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.3924418422154017,
+            "width": 0.04157050089402636,
+            "x": 0.4526558635166255,
+            "y": 0.5421511747187111
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 345.3488211495535,
+            "width": 58.198701251636905,
+            "x": 633.7182089232757,
+            "y": 57.55814509798075
+          },
+          "text": "LUOGO DI NASCITA ROMA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.3531976754324776,
+            "width": 0.04387995980002657,
+            "x": 0.8845265327043569,
+            "y": 0.5799418613166324
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 310.8139543805803,
+            "width": 61.4319437200372,
+            "x": 1238.3371457860997,
+            "y": 58.83720766078321
+          },
+          "text": "REPUBBLICA ITALIANA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.4840116228376117,
+            "width": 0.04618944471532649,
+            "x": 0.5219399206429167,
+            "y": 0.4491279115281418
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 425.9302280970983,
+            "width": 64.66522260145709,
+            "x": 730.7158889000834,
+            "y": 58.83720975813694
+          },
+          "text": "DATA DI NASCITA 15/08/1990"
+        },
+        {
+          "boundingBox": {
+            "height": 0.4825581577845982,
+            "width": 0.039261037653142705,
+            "x": 0.7436489267854379,
+            "y": 0.450581388417426
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 424.6511788504464,
+            "width": 54.96545271439979,
+            "x": 1041.1084974996131,
+            "y": 58.83719934221869
+          },
+          "text": "DOCUMENTO NUMERO CA12345AA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.5755814034598215,
+            "width": 0.03926105282523415,
+            "x": 0.23556577940551485,
+            "y": 0.3575581380956706
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 506.5116350446429,
+            "width": 54.96547395532781,
+            "x": 329.7920911677208,
+            "y": 58.83720343116699
+          },
+          "text": "CODICE FISCALE RSSMRA90M15H501Y"
+        }
+      ],
+      "observedBarcodes": [],
+      "expected": {
+        "documentType": "CIE_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90M15H501Y",
+        "documentNumber": "CA12345AA",
+        "dateOfBirth": "15/08/1990",
+        "placeOfBirth": "ROMA",
+        "gender": "M",
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      }
+    }
+  ]
+}

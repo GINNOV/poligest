@@ -148,6 +148,7 @@ class IDParser {
         sanitizeExtractedValues(&data, lines: lines)
         sanitizePlaceOfBirth(&data)
         reconcileNamesWithCodiceFiscale(&data, lines: lines)
+        suppressCodiceFiscaleConflicts(&data)
         
         return data
     }
@@ -172,6 +173,60 @@ class IDParser {
         }
         return score
     }
+
+    static func namesAreConsistentWithCodiceFiscale(surname: String, name: String, codiceFiscale: String) -> Bool {
+        namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale)
+    }
+
+    static func birthDataMatchesCodiceFiscale(dateOfBirth: String, gender: String, codiceFiscale: String) -> Bool {
+        guard codiceFiscale.count >= 11,
+              let expectedBirthCode = extractBirthDateCode(dateOfBirth: dateOfBirth, gender: gender) else {
+            return false
+        }
+
+        let chars = Array(codiceFiscale.uppercased())
+        let rawBirthCode = String(chars[6...10])
+        return normalizeOmocodiaDigits(in: rawBirthCode, atOffsets: [0, 1, 3, 4]) == expectedBirthCode
+    }
+
+    static func birthDateMatchesCodiceFiscale(dateOfBirth: String, codiceFiscale: String) -> Bool {
+        birthDataMatchesCodiceFiscale(dateOfBirth: dateOfBirth, gender: "M", codiceFiscale: codiceFiscale)
+            || birthDataMatchesCodiceFiscale(dateOfBirth: dateOfBirth, gender: "F", codiceFiscale: codiceFiscale)
+    }
+
+    static func genderFromCodiceFiscale(_ codiceFiscale: String) -> String? {
+        guard codiceFiscale.count >= 11 else { return nil }
+        let chars = Array(codiceFiscale.uppercased())
+        let rawBirthCode = String(chars[6...10])
+        let normalizedBirthCode = normalizeOmocodiaDigits(in: rawBirthCode, atOffsets: [0, 1, 3, 4])
+        guard normalizedBirthCode.count == 5,
+              let dayValue = Int(String(normalizedBirthCode.suffix(2))) else {
+            return nil
+        }
+        return dayValue > 40 ? "F" : "M"
+    }
+
+    static func placeOfBirthMatchesCodiceFiscale(placeOfBirth: String, codiceFiscale: String) -> Bool {
+        guard codiceFiscale.count >= 15,
+              let placeCode = Belfiore.resolve(cleanPlaceOfBirthForBelfiore(placeOfBirth)) else {
+            return true
+        }
+
+        let chars = Array(codiceFiscale.uppercased())
+        let rawPlaceCode = String(chars[11...14])
+        let normalizedPlaceCode = normalizeOmocodiaDigits(in: rawPlaceCode, atOffsets: [1, 2, 3])
+        return normalizedPlaceCode == placeCode
+    }
+
+    static func normalizeCodiceFiscale(_ value: String?) -> String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else {
+            return nil
+        }
+        return findCodiceFiscale(in: [value]) ?? value
+            .replacingOccurrences(of: " ", with: "")
+            .uppercased()
+    }
     
     /// Parses an array of lines detected by OCR and returns structured data
     static func parse(lines: [String]) -> IDData {
@@ -181,7 +236,10 @@ class IDParser {
         if let mrzData = parseMRZ(cleanedLines) {
             var data = mrzData
             data.documentType = "CIE_BACK"
-            data.codiceFiscale = findCodiceFiscale(in: cleanedLines)
+            if let codiceFiscale = findCodiceFiscale(in: cleanedLines),
+               codiceFiscaleMatchesParsedIdentity(codiceFiscale, parsed: data) {
+                data.codiceFiscale = codiceFiscale
+            }
             return data
         }
         
@@ -283,6 +341,7 @@ class IDParser {
 
         sanitizeExtractedValues(&data, lines: cleanedLines)
         sanitizePlaceOfBirth(&data)
+        suppressCodiceFiscaleConflicts(&data)
         refineFieldsForDocumentSide(&data)
         
         return data
@@ -537,24 +596,27 @@ class IDParser {
         }
         let allowedChars = CharacterSet.letters.union(CharacterSet.whitespaces)
         let isValidNationality = { (val: String) -> Bool in
-            val.count > 1 && val.count < 15 && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
+            val.count > 1
+                && val.count < 15
+                && !isLabelLine(val)
+                && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
         }
         
         for label in labelItems {
-            if let value = findSpatialValue(
-                near: label,
-                in: items,
-                validator: isValidNationality
-            ) {
-                return value.uppercased()
-            }
-            
             for searchLabel in ["cittadinanza", "nationality"] {
                 if let range = findLabelRangeWithWordBoundaries(in: label.text, label: searchLabel),
                    let cleaned = cleanSuffixValue(String(label.text[range.upperBound...])),
                    isValidNationality(cleaned) {
                     return cleaned.uppercased()
                 }
+            }
+
+            if let value = findSpatialValue(
+                near: label,
+                in: items,
+                validator: isValidNationality
+            ) {
+                return value.uppercased()
             }
         }
         
@@ -649,9 +711,25 @@ class IDParser {
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard clean.count > 2 else { return false }
         guard !isLabelLine(clean), !isCardHeaderText(clean) else { return false }
+        guard !isHealthAdministrativeText(clean) else { return false }
         if let surname, clean.caseInsensitiveCompare(surname) == .orderedSame { return false }
         if let name, clean.caseInsensitiveCompare(name) == .orderedSame { return false }
         return true
+    }
+
+    private static func isHealthAdministrativeText(_ value: String) -> Bool {
+        let normalized = value
+            .lowercased()
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "it_IT"))
+        return [
+            "dati sanitari",
+            "dati sanitari regionali",
+            "dati sanitari nazionali",
+            "assistenza sanitaria",
+            "servizio sanitario",
+            "servizio sanitario nazionale",
+            "servizio sanitario regionale",
+        ].contains { normalized.contains($0) }
     }
 
     private static func applySpatialNames(
@@ -711,6 +789,56 @@ class IDParser {
         }
     }
 
+    private static func suppressCodiceFiscaleConflicts(_ data: inout IDData) {
+        guard let codiceFiscale = data.codiceFiscale else { return }
+
+        if let surname = data.surname,
+           let name = data.name,
+           !namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            data.surname = nil
+            data.name = nil
+        }
+
+        if let dateOfBirth = data.dateOfBirth,
+           let gender = data.gender,
+           !birthDataMatchesCodiceFiscale(
+                dateOfBirth: dateOfBirth,
+                gender: gender,
+                codiceFiscale: codiceFiscale
+           ) {
+            data.dateOfBirth = nil
+            data.gender = nil
+        } else if let dateOfBirth = data.dateOfBirth,
+                  data.gender == nil,
+                  !birthDateMatchesCodiceFiscale(
+                    dateOfBirth: dateOfBirth,
+                    codiceFiscale: codiceFiscale
+                  ) {
+            data.dateOfBirth = nil
+        }
+
+        if let placeOfBirth = data.placeOfBirth,
+           (!hasResolvablePlaceOfBirth(placeOfBirth) || !placeOfBirthMatchesCodiceFiscale(
+                placeOfBirth: placeOfBirth,
+                codiceFiscale: codiceFiscale
+           )) {
+            data.placeOfBirth = nil
+        }
+    }
+
+    private static func codiceFiscaleMatchesParsedIdentity(_ codiceFiscale: String, parsed: IDData) -> Bool {
+        if let surname = parsed.surname,
+           let name = parsed.name,
+           !namesMatchCodiceFiscale(surname: surname, name: name, codiceFiscale: codiceFiscale) {
+            return false
+        }
+        return true
+    }
+
+    private static func hasResolvablePlaceOfBirth(_ placeOfBirth: String) -> Bool {
+        Belfiore.resolve(cleanPlaceOfBirthForBelfiore(placeOfBirth)) != nil
+    }
+
     private static func sanitizePlaceOfBirth(_ data: inout IDData) {
         guard let placeOfBirth = data.placeOfBirth else { return }
         if !isPlausiblePlaceOfBirth(placeOfBirth, surname: data.surname, name: data.name) {
@@ -720,9 +848,11 @@ class IDParser {
 
     private static func sanitizeExtractedValues(_ data: inout IDData, lines: [String]) {
         if let codiceFiscale = data.codiceFiscale {
-            data.codiceFiscale = findCodiceFiscale(in: [codiceFiscale]) ?? codiceFiscale
-                .replacingOccurrences(of: " ", with: "")
-                .uppercased()
+            data.codiceFiscale = normalizeCodiceFiscale(codiceFiscale)
+        }
+        if data.gender == nil,
+           let codiceFiscale = data.codiceFiscale {
+            data.gender = genderFromCodiceFiscale(codiceFiscale)
         }
         if let dateOfBirth = data.dateOfBirth {
             data.dateOfBirth = findDates(in: [dateOfBirth]).first ?? dateOfBirth
@@ -735,6 +865,14 @@ class IDParser {
         }
         if let name = data.name, !isPlausiblePersonName(name) {
             data.name = nil
+        }
+        if data.codiceFiscale == nil {
+            if let surname = data.surname, !hasPrintedNameEvidence(surname) {
+                data.surname = nil
+            }
+            if let name = data.name, !hasPrintedNameEvidence(name) {
+                data.name = nil
+            }
         }
     }
 
@@ -989,7 +1127,9 @@ class IDParser {
                     continue
                 }
                 
-                if firstPair == nil {
+                if firstPair == nil,
+                   hasPrintedNameEvidence(surname),
+                   hasPrintedNameEvidence(name) {
                     firstPair = (surname, name)
                 }
                 
@@ -1008,6 +1148,14 @@ class IDParser {
             return cfValidated ?? codeValidated
         }
         return cfValidated ?? codeValidated ?? firstPair
+    }
+
+    private static func hasPrintedNameEvidence(_ value: String) -> Bool {
+        let letters = value.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        guard letters.count >= 3 else { return false }
+        let uppercase = letters.filter { CharacterSet.uppercaseLetters.contains($0) }.count
+        let lowercase = letters.filter { CharacterSet.lowercaseLetters.contains($0) }.count
+        return uppercase >= min(2, letters.count) && uppercase >= lowercase
     }
     
     private static func findSpatialValue(
@@ -1240,6 +1388,28 @@ class IDParser {
         }
         
         return nil
+    }
+
+    private static func normalizeOmocodiaDigits(in value: String) -> String {
+        normalizeOmocodiaDigits(in: value, atOffsets: Set(value.indices.map { value.distance(from: value.startIndex, to: $0) }))
+    }
+
+    private static func normalizeOmocodiaDigits(in value: String, atOffsets offsets: Set<Int>) -> String {
+        let replacements: [Character: Character] = [
+            "L": "0",
+            "M": "1",
+            "N": "2",
+            "P": "3",
+            "Q": "4",
+            "R": "5",
+            "S": "6",
+            "T": "7",
+            "U": "8",
+            "V": "9",
+        ]
+        return String(value.enumerated().map { index, character in
+            offsets.contains(index) ? (replacements[character] ?? character) : character
+        })
     }
     
     private static func findCIENumber(in lines: [String]) -> String? {
@@ -1587,7 +1757,10 @@ class IDParser {
         let labels = ["cittadinanza", "nationality"]
         let allowedChars = CharacterSet.letters.union(CharacterSet.whitespaces)
         let isValidNationality = { (val: String) -> Bool in
-            return val.count > 1 && val.count < 15 && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
+            val.count > 1
+                && val.count < 15
+                && !isLabelLine(val)
+                && val.unicodeScalars.allSatisfy({ allowedChars.contains($0) })
         }
         
         if let extracted = extractField(in: lines, labels: labels, validator: isValidNationality) {
@@ -1613,9 +1786,16 @@ class IDParser {
         // 1. Tessera Sanitaria check
         if fullText.contains("tessera sanitaria") || 
            fullText.contains("servizio sanitario nazionale") || 
+           fullText.contains("carta nazionale dei servizi") ||
+           fullText.contains("carta regionale dei servizi") ||
+           fullText.contains("carta regionale de") ||
            fullText.contains("health insurance card") || 
            fullText.contains("tessera europea") {
-            if data.codiceFiscale != nil && (fullText.contains("cognome") || fullText.contains("nome")) {
+            let hasFrontNameLabels = fullText.contains("cognome")
+                || fullText.contains("surname")
+                || fullText.contains("nome")
+                || fullText.contains("name")
+            if hasFrontNameLabels || data.codiceFiscale != nil {
                 return "TESSERA_SANITARIA_FRONT"
             } else {
                 return "TESSERA_SANITARIA_BACK"
@@ -1747,10 +1927,7 @@ class IDParser {
         }
         
         // 4. Belfiore code (4 chars) - Clean place of birth including trailing province codes
-        let cleanPob = placeOfBirth
-            .replacingOccurrences(of: "\\s*\\([^)]*\\)\\s*$", with: "", options: .regularExpression)
-            .replacingOccurrences(of: "[-/\\s]+[A-Z]{2}\\s*$", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanPob = cleanPlaceOfBirthForBelfiore(placeOfBirth)
             
         guard let belfioreCode = Belfiore.resolve(cleanPob) else {
             print("Failed to resolve Belfiore code for place: \(cleanPob)")
@@ -1765,6 +1942,13 @@ class IDParser {
         }
         
         return base15 + String(checkChar)
+    }
+
+    private static func cleanPlaceOfBirthForBelfiore(_ placeOfBirth: String) -> String {
+        placeOfBirth
+            .replacingOccurrences(of: "\\s*\\([^)]*\\)\\s*$", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "[-/\\s]+[A-Z]{2}\\s*$", with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     private static func extractSurnameCode(_ surname: String) -> String {

@@ -1,0 +1,186 @@
+{
+  "fixtures": [
+    {
+      "name": "synthetic-webcam-cie-back-good",
+      "image": "capture.png",
+      "expect": "accept",
+      "quality": "usable",
+      "ocrProvider": "vision",
+      "captureSource": "webcam",
+      "documentSide": "cie_back",
+      "condition": "good",
+      "matrixTarget": "accept webcam cie_back good",
+      "orientation": {
+        "ocrVisionOrientation": "up",
+        "snapshotDisplayOrientation": "up",
+        "basePreviewRotationAngle": 0,
+        "scanPreviewRotationAngle": 0,
+        "baseCaptureRotationAngle": 0,
+        "scanCaptureRotationAngle": 0,
+        "rawImageWidth": 1400,
+        "rawImageHeight": 880,
+        "imageWidth": 1400,
+        "imageHeight": 880
+      },
+      "diagnostics": {
+        "frameQuality": "usable (sharpness 14.30, glare 0.000, dark 0.034, mean 197.5)",
+        "frameQualityMetrics": {
+          "sharpness": 14.302996772706317,
+          "glareRatio": 0,
+          "darkRatio": 0.03436363636363637,
+          "meanLuma": 197.49745454545456,
+          "usable": true,
+          "failureReasons": []
+        },
+        "canCapture": true,
+        "canGuideLiveScan": true,
+        "score": 27,
+        "markerCount": 2,
+        "itemCount": 7,
+        "missingFrontNames": false,
+        "reasons": []
+      },
+      "observed": {
+        "documentType": "CIE_BACK",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90A15H501Y",
+        "documentNumber": "CA00000AA",
+        "dateOfBirth": null,
+        "placeOfBirth": null,
+        "gender": null,
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      },
+      "observedItems": [
+        {
+          "boundingBox": {
+            "height": 0.04157043803821914,
+            "width": 0.48691859654017855,
+            "x": 0.06540698427766813,
+            "y": 0.8498845270712896
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.58198547363284,
+            "width": 681.68603515625,
+            "x": 91.56977798873538,
+            "y": 95.51963070363232
+          },
+          "text": "CARTA DI IDENTITA - RETRO"
+        },
+        {
+          "boundingBox": {
+            "height": 0.034642030976035354,
+            "width": 0.4665697806222098,
+            "x": 0.06540696682137025,
+            "y": 0.7528868365575119
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 30.48498725891111,
+            "width": 653.1976928710936,
+            "x": 91.56975354991835,
+            "y": 186.97459657047844
+          },
+          "text": "CODICE FISCALE RSSMRA90A15H501Y"
+        },
+        {
+          "boundingBox": {
+            "height": 0.03233256340026869,
+            "width": 0.2718023245675223,
+            "x": 0.0654069791925677,
+            "y": 0.690531178016131
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 28.452655792236445,
+            "width": 380.5232543945312,
+            "x": 91.56977086959478,
+            "y": 243.87990755356833
+          },
+          "text": "VIA APPIA NUOVA 12"
+        },
+        {
+          "boundingBox": {
+            "height": 0.03233256340026869,
+            "width": 0.10755813598632812,
+            "x": 0.06540697959404522,
+            "y": 0.628175519824115
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 28.452655792236445,
+            "width": 150.58139038085938,
+            "x": 91.56977143166331,
+            "y": 298.75288676254235
+          },
+          "text": "ROMA RM"
+        },
+        {
+          "boundingBox": {
+            "height": 0.059602646394209424,
+            "width": 0.6458333042689732,
+            "x": 0.05833335432384664,
+            "y": 0.2913907301141535
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 52.4503288269043,
+            "width": 904.1666259765625,
+            "x": 81.6666960533853,
+            "y": 571.1258286726406
+          },
+          "text": "I<ITACA00000AA6<<<<<<<<<<<<<<<"
+        },
+        {
+          "boundingBox": {
+            "height": 0.059602646394209424,
+            "width": 0.6458333042689732,
+            "x": 0.05833335432384664,
+            "y": 0.21192053143865686
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 52.4503288269043,
+            "width": 904.1666259765625,
+            "x": 81.6666960533853,
+            "y": 641.0596035070777
+          },
+          "text": "9008153M3008154ITA<<<<<<<<<<<6"
+        },
+        {
+          "boundingBox": {
+            "height": 0.059602646394209424,
+            "width": 0.6458333042689732,
+            "x": 0.05833334140718015,
+            "y": 0.13245033210090862
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 52.4503288269043,
+            "width": 904.1666259765625,
+            "x": 81.6666779700522,
+            "y": 710.9933789242962
+          },
+          "text": "ROSSI<<MARIO<<<<<<<<<<<<<<<<<<"
+        }
+      ],
+      "observedBarcodes": [],
+      "expected": {
+        "documentType": "CIE_BACK",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90A15H501Y",
+        "documentNumber": "CA00000AA",
+        "dateOfBirth": null,
+        "placeOfBirth": null,
+        "gender": null,
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      }
+    }
+  ]
+}

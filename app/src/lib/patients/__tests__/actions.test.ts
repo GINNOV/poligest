@@ -115,7 +115,12 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { resetPhotoAction, updatePatientAction, uploadPhotoAction } from "@/lib/patients/actions";
+import {
+  resetPhotoAction,
+  updatePaperConsentAction,
+  updatePatientAction,
+  uploadPhotoAction,
+} from "@/lib/patients/actions";
 import { savePreventivoAction } from "@/lib/patients/actions";
 
 describe("patient actions", () => {
@@ -214,6 +219,42 @@ describe("patient actions", () => {
         gender: Gender.FEMALE,
       }),
     });
+  });
+
+  it("updates paper consent and appends the attention note", async () => {
+    mocks.prisma.patient.findUnique.mockResolvedValue({
+      firstName: "Mario",
+      lastName: "Rossi",
+      notes: "Acquisito automaticamente da ID Scanner macOS",
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("hasPaperConsentForRequired", "on");
+
+    await updatePaperConsentAction(formData);
+
+    expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
+      where: { id: "patient-1" },
+      data: {
+        hasPaperConsentForRequired: true,
+        notes:
+          "Acquisito automaticamente da ID Scanner macOS\nATTENZIONE: Firma acquisita su supporto cartaceo per i moduli obbligatori.",
+      },
+    });
+    expect(mocks.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "user-1", role: Role.ADMIN }),
+      expect.objectContaining({
+        action: "patient.paper_consent_updated",
+        entityId: "patient-1",
+        metadata: {
+          patientName: "Rossi Mario",
+          hasPaperConsentForRequired: true,
+        },
+      }),
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/patient-1");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/lista");
   });
 
   it("rejects future birth dates when updating a patient", async () => {

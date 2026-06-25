@@ -28,11 +28,13 @@ final class ScanMenuActions: ObservableObject {
     @Published private(set) var selectedCameraID = ""
     @Published private(set) var showsPasteImage = false
     @Published private(set) var canExportFixture = false
+    @Published private(set) var canFreezeCameraFrame = false
 
     var onScanModeSelected: (ScanMode) -> Void = { _ in }
     var onNewCameraScan: () -> Void = {}
     var onNewImageImport: () -> Void = {}
     var onPasteImage: () -> Void = {}
+    var onFreezeCameraFrame: () -> Void = {}
     var onExportFixture: () -> Void = {}
     var onZoomIn: () -> Void = {}
     var onZoomOut: () -> Void = {}
@@ -49,6 +51,7 @@ final class ScanMenuActions: ObservableObject {
         captureZoomScale: CGFloat,
         captureZoomOffset: CGSize,
         canExportFixture: Bool,
+        canFreezeCameraFrame: Bool,
         showsCameraPicker: Bool,
         devices: [AVCaptureDevice],
         selectedDevice: AVCaptureDevice?
@@ -62,6 +65,7 @@ final class ScanMenuActions: ObservableObject {
         canResetZoom = showsZoomableCapture && (captureZoomScale > 1.0 || captureZoomOffset != .zero)
         showsPasteImage = scanMode == .image
         self.canExportFixture = canExportFixture
+        self.canFreezeCameraFrame = canFreezeCameraFrame
         showsCameraMenu = showsCameraPicker
         cameraDevices = devices.map { device in
             CameraMenuDevice(
@@ -108,6 +112,12 @@ struct ScanCommands: Commands {
             }
             .disabled(!menu.canExportFixture)
             .keyboardShortcut("e", modifiers: [.command, .shift])
+
+            Button(Localization.string(key: "freeze_camera_frame", lang: lang)) {
+                menu.onFreezeCameraFrame()
+            }
+            .disabled(!menu.canFreezeCameraFrame)
+            .keyboardShortcut("f", modifiers: [.command, .shift])
         }
 
         CommandMenu(Localization.string(key: "scan_mode", lang: lang)) {

@@ -4,8 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "ScanID version (e.g. 1.3.0)"
+        description: "ScanID version (e.g. 1.3.8)"
         required: true
+        type: string
+      notes:
+        description: "Release notes shown in ScanID update dialog (optional)"
+        required: false
         type: string
 
 permissions:
@@ -34,5 +38,65 @@ jobs:
         with:
           tag_name: scanid-v${{ inputs.version }}
           name: ScanID ${{ inputs.version }}
+          body: ${{ inputs.notes }}
           files: macos/ScanID-${{ inputs.version }}.dmg
-          generate_release_notes: true
+          generate_release_notes: ${{ inputs.notes == '' }}
+
+  publish-web-meta:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update ScanID metadata defaults
+        run: node app/scripts/update-scanid-meta.mjs "${{ inputs.version }}" "${{ inputs.notes }}"
+
+      - name: Commit and push metadata
+        run: |
+          if git diff --quiet; then
+            echo "No metadata changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/lib/scanid-meta.ts macos/Info.plist
+          git commit -m "chore(scanid): publish ${{ inputs.version }} metadata [skip ci]"
+          git push
+
+  sync-production:
+    needs: publish-web-meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Sync SCANID_* env vars to production
+        working-directory: app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_hdJx31hcSazKyledunhWeXfR
+          VERCEL_PROJECT_ID: prj_jcEaR1ip0UKse7TUVhliSjJb5EKq
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN secret not configured — /api/scanid/meta will not update until env vars are synced manually."
+            exit 0
+          fi
+          chmod +x scripts/sync-scanid-vercel-env.sh
+          ./scripts/sync-scanid-vercel-env.sh
+
+      - name: Redeploy production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_hdJx31hcSazKyledunhWeXfR
+          VERCEL_PROJECT_ID: prj_jcEaR1ip0UKse7TUVhliSjJb5EKq
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Skipping redeploy because VERCEL_TOKEN is not configured."
+            exit 0
+          fi
+          chmod +x app/scripts/redeploy-vercel-production.sh
+          ./app/scripts/redeploy-vercel-production.sh

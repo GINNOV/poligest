@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Gender } from "@prisma/client";
 import { logMacosScanAudit } from "@/lib/audit";
 import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
+import { withPaperConsentNote } from "@/lib/patients/paper-consent";
 
 export async function POST(req: Request) {
   if (!isAuthorizedMacosAppRequest(req)) {
@@ -12,6 +13,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { firstName, lastName, email, phone, birthDate, gender, notes } = body;
+    const hasPaperConsentForRequired = body.hasPaperConsentForRequired ?? true;
 
     if (!firstName || !lastName) {
       return NextResponse.json({ error: "First name and last name are required" }, { status: 400 });
@@ -55,7 +57,8 @@ export async function POST(req: Request) {
         phone: phone || null,
         birthDate: parsedBirthDate,
         gender: mappedGender,
-        notes: notes || null,
+        notes: withPaperConsentNote(notes, hasPaperConsentForRequired),
+        hasPaperConsentForRequired,
       },
     });
 

@@ -1,0 +1,468 @@
+{
+  "fixtures": [
+    {
+      "captureSource": "continuity",
+      "condition": "good",
+      "diagnostics": {
+        "canCapture": true,
+        "canGuideLiveScan": true,
+        "frameQuality": "usable (sharpness 17.84, glare 0.000, dark 0.005, mean 149.9)",
+        "frameQualityMetrics": {
+          "darkRatio": 0.004689942678478374,
+          "failureReasons": [
+
+          ],
+          "glareRatio": 0,
+          "meanLuma": 149.86138613861385,
+          "sharpness": 17.841229306093695,
+          "usable": true
+        },
+        "itemCount": 25,
+        "markerCount": 7,
+        "missingFrontNames": false,
+        "reasons": [
+
+        ],
+        "score": 31
+      },
+      "documentSide": "tessera_front",
+      "expect": "accept",
+      "expected": {
+        "cardNumber": null,
+        "codiceFiscale": "RSSLCU90A15H501A",
+        "dateOfBirth": "15/01/1990",
+        "documentNumber": null,
+        "documentType": "TESSERA_SANITARIA_FRONT",
+        "expiryDate": "31/12/2030",
+        "gender": "M",
+        "name": "LUCA",
+        "nationality": null,
+        "placeOfBirth": "ROMA",
+        "surname": "ROSSI"
+      },
+      "matrixTarget": "accept continuity tessera_front good",
+      "name": "scanid-20260623-180942-spsmra71c05g023h-replay-redacted",
+      "observed": {
+        "cardNumber": null,
+        "codiceFiscale": "RSSLCU90A15H501A",
+        "dateOfBirth": "15/01/1990",
+        "documentNumber": null,
+        "documentType": "TESSERA_SANITARIA_FRONT",
+        "expiryDate": "31/12/2030",
+        "gender": "M",
+        "name": "LUCA",
+        "nationality": null,
+        "placeOfBirth": "ROMA",
+        "surname": "ROSSI"
+      },
+      "observedBarcodes": [
+
+      ],
+      "observedItems": [
+        {
+          "boundingBox": {
+            "height": 0.08447937131630656,
+            "width": 0.09030837004405287,
+            "x": 0.18281938338698747,
+            "y": 0.5776031430935469
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 86.00000000000009,
+            "width": 82.00000000000001,
+            "x": 166.00000011538464,
+            "y": 344.0000003307692
+          },
+          "text": "TS"
+        },
+        {
+          "boundingBox": {
+            "height": 0.035363457760314354,
+            "width": 0.35462555066079304,
+            "x": 0.3414096934030837,
+            "y": 0.5913555992730846
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.000000000000014,
+            "width": 322.00000000000006,
+            "x": 310.00000160999997,
+            "y": 379.9999999399999
+          },
+          "text": "TESSERA SANITARIA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.025088924790178102,
+            "width": 0.2232765836337589,
+            "x": 0.5194303573106126,
+            "y": 0.6185501443771226
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 25.540525436401307,
+            "width": 202.7351379394531,
+            "x": 471.64276443803624,
+            "y": 362.77542758768783
+          },
+          "text": "REPUBBLICA ITALIANA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.011787819253438192,
+            "width": 0.1607929515418502,
+            "x": 0.15198238086453741,
+            "y": 0.5618860511296659
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 12.00000000000008,
+            "width": 145.99999999999997,
+            "x": 138.00000182499997,
+            "y": 433.99999995
+          },
+          "text": "CARTA NAZIONALE DEI SERVIZI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0279035184144506,
+            "width": 0.326915656942628,
+            "x": 0.4004102865322014,
+            "y": 0.5701929052456923
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 28.405781745910712,
+            "width": 296.8394165039062,
+            "x": 363.57254017123887,
+            "y": 409.1378407139745
+          },
+          "text": "CARTA REGIONALE DEI SERVIZI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.019864631308085356,
+            "width": 0.0793627768361096,
+            "x": 0.354591739901349,
+            "y": 0.4989085488717939
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 20.22219467163089,
+            "width": 72.06140136718751,
+            "x": 321.9692998304249,
+            "y": 489.8889025768829
+          },
+          "text": "Fiscale"
+        },
+        {
+          "boundingBox": {
+            "height": 0.025540275049115824,
+            "width": 0.39867841409691634,
+            "x": 0.35462554781309,
+            "y": 0.5166994105388718
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 25.999999999999908,
+            "width": 362.00000000000006,
+            "x": 321.99999741428576,
+            "y": 466.0000000714286
+          },
+          "text": "Codice RSSLCU90A15H501A"
+        },
+        {
+          "boundingBox": {
+            "height": 0.020462437088222485,
+            "width": 0.06637861024965797,
+            "x": 0.7905992406193245,
+            "y": 0.512362101861711
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 20.83076095581049,
+            "width": 60.27177810668943,
+            "x": 717.8641104823466,
+            "y": 475.58461934896764
+          },
+          "text": "Sesso"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0216110019646365,
+            "width": 0.026431718061673992,
+            "x": 0.8766519822687225,
+            "y": 0.5147347742018664
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 21.999999999999957,
+            "width": 23.999999999999986,
+            "x": 795.9999999,
+            "y": 471.99999986250003
+          },
+          "text": "M"
+        },
+        {
+          "boundingBox": {
+            "height": 0.025731349038234597,
+            "width": 0.11018766495624827,
+            "x": 0.35239515346213623,
+            "y": 0.45766477756158785
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 26.19451332092282,
+            "width": 100.05039978027342,
+            "x": 319.9747993436197,
+            "y": 525.9027431213807
+          },
+          "text": "Cognome"
+        },
+        {
+          "boundingBox": {
+            "height": 0.01964636542239684,
+            "width": 0.1343612334801762,
+            "x": 0.4713656401101321,
+            "y": 0.4675834971316307
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.999999999999982,
+            "width": 121.99999999999999,
+            "x": 428.00000121999994,
+            "y": 521.9999999199999
+          },
+          "text": "ROSSI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.020704698468940963,
+            "width": 0.11036331748122158,
+            "x": 0.14085358332790687,
+            "y": 0.36882250357938007
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 21.0773830413819,
+            "width": 100.20989227294919,
+            "x": 127.89505366173944,
+            "y": 621.4613083148092
+          },
+          "text": "scadenza"
+        },
+        {
+          "boundingBox": {
+            "height": 0.021965556154082577,
+            "width": 0.08821421047664424,
+            "x": 0.14311756498302972,
+            "y": 0.3907853941289442
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 22.360936164856064,
+            "width": 80.09850311279297,
+            "x": 129.950749004591,
+            "y": 597.8195326118788
+          },
+          "text": "Data di"
+        },
+        {
+          "boundingBox": {
+            "height": 0.02161100196463661,
+            "width": 0.06828193832599122,
+            "x": 0.3524229069566813,
+            "y": 0.42436149330386375
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 22.00000000000007,
+            "width": 62.00000000000003,
+            "x": 319.99999951666666,
+            "y": 563.9999998166667
+          },
+          "text": "Nome"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0273220796716237,
+            "width": 0.09310970222372317,
+            "x": 0.47106629357041785,
+            "y": 0.4234705910387834
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 27.813877105712926,
+            "width": 84.54360961914064,
+            "x": 427.7281945619394,
+            "y": 559.0930612168056
+          },
+          "text": "LUCA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.023575638506876273,
+            "width": 0.07048458149779735,
+            "x": 0.35022026466960354,
+            "y": 0.38506876204322205
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 24.000000000000046,
+            "width": 63.99999999999999,
+            "x": 318.00000032,
+            "y": 602.00000024
+          },
+          "text": "Luogo"
+        },
+        {
+          "boundingBox": {
+            "height": 0.025540275049115935,
+            "width": 0.33039647577092507,
+            "x": 0.46916299743024964,
+            "y": 0.3791748527286618
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 26.00000000000002,
+            "width": 299.99999999999994,
+            "x": 426.00000166666666,
+            "y": 605.9999999222223
+          },
+          "text": "ROMA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.023575638506876273,
+            "width": 0.16960352422907488,
+            "x": 0.1651982392988252,
+            "y": 0.3359528488212181
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 24.000000000000046,
+            "width": 154,
+            "x": 150.0000012833333,
+            "y": 651.9999998999999
+          },
+          "text": "31/12/2030"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0216110019646365,
+            "width": 0.1101321585903084,
+            "x": 0.3502202652349486,
+            "y": 0.3673870334479372
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 21.999999999999957,
+            "width": 100.00000000000001,
+            "x": 318.00000083333333,
+            "y": 621.99999995
+          },
+          "text": "di nascita"
+        },
+        {
+          "boundingBox": {
+            "height": 0.023136331899227036,
+            "width": 0.10171685239817074,
+            "x": 0.3478199871304309,
+            "y": 0.3312609108629069
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 23.55278587341312,
+            "width": 92.35890197753903,
+            "x": 315.8205483144312,
+            "y": 657.2236068681477
+          },
+          "text": "Provincia"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0216110019646365,
+            "width": 0.0440528634361233,
+            "x": 0.4669603528634361,
+            "y": 0.33398821227897846
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 21.999999999999957,
+            "width": 39.99999999999996,
+            "x": 424.0000004,
+            "y": 655.9999998999999
+          },
+          "text": "RM"
+        },
+        {
+          "boundingBox": {
+            "height": 0.015717092337917515,
+            "width": 0.14317180616740088,
+            "x": 0.6960352440803964,
+            "y": 0.3418467584479372
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 16.000000000000032,
+            "width": 130,
+            "x": 632.000001625,
+            "y": 653.9999998999999
+          },
+          "text": "Dati sanitari regionali"
+        },
+        {
+          "boundingBox": {
+            "height": 0.019901469554788664,
+            "width": 0.11018899253811609,
+            "x": 0.34578656191762003,
+            "y": 0.27492156344231555
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 20.25969600677486,
+            "width": 100.05160522460942,
+            "x": 313.974198221199,
+            "y": 717.8701524089479
+          },
+          "text": "di nascita"
+        },
+        {
+          "boundingBox": {
+            "height": 0.01964636542239684,
+            "width": 0.055066079295154224,
+            "x": 0.34801762169603523,
+            "y": 0.29666011795677805
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.999999999999982,
+            "width": 50.000000000000036,
+            "x": 316.0000005,
+            "y": 695.9999999199999
+          },
+          "text": "Data"
+        },
+        {
+          "boundingBox": {
+            "height": 0.025540275049115935,
+            "width": 0.1916299559471366,
+            "x": 0.4273127737334802,
+            "y": 0.2966601177963326
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 26.00000000000002,
+            "width": 174.00000000000003,
+            "x": 387.99999855000004,
+            "y": 690.0000000833334
+          },
+          "text": "15/01/1990"
+        }
+      ],
+      "ocrProvider": "vision",
+      "quality": "usable",
+      "replayOnly": true
+    }
+  ]
+}

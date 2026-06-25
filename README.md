@@ -80,9 +80,9 @@ Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS wit
 
 ### Download
 
-Latest release: [ScanID 1.3.7](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.7)
+Latest release: [ScanID 1.3.8](https://github.com/GINNOV/poligest/releases/tag/scanid-v1.3.8)
 
-Direct DMG: [ScanID-1.3.7.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.7/ScanID-1.3.7.dmg)
+Direct DMG: [ScanID-1.3.8.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.8/ScanID-1.3.8.dmg)
 
 Open the DMG, drag `ScanID.app` to Applications.
 
@@ -130,18 +130,24 @@ and `spctl` will reject it even when it is not quarantined.
 
 ### Releasing a new version
 
-1. Set the version in `Info.plist` (or via `VERSION=… ./build.sh`).
-2. `./build.sh && ./create-dmg.sh`
-3. Create a GitHub release and attach the DMG:
+Use the **ScanID Release** GitHub Actions workflow (`workflow_dispatch`). It will:
 
-   ```bash
-   gh release create scanid-v1.2.0 \
-     --title "ScanID 1.2.0" \
-     --notes "…" \
-     ScanID-1.2.0.dmg
-   ```
+1. Run `macos/verify.sh`, build the app, and create the DMG
+2. Publish a GitHub release (`scanid-vX.Y.Z`) with the DMG attached
+3. Update `app/src/lib/scanid-meta.ts` and `macos/Info.plist` defaults
+4. Sync `SCANID_*` production env vars on Vercel and redeploy
 
-4. Update the default download URL in `app/src/app/api/scanid/meta/route.ts` and `app/src/app/[locale]/(app)/admin/scanid/page.tsx`, or set `SCANID_DOWNLOAD_URL` on Vercel.
+In GitHub: **Actions → ScanID Release → Run workflow** with the new version (and optional release notes for the in-app update dialog).
+
+Requires the `VERCEL_TOKEN` repository secret for step 4. Without it, the release still ships on GitHub but `/api/scanid/meta` must be synced manually via `app/scripts/sync-scanid-vercel-env.sh`.
+
+Manual fallback:
+
+```bash
+VERSION=1.2.0 ./build.sh && ./create-dmg.sh
+gh release create scanid-v1.2.0 --title "ScanID 1.2.0" --notes "…" ScanID-1.2.0.dmg
+node app/scripts/update-scanid-meta.mjs 1.2.0 "…"
+```
 
 ### Integration with the web app
 
@@ -167,8 +173,8 @@ Server-side overrides (Vercel env or code defaults):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `SCANID_LATEST_VERSION` | `1.3.7` | Version string reported to the app |
-| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.7.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.7/ScanID-1.3.7.dmg) | Direct asset URL (DMG or ZIP) |
+| `SCANID_LATEST_VERSION` | `1.3.8` | Version string reported to the app |
+| `SCANID_DOWNLOAD_URL` | [ScanID-1.3.8.dmg](https://github.com/GINNOV/poligest/releases/download/scanid-v1.3.8/ScanID-1.3.8.dmg) | Direct asset URL (DMG or ZIP) |
 | `SCANID_RELEASE_NOTES` | _(empty)_ | Shown in the update dialog |
 
 ---

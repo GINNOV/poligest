@@ -1,0 +1,296 @@
+{
+  "fixtures": [
+    {
+      "captureSource": "continuity",
+      "condition": "partial-frame",
+      "diagnostics": {
+        "canCapture": false,
+        "canGuideLiveScan": false,
+        "frameQuality": "usable (sharpness 27.26, glare 0.000, dark 0.005, mean 162.7)",
+        "frameQualityMetrics": {
+          "darkRatio": 0.005481329222336417,
+          "failureReasons": [
+
+          ],
+          "glareRatio": 0.00045677743519470136,
+          "meanLuma": 162.69315975790795,
+          "sharpness": 27.26097504621072,
+          "usable": true
+        },
+        "itemCount": 15,
+        "markerCount": 1,
+        "missingFrontNames": false,
+        "reasons": [
+          "implausibleLayout",
+          "unknownDocumentType"
+        ],
+        "score": 26
+      },
+      "documentSide": "negative",
+      "expect": "reject",
+      "matrixTarget": "reject continuity negative partial-frame",
+      "name": "scanid-20260623-180906-spsmra71c05g023h-replay-redacted",
+      "observed": {
+        "cardNumber": null,
+        "codiceFiscale": "RSSLCU90A15H501A",
+        "dateOfBirth": "15/01/1990",
+        "documentNumber": null,
+        "documentType": "UNKNOWN",
+        "expiryDate": null,
+        "gender": "M",
+        "name": "LUCA",
+        "nationality": null,
+        "placeOfBirth": null,
+        "surname": "ROSSI"
+      },
+      "observedBarcodes": [
+
+      ],
+      "observedItems": [
+        {
+          "boundingBox": {
+            "height": 0.06410258855575168,
+            "width": 0.15827338129496404,
+            "x": 0.8345323724820143,
+            "y": 0.7692307578054575
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.935905040838772,
+            "width": 44.00000000000001,
+            "x": 231.99999954999998,
+            "y": 51.83332928166396
+          },
+          "text": "scita"
+        },
+        {
+          "boundingBox": {
+            "height": 0.08170214677468313,
+            "width": 0.518852508325371,
+            "x": 0.3952500039420717,
+            "y": 0.6963284147619366
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 25.40936764692645,
+            "width": 144.24099731445312,
+            "x": 109.87950109589593,
+            "y": 69.03249536211125
+          },
+          "text": "15/01/1990"
+        },
+        {
+          "boundingBox": {
+            "height": 0.03846156597137451,
+            "width": 0.18705035971223025,
+            "x": 2.338129447049213e-09,
+            "y": 0.6089743453796974
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 11.961547017097473,
+            "width": 52.00000000000001,
+            "x": 6.499999862796813e-07,
+            "y": 109.64743156981663
+          },
+          "text": "Dati sanita"
+        },
+        {
+          "boundingBox": {
+            "height": 0.06410257632915783,
+            "width": 0.1151079136690647,
+            "x": 0.6906474811510792,
+            "y": 0.6089743535020877
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.935901238368086,
+            "width": 31.999999999999986,
+            "x": 191.99999976,
+            "y": 101.67307482248263
+          },
+          "text": "SA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.05128207573523891,
+            "width": 0.13669064748201432,
+            "x": 0.8561151069373073,
+            "y": 0.6153846028832963
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 15.948725553659301,
+            "width": 37.99999999999998,
+            "x": 237.99999972857142,
+            "y": 103.66666294963554
+          },
+          "text": "incia"
+        },
+        {
+          "boundingBox": {
+            "height": 0.057692332145495295,
+            "width": 0.16546762589928055,
+            "x": 0.8273381281175061,
+            "y": 0.5192307567370814
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 17.94231529724904,
+            "width": 45.99999999999999,
+            "x": 229.99999961666668,
+            "y": 131.57691935751865
+          },
+          "text": "scita"
+        },
+        {
+          "boundingBox": {
+            "height": 0.06410264968872081,
+            "width": 0.5683453237410073,
+            "x": 7.104316406142277e-09,
+            "y": 0.4807691881364088
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.935924053192174,
+            "width": 158.00000000000003,
+            "x": 1.974999960907553e-06,
+            "y": 141.5448584363847
+          },
+          "text": "NO SUL TUSCIAI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0833333700131147,
+            "width": 0.20863310724711248,
+            "x": 0.5971222963404725,
+            "y": 0.45512818714087855
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 25.91667807407867,
+            "width": 58.00000381469727,
+            "x": 165.99999838265137,
+            "y": 143.5384557251081
+          },
+          "text": "OLEV"
+        },
+        {
+          "boundingBox": {
+            "height": 0.05769231991890145,
+            "width": 0.06474821516078155,
+            "x": 0.9280575474555803,
+            "y": 0.4615384563867031
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 17.94231149477835,
+            "width": 18.000003814697273,
+            "x": 257.99999819265133,
+            "y": 149.51922856895698
+          },
+          "text": "10."
+        },
+        {
+          "boundingBox": {
+            "height": 0.07172649945968235,
+            "width": 0.2594057535953659,
+            "x": 0.5465561185960713,
+            "y": 0.3519572634233262
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 22.30694133196121,
+            "width": 72.11479949951172,
+            "x": 151.94260096970783,
+            "y": 179.23434974338434
+          },
+          "text": "LUCA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0448718009850918,
+            "width": 0.05755397055646505,
+            "x": 0.9352517913404726,
+            "y": 0.371794869018672
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 13.955130106363551,
+            "width": 16.000003814697283,
+            "x": 259.9999979926514,
+            "y": 181.41666562882946
+          },
+          "text": "le"
+        },
+        {
+          "boundingBox": {
+            "height": 0.06410262523553312,
+            "width": 0.3741007194244605,
+            "x": 0.42446043633093505,
+            "y": 0.2371794569335155
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 19.9359164482508,
+            "width": 104.00000000000001,
+            "x": 118.00000129999995,
+            "y": 217.3012724454259
+          },
+          "text": "ROSSI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.05387828288934171,
+            "width": 0.18076722398936318,
+            "x": 0.8124940835932976,
+            "y": 0.267932653139191
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 16.756145978585273,
+            "width": 50.25328826904296,
+            "x": 225.8733552389367,
+            "y": 210.91679889512633
+          },
+          "text": "nome"
+        },
+        {
+          "boundingBox": {
+            "height": 0.05128206350864506,
+            "width": 0.10071943132139793,
+            "x": 0.8920863262457759,
+            "y": 0.16025640382260065
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 15.948721751188614,
+            "width": 28.000001907348626,
+            "x": 247.9999986963257,
+            "y": 245.21153665998258
+          },
+          "text": "ale"
+        },
+        {
+          "boundingBox": {
+            "height": 0.08615395350333976,
+            "width": 0.9740928814565536,
+            "x": 0.02005446441998771,
+            "y": 0.08796252604381039
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 26.793879539538665,
+            "width": 270.7978210449219,
+            "x": 5.575141108756583,
+            "y": 256.8497748608363
+          },
+          "text": "ice RSSLCU90A15H501A"
+        }
+      ],
+      "ocrProvider": "vision",
+      "quality": "usable",
+      "replayOnly": true
+    }
+  ]
+}

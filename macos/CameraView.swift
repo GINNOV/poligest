@@ -83,6 +83,17 @@ struct CameraDevicePicker: View {
     }
 }
 
+struct CameraSnapshotOrientationMetadata {
+    let ocrVisionOrientation: CGImagePropertyOrientation
+    let snapshotDisplayOrientation: CGImagePropertyOrientation
+    let basePreviewRotationAngle: CGFloat
+    let scanPreviewRotationAngle: CGFloat
+    let baseCaptureRotationAngle: CGFloat
+    let scanCaptureRotationAngle: CGFloat
+    let rawImageWidth: Int
+    let rawImageHeight: Int
+}
+
 class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     @Published var session = AVCaptureSession()
     @Published var isPermissionDenied = false
@@ -95,8 +106,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     var onFrameCaptured: ((CVImageBuffer) -> Void)?
     
     private let videoOutput = AVCaptureVideoDataOutput()
+    private let photoOutput = AVCapturePhotoOutput()
     private let queue = DispatchQueue(label: "camera.frame.queue", qos: .userInteractive)
+    private let sessionControlQueue = DispatchQueue(label: "camera.session.control", qos: .userInitiated)
     private var activeInput: AVCaptureDeviceInput?
+    private var pendingPhotoCapture: StillPhotoCaptureDelegate?
     private let bufferLock = NSLock()
     private var latestPixelBuffer: CVImageBuffer?
     private let snapshotContext = CIContext()
@@ -107,11 +121,18 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     private var captureRotationObservation: NSKeyValueObservation?
     private var lastAppliedPreviewAngle: CGFloat?
     private var lastAppliedCaptureAngle: CGFloat?
+    private var latestBasePreviewRotationAngle: CGFloat = 0
+    private var latestScanPreviewRotationAngle: CGFloat = 0
+    private var latestBaseCaptureRotationAngle: CGFloat = 0
+    private var latestScanCaptureRotationAngle: CGFloat = 0
     private var snapshotDisplayOrientation: CGImagePropertyOrientation = .up
     private var latestSnapshotDisplayOrientation: CGImagePropertyOrientation = .up
+    private let cameraAccessDisabled: Bool
     
-    override init() {
+    init(cameraAccessDisabled: Bool = ScanIDLaunchConfiguration.disablesCameraAccess()) {
+        self.cameraAccessDisabled = cameraAccessDisabled
         super.init()
+        guard !cameraAccessDisabled else { return }
         discoverDevices()
     }
     
@@ -140,6 +161,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func checkPermissionAndStart() {
+        guard !cameraAccessDisabled else { return }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             setupSession()
@@ -163,6 +185,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     private func setupSession() {
+        guard !cameraAccessDisabled else { return }
         guard !session.isRunning else { return }
         
         session.beginConfiguration()
@@ -192,6 +215,11 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
                     session.addOutput(videoOutput)
                 }
             }
+
+            if session.canAddOutput(photoOutput), !session.outputs.contains(photoOutput) {
+                session.addOutput(photoOutput)
+                photoOutput.maxPhotoQualityPrioritization = .quality
+            }
             
             applyStableRotation(force: true)
             
@@ -205,7 +233,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             
             session.commitConfiguration()
             
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            sessionControlQueue.async { [weak self] in
                 self?.session.startRunning()
                 DispatchQueue.main.async {
                     self?.isRunning = self?.session.isRunning ?? false
@@ -218,6 +246,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func changeCamera(to device: AVCaptureDevice) {
+        guard !cameraAccessDisabled else { return }
         selectedDevice = device
         CameraPreferences.saveLastCamera(device)
         resetRotationState()
@@ -226,7 +255,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         }
         
         if session.isRunning {
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            sessionControlQueue.async { [weak self] in
                 self?.session.stopRunning()
                 DispatchQueue.main.async {
                     self?.setupSession()
@@ -238,6 +267,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func startSession() {
+        guard !cameraAccessDisabled else { return }
         if !session.isRunning {
             checkPermissionAndStart()
         }
@@ -245,10 +275,24 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     
     func stopSession() {
         guard session.isRunning else { return }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        sessionControlQueue.async { [weak self] in
             self?.session.stopRunning()
             DispatchQueue.main.async {
                 self?.isRunning = false
+            }
+        }
+    }
+
+    func restartSession() {
+        guard !cameraAccessDisabled else { return }
+        sessionControlQueue.async { [weak self] in
+            guard let self else { return }
+            if self.session.isRunning {
+                self.session.stopRunning()
+            }
+            DispatchQueue.main.async {
+                self.isRunning = false
+                self.setupSession()
             }
         }
     }
@@ -275,6 +319,55 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
             size: NSSize(width: cgImage.width, height: cgImage.height)
         )
     }
+
+    func captureStillImage(completion: @escaping (NSImage?) -> Void) {
+        guard !cameraAccessDisabled,
+              session.isRunning,
+              session.outputs.contains(photoOutput) else {
+            completion(nil)
+            return
+        }
+
+        let settings = AVCapturePhotoSettings()
+        settings.photoQualityPrioritization = .quality
+
+        let delegate = StillPhotoCaptureDelegate { [weak self] image in
+            DispatchQueue.main.async {
+                self?.pendingPhotoCapture = nil
+                completion(image)
+            }
+        }
+        pendingPhotoCapture = delegate
+        photoOutput.capturePhoto(with: settings, delegate: delegate)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self, weak delegate] in
+            guard let self,
+                  let delegate,
+                  self.pendingPhotoCapture === delegate else {
+                return
+            }
+            self.pendingPhotoCapture = nil
+            delegate.finish(nil)
+        }
+    }
+
+    func snapshotOrientationMetadata() -> CameraSnapshotOrientationMetadata {
+        bufferLock.lock()
+        let pixelBuffer = latestPixelBuffer
+        let displayOrientation = latestSnapshotDisplayOrientation
+        bufferLock.unlock()
+
+        return CameraSnapshotOrientationMetadata(
+            ocrVisionOrientation: ocrVisionOrientation,
+            snapshotDisplayOrientation: displayOrientation,
+            basePreviewRotationAngle: latestBasePreviewRotationAngle,
+            scanPreviewRotationAngle: latestScanPreviewRotationAngle,
+            baseCaptureRotationAngle: latestBaseCaptureRotationAngle,
+            scanCaptureRotationAngle: latestScanCaptureRotationAngle,
+            rawImageWidth: pixelBuffer.map { CVPixelBufferGetWidth($0) } ?? 0,
+            rawImageHeight: pixelBuffer.map { CVPixelBufferGetHeight($0) } ?? 0
+        )
+    }
     
     func clearSnapshotBuffer() {
         bufferLock.lock()
@@ -283,6 +376,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
     }
     
     func attachPreviewLayer(_ layer: AVCaptureVideoPreviewLayer) {
+        guard !cameraAccessDisabled else { return }
         previewLayer = layer
         configureRotationCoordinator()
         applyStableRotation(force: true)
@@ -305,6 +399,7 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         previewRotationObservation?.invalidate()
         captureRotationObservation?.invalidate()
         rotationCoordinator = nil
+        guard !cameraAccessDisabled else { return }
         
         guard let device = selectedDevice ?? AVCaptureDevice.default(for: .video),
               let previewLayer else {
@@ -344,13 +439,21 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         if force || previewAngle != lastAppliedPreviewAngle {
             CameraOrientation.apply(to: previewLayer?.connection, angle: previewAngle)
             lastAppliedPreviewAngle = previewAngle
+            latestBasePreviewRotationAngle = basePreviewAngle
+            latestScanPreviewRotationAngle = previewAngle
+            snapshotDisplayOrientation = CameraOrientation.visionOrientation(for: previewAngle)
         }
         
         if force || captureAngle != lastAppliedCaptureAngle {
-            CameraOrientation.apply(to: videoOutput.connection(with: .video), angle: captureAngle)
+            // Keep AVCaptureVideoDataOutput buffers raw. Live OCR receives the
+            // base Vision orientation, and snapshots apply preview orientation once.
+            if let dataOutputAngle = CameraOrientation.videoDataOutputRotationAngle(scanCaptureAngle: captureAngle) {
+                CameraOrientation.apply(to: videoOutput.connection(with: .video), angle: dataOutputAngle)
+            }
             lastAppliedCaptureAngle = captureAngle
+            latestBaseCaptureRotationAngle = baseCaptureAngle
+            latestScanCaptureRotationAngle = captureAngle
             ocrVisionOrientation = CameraOrientation.visionOrientationForOCR(baseCaptureAngle: baseCaptureAngle)
-            snapshotDisplayOrientation = CameraOrientation.visionOrientation(for: captureAngle)
         }
     }
     
@@ -362,6 +465,36 @@ class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleB
         latestSnapshotDisplayOrientation = displayOrientation
         bufferLock.unlock()
         onFrameCaptured?(pixelBuffer)
+    }
+}
+
+private final class StillPhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegate {
+    private let completion: (NSImage?) -> Void
+    private var didFinish = false
+
+    init(completion: @escaping (NSImage?) -> Void) {
+        self.completion = completion
+    }
+
+    func finish(_ image: NSImage?) {
+        guard !didFinish else { return }
+        didFinish = true
+        completion(image)
+    }
+
+    func photoOutput(
+        _ output: AVCapturePhotoOutput,
+        didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
+        guard error == nil,
+              let data = photo.fileDataRepresentation(),
+              let image = NSImage(data: data) else {
+            finish(nil)
+            return
+        }
+
+        finish(image)
     }
 }
 

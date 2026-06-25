@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
 import { ScanIdClient } from "./ScanIdClient";

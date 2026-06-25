@@ -1,0 +1,57 @@
+{
+  "fixtures": [
+    {
+      "captureSource": "continuity",
+      "condition": "non-document",
+      "diagnostics": {
+        "canCapture": false,
+        "canGuideLiveScan": false,
+        "frameQuality": "usable (sharpness 14.91, glare 0.000, dark 0.007, mean 136.0)",
+        "frameQualityMetrics": {
+          "darkRatio": 0.007162534435261708,
+          "failureReasons": [
+
+          ],
+          "glareRatio": 0,
+          "meanLuma": 136.04573002754822,
+          "sharpness": 14.907507451564829,
+          "usable": true
+        },
+        "itemCount": 0,
+        "markerCount": 0,
+        "missingFrontNames": false,
+        "reasons": [
+          "unknownDocumentType",
+          "missingIdentifier"
+        ],
+        "score": 3
+      },
+      "documentSide": "negative",
+      "expect": "reject",
+      "matrixTarget": "reject continuity negative non-document",
+      "name": "scanid-20260623-180916-unknown-replay-redacted",
+      "observed": {
+        "cardNumber": null,
+        "codiceFiscale": null,
+        "dateOfBirth": null,
+        "documentNumber": null,
+        "documentType": "UNKNOWN",
+        "expiryDate": null,
+        "gender": null,
+        "name": null,
+        "nationality": null,
+        "placeOfBirth": null,
+        "surname": null
+      },
+      "observedBarcodes": [
+
+      ],
+      "observedItems": [
+
+      ],
+      "ocrProvider": "vision",
+      "quality": "usable",
+      "replayOnly": true
+    }
+  ]
+}

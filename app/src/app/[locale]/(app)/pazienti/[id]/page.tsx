@@ -30,6 +30,7 @@ import { PatientPhotoDialog } from "@/components/patient-photo-dialog";
 import { DentalChart } from "@/components/dental-chart";
 import { PatientAnamnesisNotes } from "@/components/patient-anamnesis-notes";
 import { ConsentForm } from "@/components/consent-form";
+import { PatientPaperConsentToggle } from "@/components/patient-paper-consent-toggle";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
 import { PageToastTrigger } from "@/components/page-toast-trigger";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
@@ -642,6 +643,10 @@ export default async function PatientDetailPage({
             </summary>
             <div className="grid grid-cols-1 gap-4 px-6 pb-6 pt-4 lg:grid-cols-[1.1fr,0.9fr]">
                       <div className="space-y-3">
+                        <PatientPaperConsentToggle
+                          patientId={patient.id}
+                          defaultChecked={patient.hasPaperConsentForRequired}
+                        />
                         {missingRequired.length > 0 ? (
                           <div className="flex flex-wrap gap-2 text-xs font-semibold">
                             {missingRequired.map((module) => (

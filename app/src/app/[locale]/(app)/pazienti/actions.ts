@@ -10,6 +10,7 @@ import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { parseOptionalBirthDate } from "@/lib/date";
 import { normalizePersonName } from "@/lib/name";
+import { PAPER_CONSENT_NOTE } from "@/lib/patients/paper-consent";
 import { put } from "@vercel/blob";
 import { sendEmail } from "@/lib/email";
 import { getStackSignInUrl } from "@/lib/stack-app";
@@ -189,7 +190,7 @@ export async function createPatient(formData: FormData) {
     conditions.length > 0 ? `Anamnesi: ${conditions.join(", ")}` : null,
     medications ? `Farmaci: ${medications}` : null,
     extraNotes ? `Note aggiuntive: ${extraNotes}` : null,
-    hasPaperConsentForRequired ? "ATTENZIONE: Firma acquisita su supporto cartaceo per i moduli obbligatori." : null,
+    hasPaperConsentForRequired ? PAPER_CONSENT_NOTE : null,
     ...consentNotes,
     consentsToCreate.length > 0 ? "Firma digitale acquisita." : null,
   ]

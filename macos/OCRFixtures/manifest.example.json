@@ -5,14 +5,50 @@
       "image": "continuity/cie-front-good.png",
       "expect": "accept",
       "quality": "usable",
+      "ocrProvider": "vision",
       "captureSource": "continuity",
       "documentSide": "cie_front",
       "condition": "good",
-      "expected": {
+      "matrixTarget": "accept continuity cie_front good",
+      "orientation": {
+        "ocrVisionOrientation": "down",
+        "snapshotDisplayOrientation": "left",
+        "basePreviewRotationAngle": 180,
+        "scanPreviewRotationAngle": 270,
+        "baseCaptureRotationAngle": 180,
+        "scanCaptureRotationAngle": 270,
+        "rawImageWidth": 1080,
+        "rawImageHeight": 1920,
+        "imageWidth": 1920,
+        "imageHeight": 1080
+      },
+      "diagnostics": {
+        "frameQuality": "usable (sharpness 12.00, glare 0.000, dark 0.000, mean 180.0)",
+        "canCapture": true,
+        "canGuideLiveScan": true,
+        "score": 32,
+        "markerCount": 7,
+        "itemCount": 11,
+        "missingFrontNames": false,
+        "reasons": [
+
+        ],
+        "frameQualityMetrics": {
+          "sharpness": 12.0,
+          "glareRatio": 0.0,
+          "darkRatio": 0.0,
+          "meanLuma": 180.0,
+          "usable": true,
+          "failureReasons": [
+
+          ]
+        }
+      },
+      "observed": {
         "documentType": "CIE_FRONT",
         "surname": "ROSSI",
         "name": "MARIO",
-        "codiceFiscale": "RSSMRA90A15H501Y",
+        "codiceFiscale": "RSSMRA90M15H501Y",
         "documentNumber": "CA12345AA",
         "dateOfBirth": "15/08/1990",
         "placeOfBirth": "ROMA",
@@ -20,25 +56,360 @@
         "expiryDate": "15/08/2030",
         "nationality": "ITA",
         "cardNumber": null
-      }
+      },
+      "observedItems": [
+        {
+          "text": "REPUBBLICA ITALIANA",
+          "confidence": 0.96,
+          "boundingBox": {
+            "x": 0.55,
+            "y": 0.8,
+            "width": 0.28,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1056.0,
+            "y": 162.0,
+            "width": 537.6,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "CARTA DI IDENTITA",
+          "confidence": 0.95,
+          "boundingBox": {
+            "x": 0.55,
+            "y": 0.72,
+            "width": 0.28,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1056.0,
+            "y": 248.4,
+            "width": 537.6,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "COGNOME ROSSI",
+          "confidence": 0.94,
+          "boundingBox": {
+            "x": 0.1,
+            "y": 0.62,
+            "width": 0.22,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 192.0,
+            "y": 356.4,
+            "width": 422.4,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "NOME MARIO",
+          "confidence": 0.93,
+          "boundingBox": {
+            "x": 0.1,
+            "y": 0.54,
+            "width": 0.2,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 192.0,
+            "y": 442.8,
+            "width": 384.0,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "CODICE FISCALE RSSMRA90M15H501Y",
+          "confidence": 0.95,
+          "boundingBox": {
+            "x": 0.1,
+            "y": 0.44,
+            "width": 0.38,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 192.0,
+            "y": 550.8,
+            "width": 729.6,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "DOCUMENTO CA12345AA",
+          "confidence": 0.92,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.62,
+            "width": 0.24,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 356.4,
+            "width": 460.8,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "DATA DI NASCITA 15/08/1990",
+          "confidence": 0.91,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.54,
+            "width": 0.28,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 442.8,
+            "width": 537.6,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "LUOGO DI NASCITA ROMA",
+          "confidence": 0.9,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.46,
+            "width": 0.26,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 529.2,
+            "width": 499.2,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "SESSO M",
+          "confidence": 0.89,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.38,
+            "width": 0.12,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 615.6,
+            "width": 230.4,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "CITTADINANZA ITA",
+          "confidence": 0.9,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.22,
+            "width": 0.22,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 788.4,
+            "width": 422.4,
+            "height": 54.0
+          }
+        },
+        {
+          "text": "SCADENZA 15/08/2030",
+          "confidence": 0.9,
+          "boundingBox": {
+            "x": 0.56,
+            "y": 0.3,
+            "width": 0.25,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 1075.2,
+            "y": 702.0,
+            "width": 480.0,
+            "height": 54.0
+          }
+        }
+      ],
+      "expected": {
+        "documentType": "CIE_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIO",
+        "codiceFiscale": "RSSMRA90M15H501Y",
+        "documentNumber": "CA12345AA",
+        "dateOfBirth": "15/08/1990",
+        "placeOfBirth": "ROMA",
+        "gender": "M",
+        "expiryDate": "15/08/2030",
+        "nationality": "ITA",
+        "cardNumber": null
+      },
+      "observedBarcodes": [
+
+      ]
     },
     {
       "name": "continuity-partial-card-reject",
       "image": "continuity/partial-card.png",
       "expect": "reject",
       "quality": "ignore",
+      "ocrProvider": "vision",
       "captureSource": "continuity",
       "documentSide": "negative",
-      "condition": "partial-frame"
+      "condition": "partial-frame",
+      "matrixTarget": "reject continuity negative partial-frame",
+      "orientation": {
+        "ocrVisionOrientation": "down",
+        "snapshotDisplayOrientation": "left",
+        "basePreviewRotationAngle": 180,
+        "scanPreviewRotationAngle": 270,
+        "baseCaptureRotationAngle": 180,
+        "scanCaptureRotationAngle": 270,
+        "rawImageWidth": 1080,
+        "rawImageHeight": 1920,
+        "imageWidth": 1920,
+        "imageHeight": 1080
+      },
+      "diagnostics": {
+        "frameQuality": "usable (sharpness 10.50, glare 0.000, dark 0.000, mean 176.0)",
+        "canCapture": false,
+        "canGuideLiveScan": false,
+        "score": 4,
+        "markerCount": 1,
+        "itemCount": 1,
+        "missingFrontNames": false,
+        "reasons": [
+          "missingIdentifier",
+          "implausibleLayout"
+        ],
+        "frameQualityMetrics": {
+          "sharpness": 10.5,
+          "glareRatio": 0.0,
+          "darkRatio": 0.0,
+          "meanLuma": 176.0,
+          "usable": true,
+          "failureReasons": [
+
+          ]
+        }
+      },
+      "observed": {
+        "documentType": "UNKNOWN",
+        "surname": null,
+        "name": null,
+        "codiceFiscale": null,
+        "documentNumber": null,
+        "dateOfBirth": null,
+        "placeOfBirth": null,
+        "gender": null,
+        "expiryDate": null,
+        "nationality": null,
+        "cardNumber": null
+      },
+      "observedItems": [
+        {
+          "text": "TESSERA SANITARIA",
+          "confidence": 0.71,
+          "boundingBox": {
+            "x": 0.64,
+            "y": 0.18,
+            "width": 0.24,
+            "height": 0.06
+          },
+          "imageBounds": {
+            "x": 1228.8,
+            "y": 820.8,
+            "width": 460.8,
+            "height": 64.8
+          }
+        }
+      ],
+      "observedBarcodes": [
+
+      ]
     },
     {
       "name": "continuity-glare-reject",
       "image": "continuity/glare.png",
       "expect": "reject",
       "quality": "unusable",
+      "ocrProvider": "vision",
       "captureSource": "continuity",
       "documentSide": "negative",
-      "condition": "glare"
+      "condition": "glare",
+      "matrixTarget": "reject continuity negative glare",
+      "orientation": {
+        "ocrVisionOrientation": "down",
+        "snapshotDisplayOrientation": "left",
+        "basePreviewRotationAngle": 180,
+        "scanPreviewRotationAngle": 270,
+        "baseCaptureRotationAngle": 180,
+        "scanCaptureRotationAngle": 270,
+        "rawImageWidth": 1080,
+        "rawImageHeight": 1920,
+        "imageWidth": 1920,
+        "imageHeight": 1080
+      },
+      "diagnostics": {
+        "frameQuality": "unusable (sharpness 7.20, glare 0.210, dark 0.000, mean 221.0; glare)",
+        "canCapture": false,
+        "canGuideLiveScan": false,
+        "score": 0,
+        "markerCount": 0,
+        "itemCount": 1,
+        "missingFrontNames": false,
+        "reasons": [
+          "unusableFrameQuality"
+        ],
+        "frameQualityMetrics": {
+          "sharpness": 7.2,
+          "glareRatio": 0.21,
+          "darkRatio": 0.0,
+          "meanLuma": 221.0,
+          "usable": false,
+          "failureReasons": [
+            "glare"
+          ]
+        }
+      },
+      "observed": {
+        "documentType": "UNKNOWN",
+        "surname": null,
+        "name": null,
+        "codiceFiscale": null,
+        "documentNumber": null,
+        "dateOfBirth": null,
+        "placeOfBirth": null,
+        "gender": null,
+        "expiryDate": null,
+        "nationality": null,
+        "cardNumber": null
+      },
+      "observedItems": [
+        {
+          "text": "REPUBBLICA ITALIANA",
+          "confidence": 0.42,
+          "boundingBox": {
+            "x": 0.21,
+            "y": 0.71,
+            "width": 0.28,
+            "height": 0.05
+          },
+          "imageBounds": {
+            "x": 403.2,
+            "y": 259.2,
+            "width": 537.6,
+            "height": 54.0
+          }
+        }
+      ],
+      "observedBarcodes": [
+
+      ]
     }
   ]
 }

@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+app/coverage
 
 # next.js
 /.next/
@@ -41,6 +42,7 @@ app/.genkit
 firebase-debug.log
 
 .gemini/
+.codex/
 gha-creds-*.json
 .github
 app/.gemini-clipboard
@@ -53,3 +55,4 @@ output
 *.app
 macos/ScanID.app
 macos/*.dmg
+exports

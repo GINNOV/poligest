@@ -34,7 +34,6 @@ jobs:
           ./scripts/sync-scanid-vercel-env.sh
 
       - name: Redeploy production
-        working-directory: app
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: team_hdJx31hcSazKyledunhWeXfR
@@ -44,4 +43,5 @@ jobs:
             echo "VERCEL_TOKEN secret not configured — skipping redeploy."
             exit 0
           fi
-          vercel deploy --prod --token "$VERCEL_TOKEN" --yes
+          chmod +x app/scripts/redeploy-vercel-production.sh
+          ./app/scripts/redeploy-vercel-production.sh

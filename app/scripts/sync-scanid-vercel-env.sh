@@ -11,8 +11,12 @@ if ! command -v vercel >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -f "$ROOT/.vercel/project.json" ]]; then
-  echo "Error: app is not linked to Vercel. Run: cd app && vercel link"
+if [[ -f "$ROOT/.vercel/project.json" ]]; then
+  :
+elif [[ -n "${VERCEL_ORG_ID:-}" && -n "${VERCEL_PROJECT_ID:-}" ]]; then
+  export VERCEL_ORG_ID VERCEL_PROJECT_ID
+else
+  echo "Error: link Vercel (cd app && vercel link) or set VERCEL_ORG_ID and VERCEL_PROJECT_ID"
   exit 1
 fi
 

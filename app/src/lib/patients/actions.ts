@@ -1,5 +1,6 @@
 export {
   updatePatientAction,
+  updatePaperConsentAction,
   uploadPhotoAction,
   resetPhotoAction,
   sendPatientSmsAction,

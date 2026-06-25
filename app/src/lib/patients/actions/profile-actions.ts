@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { sendSms } from "@/lib/sms";
 import { getStackSignInUrl } from "@/lib/stack-app";
+import { withPaperConsentNote } from "@/lib/patients/paper-consent";
 import { isRedirectError, resolveSiteOrigin, withParam } from "@/lib/utils";
 
 const STAFF_ROLES = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY] as const;
@@ -339,4 +340,43 @@ Email: studio.agovino.agrisano@gmail.com`;
     const message = err instanceof Error ? err.message : "Impossibile inviare l'email.";
     redirect(`/pazienti/${patientId || ""}?accessError=${encodeURIComponent(message)}`);
   }
+}
+
+export async function updatePaperConsentAction(formData: FormData) {
+  const user = await requireUser([...STAFF_ROLES]);
+  const patientId = (formData.get("patientId") as string) || "";
+  const hasPaperConsentForRequired = formData.get("hasPaperConsentForRequired") === "on";
+
+  if (!patientId) {
+    throw new Error("Paziente non valido");
+  }
+
+  const existing = await prisma.patient.findUnique({
+    where: { id: patientId },
+    select: { notes: true, firstName: true, lastName: true },
+  });
+  if (!existing) {
+    throw new Error("Paziente non trovato");
+  }
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      hasPaperConsentForRequired,
+      notes: withPaperConsentNote(existing.notes, hasPaperConsentForRequired),
+    },
+  });
+
+  await logAudit(user, {
+    action: "patient.paper_consent_updated",
+    entity: "Patient",
+    entityId: patientId,
+    metadata: {
+      patientName: `${existing.lastName} ${existing.firstName}`,
+      hasPaperConsentForRequired,
+    },
+  });
+
+  revalidatePath(`/pazienti/${patientId}`);
+  revalidatePath("/pazienti/lista");
 }

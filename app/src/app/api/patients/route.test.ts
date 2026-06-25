@@ -102,7 +102,8 @@ describe("POST /api/patients", () => {
         phone: null,
         birthDate: expect.any(Date),
         gender: "MALE",
-        notes: "Some notes",
+        notes: "Some notes\nATTENZIONE: Firma acquisita su supporto cartaceo per i moduli obbligatori.",
+        hasPaperConsentForRequired: true,
       },
     });
     expect(mocks.logMacosScanAudit).toHaveBeenCalledWith({
@@ -110,6 +111,39 @@ describe("POST /api/patients", () => {
       patientId: "new-patient-id",
       metadata: {
         patientName: "Rossi Mario",
+      },
+    });
+  });
+
+  it("can disable paper consent when explicitly requested", async () => {
+    mocks.prisma.patient.create.mockResolvedValue({ id: "new-patient-id" });
+
+    const req = new Request("http://localhost/api/patients", {
+      method: "POST",
+      headers: {
+        "x-api-key": "test_secret_token",
+      },
+      body: JSON.stringify({
+        firstName: "Mario",
+        lastName: "Rossi",
+        notes: "Some notes",
+        hasPaperConsentForRequired: false,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    expect(mocks.prisma.patient.create).toHaveBeenCalledWith({
+      data: {
+        firstName: "Mario",
+        lastName: "Rossi",
+        email: null,
+        phone: null,
+        birthDate: null,
+        gender: "NOT_SPECIFIED",
+        notes: "Some notes",
+        hasPaperConsentForRequired: false,
       },
     });
   });

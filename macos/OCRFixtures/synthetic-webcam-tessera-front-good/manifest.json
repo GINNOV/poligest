@@ -1,0 +1,218 @@
+{
+  "fixtures": [
+    {
+      "name": "synthetic-webcam-tessera-front-good",
+      "image": "capture.png",
+      "expect": "accept",
+      "quality": "usable",
+      "ocrProvider": "vision",
+      "captureSource": "webcam",
+      "documentSide": "tessera_front",
+      "condition": "good",
+      "matrixTarget": "accept webcam tessera_front good",
+      "orientation": {
+        "ocrVisionOrientation": "up",
+        "snapshotDisplayOrientation": "up",
+        "basePreviewRotationAngle": 0,
+        "scanPreviewRotationAngle": 0,
+        "baseCaptureRotationAngle": 0,
+        "scanCaptureRotationAngle": 0,
+        "rawImageWidth": 1400,
+        "rawImageHeight": 880,
+        "imageWidth": 1400,
+        "imageHeight": 880
+      },
+      "diagnostics": {
+        "frameQuality": "usable (sharpness 15.17, glare 0.000, dark 0.042, mean 196.6)",
+        "frameQualityMetrics": {
+          "sharpness": 15.166436145689257,
+          "glareRatio": 0,
+          "darkRatio": 0.04181818181818182,
+          "meanLuma": 196.58963636363637,
+          "usable": true,
+          "failureReasons": []
+        },
+        "canCapture": true,
+        "canGuideLiveScan": true,
+        "score": 31,
+        "markerCount": 8,
+        "itemCount": 9,
+        "missingFrontNames": false,
+        "reasons": []
+      },
+      "observed": {
+        "documentType": "TESSERA_SANITARIA_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIA",
+        "codiceFiscale": "RSSMRA95T64F205W",
+        "documentNumber": null,
+        "dateOfBirth": "24/12/1995",
+        "placeOfBirth": "MILANO",
+        "gender": "F",
+        "expiryDate": "24/12/2029",
+        "nationality": null,
+        "cardNumber": null
+      },
+      "observedItems": [
+        {
+          "boundingBox": {
+            "height": 0.04659090909090913,
+            "width": 0.35319767543247765,
+            "x": 0.06540697806622242,
+            "y": 0.868181817736839
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 41.00000000000003,
+            "width": 494.4767456054687,
+            "x": 91.56976929271138,
+            "y": 75.00000039158165
+          },
+          "text": "REPUBBLICA ITALIANA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0420454545454545,
+            "width": 0.5188953508649554,
+            "x": 0.06540697789237697,
+            "y": 0.7920454555719543
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.99999999999996,
+            "width": 726.4534912109376,
+            "x": 91.56976904932776,
+            "y": 145.99999909668028
+          },
+          "text": "SERVIZIO SANITARIO NAZIONALE"
+        },
+        {
+          "boundingBox": {
+            "height": 0.04212943423878068,
+            "width": 0.3168604605538504,
+            "x": 0.06540698115718328,
+            "y": 0.7090069284404747
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 37.073902130127,
+            "width": 443.60464477539057,
+            "x": 91.5697736200566,
+            "y": 219.00000084225522
+          },
+          "text": "TESSERA SANITARIA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.041570438038219026,
+            "width": 0.24127905709402903,
+            "x": 0.06540698442133171,
+            "y": 0.6281755201392174
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.58198547363274,
+            "width": 337.7906799316406,
+            "x": 91.5697781898644,
+            "y": 290.62355680385593
+          },
+          "text": "COGNOME ROSSI"
+        },
+        {
+          "boundingBox": {
+            "height": 0.04157043803821914,
+            "width": 0.1860465131487165,
+            "x": 0.06540697675897507,
+            "y": 0.5473441113504054
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.58198547363284,
+            "width": 260.4651184082031,
+            "x": 91.5697674625651,
+            "y": 361.7551965380104
+          },
+          "text": "NOME MARIA"
+        },
+        {
+          "boundingBox": {
+            "height": 0.04675624587319105,
+            "width": 0.48255811418805805,
+            "x": 0.06540698700480829,
+            "y": 0.46363636422861887
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 41.145496368408125,
+            "width": 675.5813598632812,
+            "x": 91.56978180673161,
+            "y": 430.8545031104073
+          },
+          "text": "DATA DI NASCITA 24/12/1995"
+        },
+        {
+          "boundingBox": {
+            "height": 0.03977272727272729,
+            "width": 0.4258721051897321,
+            "x": 0.06686046096882307,
+            "y": 0.3852272737587781
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 35.000000000000014,
+            "width": 596.220947265625,
+            "x": 93.60464535635231,
+            "y": 505.9999990922753
+          },
+          "text": "LUOGO DI NASCITA MILANO"
+        },
+        {
+          "boundingBox": {
+            "height": 0.0420454545454545,
+            "width": 0.5755814034598215,
+            "x": 0.06540697508694973,
+            "y": 0.30227272632199964
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 36.99999999999996,
+            "width": 805.81396484375,
+            "x": 91.56976512172962,
+            "y": 577.0000008366403
+          },
+          "text": "CODICE FISCALE RSSMRA95T64F205W"
+        },
+        {
+          "boundingBox": {
+            "height": 0.04431818181818181,
+            "width": 0.3531976754324777,
+            "x": 0.06540697800323787,
+            "y": 0.2193181810642102
+          },
+          "confidence": 1,
+          "imageBounds": {
+            "height": 38.99999999999999,
+            "width": 494.4767456054688,
+            "x": 91.56976920453302,
+            "y": 648.000000663495
+          },
+          "text": "SCADENZA 24/12/2029"
+        }
+      ],
+      "observedBarcodes": [],
+      "expected": {
+        "documentType": "TESSERA_SANITARIA_FRONT",
+        "surname": "ROSSI",
+        "name": "MARIA",
+        "codiceFiscale": "RSSMRA95T64F205W",
+        "documentNumber": null,
+        "dateOfBirth": "24/12/1995",
+        "placeOfBirth": "MILANO",
+        "gender": "F",
+        "expiryDate": "24/12/2029",
+        "nationality": null,
+        "cardNumber": null
+      }
+    }
+  ]
+}

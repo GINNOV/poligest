@@ -77,6 +77,10 @@ vi.mock("@/components/consent-form", () => ({
   ConsentForm: () => null,
 }));
 
+vi.mock("@/components/patient-paper-consent-toggle", () => ({
+  PatientPaperConsentToggle: () => null,
+}));
+
 vi.mock("@/components/unsaved-changes-guard", () => ({
   UnsavedChangesGuard: () => null,
 }));
