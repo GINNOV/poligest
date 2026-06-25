@@ -52,6 +52,7 @@ enum NotificationChannel {
   EMAIL
   SMS
   BOTH
+  WHATSAPP
 }
 
 enum PracticeClosureType {
@@ -698,7 +699,7 @@ model RecallRule {
   templateName String?
   message      String?
   emailSubject String?
-  channel      NotificationChannel @default(EMAIL)
+  channel      NotificationChannel @default(WHATSAPP)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
@@ -725,7 +726,7 @@ model Recall {
 model AppointmentReminderRule {
   id           String              @id @default(cuid())
   daysBefore   Int
-  channel      NotificationChannel @default(EMAIL)
+  channel      NotificationChannel @default(WHATSAPP)
   templateName String?
   emailSubject String?
   message      String?

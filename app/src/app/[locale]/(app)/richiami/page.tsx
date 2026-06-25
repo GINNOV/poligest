@@ -15,16 +15,17 @@ const TILES = [
   {
     key: "regole",
     title: "Regole automatiche",
-    description: "Richiami ricorrenti per servizio + promemoria appuntamenti.",
+    description:
+      "Dopo una prestazione completata, invia automaticamente un messaggio WhatsApp per richiamare il paziente a prenotare.",
     href: "/richiami/regole",
     tone: "primary",
     image: "/tiles/auto_rules.png",
   },
   {
-    key: "manuale",
-    title: "Promemoria manuali",
-    description: "Invia notifiche rapide per appuntamenti o eventi speciali.",
-    href: "/richiami/manuale",
+    key: "programmati",
+    title: "Richiami in coda",
+    description: "Monitora i richiami generati dalle regole e quelli programmati manualmente.",
+    href: "/richiami/programmati",
     tone: "neutral",
     image: "/tiles/manuale_reminders.png",
   },
@@ -49,10 +50,10 @@ export default async function RichiamiPage() {
   const soon = new Date();
   soon.setDate(soon.getDate() + 30);
 
-  const [rulesCount, upcomingAppointmentsCount, recurringConfigsCount] = await Promise.all([
+  const [rulesCount, pendingRecallsCount, recurringConfigsCount] = await Promise.all([
     prisma.recallRule.count(),
-    prisma.appointment.count({
-      where: { startsAt: { gte: now, lte: soon } },
+    prisma.recall.count({
+      where: { status: "PENDING", dueAt: { gte: now, lte: soon } },
     }),
     prisma.recurringMessageConfig.count(),
   ]);
@@ -61,8 +62,8 @@ export default async function RichiamiPage() {
     if (tile.key === "regole") {
       return { ...tile, badge: `${rulesCount} regole` };
     }
-    if (tile.key === "manuale") {
-      return { ...tile, badge: `${upcomingAppointmentsCount} appuntamenti` };
+    if (tile.key === "programmati") {
+      return { ...tile, badge: `${pendingRecallsCount} in coda` };
     }
     if (tile.key === "ricorrenti") {
       return { ...tile, badge: `${recurringConfigsCount} config.` };
@@ -74,13 +75,13 @@ export default async function RichiamiPage() {
     <div className="space-y-6">
       <div className="rounded-2xl border border-emerald-50 bg-gradient-to-r from-emerald-50 via-white to-white p-6 shadow-sm dark:border-zinc-800 dark:from-emerald-950/40 dark:via-zinc-950 dark:to-zinc-950">
         <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-          Richiami & notifiche
+          Automazione
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
           Centro automazioni
         </h1>
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-          Scegli la sezione per configurare regole, invii manuali e comunicazioni ricorrenti.
+          Configura richiami automatici per prestazione, monitora la coda di invio e gestisci le comunicazioni ricorrenti.
         </p>
       </div>
 

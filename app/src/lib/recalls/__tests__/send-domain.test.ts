@@ -1,4 +1,4 @@
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, NotificationChannel } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   buildAppointmentReminderDeliveryPlan,
@@ -109,7 +109,7 @@ describe("recalls send domain", () => {
         serviceType: "Igiene",
         emailSubject: "Promemoria {{patientName}}",
         message: "Servizio {{serviceType}}",
-        channel: "BOTH",
+        channel: NotificationChannel.BOTH,
       },
       template: null,
     });
@@ -119,6 +119,25 @@ describe("recalls send domain", () => {
       body: "Servizio Igiene",
       wantsEmail: true,
       wantsSms: true,
+      wantsWhatsApp: false,
+    });
+  });
+
+  it("defaults recurring recalls to WhatsApp", () => {
+    const plan = buildRecallDeliveryPlan({
+      patient: { firstName: "Mario", lastName: "Rossi" },
+      rule: {
+        serviceType: "Ablazione tartaro",
+        channel: NotificationChannel.WHATSAPP,
+      },
+      template: null,
+    });
+
+    expect(plan).toMatchObject({
+      wantsEmail: false,
+      wantsSms: false,
+      wantsWhatsApp: true,
+      body: "Ciao Mario, è tempo di prenotare Ablazione tartaro. Contattaci per fissare un appuntamento.",
     });
   });
 

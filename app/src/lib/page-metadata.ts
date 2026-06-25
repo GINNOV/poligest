@@ -15,7 +15,7 @@ export const PAGE_TITLES = {
   cercaDuplicati: "Cerca duplicati",
   richiami: "Richiami",
   regoleAutomatiche: "Regole automatiche",
-  promemoriaManuali: "Promemoria manuali",
+
   comunicazioniRicorrenti: "Comunicazioni ricorrenti",
   richiamiProgrammati: "Richiami programmati",
   magazzino: "Magazzino",

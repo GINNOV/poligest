@@ -5,6 +5,11 @@ import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { NotificationChannel, Role } from "@prisma/client";
+import {
+  DEFAULT_NOTIFICATION_CHANNEL,
+  NOTIFICATION_CHANNEL_OPTIONS,
+} from "@/lib/recalls/channels";
+import { formatNotificationChannel } from "@/lib/recalls/delivery";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -35,7 +40,7 @@ export default async function RichiamiRegolePage() {
   const appointmentReminderDefaults = {
     id: appointmentReminderRule?.id ?? "",
     daysBefore: appointmentReminderRule?.daysBefore ?? 1,
-    channel: appointmentReminderRule?.channel ?? NotificationChannel.EMAIL,
+    channel: appointmentReminderRule?.channel ?? DEFAULT_NOTIFICATION_CHANNEL,
     templateName: reminderRuleExtras?.templateName ?? "appointment-reminder",
     emailSubject: appointmentReminderRule?.emailSubject ?? "",
     message: appointmentReminderRule?.message ?? "",
@@ -58,7 +63,7 @@ export default async function RichiamiRegolePage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Richiami</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Regole automatiche</h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Definisci intervalli per richiami ricorrenti e promemoria appuntamenti.
+            Dopo una prestazione completata, invia automaticamente un messaggio WhatsApp per invitare il paziente a prenotare di nuovo.
           </p>
         </div>
         <Link
@@ -116,25 +121,24 @@ export default async function RichiamiRegolePage() {
               <select
                 name="channel"
                 required
-                defaultValue="EMAIL"
+                defaultValue={DEFAULT_NOTIFICATION_CHANNEL}
                 className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
-                <option value="EMAIL">Email</option>
-                <option value="SMS">SMS</option>
-                <option value="BOTH">Email + SMS</option>
+                {NOTIFICATION_CHANNEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">
               <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Template</span>
               <select
                 name="templateName"
-                required
                 defaultValue=""
                 className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
-                <option value="" disabled>
-                  Seleziona template
-                </option>
+                <option value="">Messaggio predefinito</option>
                 {emailTemplates.map((template) => (
                   <option key={template.id} value={template.name}>
                     {template.description ?? template.name}
@@ -146,7 +150,7 @@ export default async function RichiamiRegolePage() {
               type="submit"
               className="inline-flex w-full items-center justify-center rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 sm:col-span-2"
             >
-              Aggiorna regola automatica
+              Crea regola automatica
             </button>
           </form>
 
@@ -164,7 +168,7 @@ export default async function RichiamiRegolePage() {
                     emailSubject?: string | null;
                     templateName?: string | null;
                   };
-                  const channel = extras.channel ?? "EMAIL";
+                  const channel = extras.channel ?? DEFAULT_NOTIFICATION_CHANNEL;
                   const emailSubject = extras.emailSubject ?? null;
                   const templateName = extras.templateName ?? null;
                   const serviceOptionMissing =
@@ -178,7 +182,7 @@ export default async function RichiamiRegolePage() {
                         <div>
                           <p className="font-semibold text-zinc-900 dark:text-zinc-50">{rule.name}</p>
                           <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                            {formatServiceLabel(rule.serviceType)} · ogni {rule.intervalDays} giorni · {channel}
+                            {formatServiceLabel(rule.serviceType)} · ogni {rule.intervalDays} giorni · {formatNotificationChannel(channel)}
                           </p>
                           {emailSubject ? (
                             <p className="text-[11px] text-zinc-500 dark:text-zinc-500">Oggetto email: {emailSubject}</p>
@@ -235,9 +239,11 @@ export default async function RichiamiRegolePage() {
                             defaultValue={channel}
                             className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
                           >
-                            <option value="EMAIL">Email</option>
-                            <option value="SMS">SMS</option>
-                            <option value="BOTH">Email + SMS</option>
+                            {NOTIFICATION_CHANNEL_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
                           </select>
                         </label>
                         <label className="flex flex-col gap-2 sm:col-span-2">
@@ -367,9 +373,11 @@ export default async function RichiamiRegolePage() {
                 defaultValue={appointmentReminderDefaults.channel}
                 className="h-10 w-full rounded-xl border border-emerald-100 bg-white px-3 text-sm font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
               >
-                <option value="EMAIL">Email</option>
-                <option value="SMS">SMS</option>
-                <option value="BOTH">Email + SMS</option>
+                {NOTIFICATION_CHANNEL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="flex flex-col gap-2 sm:col-span-2">

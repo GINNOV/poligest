@@ -1,4 +1,4 @@
-import { AppointmentStatus, RecallStatus } from "@prisma/client";
+import { AppointmentStatus, NotificationChannel, RecallStatus } from "@prisma/client";
 import { replacePlaceholders } from "@/lib/email-template-utils";
 import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 import { addDaysInTimeZone, formatDateInTimeZone, setTimeOfDayInTimeZone } from "@/lib/time-zone";
@@ -113,11 +113,12 @@ export function shouldSkipAppointmentReminder(
   );
 }
 
-function buildChannelPlan(channel: "EMAIL" | "SMS" | "BOTH" | null | undefined) {
-  const normalized = channel ?? "EMAIL";
+function buildChannelPlan(channel: NotificationChannel | null | undefined) {
+  const normalized = channel ?? NotificationChannel.WHATSAPP;
   return {
-    wantsEmail: normalized === "EMAIL" || normalized === "BOTH",
-    wantsSms: normalized === "SMS" || normalized === "BOTH",
+    wantsEmail: normalized === NotificationChannel.EMAIL || normalized === NotificationChannel.BOTH,
+    wantsSms: normalized === NotificationChannel.SMS || normalized === NotificationChannel.BOTH,
+    wantsWhatsApp: normalized === NotificationChannel.WHATSAPP,
   };
 }
 
@@ -127,14 +128,14 @@ export function buildRecallDeliveryPlan(params: {
     serviceType?: string | null;
     emailSubject?: string | null;
     message?: string | null;
-    channel?: "EMAIL" | "SMS" | "BOTH" | null;
+    channel?: NotificationChannel | null;
   };
   template?: { subject: string | null; body: string | null } | null;
 }) {
   const patientName =
     `${params.patient.lastName ?? ""} ${params.patient.firstName ?? ""}`.trim() || "paziente";
   const serviceLabel =
-    params.rule.serviceType === "ANY" ? "il prossimo controllo" : params.rule.serviceType ?? "";
+    params.rule.serviceType === "ANY" ? "la prossima visita di controllo" : params.rule.serviceType ?? "";
   const placeholderData = {
     patientName,
     patientFirstName: params.patient.firstName ?? "",
@@ -152,7 +153,7 @@ export function buildRecallDeliveryPlan(params: {
     body: replacePlaceholders(
       params.template?.body ??
         params.rule.message ??
-        `Gentile {{patientName}}, promemoria per ${serviceLabel}.`,
+        "Ciao {{patientFirstName}}, è tempo di prenotare {{serviceType}}. Contattaci per fissare un appuntamento.",
       placeholderData,
     ),
   };
@@ -165,7 +166,7 @@ export function buildAppointmentReminderDeliveryPlan(params: {
   rule: {
     emailSubject?: string | null;
     message?: string | null;
-    channel?: "EMAIL" | "SMS" | "BOTH" | null;
+    channel?: NotificationChannel | null;
   };
   template?: { subject: string | null; body: string | null } | null;
 }) {

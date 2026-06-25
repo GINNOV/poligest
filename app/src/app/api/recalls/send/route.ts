@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, RecallStatus } from "@prisma/client";
-import { sendSms } from "@/lib/sms";
-import { sendEmail } from "@/lib/email";
+import { AppointmentStatus, NotificationChannel, RecallStatus } from "@prisma/client";
+import { deliverNotificationPlan } from "@/lib/recalls/delivery";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { errorResponse } from "@/lib/error-response";
 import { autoCompletePastAppointments } from "@/lib/appointments/status-automation";
@@ -157,11 +156,11 @@ export async function GET(req: Request) {
         templateName?: string | null;
         emailSubject?: string | null;
         message?: string | null;
-        channel?: "EMAIL" | "SMS" | "BOTH" | null;
+        channel?: NotificationChannel | null;
       };
       const templateName = rule.templateName ?? null;
       const template = templateName ? await getEmailTemplateByName(templateName) : null;
-      const { subject, body, wantsEmail, wantsSms } = buildRecallDeliveryPlan({
+      const plan = buildRecallDeliveryPlan({
         patient,
         rule,
         template,
@@ -170,32 +169,15 @@ export async function GET(req: Request) {
       let delivered = false;
       let attempted = false;
 
-      if (wantsEmail) {
-        attempted = true;
-        if (patient.email) {
-          try {
-            await sendEmail(patient.email, subject, body);
-            delivered = true;
-          } catch (err) {
-            console.error("[recalls] email failed", { recallId: recall.id, err });
-          }
-        }
-      }
-
-      if (wantsSms) {
-        attempted = true;
-        if (patient.phone) {
-          try {
-            await sendSms({
-              to: patient.phone,
-              body,
-              patientId: recall.patientId,
-            });
-            delivered = true;
-          } catch (err) {
-            console.error("[recalls] sms failed", { recallId: recall.id, err });
-          }
-        }
+      try {
+        const result = await deliverNotificationPlan({
+          patient: { id: recall.patientId, email: patient.email, phone: patient.phone },
+          plan,
+        });
+        delivered = result.delivered;
+        attempted = result.attempted;
+      } catch (err) {
+        console.error("[recalls] delivery failed", { recallId: recall.id, err });
       }
 
       if (attempted) {
@@ -233,7 +215,7 @@ export async function GET(req: Request) {
       const reminderExtras = rule as unknown as { templateName?: string | null };
       const templateName = reminderExtras.templateName ?? "appointment-reminder";
       const template = await getEmailTemplateByName(templateName);
-      const { subject, body, wantsEmail, wantsSms } = buildAppointmentReminderDeliveryPlan({
+      const plan = buildAppointmentReminderDeliveryPlan({
         patient,
         appointment,
         timeZone,
@@ -244,32 +226,15 @@ export async function GET(req: Request) {
       let delivered = false;
       let attempted = false;
 
-      if (wantsEmail) {
-        attempted = true;
-        if (patient.email) {
-          try {
-            await sendEmail(patient.email, subject, body);
-            delivered = true;
-          } catch (err) {
-            console.error("[appointment_reminders] email failed", { reminderId: reminder.id, err });
-          }
-        }
-      }
-
-      if (wantsSms) {
-        attempted = true;
-        if (patient.phone) {
-          try {
-            await sendSms({
-              to: patient.phone,
-              body,
-              patientId: reminder.patientId,
-            });
-            delivered = true;
-          } catch (err) {
-            console.error("[appointment_reminders] sms failed", { reminderId: reminder.id, err });
-          }
-        }
+      try {
+        const result = await deliverNotificationPlan({
+          patient: { id: reminder.patientId, email: patient.email, phone: patient.phone },
+          plan,
+        });
+        delivered = result.delivered;
+        attempted = result.attempted;
+      } catch (err) {
+        console.error("[appointment_reminders] delivery failed", { reminderId: reminder.id, err });
       }
 
       if (attempted) {

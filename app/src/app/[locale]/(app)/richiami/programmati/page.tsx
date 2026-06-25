@@ -186,7 +186,7 @@ export default async function RichiamiProgrammatiPage({
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Programma richiamo manuale</h2>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Programma richiamo</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Crea un singolo richiamo con data di invio. Non avvia una sequenza ricorrente.
           </p>

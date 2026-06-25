@@ -2,7 +2,6 @@ import { Prisma, RecallStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type {
   AppointmentReminderRulePayload,
-  ManualNotificationPayload,
   RecurringMessagePayload,
   RecallRulePayload,
   ScheduledRecallPayload,
@@ -151,74 +150,4 @@ export async function upsertRecurringMessageConfigRecord(payload: RecurringMessa
   });
 }
 
-export async function loadManualNotificationRecipient(payload: ManualNotificationPayload) {
-  if (payload.notificationType === "appointment") {
-    if (!payload.appointmentId) throw new Error("Seleziona un appuntamento.");
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: payload.appointmentId },
-      include: {
-        patient: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
-      },
-    });
-    if (!appointment) throw new Error("Appuntamento non trovato.");
-    return {
-      patient: appointment.patient,
-      eventLabel: appointment.title || "Appuntamento",
-      eventDate: appointment.startsAt,
-      emailSubject: payload.emailSubject || "Promemoria appuntamento",
-      message: payload.message,
-    };
-  }
 
-  if (!payload.patientId) throw new Error("Seleziona un paziente.");
-  const patient = await prisma.patient.findUnique({
-    where: { id: payload.patientId },
-    select: { id: true, firstName: true, lastName: true, email: true, phone: true },
-  });
-  if (!patient) throw new Error("Paziente non trovato.");
-
-  const eventLabel = payload.eventTitle || "Evento";
-  const emailSubject = payload.emailSubject || (payload.eventTitle ? `Promemoria ${payload.eventTitle}` : "Promemoria evento");
-  return {
-    patient,
-    eventLabel,
-    eventDate: payload.eventAt,
-    emailSubject,
-    message: payload.message,
-  };
-}
-
-export function buildManualNotificationMessage(params: {
-  patientFirstName: string | null;
-  patientLastName: string | null;
-  eventLabel: string;
-  eventDate: Date | null;
-  message: string;
-}) {
-  if (params.message) return params.message;
-  if (!params.eventDate) throw new Error("Inserisci un messaggio.");
-  const dateLabel = new Intl.DateTimeFormat("it-IT", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(params.eventDate);
-  const timeLabel = new Intl.DateTimeFormat("it-IT", {
-    timeStyle: "short",
-  }).format(params.eventDate);
-  const name = `${params.patientLastName ?? ""} ${params.patientFirstName ?? ""}`.trim() || "paziente";
-  return `Gentile ${name}, promemoria: ${params.eventLabel} il ${dateLabel} alle ${timeLabel}.`;
-}
-
-export async function buildManualNotificationContext(payload: ManualNotificationPayload) {
-  const recipient = await loadManualNotificationRecipient(payload);
-  if (payload.notificationType === "appointment") {
-    return recipient;
-  }
-
-  if (!recipient.message && (!payload.eventTitle || !recipient.eventDate)) {
-    throw new Error("Inserisci un messaggio o i dettagli dell'evento.");
-  }
-
-  return recipient;
-}

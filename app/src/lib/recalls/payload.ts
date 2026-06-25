@@ -1,10 +1,9 @@
 import { NotificationChannel } from "@prisma/client";
+import { DEFAULT_NOTIFICATION_CHANNEL } from "@/lib/recalls/channels";
 import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
 
 export type AppointmentReminderTimingType = "DAYS_BEFORE" | "SAME_DAY_TIME";
-export type ManualNotificationType = "appointment" | "event";
-
 export type RecallRulePayload = {
   name: string;
   serviceType: string;
@@ -42,18 +41,6 @@ export type RecurringMessagePayload = {
   daysBefore: number | null;
 };
 
-export type ManualNotificationPayload = {
-  notificationType: ManualNotificationType;
-  channel: "EMAIL" | "SMS" | "BOTH";
-  message: string;
-  emailSubject: string;
-  returnTo: string;
-  appointmentId: string | null;
-  patientId: string | null;
-  eventTitle: string;
-  eventAt: Date | null;
-};
-
 function parseTrimmedString(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -64,14 +51,10 @@ function parseOptionalTrimmedString(value: FormDataEntryValue | null): string | 
 }
 
 function parseNotificationChannel(value: string | null): NotificationChannel {
-  const raw = value || NotificationChannel.EMAIL;
+  const raw = value || DEFAULT_NOTIFICATION_CHANNEL;
   return Object.values(NotificationChannel).includes(raw as NotificationChannel)
     ? (raw as NotificationChannel)
-    : NotificationChannel.EMAIL;
-}
-
-function parseManualChannel(value: string | null): ManualNotificationPayload["channel"] {
-  return value === "SMS" || value === "BOTH" ? value : "EMAIL";
+    : DEFAULT_NOTIFICATION_CHANNEL;
 }
 
 export function parseCreateRecallRulePayload(formData: FormData): RecallRulePayload {
@@ -173,28 +156,4 @@ export function parseRecurringMessagePayload(formData: FormData): RecurringMessa
   return { kind, subject, body, enabled, daysBefore };
 }
 
-export function parseManualNotificationPayload(formData: FormData): ManualNotificationPayload {
-  const notificationType =
-    parseTrimmedString(formData.get("notificationType")) === "event" ? "event" : "appointment";
-  const channel = parseManualChannel(parseTrimmedString(formData.get("channel")));
-  const message = parseTrimmedString(formData.get("message"));
-  const emailSubject = parseTrimmedString(formData.get("emailSubject"));
-  const returnTo = parseTrimmedString(formData.get("returnTo")) || "/richiami/manuale";
-  const appointmentId = parseOptionalTrimmedString(formData.get("appointmentId"));
-  const patientId = parseOptionalTrimmedString(formData.get("patientId"));
-  const eventTitle = parseTrimmedString(formData.get("eventTitle"));
-  const eventAtRaw = parseOptionalTrimmedString(formData.get("eventAt"));
-  const eventAt = eventAtRaw ? new Date(eventAtRaw) : null;
 
-  return {
-    notificationType,
-    channel,
-    message,
-    emailSubject,
-    returnTo,
-    appointmentId,
-    patientId,
-    eventTitle,
-    eventAt: eventAt && !Number.isNaN(eventAt.getTime()) ? eventAt : null,
-  };
-}

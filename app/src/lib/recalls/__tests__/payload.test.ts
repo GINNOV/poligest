@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   parseAppointmentReminderRulePayload,
   parseCreateRecallRulePayload,
-  parseManualNotificationPayload,
   parseRecurringMessagePayload,
   parseScheduledRecallPayload,
   parseUpdateRecallRulePayload,
@@ -32,7 +31,7 @@ describe("recalls payload", () => {
       name: "Igiene",
       serviceType: "Pulizia",
       intervalDays: 180,
-      channel: NotificationChannel.EMAIL,
+      channel: NotificationChannel.WHATSAPP,
     });
   });
 
@@ -48,9 +47,10 @@ describe("recalls payload", () => {
 
     expect(payload.timeOfDayMinutes).toBe(570);
     expect(payload.enabled).toBe(true);
+    expect(payload.channel).toBe(NotificationChannel.WHATSAPP);
   });
 
-  it("parses scheduled recall and manual notification payloads", () => {
+  it("parses scheduled recall payloads", () => {
     const scheduled = parseScheduledRecallPayload(
       makeFormData([
         ["patientId", "patient-1"],
@@ -58,22 +58,9 @@ describe("recalls payload", () => {
         ["dueAt", "2026-03-25T10:00"],
       ]),
     );
-    const manual = parseManualNotificationPayload(
-      makeFormData([
-        ["notificationType", "event"],
-        ["channel", "BOTH"],
-        ["message", "Promemoria"],
-        ["emailSubject", "Avviso"],
-        ["returnTo", "/richiami/manuale"],
-        ["eventTitle", "Controllo"],
-        ["eventAt", "2026-03-25T10:00:00.000Z"],
-      ]),
-    );
 
     expect(scheduled.patientId).toBe("patient-1");
     expect(scheduled.dueAt.toISOString()).toBe("2026-03-25T09:00:00.000Z");
-    expect(manual.notificationType).toBe("event");
-    expect(manual.channel).toBe("BOTH");
   });
 
   it("parses recurring message payloads and rejects invalid kinds", () => {
