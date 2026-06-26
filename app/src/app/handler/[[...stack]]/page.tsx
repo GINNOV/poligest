@@ -65,9 +65,6 @@ export default async function StackAuthHandlerPage(props: {
     <StackProvider app={stackServerApp} lang="it-IT">
       <StackAuthHandlerShell
         isStaff={isStaff}
-        app={stackServerApp}
-        params={params}
-        searchParams={searchParams}
         version={version}
         deployedAt={deployedAt}
         displayTimeZone={displayTimeZone}

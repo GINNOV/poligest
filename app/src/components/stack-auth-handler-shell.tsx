@@ -1,9 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { StackHandler, StackTheme } from "@stackframe/stack";
-import type { StackServerApp } from "@stackframe/stack";
+import { StackTheme } from "@stackframe/stack";
+import { StackAuthHandlerContent } from "@/components/stack-auth-handler-content";
 import { SiteFooter } from "@/components/site-footer";
 import { getStackAuthTheme } from "@/lib/stack-auth-theme";
+import { getStackSignInUrl } from "@/lib/stack-app";
+
+function withParam(url: string, key: string, value: string) {
+  const hasQuery = url.includes("?");
+  const separator = hasQuery ? "&" : "?";
+  return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}
 
 const STAFF_FEATURES = [
   "Gestisci agenda, disponibilità e richiami dei pazienti.",
@@ -19,9 +26,6 @@ const PATIENT_FEATURES = [
 
 type StackAuthHandlerShellProps = {
   isStaff: boolean;
-  app: StackServerApp;
-  params: { stack?: string[] };
-  searchParams: Record<string, string | undefined>;
   version: string;
   deployedAt: Date | null;
   displayTimeZone: string;
@@ -29,15 +33,13 @@ type StackAuthHandlerShellProps = {
 
 export function StackAuthHandlerShell({
   isStaff,
-  app,
-  params,
-  searchParams,
   version,
   deployedAt,
   displayTimeZone,
 }: StackAuthHandlerShellProps) {
   const features = isStaff ? STAFF_FEATURES : PATIENT_FEATURES;
   const stackTheme = getStackAuthTheme(isStaff);
+  const staffSignInUrl = withParam(getStackSignInUrl(), "audience", "staff");
 
   return (
     <>
@@ -168,7 +170,7 @@ export function StackAuthHandlerShell({
                   </div>
 
                   <div className={isStaff ? "stack-auth-surface stack-auth-surface--staff" : "stack-auth-surface"}>
-                    <StackHandler fullPage={false} app={app} params={params} searchParams={searchParams} />
+                    <StackAuthHandlerContent isStaff={isStaff} />
                   </div>
 
                   <p className={isStaff ? "text-xs text-slate-500" : "text-xs text-zinc-500 dark:text-slate-400"}>
@@ -235,7 +237,13 @@ export function StackAuthHandlerShell({
         </main>
 
         <div className={isStaff ? "[&_footer]:border-slate-800 [&_footer]:bg-slate-950/90 [&_footer]:text-slate-400 [&_footer_a]:text-cyan-300 [&_footer_span]:text-slate-300" : ""}>
-          <SiteFooter version={version} deployedAt={deployedAt} displayTimeZone={displayTimeZone} />
+          <SiteFooter
+            version={version}
+            deployedAt={deployedAt}
+            displayTimeZone={displayTimeZone}
+            staffSignInUrl={isStaff ? undefined : staffSignInUrl}
+            staffLinkTone={isStaff ? "dark" : "patient"}
+          />
         </div>
       </div>
     </>

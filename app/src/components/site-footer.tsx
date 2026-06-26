@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StaffAccessLink } from "@/components/staff-access-link";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
 
 export function SiteFooter({
@@ -6,11 +7,15 @@ export function SiteFooter({
   deployedAt,
   displayTimeZone,
   showDocs = false,
+  staffSignInUrl,
+  staffLinkTone = "app",
 }: {
   version: string;
   deployedAt?: Date | null;
   displayTimeZone: string;
   showDocs?: boolean;
+  staffSignInUrl?: string;
+  staffLinkTone?: "patient" | "dark" | "app";
 }) {
   const deployLabel = deployedAt
     ? formatDateInDisplayTimeZone(
@@ -29,7 +34,11 @@ export function SiteFooter({
           (C) 2026 Garage Innovation LLC · v{version}
           {deployLabel ? ` · Aggiornato a ${deployLabel}` : ""}
         </span>
-        <div className="flex items-center gap-4 text-emerald-700 dark:text-emerald-300">
+        <div className="flex flex-col items-stretch gap-3 sm:items-end">
+          {staffSignInUrl ? (
+            <StaffAccessLink href={staffSignInUrl} tone={staffLinkTone} className="w-full sm:w-auto" />
+          ) : null}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-emerald-700 dark:text-emerald-300 sm:justify-end">
           {showDocs ? (
             <Link href="/docs" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800 dark:decoration-emerald-800 dark:hover:text-emerald-200">
               Manuale
@@ -41,6 +50,7 @@ export function SiteFooter({
           <Link href="/terms" className="underline decoration-emerald-200 underline-offset-4 hover:text-emerald-800 dark:decoration-emerald-800 dark:hover:text-emerald-200">
             Termini
           </Link>
+          </div>
         </div>
       </div>
     </footer>
