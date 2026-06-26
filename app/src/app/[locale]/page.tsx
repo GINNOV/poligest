@@ -83,19 +83,6 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-900 shadow-sm backdrop-blur sm:rounded-3xl sm:px-5 sm:py-4 sm:text-base">
-          <p className="text-sm font-semibold sm:text-base">Serve aiuto?</p>
-          <p className="mt-1 text-sm leading-relaxed text-emerald-800 sm:text-base">
-            <a
-              href="mailto:studio.agovino.angrisano@gmail.com"
-              className="font-semibold underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-900"
-            >
-              Scrivi
-            </a>{" "}
-            alla segreteria: ti invieremo un nuovo codice o ti guideremo nell&apos;accesso.
-          </p>
-        </section>
-
         <footer className="flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-white/80 px-4 py-4 text-sm text-zinc-600 shadow-sm backdrop-blur sm:px-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-center text-xs sm:text-left sm:text-sm">© Garage Innovation LLC — Version: {getAppVersion()}</span>

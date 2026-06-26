@@ -36,16 +36,31 @@ export function HomeFeaturesAccordion() {
         </span>
       </summary>
 
-      <div className="grid gap-3 border-t border-emerald-100 px-4 pb-4 pt-3 sm:grid-cols-2 sm:px-5 sm:pb-5">
-        {FEATURES.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-4 text-left shadow-[0_12px_40px_-24px_rgba(16,185,129,0.35)]"
-          >
-            <p className="text-sm font-semibold text-emerald-900">{item.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-emerald-800">{item.desc}</p>
-          </div>
-        ))}
+      <div className="space-y-3 border-t border-emerald-100 px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {FEATURES.map((item) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-4 text-left shadow-[0_12px_40px_-24px_rgba(16,185,129,0.35)]"
+            >
+              <p className="text-sm font-semibold text-emerald-900">{item.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-emerald-800">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-emerald-100 bg-white/80 px-4 py-3 text-sm text-emerald-900 sm:py-4 sm:text-base">
+          <p className="text-sm font-semibold sm:text-base">Serve aiuto?</p>
+          <p className="mt-1 text-sm leading-relaxed text-emerald-800 sm:text-base">
+            <a
+              href="mailto:studio.agovino.angrisano@gmail.com"
+              className="font-semibold underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-900"
+            >
+              Scrivi
+            </a>{" "}
+            alla segreteria: ti invieremo un nuovo codice o ti guideremo nell&apos;accesso.
+          </p>
+        </div>
       </div>
     </details>
   );
