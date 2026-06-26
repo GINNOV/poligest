@@ -12,18 +12,6 @@ function withParam(url: string, key: string, value: string) {
   return `${url}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
 }
 
-const STAFF_FEATURES = [
-  "Gestisci agenda, disponibilità e richiami dei pazienti.",
-  "Consulta anagrafiche, note cliniche e comunicazioni interne.",
-  "Accedi a magazzino, finanza e report per la direzione.",
-] as const;
-
-const PATIENT_FEATURES = [
-  "Prenota e gestisci gli appuntamenti con il tuo dentista.",
-  "Consulta documenti clinici e comunicazioni dello studio.",
-  "Ricevi notifiche e promemoria importanti.",
-] as const;
-
 type StackAuthHandlerShellProps = {
   isStaff: boolean;
   version: string;
@@ -37,7 +25,6 @@ export function StackAuthHandlerShell({
   deployedAt,
   displayTimeZone,
 }: StackAuthHandlerShellProps) {
-  const features = isStaff ? STAFF_FEATURES : PATIENT_FEATURES;
   const stackTheme = getStackAuthTheme(isStaff);
   const staffSignInUrl = withParam(getStackSignInUrl(), "audience", "staff");
 
@@ -66,7 +53,7 @@ export function StackAuthHandlerShell({
         </div>
 
         <main className="relative flex flex-1 flex-col px-4 py-8 sm:px-6 sm:py-12">
-          <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 lg:gap-10">
+          <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 lg:gap-10">
             <header
               className={
                 isStaff
@@ -125,7 +112,7 @@ export function StackAuthHandlerShell({
               </Link>
             </header>
 
-            <section className="grid flex-1 grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.05fr),minmax(0,0.95fr)] lg:gap-8">
+            <section className="flex-1">
               <div
                 className={
                   isStaff
@@ -180,58 +167,6 @@ export function StackAuthHandlerShell({
                   </p>
                 </div>
               </div>
-
-              <aside
-                className={
-                  isStaff
-                    ? "space-y-4 rounded-3xl border border-slate-800 bg-slate-900/85 p-6 shadow-[0_18px_50px_-28px_rgba(8,145,178,0.35)] backdrop-blur sm:p-8"
-                    : "space-y-4 rounded-3xl border border-emerald-100 bg-white/90 p-6 shadow-[0_18px_50px_-28px_rgba(16,185,129,0.35)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 sm:p-8"
-                }
-              >
-                <h2
-                  className={
-                    isStaff
-                      ? "text-lg font-semibold text-white"
-                      : "text-lg font-semibold text-zinc-900 dark:text-white"
-                  }
-                >
-                  {isStaff ? "Operazioni rapide" : "Cosa puoi fare qui"}
-                </h2>
-                <ul
-                  className={
-                    isStaff ? "space-y-3 text-sm text-slate-300" : "space-y-3 text-sm text-zinc-600 dark:text-slate-300"
-                  }
-                >
-                  {features.map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <span
-                        className={
-                          isStaff
-                            ? "mt-1.5 h-2 w-2 shrink-0 rounded-full bg-cyan-400"
-                            : "mt-1.5 h-2 w-2 shrink-0 rounded-full bg-emerald-500"
-                        }
-                      />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div
-                  className={
-                    isStaff
-                      ? "rounded-xl border border-slate-800 bg-slate-950/50 px-4 py-3 text-sm"
-                      : "rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-950/50"
-                  }
-                >
-                  <p className={isStaff ? "font-semibold text-cyan-200" : "font-semibold text-emerald-900 dark:text-emerald-200"}>
-                    Assistenza
-                  </p>
-                  <p className={isStaff ? "mt-1 text-slate-400" : "mt-1 text-emerald-800 dark:text-slate-400"}>
-                    {isStaff
-                      ? "Contatta l'amministratore se l'accesso è bloccato o se devi aggiornare i permessi."
-                      : "Problemi con l'accesso? Contatta la segreteria: ti aiuteremo subito."}
-                  </p>
-                </div>
-              </aside>
             </section>
           </div>
         </main>
