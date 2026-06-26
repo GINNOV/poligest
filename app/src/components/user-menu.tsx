@@ -46,6 +46,7 @@ type Props = {
   practiceTimeZone?: PracticeTimeZone;
   displayTimeZone?: string;
   canManagePracticeTimeZone?: boolean;
+  isStaff?: boolean;
 };
 
 export function UserMenu({
@@ -61,6 +62,7 @@ export function UserMenu({
   practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   displayTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
   canManagePracticeTimeZone = false,
+  isStaff = true,
 }: Props) {
   const router = useRouter();
   const initialHomeScreen =
@@ -295,12 +297,19 @@ export function UserMenu({
                     </button>
                   </div>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    Modifica le preferenze per adattare Poligest al tuo flusso di lavoro.
+                    {isStaff
+                      ? "Modifica le preferenze per adattare Poligest al tuo flusso di lavoro."
+                      : "Personalizza l'aspetto e il fuso orario del tuo spazio pazienti."}
                   </p>
                 </div>
 
-                <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-6 lg:grid-cols-2">
-                  {/* Navigazione Section */}
+                <div
+                  className={clsx(
+                    "grid min-h-0 flex-1 gap-6 overflow-y-auto p-6",
+                    isStaff ? "lg:grid-cols-2" : "max-w-xl"
+                  )}
+                >
+                  {isStaff ? (
                   <section className="space-y-4">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-emerald-700 dark:text-emerald-400">
                       <span>🏠</span> Navigazione
@@ -337,8 +346,8 @@ export function UserMenu({
                       </label>
                     </div>
                   </section>
+                  ) : null}
 
-                  {/* Interfaccia Section */}
                   <section className="space-y-4">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-blue-700 dark:text-blue-400">
                       <span>🎨</span> Interfaccia
@@ -385,35 +394,37 @@ export function UserMenu({
                           ))}
                         </select>
                       </label>
-                      <label className="flex flex-col gap-2">
-                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario</span>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          Fuso orario utilizzato per le automazioni lato server.
-                        </p>
-                        <select
-                          value={selectedPracticeTimeZone}
-                          onChange={(event) =>
-                            setSelectedPracticeTimeZone(event.target.value as PracticeTimeZone)
-                          }
-                          disabled={!canManagePracticeTimeZone || isSaving}
-                          className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
-                        >
-                          {PRACTICE_TIME_ZONE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        {!canManagePracticeTimeZone ? (
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                            Solo admin e manager possono modificare il fuso orario dello studio.
+                      {isStaff ? (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Fuso orario studio</span>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            Fuso orario utilizzato per le automazioni lato server.
                           </p>
-                        ) : null}
-                      </label>
+                          <select
+                            value={selectedPracticeTimeZone}
+                            onChange={(event) =>
+                              setSelectedPracticeTimeZone(event.target.value as PracticeTimeZone)
+                            }
+                            disabled={!canManagePracticeTimeZone || isSaving}
+                            className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900/30 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+                          >
+                            {PRACTICE_TIME_ZONE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          {!canManagePracticeTimeZone ? (
+                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                              Solo admin e manager possono modificare il fuso orario dello studio.
+                            </p>
+                          ) : null}
+                        </label>
+                      ) : null}
                     </div>
                   </section>
 
-                  {/* Funzionalità Section */}
+                  {isStaff ? (
                   <section className="space-y-4 lg:col-span-2">
                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-purple-700 dark:text-purple-400">
                       <span>🛡️</span> Funzionalità
@@ -525,6 +536,7 @@ export function UserMenu({
                     </div>
                     </div>
                   </section>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 items-center justify-end gap-3 border-t border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-900/30">
@@ -545,34 +557,46 @@ export function UserMenu({
                       setSaveMessage(null);
                       startSaving(async () => {
                         try {
-                          window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, selectedHomeScreen);
-                          window.localStorage.setItem(
-                            PATIENT_POST_CREATE_STORAGE_KEY,
-                            patientPostCreate
-                          );
-                          window.localStorage.setItem(
-                            PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
-                            patientAutoFilter ? "true" : "false"
-                          );
-                          window.localStorage.setItem(
-                            CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY,
-                            calendarCompactPatientName ? "true" : "false"
-                          );
-                          window.localStorage.setItem(
-                            AGENDA_CHRONOLOGICAL_STORAGE_KEY,
-                            agendaChronological ? "true" : "false"
-                          );
-                          window.localStorage.setItem(
-                            CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
-                            calendarClosureWarningBypass ? "true" : "false"
-                          );
-                          window.localStorage.setItem(
-                            CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
-                            calendarAvailabilityWarningBypass ? "true" : "false"
-                          );
-                          document.cookie = `${AGENDA_CHRONOLOGICAL_COOKIE}=${
-                            agendaChronological ? "true" : "false"
-                          }; path=/; max-age=31536000; SameSite=Lax`;
+                          if (isStaff) {
+                            window.localStorage.setItem(HOME_SCREEN_STORAGE_KEY, selectedHomeScreen);
+                            window.localStorage.setItem(
+                              PATIENT_POST_CREATE_STORAGE_KEY,
+                              patientPostCreate
+                            );
+                            window.localStorage.setItem(
+                              PATIENT_LIST_AUTO_FILTER_STORAGE_KEY,
+                              patientAutoFilter ? "true" : "false"
+                            );
+                            window.localStorage.setItem(
+                              CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY,
+                              calendarCompactPatientName ? "true" : "false"
+                            );
+                            window.localStorage.setItem(
+                              AGENDA_CHRONOLOGICAL_STORAGE_KEY,
+                              agendaChronological ? "true" : "false"
+                            );
+                            window.localStorage.setItem(
+                              CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
+                              calendarClosureWarningBypass ? "true" : "false"
+                            );
+                            window.localStorage.setItem(
+                              CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
+                              calendarAvailabilityWarningBypass ? "true" : "false"
+                            );
+                            document.cookie = `${AGENDA_CHRONOLOGICAL_COOKIE}=${
+                              agendaChronological ? "true" : "false"
+                            }; path=/; max-age=31536000; SameSite=Lax`;
+                            window.dispatchEvent(
+                              new CustomEvent("patient-auto-filter-changed", {
+                                detail: { enabled: patientAutoFilter },
+                              })
+                            );
+                            window.dispatchEvent(
+                              new CustomEvent("calendar-compact-patient-name-changed", {
+                                detail: { enabled: calendarCompactPatientName },
+                              })
+                            );
+                          }
                           window.localStorage.setItem(APP_THEME_STORAGE_KEY, themePreference);
                           const normalizedDisplayTimeZone = resolveUserDisplayTimeZone(
                             selectedDisplayTimeZone,
@@ -586,18 +610,8 @@ export function UserMenu({
                             normalizedDisplayTimeZone
                           )}; path=/; max-age=31536000; SameSite=Lax`;
                           window.dispatchEvent(new CustomEvent(APP_THEME_EVENT));
-                          window.dispatchEvent(
-                            new CustomEvent("patient-auto-filter-changed", {
-                              detail: { enabled: patientAutoFilter },
-                            })
-                          );
-                          window.dispatchEvent(
-                            new CustomEvent("calendar-compact-patient-name-changed", {
-                              detail: { enabled: calendarCompactPatientName },
-                            })
-                          );
 
-                          if (canManagePracticeTimeZone) {
+                          if (isStaff && canManagePracticeTimeZone) {
                             const savedTimeZone = await updatePracticeTimeZone(
                               selectedPracticeTimeZone,
                             );

@@ -235,6 +235,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 email={user.email}
                 avatarUrl={user.avatarUrl ?? null}
                 roleLabel={user.role ? roleLabels[user.role] : ""}
+                isStaff={isStaff}
                 allowedHomeScreens={allowedHomeScreens}
                 adminHref={isAdmin ? "/admin" : undefined}
                 adminLabel={isAdmin ? t("admin") : undefined}
