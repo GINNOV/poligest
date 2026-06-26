@@ -90,12 +90,6 @@ export default async function Home() {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-emerald-100 pt-3 sm:justify-end">
             <Link
-              href="/docs"
-              className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
-            >
-              Manuale
-            </Link>
-            <Link
               href="/privacy"
               className="text-emerald-700 underline decoration-emerald-200 underline-offset-4 transition hover:text-emerald-800"
             >
