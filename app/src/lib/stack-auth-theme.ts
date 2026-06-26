@@ -26,7 +26,7 @@ type ThemeConfig = {
   radius?: string;
 };
 
-const sharedLightForm: Partial<StackColors> = {
+const patientLightForm: Partial<StackColors> = {
   background: "#ffffff",
   foreground: "#0f172a",
   card: "#ffffff",
@@ -43,35 +43,45 @@ const sharedLightForm: Partial<StackColors> = {
   destructiveForeground: "#ffffff",
   border: "#e2e8f0",
   input: "#e2e8f0",
+  primary: "#047857",
+  primaryForeground: "#ffffff",
+  ring: "#059669",
+};
+
+const staffDarkForm: Partial<StackColors> = {
+  background: "#0f172a",
+  foreground: "#e2e8f0",
+  card: "#0f172a",
+  cardForeground: "#f1f5f9",
+  popover: "#0f172a",
+  popoverForeground: "#f1f5f9",
+  primary: "#06b6d4",
+  primaryForeground: "#0f172a",
+  secondary: "#1e293b",
+  secondaryForeground: "#e2e8f0",
+  muted: "#1e293b",
+  mutedForeground: "#94a3b8",
+  accent: "#164e63",
+  accentForeground: "#cffafe",
+  destructive: "#f43f5e",
+  destructiveForeground: "#ffffff",
+  border: "#334155",
+  input: "#334155",
+  ring: "#22d3ee",
 };
 
 export function getStackAuthTheme(isStaff: boolean): ThemeConfig {
   if (isStaff) {
     return {
       radius: "0.75rem",
-      light: {
-        ...sharedLightForm,
-        primary: "#0891b2",
-        primaryForeground: "#ffffff",
-        ring: "#0891b2",
-      },
-      dark: {
-        ...sharedLightForm,
-        primary: "#0891b2",
-        primaryForeground: "#ffffff",
-        ring: "#0891b2",
-      },
+      light: staffDarkForm,
+      dark: staffDarkForm,
     };
   }
 
   return {
     radius: "0.75rem",
-    light: {
-      ...sharedLightForm,
-      primary: "#047857",
-      primaryForeground: "#ffffff",
-      ring: "#059669",
-    },
+    light: patientLightForm,
     dark: {
       background: "#09090b",
       foreground: "#fafafa",

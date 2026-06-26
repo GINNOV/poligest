@@ -32,15 +32,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Stack auth: light form surface (works on dark staff pages too) */
+/* Stack auth surfaces */
 @layer components {
   .stack-auth-surface {
     color-scheme: light;
     @apply rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.35)] sm:p-6;
-  }
-
-  .stack-auth-surface--staff {
-    @apply shadow-[0_24px_60px_-20px_rgba(8,145,178,0.25)];
   }
 
   .stack-auth-surface .stack-scope {
@@ -65,12 +61,34 @@ body {
     --ring: 160 84% 30%;
   }
 
-  .stack-auth-surface--staff .stack-scope {
-    --primary: 188 94% 35%;
-    --ring: 188 94% 35%;
+  .stack-auth-surface--staff {
+    color-scheme: dark;
+    @apply rounded-2xl border border-slate-700/80 bg-slate-950/70 p-5 shadow-[0_24px_60px_-28px_rgba(8,145,178,0.2)] backdrop-blur sm:p-6;
   }
 
-  html:has(head > [data-stack-theme="dark"]) .stack-auth-surface .stack-scope {
+  .stack-auth-surface--staff .stack-scope {
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 96.1%;
+    --card: 222.2 47.4% 11.2%;
+    --card-foreground: 210 40% 96.1%;
+    --popover: 222.2 47.4% 11.2%;
+    --popover-foreground: 210 40% 96.1%;
+    --primary: 188 94% 42%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 96.1%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 192 80% 20%;
+    --accent-foreground: 183 100% 96%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217.2 32.6% 30%;
+    --input: 217.2 32.6% 22%;
+    --ring: 187 92% 69%;
+  }
+
+  html:has(head > [data-stack-theme="dark"]) .stack-auth-surface:not(.stack-auth-surface--staff) .stack-scope {
     --background: 0 0% 100%;
     --foreground: 222.2 47.4% 11.2%;
     --card: 0 0% 100%;
@@ -87,19 +105,40 @@ body {
     --input: 214.3 31.8% 91.4%;
   }
 
+  html:has(head > [data-stack-theme="light"]) .stack-auth-surface--staff .stack-scope,
   html:has(head > [data-stack-theme="dark"]) .stack-auth-surface--staff .stack-scope {
-    --primary: 188 94% 35%;
-    --ring: 188 94% 35%;
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 96.1%;
+    --card: 222.2 47.4% 11.2%;
+    --card-foreground: 210 40% 96.1%;
+    --popover: 222.2 47.4% 11.2%;
+    --popover-foreground: 210 40% 96.1%;
+    --primary: 188 94% 42%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 96.1%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 192 80% 20%;
+    --accent-foreground: 183 100% 96%;
+    --border: 217.2 32.6% 30%;
+    --input: 217.2 32.6% 22%;
+    --ring: 187 92% 69%;
   }
 
   .stack-auth-surface .stack-scope h1:first-of-type {
     @apply text-xl font-semibold tracking-tight text-zinc-900;
   }
 
-  .stack-auth-surface .stack-scope input {
-    @apply rounded-xl;
+  .stack-auth-surface--staff .stack-scope h1:first-of-type {
+    @apply text-xl font-semibold tracking-tight text-slate-100;
   }
 
+  .stack-auth-surface--staff .stack-scope a {
+    @apply text-cyan-400 hover:text-cyan-300;
+  }
+
+  .stack-auth-surface .stack-scope input,
   .stack-auth-surface .stack-scope button,
   .stack-auth-surface .stack-scope a[role="button"] {
     @apply rounded-xl font-semibold transition;
