@@ -22,6 +22,7 @@ export default defineConfig({
       all: true,
       include: [
         "src/lib/appointments/**/*.ts",
+        "src/app/api/appointments/alternative-slots/route.ts",
         "src/lib/calendar/**/*.ts",
         "src/lib/patients/**/*.ts",
         "src/lib/recalls/**/*.ts",

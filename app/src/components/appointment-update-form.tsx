@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AppointmentAlternativeSlots } from "@/components/appointment-alternative-slots";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import {
@@ -161,6 +162,9 @@ export function AppointmentUpdateForm({
   };
 
   const [selectedPatientId, setSelectedPatientId] = useState(appointment.patientId);
+  const [startsAt, setStartsAt] = useState(appointment.startsAt);
+  const [endsAt, setEndsAt] = useState(appointment.endsAt);
+  const [doctorId, setDoctorId] = useState(appointment.doctorId ?? "");
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId),
     [patients, selectedPatientId]
@@ -275,32 +279,11 @@ export function AppointmentUpdateForm({
       </div>
 
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-        <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-        <input
-          type="datetime-local"
-          name="startsAt"
-          defaultValue={appointment.startsAt}
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          required
-        />
-      </label>
-
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-        <span className="font-bold text-rose-600 dark:text-rose-500">Stima di fine visita</span>
-        <input
-          type="datetime-local"
-          name="endsAt"
-          defaultValue={appointment.endsAt}
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          required
-        />
-      </label>
-
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
         <span className="font-bold">Medico assegnato</span>
         <select
           name="doctorId"
-          defaultValue={appointment.doctorId ?? ""}
+          value={doctorId}
+          onChange={(event) => setDoctorId(event.target.value)}
           className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
         >
           <option value="">—</option>
@@ -313,6 +296,42 @@ export function AppointmentUpdateForm({
       </label>
 
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
+        <input
+          type="datetime-local"
+          name="startsAt"
+          value={startsAt}
+          onChange={(event) => setStartsAt(event.target.value)}
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          required
+        />
+      </label>
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <span className="font-bold text-rose-600 dark:text-rose-500">Stima di fine visita</span>
+        <input
+          type="datetime-local"
+          name="endsAt"
+          value={endsAt}
+          onChange={(event) => setEndsAt(event.target.value)}
+          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          required
+        />
+      </label>
+
+      <AppointmentAlternativeSlots
+        appointmentId={appointment.id}
+        doctorId={doctorId}
+        startsAt={startsAt}
+        endsAt={endsAt}
+        displayTimeZone={displayTimeZone}
+        onSelectSlot={({ startsAt: nextStartsAt, endsAt: nextEndsAt }) => {
+          setStartsAt(nextStartsAt);
+          setEndsAt(nextEndsAt);
+        }}
+      />
+
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         <span className="font-bold">Note</span>
         <textarea
           name="notes"
