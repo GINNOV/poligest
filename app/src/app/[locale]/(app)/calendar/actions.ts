@@ -16,6 +16,7 @@ import {
   ensureCalendarReturnTo,
 } from "@/lib/calendar/domain";
 import { parseDoctorTimeOffDateRange } from "@/lib/doctor-time-off";
+import { DEFAULT_APPOINTMENT_TITLE } from "@/lib/client-enums";
 
 const FALLBACK_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
 
@@ -118,7 +119,7 @@ export async function createAppointment(formData: FormData) {
 
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
-    const title = titleCustom || titleFromSelect || "Richiamo";
+    const title = titleCustom || titleFromSelect || DEFAULT_APPOINTMENT_TITLE;
     const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
     const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
     const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];
@@ -217,7 +218,7 @@ export async function updateAppointment(formData: FormData) {
     const appointmentId = formData.get("appointmentId") as string;
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
-    const title = titleCustom || titleFromSelect || "Richiamo";
+    const title = titleCustom || titleFromSelect || DEFAULT_APPOINTMENT_TITLE;
     const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
     const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
     const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_SERVICES[0];

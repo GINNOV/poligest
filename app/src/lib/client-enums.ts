@@ -8,6 +8,8 @@ export const APPOINTMENT_TITLES = [
 
 export type AppointmentTitle = (typeof APPOINTMENT_TITLES)[number];
 
+export const DEFAULT_APPOINTMENT_TITLE: Exclude<AppointmentTitle, "Altro"> = "Prima visita";
+
 export const PREDEFINED_APPOINTMENT_TITLES = APPOINTMENT_TITLES.filter(
   (title): title is Exclude<AppointmentTitle, "Altro"> => title !== "Altro"
 );

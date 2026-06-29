@@ -13,6 +13,7 @@ import {
   isSameAgendaAppointmentSlot,
 } from "@/lib/appointments/agenda-domain";
 import { hasDoctorConflict, isNextRedirectError, FALLBACK_APPOINTMENT_SERVICES } from "@/lib/appointments/agenda";
+import { DEFAULT_APPOINTMENT_TITLE } from "@/lib/client-enums";
 
 export async function updateAppointmentStatusAction(formData: FormData) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
@@ -59,7 +60,7 @@ export async function updateAppointmentAction(formData: FormData) {
     const appointmentId = formData.get("appointmentId") as string;
     const titleFromSelect = (formData.get("title") as string)?.trim();
     const titleCustom = (formData.get("titleCustom") as string)?.trim();
-    const title = titleCustom || titleFromSelect || "Richiamo";
+    const title = titleCustom || titleFromSelect || DEFAULT_APPOINTMENT_TITLE;
     const serviceTypeSelected = (formData.get("serviceType") as string)?.trim();
     const serviceTypeCustom = (formData.get("serviceTypeCustom") as string)?.trim();
     const serviceType = serviceTypeCustom || serviceTypeSelected || FALLBACK_APPOINTMENT_SERVICES[0];
