@@ -6,9 +6,9 @@ import { createPortal } from "react-dom";
 import { emitToast } from "@/components/global-toasts";
 import {
   getFetchRequestPath,
-  isIgnoredFetchFailure,
   resolveFetchRequestUrl,
 } from "@/lib/fetch-error-filter";
+import { shouldEmitFetchErrorToast } from "@/lib/fetch-toast-policy";
 import { subscribeNavigationLock } from "@/lib/navigation-lock";
 
 /**
@@ -175,9 +175,14 @@ export function GlobalLoadingOverlay() {
       try {
         const response = await originalFetch(...args);
         const shouldNotify = hadFreshInteraction(5000);
-        const isRedirect = response.status >= 300 && response.status < 400;
-        const shouldIgnoreFailure = isIgnoredFetchFailure(requestUrl, response.status);
-        if (!response.ok && !isRedirect && shouldNotify && !shouldIgnoreFailure) {
+        if (
+          shouldEmitFetchErrorToast({
+            requestUrl,
+            status: response.status,
+            responseOk: response.ok,
+            shouldNotify,
+          })
+        ) {
           let errorCode = response.headers.get("x-error-code");
           if (!errorCode) {
             try {
