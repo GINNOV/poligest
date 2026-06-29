@@ -45,6 +45,14 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
   }
 
   const response = await fetch(targetUrl, init);
+
+  const isAnalyticsBatch =
+    request.method === "POST" &&
+    normalizedPath.join("/") === "api/v1/analytics/events/batch";
+  if (isAnalyticsBatch && !response.ok) {
+    return new NextResponse(null, { status: 204 });
+  }
+
   const responseHeaders = new Headers(response.headers);
   // Avoid double-decoding issues when the upstream is already compressed.
   responseHeaders.delete("content-encoding");

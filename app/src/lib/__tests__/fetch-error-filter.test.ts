@@ -6,14 +6,21 @@ import {
 } from "@/lib/fetch-error-filter";
 
 describe("fetch error filter", () => {
-  it("ignores known Stack analytics rate limits", () => {
+  it("ignores Stack analytics batch failures", () => {
     expect(
       isIgnoredFetchFailure(
         "https://sorrisosplendente.com/api/stack/api/v1/analytics/events/batch",
         429,
       ),
     ).toBe(true);
+    expect(
+      isIgnoredFetchFailure(
+        "https://sorrisosplendente.com/api/stack/api/v1/analytics/events/batch",
+        500,
+      ),
+    ).toBe(true);
     expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 429)).toBe(true);
+    expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 500)).toBe(true);
   });
 
   it("ignores known Stack oauth token rate limits", () => {

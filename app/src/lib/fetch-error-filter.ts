@@ -31,9 +31,19 @@ export function resolveFetchRequestUrl(input: RequestInfo | URL, init?: RequestI
   return "";
 }
 
+function isStackAnalyticsBatchPath(path: string) {
+  return STACK_ANALYTICS_BATCH_PATHS.includes(path);
+}
+
 export function isIgnoredFetchFailure(requestUrl: string, status: number) {
+  const path = getFetchRequestPath(requestUrl);
+
+  // Stack Auth analytics is best-effort telemetry; never alarm staff on failures.
+  if (isStackAnalyticsBatchPath(path)) {
+    return true;
+  }
+
   if (status !== 429) return false;
 
-  const path = getFetchRequestPath(requestUrl);
-  return STACK_ANALYTICS_BATCH_PATHS.includes(path) || STACK_OAUTH_TOKEN_PATHS.includes(path);
+  return STACK_OAUTH_TOKEN_PATHS.includes(path);
 }
