@@ -517,24 +517,24 @@ export function CalendarWeekView({
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                   {selectedAppointment ? "Aggiorna appuntamento" : "Nuovo appuntamento"}
                 </h3>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {selectedLabelDate
-                    ? new Intl.DateTimeFormat("it-IT", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      }).format(
-                        selectedLabelDate.length > 10
-                          ? new Date(selectedLabelDate)
-                          : new Date(
-                              Number(selectedLabelDate.slice(0, 4)),
-                              Number(selectedLabelDate.slice(5, 7)) - 1,
-                              Number(selectedLabelDate.slice(8, 10))
-                            )
-                      )
-                    : ""}
-                </p>
+                {!selectedAppointment && selectedLabelDate ? (
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {new Intl.DateTimeFormat("it-IT", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    }).format(
+                      selectedLabelDate.length > 10
+                        ? new Date(selectedLabelDate)
+                        : new Date(
+                            Number(selectedLabelDate.slice(0, 4)),
+                            Number(selectedLabelDate.slice(5, 7)) - 1,
+                            Number(selectedLabelDate.slice(8, 10))
+                          )
+                    )}
+                  </p>
+                ) : null}
               </div>
               <button
                 type="button"

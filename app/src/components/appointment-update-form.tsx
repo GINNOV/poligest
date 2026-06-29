@@ -12,7 +12,6 @@ import { APPOINTMENT_TITLES, PREDEFINED_APPOINTMENT_TITLES } from "@/lib/client-
 import {
   addMinutesToDateTimeLocal,
   composeDateTimeLocal,
-  formatAppointmentSlotSummary,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
 import {
@@ -184,21 +183,6 @@ export function AppointmentUpdateForm({
     [patients, selectedPatientId]
   );
 
-  const selectedDoctor = useMemo(
-    () => doctors.find((doctor) => doctor.id === doctorId),
-    [doctors, doctorId]
-  );
-
-  const originalSlotLabel = useMemo(
-    () =>
-      formatAppointmentSlotSummary(
-        appointment.startsAt,
-        appointment.endsAt,
-        displayTimeZone ?? "Europe/Rome",
-      ),
-    [appointment.startsAt, appointment.endsAt, displayTimeZone]
-  );
-
   const visitDate = splitDateTimeLocal(startsAt).date;
   const startTime = splitDateTimeLocal(startsAt).time;
   const endTime = splitDateTimeLocal(endsAt).time;
@@ -279,28 +263,6 @@ export function AppointmentUpdateForm({
       </div>
 
       <div className={activeTab === "reschedule" ? "contents" : "hidden"}>
-        <div className="col-span-full rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
-                {selectedPatient
-                  ? `${selectedPatient.lastName} ${selectedPatient.firstName}`
-                  : "Paziente"}
-              </p>
-              {selectedPatient?.phone ? (
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{selectedPatient.phone}</p>
-              ) : null}
-            </div>
-            <div className="text-right text-sm text-zinc-600 dark:text-zinc-300">
-              <p className="font-medium text-zinc-800 dark:text-zinc-100">Attuale: {originalSlotLabel}</p>
-              <p className="mt-1">
-                {appointment.serviceType}
-                {selectedDoctor ? ` · ${selectedDoctor.fullName}` : ""}
-              </p>
-            </div>
-          </div>
-        </div>
-
         <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold">Medico assegnato</span>
