@@ -7,7 +7,13 @@ import Link from "next/link";
 import { AuditFiltersForm } from "@/components/admin/audit-filters-form";
 import { AuditRecordNav } from "@/components/admin/AuditRecordNav";
 import { auditLogVisibilityFilter } from "@/lib/audit";
-import { buildAuditLogFilters } from "@/lib/admin/audit-search";
+import { buildAuditLogFilters, normalizeAuditSearchQuery } from "@/lib/admin/audit-search";
+
+function pickSearchParam(value: string | string[] | undefined) {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value[0] ?? "";
+  return "";
+}
 const auditRoleLabels: Record<Role, string> = {
   [Role.ADMIN]: "Amministratore",
   [Role.MANAGER]: "Medico / Manager",
@@ -29,7 +35,10 @@ export default async function AuditPage({
   const { locale } = await params;
   const t = await getTranslations("admin");
   const searchParamsValue = await searchParams;
-
+  const q = normalizeAuditSearchQuery(searchParamsValue.q);
+  const dateParam = pickSearchParam(searchParamsValue.date);
+  const roleParam = pickSearchParam(searchParamsValue.role);
+  const typeParam = pickSearchParam(searchParamsValue.type);
   const filters = buildAuditLogFilters(searchParamsValue);
 
   const [logs, actionTypes] = await Promise.all([
@@ -165,9 +174,9 @@ export default async function AuditPage({
           }}
           values={{
             q,
-            date: dateParam ?? "",
-            role: roleParam ?? "",
-            type: typeParam ?? "",
+            date: dateParam,
+            role: roleParam,
+            type: typeParam,
           }}
           actionTypes={actionTypes.map((entry) => entry.action)}
           roleLabels={auditRoleLabels}
