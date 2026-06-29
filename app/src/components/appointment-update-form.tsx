@@ -177,6 +177,7 @@ export function AppointmentUpdateForm({
   const [startsAt, setStartsAt] = useState(appointment.startsAt);
   const [endsAt, setEndsAt] = useState(appointment.endsAt);
   const [doctorId, setDoctorId] = useState(appointment.doctorId ?? "");
+  const [findFirstToken, setFindFirstToken] = useState(0);
 
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId),
@@ -222,6 +223,21 @@ export function AppointmentUpdateForm({
     if (!startsAt) return;
     setEndsAt(addMinutesToDateTimeLocal(startsAt, minutes));
   };
+
+  const applySlotSelection = ({ startsAt: nextStartsAt, endsAt: nextEndsAt }: { startsAt: string; endsAt: string }) => {
+    setStartsAt(nextStartsAt);
+    setEndsAt(nextEndsAt);
+  };
+
+  const durationMinutes = useMemo(
+    () => {
+      const start = new Date(startsAt);
+      const end = new Date(endsAt);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return 60;
+      return Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000));
+    },
+    [startsAt, endsAt],
+  );
 
   return (
     <form
@@ -285,91 +301,105 @@ export function AppointmentUpdateForm({
           </div>
         </div>
 
-        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-          <span className="font-bold">Medico assegnato</span>
-          <select
-            value={doctorId}
-            onChange={(event) => setDoctorId(event.target.value)}
-            className={fieldClassName}
+        <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold">Medico assegnato</span>
+            <select
+              value={doctorId}
+              onChange={(event) => setDoctorId(event.target.value)}
+              className={fieldClassName}
+            >
+              <option value="">—</option>
+              {doctors.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
+            <input
+              type="date"
+              value={visitDate}
+              onChange={(event) => updateVisitDate(event.target.value)}
+              className={fieldClassName}
+              required
+            />
+          </label>
+
+          <button
+            type="button"
+            onClick={() => setFindFirstToken((token) => token + 1)}
+            className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <option value="">—</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.fullName}
-              </option>
-            ))}
-          </select>
-        </label>
+            Primo slot libero
+          </button>
+        </div>
 
-        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
-          <input
-            type="date"
-            value={visitDate}
-            onChange={(event) => updateVisitDate(event.target.value)}
-            className={fieldClassName}
-            required
-          />
-        </label>
+        <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(event) => updateStartTime(event.target.value)}
+              className={fieldClassName}
+              required
+            />
+          </label>
 
-        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(event) => updateStartTime(event.target.value)}
-            className={fieldClassName}
-            required
-          />
-        </label>
-
-        <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
             <input
               type="time"
               value={endTime}
               onChange={(event) => updateEndTime(event.target.value)}
-              className={`${fieldClassName} w-full sm:max-w-xs`}
+              className={fieldClassName}
               required
             />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-                onClick={() => setEndFromStart(60)}
-              >
-                1H
-              </button>
-              <button
-                type="button"
-                className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-                onClick={() => setEndFromStart(30)}
-              >
-                30m
-              </button>
-              <button
-                type="button"
-                className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-                onClick={() => setEndFromStart(15)}
-              >
-                15m
-              </button>
-            </div>
+          </label>
+
+          <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              onClick={() => setEndFromStart(60)}
+            >
+              1H
+            </button>
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              onClick={() => setEndFromStart(30)}
+            >
+              30m
+            </button>
+            <button
+              type="button"
+              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              onClick={() => setEndFromStart(15)}
+            >
+              15m
+            </button>
+            <span className="flex h-9 items-center text-xs text-zinc-500 dark:text-zinc-400">
+              {durationMinutes} min
+            </span>
           </div>
-        </label>
+        </div>
 
         <AppointmentAlternativeSlots
           appointmentId={appointment.id}
           doctorId={doctorId}
           startsAt={startsAt}
           endsAt={endsAt}
+          browseDate={visitDate}
+          onBrowseDateChange={updateVisitDate}
           displayTimeZone={displayTimeZone}
           variant="inline"
-          onSelectSlot={({ startsAt: nextStartsAt, endsAt: nextEndsAt }) => {
-            setStartsAt(nextStartsAt);
-            setEndsAt(nextEndsAt);
-          }}
+          findFirstToken={findFirstToken}
+          onSelectSlot={applySlotSelection}
         />
       </div>
 
