@@ -11,6 +11,7 @@ import {
   formatDateInDisplayTimeZone,
   getBrowserUserDisplayTimeZone,
 } from "@/lib/user-display-time-zone";
+import { serviceNamesMatch } from "@/lib/service-name";
 
 type DentalRecord = {
   id: string;
@@ -165,7 +166,7 @@ const tintForLabel = (label: string) => {
 
 const resolveProcedure = (value: string, services: Array<{ name: string }>) => {
   const normalized = value.trim().toLowerCase();
-  const match = services.find((service) => service.name.trim().toLowerCase() === normalized);
+  const match = services.find((service) => serviceNamesMatch(service.name, value));
   if (match) {
     return { label: match.name, tint: tintForLabel(match.name) };
   }

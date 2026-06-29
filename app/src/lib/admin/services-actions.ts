@@ -5,6 +5,7 @@ import { Prisma, Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
+import { formatServiceName } from "@/lib/service-name";
 
 function parseCostBasis(raw: string) {
   const cost = Number.parseFloat(raw.replace(",", "."));
@@ -16,14 +17,15 @@ function parseCostBasis(raw: string) {
 
 export async function createService(formData: FormData) {
   const admin = await requireUser([Role.ADMIN]);
-  const name = (formData.get("name") as string)?.trim();
+  const rawName = (formData.get("name") as string)?.trim();
   const description = (formData.get("description") as string)?.trim() || null;
   const costBasisRaw = (formData.get("costBasis") as string)?.trim();
 
-  if (!name || !costBasisRaw) {
+  if (!rawName || !costBasisRaw) {
     throw new Error("Nome e costo base sono obbligatori");
   }
 
+  const name = formatServiceName(rawName);
   const cost = parseCostBasis(costBasisRaw);
 
   const service = await prisma.service.create({
@@ -47,14 +49,15 @@ export async function createService(formData: FormData) {
 export async function updateService(formData: FormData) {
   const admin = await requireUser([Role.ADMIN]);
   const id = (formData.get("serviceId") as string) || "";
-  const name = (formData.get("name") as string)?.trim();
+  const rawName = (formData.get("name") as string)?.trim();
   const description = (formData.get("description") as string)?.trim() || null;
   const costBasisRaw = (formData.get("costBasis") as string)?.trim();
 
-  if (!id || !name || !costBasisRaw) {
+  if (!id || !rawName || !costBasisRaw) {
     throw new Error("Dati servizio non validi");
   }
 
+  const name = formatServiceName(rawName);
   const cost = parseCostBasis(costBasisRaw);
 
   const service = await prisma.service.update({

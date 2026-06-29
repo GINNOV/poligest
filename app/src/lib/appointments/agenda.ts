@@ -8,9 +8,16 @@ import {
   parseAgendaDateRange,
   parseAgendaPageNumber,
 } from "@/lib/appointments/agenda-domain";
+import { formatServiceName } from "@/lib/service-name";
 
 export const AGENDA_PAGE_SIZE = 20;
-export const FALLBACK_APPOINTMENT_SERVICES = ["Visita di controllo", "Igiene", "Otturazione", "Chirurgia"];
+
+export const FALLBACK_APPOINTMENT_SERVICES = [
+  formatServiceName("Visita di controllo"),
+  formatServiceName("Igiene"),
+  formatServiceName("Otturazione"),
+  formatServiceName("Chirurgia"),
+];
 
 type ServiceRow = { name: string };
 type AvailabilityWindowRow = {

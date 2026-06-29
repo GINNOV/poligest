@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { normalizeServiceBaseName } from "@/lib/service-name";
 
 export function normalizeServiceSearchQuery(raw: string | string[] | undefined) {
   if (typeof raw === "string") return raw.trim();
@@ -22,8 +23,11 @@ export function findExactServiceNameMatch<T extends { id: string; name: string }
   services: T[],
   query: string,
 ) {
-  const normalized = query.trim().toLowerCase();
+  const normalized = normalizeServiceBaseName(query);
   if (!normalized) return null;
 
-  return services.find((service) => service.name.trim().toLowerCase() === normalized) ?? null;
+  return (
+    services.find((service) => normalizeServiceBaseName(service.name) === normalized) ?? null
+  );
 }
+

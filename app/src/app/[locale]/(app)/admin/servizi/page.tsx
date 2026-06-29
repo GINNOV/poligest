@@ -4,7 +4,12 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { ServicesCatalog } from "@/components/admin/services-catalog";
-import { buildServiceSearchFilter, normalizeServiceSearchQuery } from "@/lib/admin/services-search";
+import { syncServiceCatalogFormatting } from "@/lib/admin/service-catalog-sync";
+import {
+  buildServiceSearchFilter,
+  findExactServiceNameMatch,
+  normalizeServiceSearchQuery,
+} from "@/lib/admin/services-search";
 
 export const metadata = createPageMetadata(PAGE_TITLES.servizi);
 
@@ -16,22 +21,24 @@ export default async function ServicesPage({
   await requireUser([Role.ADMIN]);
   const t = await getTranslations("admin");
   const searchParamsValue = await searchParams;
+  await syncServiceCatalogFormatting();
+
   const query = normalizeServiceSearchQuery(searchParamsValue.q);
   const searchFilter = buildServiceSearchFilter(query);
 
-  const [services, totalCount, exactMatch] = await Promise.all([
+  const [services, totalCount, allServices] = await Promise.all([
     prisma.service.findMany({
       where: searchFilter,
       orderBy: [{ name: "asc" }],
     }),
     prisma.service.count(),
-    query
-      ? prisma.service.findFirst({
-          where: { name: { equals: query, mode: "insensitive" } },
-          select: { id: true, name: true },
-        })
-      : Promise.resolve(null),
+    prisma.service.findMany({
+      select: { id: true, name: true },
+      orderBy: [{ name: "asc" }],
+    }),
   ]);
+
+  const exactMatch = findExactServiceNameMatch(allServices, query);
 
   return (
     <div className="space-y-6">

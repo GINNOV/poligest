@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createService, deleteService, updateService } from "@/lib/admin/services-actions";
+import { stripServiceEmojiPrefix } from "@/lib/service-name";
 
 export type ServiceCatalogItem = {
   id: string;
@@ -218,7 +219,7 @@ export function ServicesCatalog({
                               {labels.name}
                               <input
                                 name="name"
-                                defaultValue={service.name}
+                                defaultValue={stripServiceEmojiPrefix(service.name)}
                                 required
                                 className={inputClassName}
                               />

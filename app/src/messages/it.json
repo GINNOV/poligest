@@ -215,7 +215,7 @@
   "servicesCreate": "Nuovo servizio",
     "servicesCreateHint": "Aggiungi il nome del servizio, una descrizione e il costo base.",
     "servicesName": "Nome servizio",
-    "servicesNamePlaceholder": "Visita, Igiene, Estrazione...",
+    "servicesNamePlaceholder": "Es. Igiene orale — verrà salvato come 🪥 IGIENE ORALE",
     "servicesDescription": "Descrizione",
     "servicesDescriptionPlaceholder": "Dettagli, materiali inclusi, durata prevista...",
     "servicesCost": "Costo base (€)",
