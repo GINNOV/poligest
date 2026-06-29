@@ -16,10 +16,29 @@ function requireEnv(key: string) {
   return value;
 }
 
+const HOP_BY_HOP_REQUEST_HEADERS = ["host", "connection", "content-length", "transfer-encoding"];
+
+function isAnalyticsBatchRequest(method: string, normalizedPath: string[]) {
+  return method === "POST" && normalizedPath.join("/") === "api/v1/analytics/events/batch";
+}
+
+function sanitizeProxyRequestHeaders(headers: Headers) {
+  for (const key of HOP_BY_HOP_REQUEST_HEADERS) {
+    headers.delete(key);
+  }
+}
+
+function sanitizeProxyResponseHeaders(headers: Headers) {
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  headers.delete("transfer-encoding");
+}
+
 async function proxyToStack(request: NextRequest, stackPath: string[]) {
   const normalizedPath =
     stackPath[0] === "v1" ? ["api", ...stackPath] : stackPath;
   const targetUrl = `${STACK_API_BASE}/${normalizedPath.join("/")}${request.nextUrl.search}`;
+  const analyticsBatch = isAnalyticsBatchRequest(request.method, normalizedPath);
 
   const headers = new Headers(request.headers);
   headers.set("X-Stack-Project-Id", requireEnv("NEXT_PUBLIC_STACK_PROJECT_ID"));
@@ -30,9 +49,7 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
   headers.set("x-stack-secret-server-key", requireEnv("STACK_SECRET_SERVER_KEY"));
   headers.set("X-Stack-Access-Type", "server");
   headers.set("X-Stack-Client-Version", "custom-next-proxy");
-  headers.delete("host");
-  headers.delete("connection");
-  headers.delete("content-length");
+  sanitizeProxyRequestHeaders(headers);
 
   const init: RequestInit = {
     method: request.method,
@@ -44,19 +61,23 @@ async function proxyToStack(request: NextRequest, stackPath: string[]) {
     init.body = await request.arrayBuffer();
   }
 
-  const response = await fetch(targetUrl, init);
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, init);
+  } catch (error) {
+    console.error("Stack Auth proxy fetch failed", { targetUrl, error });
+    if (analyticsBatch) {
+      return new NextResponse(null, { status: 204 });
+    }
+    return NextResponse.json({ error: "Stack Auth proxy unavailable" }, { status: 502 });
+  }
 
-  const isAnalyticsBatch =
-    request.method === "POST" &&
-    normalizedPath.join("/") === "api/v1/analytics/events/batch";
-  if (isAnalyticsBatch && !response.ok) {
+  if (analyticsBatch && !response.ok) {
     return new NextResponse(null, { status: 204 });
   }
 
   const responseHeaders = new Headers(response.headers);
-  // Avoid double-decoding issues when the upstream is already compressed.
-  responseHeaders.delete("content-encoding");
-  responseHeaders.delete("content-length");
+  sanitizeProxyResponseHeaders(responseHeaders);
   const nextResponse = new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,

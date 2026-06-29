@@ -2,7 +2,7 @@ import { cache } from "react";
 import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
 import { getRandomAvatarUrl } from "@/lib/avatars";
 import { normalizePersonName } from "@/lib/name";
-import { Role } from "@prisma/client";
+import { Prisma, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ensureUserPersonalPin } from "@/lib/personal-pin";
 import { cookies } from "next/headers";
@@ -115,8 +115,16 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
         },
       });
     } catch (error) {
-      console.error("Failed to create user in local DB:", error);
-      return null;
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        dbUser = await prisma.user.findUnique({ where: { email } });
+      }
+      if (!dbUser) {
+        console.error("Failed to create user in local DB:", error);
+        return null;
+      }
     }
 
     try {

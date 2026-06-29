@@ -64,6 +64,28 @@ describe("POST /api/stack/[...stack]", () => {
     expect(response.status).toBe(200);
   });
 
+  it("returns 204 when analytics batch proxy fetch throws", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+
+    const request = new NextRequest(
+      "http://localhost/api/stack/api/v1/analytics/events/batch",
+      {
+        method: "POST",
+        body: JSON.stringify({ events: [] }),
+        headers: {
+          "content-type": "application/json",
+          "transfer-encoding": "chunked",
+        },
+      },
+    );
+
+    const response = await postStack(request, ["api", "v1", "analytics", "events", "batch"]);
+
+    expect(response.status).toBe(204);
+    const forwardedHeaders = fetchMock.mock.calls[0]?.[1]?.headers as Headers;
+    expect(forwardedHeaders.get("transfer-encoding")).toBeNull();
+  });
+
   it("passes through non-analytics upstream failures", async () => {
     fetchMock.mockResolvedValue(
       new Response("upstream error", { status: 500, statusText: "Internal Server Error" }),

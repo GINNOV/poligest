@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendEmailWithHtml } from "@/lib/email";
 import { placeholderCatalog, previewData } from "@/lib/placeholder-data";
@@ -177,6 +178,16 @@ export async function sendEmailTemplate(params: {
   );
 }
 
+const EMAIL_ADDRESS_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function assertValidRecipientEmail(to: string) {
+  const normalized = to.trim();
+  if (!EMAIL_ADDRESS_PATTERN.test(normalized)) {
+    throw new Error("Inserisci un indirizzo email valido per il test.");
+  }
+  return normalized;
+}
+
 export async function sendTestEmail(params: {
   to: string;
   templateName: string;
@@ -184,6 +195,7 @@ export async function sendTestEmail(params: {
   body?: string;
   buttonColor?: string | null;
 }) {
+  const to = assertValidRecipientEmail(params.to);
   const template = await getEmailTemplateByName(params.templateName);
   const bodySource = params.body ?? template?.body ?? "";
   const buttonColor = params.buttonColor ?? template?.buttonColor ?? null;
@@ -197,7 +209,7 @@ export async function sendTestEmail(params: {
   );
 
   await sendEmailTemplate({
-    to: params.to,
+    to,
     templateName: params.templateName,
     data,
     override: {
@@ -232,27 +244,37 @@ async function migrateLegacyWelcomeTemplate() {
 
 let ensureDefaultTemplatesPromise: Promise<void> | null = null;
 
+async function upsertDefaultTemplate(template: EmailTemplateSeed) {
+  try {
+    await prisma.emailTemplate.upsert({
+      where: { name: template.name },
+      update: {
+        category: template.category,
+        description: template.description,
+      },
+      create: {
+        name: template.name,
+        subject: template.subject,
+        body: template.body,
+        buttonColor: template.buttonColor,
+        category: template.category,
+        description: template.description,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 async function ensureDefaultTemplatesOnce() {
   await migrateLegacyWelcomeTemplate();
-  await Promise.all(
-    defaultEmailTemplates.map((template) =>
-      prisma.emailTemplate.upsert({
-        where: { name: template.name },
-        update: {
-          category: template.category,
-          description: template.description,
-        },
-        create: {
-          name: template.name,
-          subject: template.subject,
-          body: template.body,
-          buttonColor: template.buttonColor,
-          category: template.category,
-          description: template.description,
-        },
-      }),
-    ),
-  );
+  await Promise.all(defaultEmailTemplates.map((template) => upsertDefaultTemplate(template)));
 }
 
 async function ensureDefaultTemplates() {
