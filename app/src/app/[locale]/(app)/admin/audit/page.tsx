@@ -43,26 +43,12 @@ export default async function AuditPage({
         ? searchParamsValue.date[0]
         : undefined;
 
-  const userIdParam =
-    typeof searchParamsValue.userId === "string"
-      ? searchParamsValue.userId
-      : Array.isArray(searchParamsValue.userId)
-        ? searchParamsValue.userId[0]
-        : undefined;
-
   const roleParam =
     typeof searchParamsValue.role === "string"
       ? searchParamsValue.role
       : Array.isArray(searchParamsValue.role)
         ? searchParamsValue.role[0]
         : undefined;
-
-  const uq =
-    typeof searchParamsValue.uq === "string"
-      ? searchParamsValue.uq.trim()
-      : Array.isArray(searchParamsValue.uq)
-        ? searchParamsValue.uq[0]?.trim()
-        : "";
 
   const typeParam =
     typeof searchParamsValue.type === "string"
@@ -107,9 +93,6 @@ export default async function AuditPage({
   if (dateFilter) {
     filters.push({ createdAt: dateFilter });
   }
-  if (userIdParam) {
-    filters.push({ userId: userIdParam });
-  }
   if (roleParam) {
     filters.push({
       user: {
@@ -117,30 +100,16 @@ export default async function AuditPage({
       },
     });
   }
-  if (uq) {
-    filters.push({
-      user: {
-        OR: [
-          { email: { contains: uq, mode: Prisma.QueryMode.insensitive } },
-          { name: { contains: uq, mode: Prisma.QueryMode.insensitive } },
-        ],
-      },
-    });
-  }
   if (typeParam) {
     filters.push({ action: typeParam });
   }
 
-  const [logs, users, actionTypes] = await Promise.all([
+  const [logs, actionTypes] = await Promise.all([
     prisma.auditLog.findMany({
       where: filters.length ? { AND: filters } : undefined,
       include: { user: { select: { name: true, email: true, role: true } } },
       orderBy: { createdAt: "desc" },
       take: 200,
-    }),
-    prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true },
-      orderBy: [{ name: "asc" }, { email: "asc" }],
     }),
     prisma.auditLog.findMany({
       where: auditLogVisibilityFilter(),
@@ -258,25 +227,20 @@ export default async function AuditPage({
             searchPlaceholder: t("auditSearchPlaceholder"),
             date: "Data",
             role: "Ruolo utente",
-            user: "Utente",
-            userPlaceholder: "Cerca per nome o email",
             type: "Tipo azione",
             all: "Tutti",
             apply: t("apply"),
             reset: t("resetFilters"),
             applyAria: t("auditApplyFilters"),
             resetAria: t("auditResetFilters"),
-            roleHint: "Limita l'elenco utenti al ruolo selezionato.",
-            userCount: "{count} utenti disponibili",
+            roleHint: "Mostra solo eventi degli utenti con questo ruolo.",
           }}
           values={{
             q,
             date: dateParam ?? "",
             role: roleParam ?? "",
-            userId: userIdParam ?? "",
             type: typeParam ?? "",
           }}
-          users={users}
           actionTypes={actionTypes.map((entry) => entry.action)}
           roleLabels={auditRoleLabels}
         />
