@@ -11,7 +11,6 @@ import {
   RESET_CONFIRMATION_TEXT,
   assertBulkDestructiveActionEnabled,
   hasTypedConfirmation,
-  isBulkDestructiveActionEnabled,
 } from "@/lib/destructive-action-guard";
 import type { JsonObject } from "@/lib/json-types";
 import fs from "fs/promises";
@@ -731,7 +730,6 @@ export default async function ResetPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   await requireUser([Role.ADMIN]);
-  const isBulkEnabled = isBulkDestructiveActionEnabled();
   const { tab: activeTab = "export" } = await searchParams;
 
   return (
@@ -798,62 +796,45 @@ export default async function ResetPage({
           </section>
         )}
 
-        {activeTab === "import" && (
-          <DatabaseImportPanel isBulkEnabled={isBulkEnabled} importData={importData} />
-        )}
+        {activeTab === "import" && <DatabaseImportPanel importData={importData} />}
 
         {activeTab === "reset" && (
           <section className="rounded-2xl border border-rose-200 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-zinc-950">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Reset totale</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  Cancella tutti i dati del database. Operazione irreversibile.
-                </p>
-              </div>
-              {!isBulkEnabled ? (
-                <span className="shrink-0 rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
-                  Non attivo
-                </span>
-              ) : null}
-            </div>
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">Reset totale</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Cancella tutti i dati del database. Operazione irreversibile.
+            </p>
 
-            {isBulkEnabled ? (
-              <form action={resetSystem} className="mt-6 max-w-lg space-y-5">
-                <p className="rounded-xl border border-rose-200/80 bg-rose-50/80 px-3 py-2 text-xs text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-200">
-                  Rimuove pazienti, appuntamenti, contabilità e configurazioni.
-                </p>
-
-                <label className="flex flex-col gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  Digita <span className="font-mono text-xs text-zinc-500">{RESET_CONFIRMATION_TEXT}</span> per confermare
-                  <input
-                    name="confirm"
-                    placeholder={RESET_CONFIRMATION_TEXT}
-                    className="h-11 rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-base text-zinc-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50"
-                    autoComplete="off"
-                    required
-                  />
-                </label>
-
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 px-4 py-3 dark:border-zinc-800">
-                  <input
-                    type="checkbox"
-                    name="seedDemo"
-                    defaultChecked
-                    className="h-4 w-4 rounded border-zinc-300 text-rose-600 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-900"
-                  />
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300">Ripristina dati demo dopo il reset</span>
-                </label>
-
-                <Button type="submit" variant="destructive" size="lg" className="w-full rounded-full font-bold">
-                  Reset database
-                </Button>
-              </form>
-            ) : (
-              <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-                Funzione riservata al supporto tecnico.
+            <form action={resetSystem} className="mt-6 max-w-lg space-y-5">
+              <p className="rounded-xl border border-rose-200/80 bg-rose-50/80 px-3 py-2 text-xs text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-200">
+                Rimuove pazienti, appuntamenti, contabilità e configurazioni.
               </p>
-            )}
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                Digita <span className="font-mono text-xs text-zinc-500">{RESET_CONFIRMATION_TEXT}</span> per confermare
+                <input
+                  name="confirm"
+                  placeholder={RESET_CONFIRMATION_TEXT}
+                  className="h-11 rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-base text-zinc-900 outline-none transition focus:border-rose-400 focus:ring-2 focus:ring-rose-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50"
+                  autoComplete="off"
+                  required
+                />
+              </label>
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                <input
+                  type="checkbox"
+                  name="seedDemo"
+                  defaultChecked
+                  className="h-4 w-4 rounded border-zinc-300 text-rose-600 focus:ring-rose-500 dark:border-zinc-700 dark:bg-zinc-900"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">Ripristina dati demo dopo il reset</span>
+              </label>
+
+              <Button type="submit" variant="destructive" size="lg" className="w-full rounded-full font-bold">
+                Reset database
+              </Button>
+            </form>
           </section>
         )}
       </div>

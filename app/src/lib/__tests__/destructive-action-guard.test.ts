@@ -8,16 +8,22 @@ import {
 } from "@/lib/destructive-action-guard";
 
 describe("destructive action guard", () => {
-  it("requires the env flag outside test mode", () => {
-    expect(isBulkDestructiveActionEnabled({ NODE_ENV: "production" })).toBe(false);
-    expect(() => assertBulkDestructiveActionEnabled({ NODE_ENV: "production" })).toThrow(
-      "ALLOW_BULK_DESTRUCTIVE_ACTIONS=true",
-    );
+  it("enables bulk actions in production by default", () => {
+    expect(isBulkDestructiveActionEnabled({ NODE_ENV: "production" })).toBe(true);
+    expect(() => assertBulkDestructiveActionEnabled({ NODE_ENV: "production" })).not.toThrow();
   });
 
-  it("allows destructive actions in tests or when explicitly enabled", () => {
+  it("allows disabling bulk actions with an explicit env flag", () => {
+    expect(
+      isBulkDestructiveActionEnabled({ NODE_ENV: "production", DISABLE_BULK_DESTRUCTIVE_ACTIONS: "true" }),
+    ).toBe(false);
+    expect(() =>
+      assertBulkDestructiveActionEnabled({ NODE_ENV: "production", DISABLE_BULK_DESTRUCTIVE_ACTIONS: "true" }),
+    ).toThrow("temporaneamente disabilitati");
+  });
+
+  it("always enables destructive actions in tests", () => {
     expect(isBulkDestructiveActionEnabled({ NODE_ENV: "test" })).toBe(true);
-    expect(isBulkDestructiveActionEnabled({ NODE_ENV: "production", ALLOW_BULK_DESTRUCTIVE_ACTIONS: "true" })).toBe(true);
   });
 
   it("validates typed confirmation phrases", () => {
