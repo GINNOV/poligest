@@ -31,8 +31,7 @@ const mocks = vi.hoisted(() => {
   const put = vi.fn();
   const sharp = vi.fn();
   const sendPatientWelcomeEmail = vi.fn();
-  const pickRandomSystemAvatar = vi.fn();
-  const pickSystemAvatar = vi.fn();
+  const resolveStoredPatientPhotoUrl = vi.fn();
 
   return {
     requireUser,
@@ -43,8 +42,7 @@ const mocks = vi.hoisted(() => {
     put,
     sharp,
     sendPatientWelcomeEmail,
-    pickRandomSystemAvatar,
-    pickSystemAvatar,
+    resolveStoredPatientPhotoUrl,
   };
 });
 
@@ -90,8 +88,7 @@ vi.mock("@/lib/stack-app", () => ({
 }));
 
 vi.mock("@/lib/patient-avatars", () => ({
-  pickRandomSystemAvatar: mocks.pickRandomSystemAvatar,
-  pickSystemAvatar: mocks.pickSystemAvatar,
+  resolveStoredPatientPhotoUrl: mocks.resolveStoredPatientPhotoUrl,
 }));
 
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
@@ -112,8 +109,7 @@ describe("createPatient", () => {
     mocks.prisma.patientConsent.create.mockResolvedValue(undefined);
     mocks.sendPatientWelcomeEmail.mockResolvedValue(undefined);
     mocks.put.mockResolvedValue({ url: "https://blob.test/signature.png" });
-    mocks.pickRandomSystemAvatar.mockReturnValue("https://avatar.test/random.jpg");
-    mocks.pickSystemAvatar.mockReturnValue("https://avatar.test/female.jpg");
+    mocks.resolveStoredPatientPhotoUrl.mockReturnValue("https://avatar.test/female.jpg");
 
     const toBuffer = vi.fn().mockResolvedValue(Buffer.from("resized-image"));
     const jpeg = vi.fn(() => ({ toBuffer }));
@@ -173,7 +169,12 @@ describe("createPatient", () => {
         doctorName: "Dr. Verdi",
       }),
     });
-    expect(mocks.pickSystemAvatar).toHaveBeenCalledWith("patient-1", Gender.FEMALE);
+    expect(mocks.resolveStoredPatientPhotoUrl).toHaveBeenCalledWith({
+      patientId: "patient-1",
+      firstName: "Maria",
+      gender: Gender.FEMALE,
+      taxId: "RSSMRA80A01H501U",
+    });
     expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
       where: { id: "patient-1" },
       data: expect.objectContaining({

@@ -42,8 +42,7 @@ const mocks = vi.hoisted(() => {
       findMany: vi.fn(),
     },
   };
-  const pickRandomSystemAvatar = vi.fn();
-  const pickSystemAvatar = vi.fn();
+  const resolveStoredPatientPhotoUrl = vi.fn();
   const isSystemAvatar = vi.fn();
 
   return {
@@ -54,8 +53,7 @@ const mocks = vi.hoisted(() => {
     put,
     sharp,
     prisma,
-    pickRandomSystemAvatar,
-    pickSystemAvatar,
+    resolveStoredPatientPhotoUrl,
     isSystemAvatar,
   };
 });
@@ -86,8 +84,7 @@ vi.mock("sharp", () => ({
 
 vi.mock("@/lib/patient-avatars", () => ({
   isSystemAvatar: mocks.isSystemAvatar,
-  pickRandomSystemAvatar: mocks.pickRandomSystemAvatar,
-  pickSystemAvatar: mocks.pickSystemAvatar,
+  resolveStoredPatientPhotoUrl: mocks.resolveStoredPatientPhotoUrl,
 }));
 
 vi.mock("@/lib/email", () => ({
@@ -134,8 +131,7 @@ describe("patient actions", () => {
     mocks.logAudit.mockResolvedValue(undefined);
     mocks.revalidatePath.mockReturnValue(undefined);
     mocks.put.mockResolvedValue({ url: "https://blob.test/patient-photo.jpg" });
-    mocks.pickRandomSystemAvatar.mockReturnValue("https://avatar.test/random.jpg");
-    mocks.pickSystemAvatar.mockReturnValue("https://avatar.test/female.jpg");
+    mocks.resolveStoredPatientPhotoUrl.mockReturnValue("https://avatar.test/female.jpg");
     mocks.isSystemAvatar.mockReturnValue(false);
     
     mocks.prisma.patient.findUnique.mockResolvedValue(null);
@@ -182,15 +178,27 @@ describe("patient actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/patient-1");
   });
 
-  it("resets the stored patient photo", async () => {
+  it("resets the stored patient photo to the system avatar", async () => {
+    mocks.prisma.patient.findUnique.mockResolvedValue({
+      firstName: "Maria",
+      gender: Gender.FEMALE,
+      notes: "Codice Fiscale: RSSMRA80A41H501U",
+    });
+
     const formData = new FormData();
     formData.set("patientId", "patient-9");
 
     await resetPhotoAction(formData);
 
+    expect(mocks.resolveStoredPatientPhotoUrl).toHaveBeenCalledWith({
+      patientId: "patient-9",
+      firstName: "Maria",
+      gender: Gender.FEMALE,
+      taxId: "RSSMRA80A41H501U",
+    });
     expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
       where: { id: "patient-9" },
-      data: { photoUrl: null },
+      data: { photoUrl: "https://avatar.test/female.jpg" },
     });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/patient-9");
   });

@@ -4,6 +4,7 @@ import { Gender } from "@prisma/client";
 import { logMacosScanAudit } from "@/lib/audit";
 import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
 import { withPaperConsentNote } from "@/lib/patients/paper-consent";
+import { resolveStoredPatientPhotoUrl } from "@/lib/patient-avatars";
 
 export async function POST(req: Request) {
   if (!isAuthorizedMacosAppRequest(req)) {
@@ -49,6 +50,9 @@ export async function POST(req: Request) {
       mappedGender = Gender.FEMALE;
     }
 
+    const taxIdMatch = typeof notes === "string" ? notes.match(/Codice Fiscale:\s*([A-Z0-9]{16})/i) : null;
+    const taxId = taxIdMatch?.[1]?.toUpperCase() ?? null;
+
     const patient = await prisma.patient.create({
       data: {
         firstName,
@@ -59,6 +63,18 @@ export async function POST(req: Request) {
         gender: mappedGender,
         notes: withPaperConsentNote(notes, hasPaperConsentForRequired),
         hasPaperConsentForRequired,
+      },
+    });
+
+    await prisma.patient.update({
+      where: { id: patient.id },
+      data: {
+        photoUrl: resolveStoredPatientPhotoUrl({
+          patientId: patient.id,
+          firstName,
+          gender: mappedGender,
+          taxId,
+        }),
       },
     });
 

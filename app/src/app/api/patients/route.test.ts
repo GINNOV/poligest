@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => {
   const prisma = {
     patient: {
       create: vi.fn(),
+      update: vi.fn(),
     },
   };
   const logMacosScanAudit = vi.fn();
@@ -27,6 +28,7 @@ describe("POST /api/patients", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.logMacosScanAudit.mockResolvedValue(undefined);
+    mocks.prisma.patient.update.mockResolvedValue(undefined);
     process.env.MACOS_APP_API_KEY = "test_secret_token";
   });
 
@@ -106,6 +108,12 @@ describe("POST /api/patients", () => {
         hasPaperConsentForRequired: true,
       },
     });
+    expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
+      where: { id: "new-patient-id" },
+      data: {
+        photoUrl: expect.stringMatching(/^\/avatars\//),
+      },
+    });
     expect(mocks.logMacosScanAudit).toHaveBeenCalledWith({
       action: "patient.created",
       patientId: "new-patient-id",
@@ -144,6 +152,12 @@ describe("POST /api/patients", () => {
         gender: "NOT_SPECIFIED",
         notes: "Some notes",
         hasPaperConsentForRequired: false,
+      },
+    });
+    expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
+      where: { id: "new-patient-id" },
+      data: {
+        photoUrl: expect.stringMatching(/^\/avatars\//),
       },
     });
   });

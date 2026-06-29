@@ -55,9 +55,29 @@ export async function resetPhotoAction(formData: FormData) {
   const patientId = formData.get("patientId") as string;
   if (!patientId) throw new Error("Paziente non valido");
 
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    select: { firstName: true, gender: true, notes: true },
+  });
+  if (!patient) throw new Error("Paziente non trovato");
+
+  const taxIdLine = (patient.notes ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("Codice Fiscale:"));
+  const taxId = taxIdLine?.replace("Codice Fiscale:", "").trim() || null;
+  const { resolveStoredPatientPhotoUrl } = await import("@/lib/patient-avatars");
+
   await prisma.patient.update({
     where: { id: patientId },
-    data: { photoUrl: null },
+    data: {
+      photoUrl: resolveStoredPatientPhotoUrl({
+        patientId,
+        firstName: patient.firstName,
+        gender: patient.gender,
+        taxId,
+      }),
+    },
   });
 
   await logAudit(user, {
@@ -95,7 +115,7 @@ export async function updatePatientAction(formData: FormData) {
 
   const existing = await prisma.patient.findUnique({
     where: { id },
-    select: { notes: true, photoUrl: true, gender: true },
+    select: { notes: true, photoUrl: true, gender: true, firstName: true },
   });
   const existingLines = (existing?.notes ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
   const preservedLines = existingLines.filter(
@@ -109,13 +129,15 @@ export async function updatePatientAction(formData: FormData) {
   );
 
   const birthDate = parseOptionalBirthDate(birthDateValue);
-  const { isSystemAvatar, pickRandomSystemAvatar, pickSystemAvatar } = await import("@/lib/patient-avatars");
-  const shouldAssignAvatar =
-    !existing?.photoUrl || (isSystemAvatar(existing.photoUrl) && existing.gender !== gender);
+  const { isSystemAvatar, resolveStoredPatientPhotoUrl } = await import("@/lib/patient-avatars");
+  const shouldAssignAvatar = !existing?.photoUrl || isSystemAvatar(existing.photoUrl);
   const nextPhotoUrl = shouldAssignAvatar
-    ? gender === Gender.NOT_SPECIFIED
-      ? pickRandomSystemAvatar(gender)
-      : pickSystemAvatar(id, gender)
+    ? resolveStoredPatientPhotoUrl({
+        patientId: id,
+        firstName,
+        gender,
+        taxId,
+      })
     : existing?.photoUrl;
 
   await prisma.patient.update({

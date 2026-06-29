@@ -1,3 +1,5 @@
+import { resolveEffectiveGender } from "@/lib/infer-gender";
+
 export type PatientGender = "MALE" | "FEMALE" | "OTHER" | "NOT_SPECIFIED" | null | undefined;
 
 const femaleAvatars = [
@@ -32,7 +34,7 @@ export const pickSystemAvatar = (seed: string, gender: PatientGender) => {
   const pool =
     gender === "FEMALE"
       ? femaleAvatars
-      : gender === "NOT_SPECIFIED" || !gender
+      : gender === "OTHER" || gender === "NOT_SPECIFIED" || !gender
         ? allAvatars
         : maleAvatars;
   const index = pool.length ? hashSeed(seed) % pool.length : 0;
@@ -43,9 +45,37 @@ export const pickRandomSystemAvatar = (gender: PatientGender) => {
   const pool =
     gender === "FEMALE"
       ? femaleAvatars
-      : gender === "NOT_SPECIFIED" || !gender
+      : gender === "OTHER" || gender === "NOT_SPECIFIED" || !gender
         ? allAvatars
         : maleAvatars;
   const index = pool.length ? Math.floor(Math.random() * pool.length) : 0;
   return pool[index] ?? "/avatars/missing_patient.jpg";
 };
+
+export type ResolvePatientPhotoInput = {
+  patientId: string;
+  firstName?: string | null;
+  gender?: PatientGender;
+  photoUrl?: string | null;
+  taxId?: string | null;
+};
+
+export function resolvePatientPhotoUrl(input: ResolvePatientPhotoInput) {
+  if (input.photoUrl && !isSystemAvatar(input.photoUrl)) {
+    return input.photoUrl;
+  }
+
+  const effectiveGender = resolveEffectiveGender(input.gender, input.firstName, input.taxId);
+  return pickSystemAvatar(input.patientId, effectiveGender);
+}
+
+export function resolveStoredPatientPhotoUrl(input: Omit<ResolvePatientPhotoInput, "photoUrl">) {
+  const effectiveGender = resolveEffectiveGender(input.gender, input.firstName, input.taxId);
+  return pickSystemAvatar(input.patientId, effectiveGender);
+}
+
+export const avatarPools = {
+  female: femaleAvatars,
+  male: maleAvatars,
+  all: allAvatars,
+} as const;

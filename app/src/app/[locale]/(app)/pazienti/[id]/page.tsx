@@ -348,6 +348,9 @@ export default async function PatientDetailPage({
                   <PatientAvatar
                     src={patient.photoUrl}
                     alt={`${patient.lastName} ${patient.firstName}`}
+                    patientId={patient.id}
+                    firstName={patient.firstName}
+                    taxId={parsedTaxId}
                     gender={patient.gender}
                     size={56}
                     className="h-full w-full rounded-full"
@@ -411,6 +414,9 @@ export default async function PatientDetailPage({
                     <PatientAvatar
                       src={patient.photoUrl}
                       alt={`${patient.lastName} ${patient.firstName}`}
+                      patientId={patient.id}
+                      firstName={patient.firstName}
+                      taxId={parsedTaxId}
                       gender={patient.gender}
                       size={112}
                       className="h-28 w-28 rounded-full"
@@ -418,6 +424,8 @@ export default async function PatientDetailPage({
                     <PatientPhotoDialog
                       patientId={patient.id}
                       fullName={`${patient.lastName} ${patient.firstName}`}
+                      firstName={patient.firstName}
+                      taxId={parsedTaxId}
                       photoUrl={patient.photoUrl}
                       gender={patient.gender}
                       uploadPhoto={uploadPhotoAction}

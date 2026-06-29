@@ -15,7 +15,7 @@ import { put } from "@vercel/blob";
 import { sendPatientWelcomeEmail } from "@/lib/welcome-email";
 import { getStackSignInUrl } from "@/lib/stack-app";
 import sharp from "sharp";
-import { pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
+import { resolveStoredPatientPhotoUrl } from "@/lib/patient-avatars";
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");
@@ -244,10 +244,12 @@ export async function createPatient(formData: FormData) {
     const blob = await put(blobName, resized, { access: "public", addRandomSuffix: false });
     updates.photoUrl = blob.url;
   } else {
-    updates.photoUrl =
-      gender === Gender.NOT_SPECIFIED
-        ? pickRandomSystemAvatar(gender)
-        : pickSystemAvatar(patient.id, gender);
+    updates.photoUrl = resolveStoredPatientPhotoUrl({
+      patientId: patient.id,
+      firstName,
+      gender,
+      taxId,
+    });
   }
 
   if (consentsToCreate.length > 0) {

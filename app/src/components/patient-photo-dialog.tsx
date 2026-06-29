@@ -8,6 +8,8 @@ import { PatientPhotoUpload } from "@/components/patient-photo-upload";
 type PatientPhotoDialogProps = {
   patientId: string;
   fullName: string;
+  firstName?: string | null;
+  taxId?: string | null;
   photoUrl?: string | null;
   gender?: "MALE" | "FEMALE" | "OTHER" | "NOT_SPECIFIED" | null;
   uploadPhoto: (formData: FormData) => Promise<void>;
@@ -17,6 +19,8 @@ type PatientPhotoDialogProps = {
 export function PatientPhotoDialog({
   patientId,
   fullName,
+  firstName,
+  taxId,
   photoUrl,
   gender,
   uploadPhoto,
@@ -54,6 +58,9 @@ export function PatientPhotoDialog({
                 <PatientAvatar
                   src={photoUrl}
                   alt={fullName}
+                  patientId={patientId}
+                  firstName={firstName}
+                  taxId={taxId}
                   gender={gender}
                   size={128}
                   className="h-32 w-32 rounded-full"

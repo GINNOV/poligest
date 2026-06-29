@@ -30,6 +30,7 @@ export default defineConfig({
         "src/lib/date.ts",
         "src/lib/destructive-action-guard.ts",
         "src/lib/error-response.ts",
+        "src/lib/infer-gender.ts",
         "src/lib/name.ts",
         "src/lib/patient-avatars.ts",
         "src/lib/phone.ts",
