@@ -176,8 +176,8 @@ export function AppointmentUpdateForm({
       {displayTimeZone ? <input type="hidden" name="timeZone" value={displayTimeZone} /> : null}
       <input type="hidden" name="appointmentId" value={appointment.id} />
       
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-        <span className="flex items-center justify-between gap-2">
+      <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
+        <span className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
           {selectedPatient && (
             <span className="flex items-center gap-3 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
@@ -211,7 +211,7 @@ export function AppointmentUpdateForm({
           }))}
           defaultValue={appointment.patientId}
           placeholder="Cerca paziente..."
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          className="h-11 w-full min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           onSelect={setSelectedPatientId}
         />
       </label>

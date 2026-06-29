@@ -226,8 +226,8 @@ export function AppointmentCreateForm({
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       {displayTimeZone ? <input type="hidden" name="timeZone" value={displayTimeZone} /> : null}
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-        <span className="flex items-center justify-between gap-2">
+      <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
+        <span className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
           {selectedPatient && (
             <span className="flex items-center gap-3 text-[10px] font-medium text-zinc-500 dark:text-zinc-400">

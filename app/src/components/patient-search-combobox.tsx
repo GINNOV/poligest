@@ -33,9 +33,7 @@ export function PatientSearchCombobox({
     () => patients.find((patient) => patient.id === defaultValue) ?? null,
     [defaultValue, patients],
   );
-  const [query, setQuery] = useState(
-    defaultPatient ? getPatientOptionValue(defaultPatient) : "",
-  );
+  const [query, setQuery] = useState(defaultPatient ? defaultPatient.fullName : "");
   const [selectedId, setSelectedId] = useState(defaultValue);
   const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
 
@@ -43,7 +41,7 @@ export function PatientSearchCombobox({
     setPrevDefaultValue(defaultValue);
     setSelectedId(defaultValue);
     const p = patients.find((patient) => patient.id === defaultValue);
-    setQuery(p ? getPatientOptionValue(p) : "");
+    setQuery(p ? p.fullName : "");
   }
 
   const listId = `${name}-options`;
@@ -51,7 +49,7 @@ export function PatientSearchCombobox({
   return (
     <>
       <input type="hidden" name={name} value={selectedId} />
-      <div className="relative">
+      <div className="relative min-w-0 w-full">
         <input
           ref={inputRef}
           list={listId}
@@ -60,9 +58,9 @@ export function PatientSearchCombobox({
           autoComplete="off"
           onChange={(event) => {
             const nextQuery = event.target.value;
-            setQuery(nextQuery);
             
             if (allowNew && nextQuery.trim().toLowerCase() === "+ nuovo cliente") {
+              setQuery(nextQuery);
               setSelectedId("new");
               onSelect?.("new");
               return;
@@ -70,6 +68,7 @@ export function PatientSearchCombobox({
 
             const match = resolvePatientFromQuery(nextQuery, patients);
             const nextId = match?.id ?? "";
+            setQuery(match ? match.fullName : nextQuery);
             setSelectedId(nextId);
             onSelect?.(nextId);
           }}
@@ -80,8 +79,8 @@ export function PatientSearchCombobox({
           placeholder={placeholder}
           className={
             className
-              ? `${className} pr-10 font-semibold text-zinc-950 dark:text-white`
-              : "pr-10 font-semibold text-zinc-950 dark:text-white"
+              ? `${className} w-full min-w-0 truncate pr-10 font-semibold text-zinc-950 dark:text-white`
+              : "w-full min-w-0 truncate pr-10 font-semibold text-zinc-950 dark:text-white"
           }
         />
         {query ? (
