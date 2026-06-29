@@ -31,10 +31,11 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
 
   const previewHtml = useMemo(() => {
-    const data = {
+    const websiteUrl = previewData.websiteUrl || resolveTransactionalSiteOrigin();
+    const data: Record<string, string> = {
       ...previewData,
-      websiteUrl: previewData.websiteUrl || resolveTransactionalSiteOrigin(),
-      button: buildTransactionalButton(buttonColor, "Apri dettaglio", previewData.websiteUrl),
+      websiteUrl,
+      button: buildTransactionalButton(buttonColor, "Apri dettaglio", websiteUrl),
     };
 
     return materializeTransactionalEmail({
@@ -42,7 +43,7 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
       bodySource: body,
       data,
       buttonColor,
-      clinicName: data.clinicName,
+      clinicName: previewData.clinicName,
     }).html;
   }, [body, buttonColor, subject]);
 

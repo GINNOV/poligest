@@ -62,16 +62,32 @@ export async function deliverNotificationPlan(params: {
   return { delivered, attempted };
 }
 
-export function formatNotificationChannel(channel: NotificationChannel | string | null | undefined) {
-  switch (channel) {
-    case NotificationChannel.WHATSAPP:
-      return "WhatsApp";
-    case NotificationChannel.SMS:
-      return "SMS";
-    case NotificationChannel.BOTH:
-      return "Email + SMS";
-    case NotificationChannel.EMAIL:
-    default:
-      return "Email";
+export type NotificationChannelLabel = {
+  key: "whatsapp" | "email" | "sms";
+  label: string;
+};
+
+export function getNotificationChannelLabels(
+  channel: NotificationChannel | string | null | undefined,
+): NotificationChannelLabel[] {
+  const normalized = (channel as NotificationChannel) ?? NotificationChannel.WHATSAPP;
+  const labels: NotificationChannelLabel[] = [];
+
+  if (normalized === NotificationChannel.WHATSAPP) {
+    labels.push({ key: "whatsapp", label: "WhatsApp" });
   }
+  if (normalized === NotificationChannel.EMAIL || normalized === NotificationChannel.BOTH) {
+    labels.push({ key: "email", label: "Email" });
+  }
+  if (normalized === NotificationChannel.SMS || normalized === NotificationChannel.BOTH) {
+    labels.push({ key: "sms", label: "SMS" });
+  }
+
+  return labels;
+}
+
+export function formatNotificationChannel(channel: NotificationChannel | string | null | undefined) {
+  const labels = getNotificationChannelLabels(channel);
+  if (labels.length === 0) return "Email";
+  return labels.map((entry) => entry.label).join(" + ");
 }

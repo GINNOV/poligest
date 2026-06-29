@@ -6,6 +6,15 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { RecallStatus, Role } from "@prisma/client";
 import { deleteScheduledRecall, scheduleRecall } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { getNotificationChannelLabels } from "@/lib/recalls/delivery";
+
+const channelBadgeStyles = {
+  whatsapp:
+    "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/40 dark:text-emerald-300",
+  email:
+    "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/40 dark:text-blue-300",
+  sms: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300",
+} as const;
 
 export const metadata = createPageMetadata(PAGE_TITLES.richiamiProgrammati);
 
@@ -119,6 +128,7 @@ export default async function RichiamiProgrammatiPage({
             <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun richiamo imminente.</p>
           ) : (
             recalls.map((recall) => {
+              const channelLabels = getNotificationChannelLabels(recall.rule.channel);
               const overdue = recall.dueAt < now;
               const statusLabel =
                 recall.status === RecallStatus.CONTACTED
@@ -147,8 +157,21 @@ export default async function RichiamiProgrammatiPage({
                         recall.dueAt
                       )}
                     </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-500">
+                        Canale:
+                      </span>
+                      {channelLabels.map((channel) => (
+                        <span
+                          key={channel.key}
+                          className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${channelBadgeStyles[channel.key]}`}
+                        >
+                          {channel.label}
+                        </span>
+                      ))}
+                    </div>
                     {recall.notes ? (
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{recall.notes}</span>
+                      <span className="mt-1 block text-xs text-zinc-500 dark:text-zinc-400">{recall.notes}</span>
                     ) : null}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

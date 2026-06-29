@@ -127,7 +127,7 @@ function withButtonPlaceholder(
   data: Record<string, string>,
   bodySource: string,
   buttonColor?: string | null,
-) {
+): Record<string, string> {
   if (!bodyContainsButtonPlaceholder(bodySource)) {
     return { ...data, button: "" };
   }
@@ -160,7 +160,7 @@ export async function sendEmailTemplate(params: {
     bodySource,
     data,
     buttonColor,
-    clinicName: data.clinicName,
+    clinicName: params.data.clinicName,
   });
 
   await sendEmailWithHtml(

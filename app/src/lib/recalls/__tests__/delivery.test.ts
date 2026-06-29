@@ -16,11 +16,27 @@ vi.mock("@/lib/kapso-whatsapp", () => ({
 import { sendEmail, sendEmailWithHtml } from "@/lib/email";
 import { sendKapsoWhatsAppText } from "@/lib/kapso-whatsapp";
 import { sendSms } from "@/lib/sms";
-import { deliverNotificationPlan } from "@/lib/recalls/delivery";
+import {
+  deliverNotificationPlan,
+  formatNotificationChannel,
+  getNotificationChannelLabels,
+} from "@/lib/recalls/delivery";
+import { NotificationChannel } from "@prisma/client";
 
 describe("recalls delivery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("lists individual channel labels for scheduled recall display", () => {
+    expect(getNotificationChannelLabels(NotificationChannel.WHATSAPP)).toEqual([
+      { key: "whatsapp", label: "WhatsApp" },
+    ]);
+    expect(getNotificationChannelLabels(NotificationChannel.BOTH)).toEqual([
+      { key: "email", label: "Email" },
+      { key: "sms", label: "SMS" },
+    ]);
+    expect(formatNotificationChannel(NotificationChannel.BOTH)).toBe("Email + SMS");
   });
 
   it("sends WhatsApp recalls through Kapso when configured", async () => {

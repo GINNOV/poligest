@@ -22,7 +22,7 @@ function buildDeliveryContent(params: {
   placeholderData: Record<string, string>;
   template?: TransactionalEmailTemplate | null;
 }) {
-  const data = { ...params.placeholderData };
+  const data: Record<string, string> = { ...params.placeholderData };
   if (params.template && bodyContainsButtonPlaceholder(params.bodySource)) {
     data.button = buildTransactionalButton(
       params.template.buttonColor,
