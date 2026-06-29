@@ -83,6 +83,19 @@ describe("GET /api/appointments/alternative-slots", () => {
     );
   });
 
+  it("returns the first available slot when mode=first", async () => {
+    const response = await GET(
+      new Request(
+        "http://localhost/api/appointments/alternative-slots?doctorId=doc-1&mode=first&date=2026-06-03&durationMinutes=60&timeZone=Europe/Rome",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.slots).toHaveLength(1);
+    expect(json.slots[0]?.label).toEqual(expect.any(String));
+  });
+
   it("rejects incomplete search params", async () => {
     const response = await GET(
       new Request("http://localhost/api/appointments/alternative-slots?doctorId=doc-1"),

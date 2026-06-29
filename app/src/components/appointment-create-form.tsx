@@ -10,6 +10,7 @@ import {
   CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
   CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
 } from "@/lib/app-preferences";
+import { APPOINTMENT_TITLES } from "@/lib/client-enums";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -336,11 +337,11 @@ export function AppointmentCreateForm({
             required
             onChange={(e) => setTitle(e.target.value)}
           >
-            <option value="Richiamo">Richiamo</option>
-            <option value="Prima visita">Prima visita</option>
-            <option value="Visita di controllo">Visita di controllo</option>
-            <option value="Urgenza">Urgenza</option>
-            <option value="altro">Altro</option>
+            {APPOINTMENT_TITLES.map((option) => (
+              <option key={option} value={option === "Altro" ? "altro" : option}>
+                {option}
+              </option>
+            ))}
           </select>
         </label>
         {title === "altro" && (

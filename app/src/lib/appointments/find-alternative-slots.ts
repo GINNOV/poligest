@@ -1,6 +1,10 @@
 import { formatCalendarLocalInput } from "@/lib/calendar/domain";
-import { parseDateAtMidnightInTimeZone, weekdayIsoInTimeZone } from "@/lib/user-display-time-zone";
-import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
+import {
+  formatDateInputValueInTimeZone,
+  parseDateAtMidnightInTimeZone,
+  weekdayIsoInTimeZone,
+} from "@/lib/user-display-time-zone";
+import { addDaysInTimeZone, parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
 import type {
   AvailabilityWindow,
   DoctorTimeOff,
@@ -37,6 +41,7 @@ export type FindAlternativeSlotsInput = {
 
 const DEFAULT_SLOT_STEP_MINUTES = 15;
 const DEFAULT_MAX_RESULTS = 16;
+const DEFAULT_MAX_SEARCH_DAYS = 60;
 const DEFAULT_FALLBACK_START_MINUTE = 8 * 60;
 const DEFAULT_FALLBACK_END_MINUTE = 20 * 60;
 
@@ -66,6 +71,16 @@ function formatSlotLabel(start: Date, end: Date, timeZone: string) {
     minute: "2-digit",
   });
   return `${formatter.format(start)} – ${formatter.format(end)}`;
+}
+
+function formatSlotLabelWithDate(start: Date, end: Date, timeZone: string) {
+  const dateFormatter = new Intl.DateTimeFormat("it-IT", {
+    timeZone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return `${dateFormatter.format(start)} · ${formatSlotLabel(start, end, timeZone)}`;
 }
 
 function isDayBlocked(input: {
@@ -242,6 +257,74 @@ export function findAlternativeSlots(input: FindAlternativeSlotsInput): {
   }
 
   return { slots };
+}
+
+export type FindFirstAvailableSlotInput = Omit<FindAlternativeSlotsInput, "date" | "maxResults"> & {
+  fromDate: string;
+  maxDays?: number;
+};
+
+export function findFirstAvailableSlot(input: FindFirstAvailableSlotInput): {
+  slots: AlternativeSlot[];
+  blockedReason?: string;
+} {
+  const durationMinutes = Math.max(5, Math.round(input.durationMinutes));
+  const maxDays = input.maxDays ?? DEFAULT_MAX_SEARCH_DAYS;
+
+  if (!input.doctorId) {
+    return { slots: [], blockedReason: "Seleziona un medico per cercare slot liberi." };
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.fromDate)) {
+    return { slots: [], blockedReason: "Data non valida." };
+  }
+
+  const anchor = parseDateAtMidnightInTimeZone(input.fromDate, input.timeZone);
+  if (Number.isNaN(anchor.getTime())) {
+    return { slots: [], blockedReason: "Data non valida." };
+  }
+
+  for (let dayOffset = 0; dayOffset < maxDays; dayOffset += 1) {
+    const day = addDaysInTimeZone(anchor, dayOffset, input.timeZone);
+    const date = formatDateInputValueInTimeZone(day, input.timeZone);
+    const dayStart = parseDateAtMidnightInTimeZone(date, input.timeZone);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const dayAppointments = input.existingAppointments.filter(
+      (appointment) => appointment.startsAt < dayEnd && appointment.endsAt > dayStart,
+    );
+
+    const result = findAlternativeSlots({
+      ...input,
+      date,
+      existingAppointments: dayAppointments,
+      maxResults: 1,
+    });
+
+    if (result.slots.length === 0) continue;
+
+    const slot = result.slots[0]!;
+    const slotStart = parseDateTimeLocalInTimeZone(slot.startsAtLocal, input.timeZone);
+    const slotEnd = parseDateTimeLocalInTimeZone(slot.endsAtLocal, input.timeZone);
+    if (
+      !slotStart ||
+      !slotEnd ||
+      Number.isNaN(slotStart.getTime()) ||
+      Number.isNaN(slotEnd.getTime())
+    ) {
+      continue;
+    }
+
+    const labeledSlot = {
+      ...slot,
+      label: formatSlotLabelWithDate(slotStart, slotEnd, input.timeZone),
+    };
+    return { slots: [labeledSlot] };
+  }
+
+  return {
+    slots: [],
+    blockedReason: `Nessuno slot libero trovato nei prossimi ${maxDays} giorni con durata ${durationMinutes} minuti.`,
+  };
 }
 
 export function computeAppointmentDurationMinutes(

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   computeAppointmentDurationMinutes,
   findAlternativeSlots,
+  findFirstAvailableSlot,
 } from "@/lib/appointments/find-alternative-slots";
 import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
 
@@ -76,6 +77,59 @@ describe("findAlternativeSlots", () => {
 
     expect(result.slots).toEqual([]);
     expect(result.blockedReason).toContain("chiuso");
+  });
+});
+
+describe("findFirstAvailableSlot", () => {
+  it("returns the earliest free slot across multiple days", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T08:00:00.000Z"));
+
+    const result = findFirstAvailableSlot({
+      fromDate: "2026-06-03",
+      maxDays: 5,
+      durationMinutes: 60,
+      doctorId: "doc-1",
+      timeZone: "Europe/Rome",
+      availabilityWindows,
+      practiceClosures: [],
+      existingAppointments: [
+        {
+          startsAt: parseDateTimeLocalInTimeZone("2026-06-03T09:00", "Europe/Rome")!,
+          endsAt: parseDateTimeLocalInTimeZone("2026-06-03T13:00", "Europe/Rome")!,
+        },
+      ],
+      slotStepMinutes: 30,
+    });
+
+    expect(result.slots).toHaveLength(1);
+    expect(result.slots[0]?.startsAtLocal.startsWith("2026-06-04")).toBe(true);
+    expect(result.slots[0]?.label).toMatch(/·/);
+  });
+
+  it("reports when no slot is found within the search window", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T08:00:00.000Z"));
+
+    const result = findFirstAvailableSlot({
+      fromDate: "2026-06-03",
+      maxDays: 1,
+      durationMinutes: 60,
+      doctorId: "doc-1",
+      timeZone: "Europe/Rome",
+      availabilityWindows,
+      practiceClosures: [],
+      existingAppointments: [
+        {
+          startsAt: parseDateTimeLocalInTimeZone("2026-06-03T09:00", "Europe/Rome")!,
+          endsAt: parseDateTimeLocalInTimeZone("2026-06-03T13:00", "Europe/Rome")!,
+        },
+      ],
+      slotStepMinutes: 30,
+    });
+
+    expect(result.slots).toEqual([]);
+    expect(result.blockedReason).toContain("1 giorni");
   });
 });
 

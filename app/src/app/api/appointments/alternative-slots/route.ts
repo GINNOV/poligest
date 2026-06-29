@@ -5,8 +5,15 @@ import { errorResponse } from "@/lib/error-response";
 import { prisma } from "@/lib/prisma";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { calendarOccupyingAppointmentFilter } from "@/lib/appointments/agenda-domain";
-import { findAlternativeSlots } from "@/lib/appointments/find-alternative-slots";
-import { parseDateAtMidnightInTimeZone } from "@/lib/user-display-time-zone";
+import {
+  findAlternativeSlots,
+  findFirstAvailableSlot,
+} from "@/lib/appointments/find-alternative-slots";
+import {
+  formatDateInputValueInTimeZone,
+  parseDateAtMidnightInTimeZone,
+} from "@/lib/user-display-time-zone";
+import { addDaysInTimeZone } from "@/lib/time-zone";
 import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 
@@ -16,17 +23,35 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const doctorId = searchParams.get("doctorId")?.trim() ?? "";
+    const mode = searchParams.get("mode")?.trim() ?? "day";
     const date = searchParams.get("date")?.trim() ?? "";
     const durationMinutes = Number.parseInt(searchParams.get("durationMinutes") ?? "", 10);
     const excludeId = searchParams.get("excludeId")?.trim() || undefined;
     const timeZone = searchParams.get("timeZone")?.trim() || DEFAULT_PRACTICE_TIME_ZONE;
+    const maxDays = Number.parseInt(searchParams.get("maxDays") ?? "", 10);
 
-    if (!doctorId || !date || Number.isNaN(durationMinutes) || durationMinutes <= 0) {
+    if (!doctorId || Number.isNaN(durationMinutes) || durationMinutes <= 0) {
       return NextResponse.json({ slots: [], blockedReason: "Parametri di ricerca non validi." });
     }
 
-    const dayStart = parseDateAtMidnightInTimeZone(date, timeZone);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const isFirstMode = mode === "first";
+    const fromDate =
+      date || formatDateInputValueInTimeZone(new Date(), timeZone);
+
+    if (!isFirstMode && !date) {
+      return NextResponse.json({ slots: [], blockedReason: "Parametri di ricerca non validi." });
+    }
+
+    const rangeStart = parseDateAtMidnightInTimeZone(fromDate, timeZone);
+    const rangeEnd = isFirstMode
+      ? new Date(
+          addDaysInTimeZone(
+            rangeStart,
+            Number.isNaN(maxDays) || maxDays <= 0 ? 60 : maxDays,
+            timeZone,
+          ).getTime(),
+        )
+      : new Date(rangeStart.getTime() + 24 * 60 * 60 * 1000);
 
     const availabilityClient = getOptionalPrismaModel<{
       findMany: (args: unknown) => Promise<
@@ -54,8 +79,8 @@ export async function GET(req: Request) {
             ...calendarOccupyingAppointmentFilter(),
             doctorId,
             id: excludeId ? { not: excludeId } : undefined,
-            startsAt: { lt: dayEnd },
-            endsAt: { gt: dayStart },
+            startsAt: { lt: rangeEnd },
+            endsAt: { gt: rangeStart },
           },
           select: { startsAt: true, endsAt: true },
           orderBy: { startsAt: "asc" },
@@ -74,8 +99,8 @@ export async function GET(req: Request) {
         closureClient?.findMany
           ? closureClient.findMany({
               where: {
-                startsAt: { lt: dayEnd },
-                endsAt: { gt: dayStart },
+                startsAt: { lt: rangeEnd },
+                endsAt: { gt: rangeStart },
               },
               select: { startsAt: true, endsAt: true, title: true, type: true },
             })
@@ -90,16 +115,15 @@ export async function GET(req: Request) {
           ? timeOffClient.findMany({
               where: {
                 doctorId,
-                startsAt: { lt: dayEnd },
-                endsAt: { gt: dayStart },
+                startsAt: { lt: rangeEnd },
+                endsAt: { gt: rangeStart },
               },
               select: { doctorId: true, startsAt: true, endsAt: true, title: true },
             })
           : Promise.resolve([]),
       ]);
 
-    const result = findAlternativeSlots({
-      date,
+    const searchInput = {
       durationMinutes,
       doctorId,
       timeZone,
@@ -118,7 +142,18 @@ export async function GET(req: Request) {
         endsAt: timeOff.endsAt.toISOString(),
         title: timeOff.title,
       })),
-    });
+    };
+
+    const result = isFirstMode
+      ? findFirstAvailableSlot({
+          ...searchInput,
+          fromDate,
+          maxDays: Number.isNaN(maxDays) || maxDays <= 0 ? undefined : maxDays,
+        })
+      : findAlternativeSlots({
+          ...searchInput,
+          date,
+        });
 
     return NextResponse.json(result);
   } catch (error) {
