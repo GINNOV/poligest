@@ -270,6 +270,10 @@ describe("recurring messages domain", () => {
 
     expect(body).toContain("Ciao Mario,");
     expect(body).toContain("1. Accedi alla dashboard amministrativa di SORRISO.");
+    expect(body).toContain('3. Nella cartella Esportazione, seleziona "Tutto il database".');
+    expect(body).toContain(
+      '4. Clicca "Genera il backup" e conserva il file su una chiavetta per usi futuri.',
+    );
     expect(body).toContain("6. Verifica che i file si aprano correttamente");
     expect(body).toContain("https://poligest.example.com/admin/reset");
 

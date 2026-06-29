@@ -22,7 +22,11 @@ function SubmitButton() {
   );
 }
 
-export function ImportForm() {
+type ImportFormProps = {
+  embedded?: boolean;
+};
+
+export function ImportForm({ embedded = false }: ImportFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,16 +43,36 @@ export function ImportForm() {
     }
   }
 
+  const form = (
+    <>
+      <form action={handleSubmit} className="space-y-3 text-sm">
+        {!embedded ? (
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Colonne: Paziente; Tipo; Marca; Data Acq; UDI-DI; UDI-PI; Data Int; Sede.
+          </p>
+        ) : null}
+        <LocalizedFileInput
+          name="file"
+          accept=".csv"
+          required
+          buttonText="Scegli CSV"
+          placeholder="Nessun file selezionato"
+        />
+        <SubmitButton />
+      </form>
+      {message ? <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-500">{message}</p> : null}
+      {error ? <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-500">{error}</p> : null}
+    </>
+  );
+
+  if (embedded) {
+    return form;
+  }
+
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Importa / Esporta</h2>
-      <form action={handleSubmit} className="mt-3 space-y-3 text-sm">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">Carica un file CSV con colonne: Paziente; Tipo; Marca; Data Acq; UDI-DI; UDI-PI; Data Int; Sede.</p>
-        <LocalizedFileInput name="file" accept=".csv" required placeholder="Nessun file selezionato" />
-        <SubmitButton />
-      </form>
-      {message && <p className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-500">{message}</p>}
-      {error && <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-500">{error}</p>}
+      <div className="mt-3">{form}</div>
     </div>
   );
 }

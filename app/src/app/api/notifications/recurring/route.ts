@@ -13,24 +13,13 @@ import {
   type RecurringCandidate,
 } from "@/lib/recurring-messages/domain";
 import { logAudit } from "@/lib/audit";
+import { resolveTransactionalSiteOrigin } from "@/lib/email-template-utils";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { unauthorizedCronResponse, validateCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 
 const MAX_SEND = 200;
-
-function normalizeSiteOrigin(rawOrigin: string | undefined) {
-  if (!rawOrigin) return "";
-  if (/^https?:\/\//.test(rawOrigin)) return rawOrigin.replace(/\/$/, "");
-  return `https://${rawOrigin.replace(/\/$/, "")}`;
-}
-
-function resolveSiteOrigin() {
-  return normalizeSiteOrigin(
-    process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
-  );
-}
 
 async function getConfigs() {
   const stored = await prisma.recurringMessageConfig.findMany();
@@ -90,8 +79,8 @@ export async function GET(req: Request) {
         },
       });
     }
-    const siteOrigin = resolveSiteOrigin();
-    const adminResetUrl = siteOrigin ? `${siteOrigin}/admin/reset` : "/admin/reset";
+    const siteOrigin = resolveTransactionalSiteOrigin();
+    const adminResetUrl = `${siteOrigin}/admin/reset`;
     const monthKey = getAdminBackupReminderMonthKey(now);
     const [adminsRaw, existingAdminReminderLogs] = await Promise.all([
       prisma.user.findMany({

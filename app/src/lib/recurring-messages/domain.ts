@@ -261,8 +261,8 @@ export function getAdminBackupReminderMonthKey(date: Date) {
 const ADMIN_BACKUP_REMINDER_STEPS = [
   `Accedi alla dashboard amministrativa di ${APP_BRAND_NAME}.`,
   "Apri la sezione Admin > Sistema: Database.",
-  'Nella scheda "Esporta dati" lascia selezionate le tabelle necessarie.',
-  'Premi "Esporta selezione" e salva il file JSON in una cartella sicura.',
+  'Nella cartella Esportazione, seleziona "Tutto il database".',
+  'Clicca "Genera il backup" e conserva il file su una chiavetta per usi futuri.',
   "Dalla stessa pagina esporta anche il CSV del magazzino, se ti serve una copia operativa.",
   "Verifica che i file si aprano correttamente e annota la data del backup.",
 ] as const;
