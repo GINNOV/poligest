@@ -1,6 +1,26 @@
 import { APP_BRAND_NAME } from "@/lib/brand";
+import {
+  buildReportEmailHeader,
+  escapeReportHtml,
+  wrapReportEmailBody,
+} from "@/lib/report-email-layout";
 
 const PUBLIC_SITE_ORIGIN = "https://sorrisosplendente.com";
+
+export type TransactionalEmailHeader = {
+  badge?: string;
+  title?: string;
+  subtitle?: string;
+  intro?: string;
+};
+
+const TRANSACTIONAL_EMAIL_HEADERS: Record<string, Pick<TransactionalEmailHeader, "badge" | "subtitle">> = {
+  "welcome-patient": { badge: "Benvenuto", subtitle: "Area paziente" },
+  "welcome-staff": { badge: "Benvenuto", subtitle: "Nuovo membro dello staff" },
+  "appointment-reminder": { badge: "Promemoria", subtitle: "Appuntamento" },
+  "follow-up": { badge: "Post-visita", subtitle: "Follow-up" },
+  "invoice-ready": { badge: "Fatturazione", subtitle: "Documento disponibile" },
+};
 
 function normalizeSiteOrigin(rawOrigin: string | undefined) {
   if (!rawOrigin) return "";
@@ -60,51 +80,100 @@ export function buildTransactionalButton(
   return createButton(label, targetUrl, buttonColor ?? undefined);
 }
 
+function containsHtmlMarkup(value: string) {
+  return /<[a-z][\s\S]*>/i.test(value);
+}
+
+export function formatTransactionalBodyHtml(body: string) {
+  const blocks = body
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return blocks
+    .map((block) => {
+      if (containsHtmlMarkup(block)) {
+        if (/<a\s/i.test(block)) {
+          return `<div style="text-align:center;margin:24px 0;">${block}</div>`;
+        }
+
+        return `<div style="margin:0 0 16px;font-size:15px;line-height:22px;color:#3f3f46;">${block}</div>`;
+      }
+
+      const lines = block.split("\n").map(escapeReportHtml).join("<br />");
+      return `<p style="margin:0 0 16px;font-size:15px;line-height:22px;color:#3f3f46;">${lines}</p>`;
+    })
+    .join("\n");
+}
+
+export function resolveTransactionalEmailHeader(params: {
+  templateName?: string;
+  clinicName?: string;
+  header?: TransactionalEmailHeader;
+}): Required<Pick<TransactionalEmailHeader, "badge" | "title" | "subtitle">> &
+  Pick<TransactionalEmailHeader, "intro"> {
+  const clinicName = params.clinicName?.trim() || APP_BRAND_NAME;
+  const preset = params.templateName ? TRANSACTIONAL_EMAIL_HEADERS[params.templateName] : undefined;
+
+  return {
+    badge: params.header?.badge ?? preset?.badge ?? APP_BRAND_NAME,
+    title: params.header?.title ?? clinicName,
+    subtitle: params.header?.subtitle ?? preset?.subtitle ?? "Messaggio dallo studio",
+    intro: params.header?.intro,
+  };
+}
+
 export function materializeTransactionalEmail(params: {
   subjectSource: string;
   bodySource: string;
   data: Record<string, string>;
   buttonColor?: string | null;
   clinicName?: string;
+  templateName?: string;
+  header?: TransactionalEmailHeader;
 }) {
   const subject = replacePlaceholders(params.subjectSource, params.data);
   const htmlBody = replacePlaceholders(params.bodySource, params.data);
   const clinicName = params.clinicName ?? params.data.clinicName;
-  const html = renderEmailHtml(htmlBody, params.buttonColor ?? undefined, clinicName);
+  const html = renderEmailHtml(htmlBody, {
+    clinicName,
+    templateName: params.templateName,
+    header: params.header,
+  });
   const body = plainTextFromEmailBody(htmlBody);
 
   return { subject, body, html };
 }
 
-export function renderEmailHtml(body: string, buttonColor?: string, clinicName?: string) {
-  const footerName = clinicName || APP_BRAND_NAME;
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-  </head>
-  <body style="margin:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#111827;">
-    <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="background:#f4f5f7;padding:32px 0;">
-      <tr>
-        <td align="center">
-          <table role="presentation" cellspacing="0" cellpadding="0" width="600" style="width:600px;max-width:92%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
-            <tr>
-              <td style="padding:32px;">
-                <div style="font-size:14px;line-height:1.6;color:#374151;white-space:pre-line;">${body}</div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:20px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-                Questo messaggio è stato inviato da ${footerName}.
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`;
+export function renderEmailHtml(
+  body: string,
+  options?: {
+    buttonColor?: string;
+    clinicName?: string;
+    templateName?: string;
+    header?: TransactionalEmailHeader;
+  },
+) {
+  const clinicName = options?.clinicName;
+  const footerName = clinicName?.trim() || APP_BRAND_NAME;
+  const header = resolveTransactionalEmailHeader({
+    templateName: options?.templateName,
+    clinicName,
+    header: options?.header,
+  });
+  const formattedBody = formatTransactionalBodyHtml(body);
+
+  return wrapReportEmailBody(`
+    ${buildReportEmailHeader(header)}
+    <div style="padding:28px;">
+      ${formattedBody}
+    </div>
+    <div style="padding:20px 28px;background:#fafafa;border-top:1px solid #e4e4e7;text-align:center;">
+      <p style="margin:0;font-size:12px;line-height:18px;color:#71717a;">
+        Questo messaggio è stato inviato da ${escapeReportHtml(footerName)} tramite ${escapeReportHtml(APP_BRAND_NAME)}.
+      </p>
+    </div>
+  `);
 }
 
 export function createButton(label: string, url: string, buttonColor?: string) {

@@ -166,6 +166,7 @@ export async function sendEmailTemplate(params: {
     data,
     buttonColor,
     clinicName: params.data.clinicName,
+    templateName: params.templateName,
   });
 
   await sendEmailWithHtml(

@@ -44,8 +44,9 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
       data,
       buttonColor,
       clinicName: previewData.clinicName,
+      templateName: template.name,
     }).html;
-  }, [body, buttonColor, subject]);
+  }, [body, buttonColor, subject, template.name]);
 
   const handleInsert = (key: string) => {
     const token = `{{${key}}}`;

@@ -21,6 +21,7 @@ function buildDeliveryContent(params: {
   bodySource: string;
   placeholderData: Record<string, string>;
   template?: TransactionalEmailTemplate | null;
+  templateName?: string;
 }) {
   const data: Record<string, string> = { ...params.placeholderData };
   if (params.template && bodyContainsButtonPlaceholder(params.bodySource)) {
@@ -40,6 +41,7 @@ function buildDeliveryContent(params: {
       data,
       buttonColor: params.template.buttonColor,
       clinicName: data.clinicName,
+      templateName: params.templateName,
     });
   }
 
@@ -236,6 +238,7 @@ export function buildAppointmentReminderDeliveryPlan(params: {
     subjectSource,
     bodySource,
     template: params.template,
+    templateName: "appointment-reminder",
     placeholderData: {
       patientName,
       appointmentDate: formatDateInTimeZone(

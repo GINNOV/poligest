@@ -66,9 +66,38 @@ describe("email rendering contract", () => {
 
     expect(materialized.subject).toBe("Promemoria 30/06/2026");
     expect(materialized.html).toMatch(/<table role="presentation"/);
+    expect(materialized.html).toMatch(/studio_agovinoangrisano_logo\.png/);
     expect(materialized.html).toMatch(/Apri dettaglio/);
+    expect(materialized.html).toMatch(/tramite SORRISO/);
     expect(materialized.body).toContain("Mario Rossi");
     expect(materialized.body).not.toMatch(/<a[\s>]/i);
+  });
+
+  it("renders welcome-patient emails with branded header and centered CTA", async () => {
+    const { materializeTransactionalEmail, buildTransactionalButton } = await import(
+      "@/lib/email-template-utils"
+    );
+
+    const materialized = materializeTransactionalEmail({
+      subjectSource: "Benvenuto in {{clinicName}}",
+      bodySource:
+        "Gentile {{patientName}},\n\nLa informiamo che l'accesso alla Sua area paziente è stato attivato.\n\n{{button}}\n\nCordiali saluti,\n{{clinicName}}",
+      data: {
+        patientName: "Maria Rossi",
+        clinicName: "Studio Agovino & Angrisano",
+        button: buildTransactionalButton("#047857", "Accedi all'area paziente", "https://sorrisosplendente.com"),
+      },
+      templateName: "welcome-patient",
+      clinicName: "Studio Agovino & Angrisano",
+    });
+
+    expect(materialized.subject).toBe("Benvenuto in Studio Agovino & Angrisano");
+    expect(materialized.html).toContain("studio_agovinoangrisano_logo.png");
+    expect(materialized.html).toContain("Benvenuto");
+    expect(materialized.html).toContain("Area paziente");
+    expect(materialized.html).toContain("Studio Agovino &amp; Angrisano");
+    expect(materialized.html).toContain("Accedi all'area paziente");
+    expect(materialized.html).toMatch(/text-align:center/);
   });
 
   it("uses the SORRISO display name for outbound email sender", async () => {
