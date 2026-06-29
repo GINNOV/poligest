@@ -4,7 +4,16 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Prisma, Role } from "@prisma/client";
 import Link from "next/link";
+import { AuditFiltersForm } from "@/components/admin/audit-filters-form";
 import { AuditRecordNav } from "@/components/admin/AuditRecordNav";
+import { auditLogVisibilityFilter } from "@/lib/audit";
+const auditRoleLabels: Record<Role, string> = {
+  [Role.ADMIN]: "Amministratore",
+  [Role.MANAGER]: "Medico / Manager",
+  [Role.ASSISTANT]: "Assistente",
+  [Role.SECRETARY]: "Segreteria",
+  [Role.PATIENT]: "Paziente",
+};
 
 export const metadata = createPageMetadata(PAGE_TITLES.audit);
 
@@ -77,7 +86,7 @@ export default async function AuditPage({
     dateFilter = { gte: start, lt: end };
   }
 
-  const filters: Prisma.AuditLogWhereInput[] = [];
+  const filters: Prisma.AuditLogWhereInput[] = [auditLogVisibilityFilter()];
   if (q) {
     filters.push({
       OR: [
@@ -130,10 +139,11 @@ export default async function AuditPage({
       take: 200,
     }),
     prisma.user.findMany({
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
+      select: { id: true, name: true, email: true, role: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
     }),
     prisma.auditLog.findMany({
+      where: auditLogVisibilityFilter(),
       select: { action: true },
       distinct: ["action"],
       orderBy: { action: "asc" },
@@ -171,7 +181,6 @@ export default async function AuditPage({
       "inventory.movement": "📦",
       "user.login": "🔑",
       "user.updated": "👤",
-      "error.reported": "🚨",
     };
     return map[action] ?? "ℹ️";
   };
@@ -229,7 +238,13 @@ export default async function AuditPage({
             {t("audit")}
           </p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("auditTitle")}</h1>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t("auditSubtitle")}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {t("auditSubtitle")} Gli errori applicativi sono nel{" "}
+            <Link href="/admin/errori" className="font-semibold text-emerald-700 hover:underline dark:text-emerald-400">
+              registro errori
+            </Link>
+            .
+          </p>
         </div>
         <span className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
           {logs.length} eventi (max 200)
@@ -237,98 +252,34 @@ export default async function AuditPage({
       </div>
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm">
-        <form className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-[1.5fr,1fr,1.5fr,1fr,1.5fr,1fr,auto]" method="get">
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            {t("auditSearchLabel")}
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder={t("auditSearchPlaceholder")}
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Data
-            <input
-              type="date"
-              name="date"
-              defaultValue={dateParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Cerca utente
-            <input
-              type="text"
-              name="uq"
-              defaultValue={uq}
-              placeholder="Nome o email"
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Ruolo utente
-            <select
-              name="role"
-              defaultValue={roleParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            >
-              <option value="">Tutti</option>
-              {Object.values(Role).map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Utente
-            <select
-              name="userId"
-              defaultValue={userIdParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            >
-              <option value="">Tutti</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name || u.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Tipo
-            <select
-              name="type"
-              defaultValue={typeParam ?? ""}
-              className="h-10 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/10"
-            >
-              <option value="">Tutti</option>
-              {actionTypes.map((at) => (
-                <option key={at.action} value={at.action}>
-                  {at.action}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end gap-2">
-            <button
-              type="submit"
-              aria-label={t("auditApplyFilters")}
-              className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600"
-            >
-              {t("apply")}
-            </button>
-            <Link
-              href="/admin/audit"
-              aria-label={t("auditResetFilters")}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 px-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200 transition hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700 dark:hover:text-emerald-500"
-            >
-              {t("resetFilters")}
-            </Link>
-          </div>
-        </form>
+        <AuditFiltersForm
+          labels={{
+            search: t("auditSearchLabel"),
+            searchPlaceholder: t("auditSearchPlaceholder"),
+            date: "Data",
+            role: "Ruolo utente",
+            user: "Utente",
+            userPlaceholder: "Cerca per nome o email",
+            type: "Tipo azione",
+            all: "Tutti",
+            apply: t("apply"),
+            reset: t("resetFilters"),
+            applyAria: t("auditApplyFilters"),
+            resetAria: t("auditResetFilters"),
+            roleHint: "Limita l'elenco utenti al ruolo selezionato.",
+            userCount: "{count} utenti disponibili",
+          }}
+          values={{
+            q,
+            date: dateParam ?? "",
+            role: roleParam ?? "",
+            userId: userIdParam ?? "",
+            type: typeParam ?? "",
+          }}
+          users={users}
+          actionTypes={actionTypes.map((entry) => entry.action)}
+          roleLabels={auditRoleLabels}
+        />
 
         <div className="mt-6 space-y-6">
           {logs.length === 0 ? (
@@ -352,8 +303,6 @@ export default async function AuditPage({
                         log.user?.name ||
                         log.user?.email ||
                         t("auditUnknownUser");
-
-                      const isErrorReported = log.action === "error.reported";
 
                       // Extract patientId and quoteId for linking
                       const entityLower = log.entity.toLowerCase();
@@ -383,13 +332,7 @@ export default async function AuditPage({
                           <div className="space-y-2">
                             <div className="flex flex-wrap items-center justify-between gap-4">
                               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                                <span
-                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-wide ${
-                                    isErrorReported
-                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                      : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                                  }`}
-                                >
+                                <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                   <span>{actionEmoji(log.action)}</span>
                                   {log.action}
                                 </span>

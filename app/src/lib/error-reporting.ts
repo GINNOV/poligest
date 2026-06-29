@@ -1,4 +1,4 @@
-import { logAudit } from "@/lib/audit";
+import { ERROR_REPORTED_AUDIT_ACTION, logAudit } from "@/lib/audit";
 import { isJsonObject } from "@/lib/json-types";
 import { Prisma, Role } from "@prisma/client";
 
@@ -117,7 +117,7 @@ export async function reportError({
 }: ErrorReport) {
   const errorCode = code ?? createErrorCode();
   await logAudit(actor ?? null, {
-    action: "error.reported",
+    action: ERROR_REPORTED_AUDIT_ACTION,
     entity: "System",
     entityId: errorCode,
     metadata: {

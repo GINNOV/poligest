@@ -94,8 +94,13 @@ export async function getEmailTemplateByName(name: string) {
   if (template) return template;
   const fallback = defaultEmailTemplates.find((t) => t.name === name);
   if (!fallback) return null;
-  return prisma.emailTemplate.create({
-    data: {
+  return prisma.emailTemplate.upsert({
+    where: { name: fallback.name },
+    update: {
+      category: fallback.category,
+      description: fallback.description,
+    },
+    create: {
       name: fallback.name,
       subject: fallback.subject,
       body: fallback.body,
@@ -207,8 +212,13 @@ async function migrateLegacyWelcomeTemplate() {
   const patient = await prisma.emailTemplate.findUnique({ where: { name: "welcome-patient" } });
   if (!legacy || patient) return;
 
-  await prisma.emailTemplate.create({
-    data: {
+  await prisma.emailTemplate.upsert({
+    where: { name: "welcome-patient" },
+    update: {
+      category: "Onboarding",
+      description: "Email di benvenuto per nuovi pazienti.",
+    },
+    create: {
       name: "welcome-patient",
       subject: legacy.subject,
       body: legacy.body,
@@ -219,7 +229,9 @@ async function migrateLegacyWelcomeTemplate() {
   });
 }
 
-async function ensureDefaultTemplates() {
+let ensureDefaultTemplatesPromise: Promise<void> | null = null;
+
+async function ensureDefaultTemplatesOnce() {
   await migrateLegacyWelcomeTemplate();
   await Promise.all(
     defaultEmailTemplates.map((template) =>
@@ -237,7 +249,15 @@ async function ensureDefaultTemplates() {
           category: template.category,
           description: template.description,
         },
-      })
-    )
+      }),
+    ),
   );
+}
+
+async function ensureDefaultTemplates() {
+  ensureDefaultTemplatesPromise ??= ensureDefaultTemplatesOnce().catch((error) => {
+    ensureDefaultTemplatesPromise = null;
+    throw error;
+  });
+  await ensureDefaultTemplatesPromise;
 }

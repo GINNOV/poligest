@@ -4,7 +4,11 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { emitToast } from "@/components/global-toasts";
-import { isIgnoredFetchFailure } from "@/lib/fetch-error-filter";
+import {
+  getFetchRequestPath,
+  isIgnoredFetchFailure,
+  resolveFetchRequestUrl,
+} from "@/lib/fetch-error-filter";
 import { subscribeNavigationLock } from "@/lib/navigation-lock";
 
 /**
@@ -148,12 +152,8 @@ export function GlobalLoadingOverlay() {
 
     window.fetch = (async (...args: Parameters<typeof originalFetch>) => {
       const [input, init] = args;
-      const requestUrl =
-        typeof input === "string"
-          ? input
-          : typeof input === "object" && "url" in input
-            ? input.url
-            : "";
+      const requestUrl = resolveFetchRequestUrl(input, init);
+      const requestPath = getFetchRequestPath(requestUrl) || requestUrl;
       const method =
         (typeof init === "object" && init?.method) ||
           (typeof input === "object" && "method" in input ? (input as Request).method : undefined) ||
@@ -197,7 +197,7 @@ export function GlobalLoadingOverlay() {
                 body: JSON.stringify({
                   message: "Errore richiesta",
                   source: "fetch",
-                  path: requestUrl || undefined,
+                  path: requestPath || undefined,
                   context: {
                     status: response.status,
                     statusText: response.statusText,
@@ -213,13 +213,45 @@ export function GlobalLoadingOverlay() {
               // Ignore reporting failures.
             }
           }
-          const suffix = errorCode ? ` (codice: ${errorCode})` : "";
-          emitToast(`Si è verificato un errore${suffix}. Riprova.`, "error");
+          emitToast("Si è verificato un errore. Riprova.", "error", {
+            code: errorCode ?? undefined,
+            path: requestPath || undefined,
+            detail: `${methodUpper} ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`.trim(),
+            source: "fetch",
+          });
         }
         return response;
       } catch (error) {
         if (hadFreshInteraction(5000)) {
-          emitToast("Errore di rete. Controlla la connessione.", "error");
+          let errorCode: string | undefined;
+          try {
+            const reportRes = await originalFetch("/api/errors/report", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({
+                message: "Errore di rete",
+                source: "fetch",
+                path: requestPath || undefined,
+                context: {
+                  method: methodUpper,
+                },
+                error: error instanceof Error ? { message: error.message, name: error.name } : String(error),
+              }),
+            });
+            const reportPayload = await reportRes.json();
+            if (reportPayload && typeof reportPayload.code === "string") {
+              errorCode = reportPayload.code;
+            }
+          } catch {
+            // Ignore reporting failures.
+          }
+
+          emitToast("Errore di rete. Controlla la connessione.", "error", {
+            code: errorCode,
+            path: requestPath || undefined,
+            detail: error instanceof Error ? error.message : "Connessione interrotta",
+            source: "fetch",
+          });
         }
         throw error;
       } finally {

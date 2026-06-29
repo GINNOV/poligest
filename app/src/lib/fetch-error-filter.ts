@@ -18,6 +18,19 @@ export function getFetchRequestPath(requestUrl: string) {
   }
 }
 
+export function resolveFetchRequestUrl(input: RequestInfo | URL, init?: RequestInit) {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.href;
+  if (typeof input === "object" && input !== null) {
+    if ("url" in input && typeof input.url === "string") return input.url;
+    if ("href" in input && typeof input.href === "string") return input.href;
+  }
+
+  const request = init as RequestInit & { url?: string } | undefined;
+  if (request?.url) return request.url;
+  return "";
+}
+
 export function isIgnoredFetchFailure(requestUrl: string, status: number) {
   if (status !== 429) return false;
 

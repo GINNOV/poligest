@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isIgnoredFetchFailure } from "@/lib/fetch-error-filter";
+import {
+  getFetchRequestPath,
+  isIgnoredFetchFailure,
+  resolveFetchRequestUrl,
+} from "@/lib/fetch-error-filter";
 
-describe("isIgnoredFetchFailure", () => {
-  it("ignores Stack Auth analytics rate limit responses", () => {
+describe("fetch error filter", () => {
+  it("ignores known Stack analytics rate limits", () => {
     expect(
       isIgnoredFetchFailure(
         "https://sorrisosplendente.com/api/stack/api/v1/analytics/events/batch",
@@ -12,14 +16,28 @@ describe("isIgnoredFetchFailure", () => {
     expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 429)).toBe(true);
   });
 
-  it("ignores Stack Auth OAuth token rate limit responses", () => {
+  it("ignores known Stack oauth token rate limits", () => {
     expect(
       isIgnoredFetchFailure("https://sorrisosplendente.com/api/stack/api/v1/auth/oauth/token", 429),
     ).toBe(true);
     expect(isIgnoredFetchFailure("/api/stack/v1/auth/oauth/token", 429)).toBe(true);
   });
 
-  it("keeps other app errors reportable", () => {
+  it("does not ignore unrelated failures", () => {
     expect(isIgnoredFetchFailure("/api/pazienti", 500)).toBe(false);
+    expect(isIgnoredFetchFailure("/api/pazienti", 404)).toBe(false);
+  });
+
+  it("resolves fetch urls from strings, Request objects, and URL objects", () => {
+    expect(resolveFetchRequestUrl("/api/patients")).toBe("/api/patients");
+    expect(resolveFetchRequestUrl(new URL("https://example.com/api/patients"))).toBe(
+      "https://example.com/api/patients",
+    );
+    expect(
+      resolveFetchRequestUrl(new Request("https://example.com/api/patients/check-duplicate")),
+    ).toBe("https://example.com/api/patients/check-duplicate");
+    expect(getFetchRequestPath("https://example.com/api/patients/check-duplicate")).toBe(
+      "/api/patients/check-duplicate",
+    );
   });
 });

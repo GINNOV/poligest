@@ -2,6 +2,7 @@ import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
+import { auditLogVisibilityFilter } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { getOptionalPrismaModel, runOptionalPrismaQuery } from "@/lib/prisma-models";
 import { Role } from "@prisma/client";
@@ -48,7 +49,7 @@ export default async function AdminPage() {
   ] = await Promise.all([
     prisma.user.count(),
     prisma.doctor.count(),
-    prisma.auditLog.count(),
+    prisma.auditLog.count({ where: auditLogVisibilityFilter() }),
     serviceClient?.count ? serviceClient.count() : Promise.resolve(0),
     anamnesisClient?.count ? anamnesisClient.count() : Promise.resolve(0),
     closureClient?.count ? closureClient.count() : Promise.resolve(0),

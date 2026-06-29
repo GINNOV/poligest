@@ -18,6 +18,12 @@ const PLACEHOLDERS: Placeholder[] = [
   { key: "{{note}}", label: "Note", description: "Note dell'appuntamento, se presenti." },
 ];
 
+const inputClassName =
+  "h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-50 dark:focus:ring-emerald-500/20";
+
+const textareaClassName =
+  "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-50 dark:focus:ring-emerald-500/20";
+
 type Props = {
   action: (formData: FormData) => Promise<void>;
 };
@@ -40,28 +46,29 @@ export function SmsTemplateForm({ action }: Props) {
   };
 
   return (
-    <form action={action} className="mt-3 space-y-3 text-sm">
-      <label className="flex flex-col gap-1">
+    <form action={action} className="mt-4 space-y-3 text-sm">
+      <label className="flex flex-col gap-2 font-medium text-zinc-800 dark:text-zinc-200">
         Nome
         <input
           name="name"
-          className="h-11 rounded-lg border border-zinc-200 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          className={inputClassName}
           placeholder="Es. Promemoria appuntamento"
           required
         />
       </label>
-      <label className="flex flex-col gap-1">
+      <label className="flex flex-col gap-2 font-medium text-zinc-800 dark:text-zinc-200">
         Testo SMS
         <textarea
           ref={textareaRef}
           name="body"
-          className="h-28 rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+          rows={5}
+          className={textareaClassName}
           placeholder="Gentile {{nome}}, ti ricordiamo l'appuntamento di ..."
           required
         />
       </label>
-      <div className="rounded-lg border border-emerald-100 bg-emerald-50/60 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
           Segnaposto disponibili
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -70,13 +77,13 @@ export function SmsTemplateForm({ action }: Props) {
               key={item.key}
               type="button"
               onClick={() => insertPlaceholder(item.key)}
-              className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+              className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
             >
               {item.key}
             </button>
           ))}
         </div>
-        <ul className="mt-2 space-y-1 text-xs text-emerald-800">
+        <ul className="mt-2 space-y-1 text-xs text-emerald-800 dark:text-emerald-200">
           {PLACEHOLDERS.map((item) => (
             <li key={`${item.key}-desc`}>
               <span className="font-semibold">{item.key}</span>: {item.description}

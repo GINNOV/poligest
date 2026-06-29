@@ -4,6 +4,18 @@ import { headers } from "next/headers";
 
 export const SCANID_AUDIT_ACTOR = "scanID";
 
+export const ERROR_REPORTED_AUDIT_ACTION = "error.reported";
+
+export const AUDIT_EXCLUDED_ACTIONS = [ERROR_REPORTED_AUDIT_ACTION] as const;
+
+export function auditLogVisibilityFilter(): Prisma.AuditLogWhereInput {
+  return {
+    action: {
+      notIn: [...AUDIT_EXCLUDED_ACTIONS],
+    },
+  };
+}
+
 type Actor = {
   id: string;
   role: Role;

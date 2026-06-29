@@ -5,21 +5,12 @@ import { requireUser } from "@/lib/auth";
 import type { JsonObject } from "@/lib/json-types";
 import { Prisma, Role } from "@prisma/client";
 import Link from "next/link";
-
-type ErrorMetadata = {
-  message?: string;
-  source?: string;
-  path?: string;
-  context?: JsonObject;
-  error?: {
-    name?: string;
-    message?: string;
-    stack?: string;
-    digest?: string;
-    statusCode?: number;
-    humanReadableMessage?: string;
-  };
-};
+import { ErrorLogCard } from "@/components/admin/error-log-card";
+import {
+  ERROR_CODE_HELP,
+  normalizeErrorLog,
+  type ErrorMetadataView,
+} from "@/lib/error-registry";
 
 export const metadata = createPageMetadata(PAGE_TITLES.errori);
 
@@ -72,32 +63,17 @@ export default async function AdminErrorsPage({
     take: 200,
   });
 
-  const normalized = logs.map((log) => {
-    const meta = log.metadata as ErrorMetadata | null;
-    return {
+  const normalized = logs.map((log) =>
+    normalizeErrorLog({
       id: log.id,
-      code: log.entityId ?? log.id,
-      message: meta?.message ?? "Errore non specificato",
-      source: meta?.source ?? null,
-      path: meta?.path ?? null,
-      errorMessage: meta?.error?.message ?? null,
-      errorHuman: meta?.error?.humanReadableMessage ?? null,
-      errorName: meta?.error?.name ?? null,
-      errorDigest: meta?.error?.digest ?? null,
-      errorStack: meta?.error?.stack ?? null,
+      entityId: log.entityId,
+      metadata: log.metadata as ErrorMetadataView | null,
       actor: log.user?.name || log.user?.email || null,
       role: log.user?.role ?? null,
       createdAt: log.createdAt,
-      context: meta?.context ?? null,
-    };
-  });
-  const formatDetail = (entry: (typeof normalized)[number]) => {
-    const detail =
-      entry.errorHuman ||
-      (entry.errorMessage && entry.errorMessage !== "[object Object]" ? entry.errorMessage : null);
-    const stackLine = entry.errorStack?.split("\n")[0] ?? null;
-    return { detail, stackLine };
-  };
+    }),
+  );
+
   const formatContext = (context: JsonObject | null) => {
     if (!context) return null;
     try {
@@ -112,20 +88,24 @@ export default async function AdminErrorsPage({
   const filtered = query
     ? normalized.filter((entry) => {
         return (
-          entry.code.toLowerCase().includes(query) ||
+          entry.supportCode.toLowerCase().includes(query) ||
           entry.message.toLowerCase().includes(query) ||
+          entry.codeKindLabel.toLowerCase().includes(query) ||
+          entry.areaLabel.toLowerCase().includes(query) ||
           (entry.source && entry.source.toLowerCase().includes(query)) ||
           (entry.path && entry.path.toLowerCase().includes(query)) ||
-          (entry.errorMessage && entry.errorMessage.toLowerCase().includes(query))
+          (entry.errorMessage && entry.errorMessage.toLowerCase().includes(query)) ||
+          (entry.errorDigest && entry.errorDigest.toLowerCase().includes(query)) ||
+          entry.id.toLowerCase().includes(query)
         );
       })
     : normalized;
 
-  const formatDate = (date: Date) =>
+  const formatDate = (date: string) =>
     new Intl.DateTimeFormat("it-IT", {
       dateStyle: "short",
       timeStyle: "short",
-    }).format(date);
+    }).format(new Date(date));
 
   async function clearErrors() {
     "use server";
@@ -139,7 +119,7 @@ export default async function AdminErrorsPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-rose-600">Errori</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">Errori</p>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Registro errori</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Elenco degli errori applicativi con codice per il supporto.
@@ -160,15 +140,29 @@ export default async function AdminErrorsPage({
         </div>
       </div>
 
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Come leggere i codici</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
+            <p className="font-semibold">Codice supporto app · ERR-...</p>
+            <p className="mt-1 text-xs leading-relaxed">{ERROR_CODE_HELP.support}</p>
+          </div>
+          <div className="rounded-xl border border-amber-100 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+            <p className="font-semibold">Digest Next.js · numeri lunghi</p>
+            <p className="mt-1 text-xs leading-relaxed">{ERROR_CODE_HELP.nextDigest}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <form className="grid grid-cols-1 gap-3 md:grid-cols-[2fr,1fr,auto]" method="get">
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Codice o messaggio
+            Codice, area o messaggio
             <input
               type="text"
               name="q"
               defaultValue={q}
-              placeholder="Cerca per codice o testo"
+              placeholder="ERR-..., digest, API, fetch..."
               className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-rose-300 focus:ring-2 focus:ring-rose-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:border-rose-500/50 dark:focus:ring-rose-500/10"
             />
           </label>
@@ -202,48 +196,12 @@ export default async function AdminErrorsPage({
             <p className="py-4 text-sm text-zinc-600 dark:text-zinc-400">Nessun errore trovato con i filtri scelti.</p>
           ) : (
             filtered.map((entry) => (
-              <div key={entry.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Codice: {entry.code}</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{formatDate(entry.createdAt)}</p>
-                </div>
-                <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">{entry.message}</p>
-                {(() => {
-                  const { detail, stackLine } = formatDetail(entry);
-                  return (
-                    <>
-                      {detail ? (
-                        <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">Dettaglio: {detail}</p>
-                      ) : null}
-                      {entry.errorName ? (
-                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Tipo: {entry.errorName}</p>
-                      ) : null}
-                      {entry.errorDigest ? (
-                        <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Digest: {entry.errorDigest}</p>
-                      ) : null}
-                      {stackLine ? (
-                        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Stack: {stackLine}</p>
-                      ) : null}
-                    </>
-                  );
-                })()}
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  {entry.source ? `Sorgente: ${entry.source}` : "Sorgente: —"}
-                  {" · "}
-                  {entry.path ? `Percorso: ${entry.path}` : "Percorso: —"}
-                </p>
-                {entry.context ? (
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Contesto: {formatContext(entry.context)}
-                  </p>
-                ) : null}
-                {entry.actor ? (
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Utente: {entry.actor}
-                    {entry.role ? ` (${entry.role})` : ""}
-                  </p>
-                ) : null}
-              </div>
+              <ErrorLogCard
+                key={entry.id}
+                entry={entry}
+                formattedDate={formatDate(entry.createdAt)}
+                contextPreview={formatContext(entry.context)}
+              />
             ))
           )}
         </div>
