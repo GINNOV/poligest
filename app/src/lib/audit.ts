@@ -22,6 +22,32 @@ export type AuditLogActorView = {
   metadata?: unknown;
 };
 
+export async function resolveAppointmentSchedulers(appointmentIds: string[]) {
+  if (appointmentIds.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const logs = await prisma.auditLog.findMany({
+    where: {
+      action: "appointment.created",
+      entity: "Appointment",
+      entityId: { in: appointmentIds },
+    },
+    include: {
+      user: { select: { name: true, email: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const schedulers = new Map<string, string>();
+  for (const log of logs) {
+    if (!log.entityId || schedulers.has(log.entityId)) continue;
+    schedulers.set(log.entityId, formatAuditActor(log, "Non tracciato"));
+  }
+
+  return schedulers;
+}
+
 export function formatAuditActor(
   log: AuditLogActorView | null | undefined,
   fallback = "Origine non tracciata",

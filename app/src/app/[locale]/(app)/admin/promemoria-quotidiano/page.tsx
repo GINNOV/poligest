@@ -8,6 +8,10 @@ import { logAudit } from "@/lib/audit";
 import { Button } from "@/components/ui/button";
 import {
   DAILY_REMINDER_CONFIG_ID,
+  DEFAULT_DAILY_REMINDER_BCC_EMAIL,
+  DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES,
+  DEFAULT_DAILY_REMINDER_TARGET_ROLES,
+  normalizeDailyReminderBccEmail,
   sendDailyReminders,
 } from "@/lib/daily-reminder";
 import { Role, RecurringMessageStatus } from "@prisma/client";
@@ -37,15 +41,28 @@ async function saveDailyReminderConfig(formData: FormData) {
   const configClient = getOptionalPrismaModel<{
     upsert?: (args: {
       where: { id: string };
-      update: { enabled: boolean; sendTimeMinutes: number; targetRoles: Role[] };
-      create: { id: string; enabled: boolean; sendTimeMinutes: number; targetRoles: Role[] };
+      update: {
+        enabled: boolean;
+        sendTimeMinutes: number;
+        targetRoles: Role[];
+        bccEmail: string | null;
+      };
+      create: {
+        id: string;
+        enabled: boolean;
+        sendTimeMinutes: number;
+        targetRoles: Role[];
+        bccEmail: string | null;
+      };
     }) => Promise<unknown>;
   }>("dailyReminderConfig");
   
   const enabled = formData.get("enabled") === "on";
-  const timeStr = (formData.get("sendTime") as string) || "20:30";
+  const timeStr = (formData.get("sendTime") as string) || "20:00";
   const [hours, minutes] = timeStr.split(":").map(Number);
   const sendTimeMinutes = hours * 60 + minutes;
+  const bccEmailRaw = ((formData.get("bccEmail") as string) || "").trim();
+  const bccEmail = normalizeDailyReminderBccEmail(bccEmailRaw);
 
   const targetRoles = formData.getAll("targetRoles") as Role[];
 
@@ -55,15 +72,15 @@ async function saveDailyReminderConfig(formData: FormData) {
 
   await configClient.upsert({
     where: { id: DAILY_REMINDER_CONFIG_ID },
-    update: { enabled, sendTimeMinutes, targetRoles },
-    create: { id: DAILY_REMINDER_CONFIG_ID, enabled, sendTimeMinutes, targetRoles },
+    update: { enabled, sendTimeMinutes, targetRoles, bccEmail },
+    create: { id: DAILY_REMINDER_CONFIG_ID, enabled, sendTimeMinutes, targetRoles, bccEmail },
   });
 
   await logAudit(admin, {
     action: "practice.daily_reminder_config_updated",
     entity: "System",
     entityId: DAILY_REMINDER_CONFIG_ID,
-    metadata: { enabled, sendTimeMinutes, targetRoles },
+    metadata: { enabled, sendTimeMinutes, targetRoles, bccEmail },
   });
 
   revalidatePath("/admin/promemoria-quotidiano");
@@ -129,6 +146,7 @@ export default async function AdminDailyReminderPage() {
         enabled: boolean;
         sendTimeMinutes: number;
         targetRoles: Role[];
+        bccEmail: string | null;
       } | null>;
     }>("dailyReminderConfig");
     const logClient = getOptionalPrismaModel<{
@@ -164,7 +182,7 @@ export default async function AdminDailyReminderPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const moduleAvailable = true; 
 
-    const currentRoles = config?.targetRoles ?? [Role.ADMIN, Role.MANAGER, Role.ASSISTANT, Role.SECRETARY];
+    const currentRoles = config?.targetRoles ?? DEFAULT_DAILY_REMINDER_TARGET_ROLES;
 
     // Fetch all staff users for the roles list, including those without doctor profile
     const staffUsers = await prisma.user.findMany({
@@ -178,8 +196,8 @@ export default async function AdminDailyReminderPage() {
       orderBy: { name: "asc" },
     });
 
-    const hours = Math.floor((config?.sendTimeMinutes ?? 1230) / 60);
-    const mins = (config?.sendTimeMinutes ?? 1230) % 60;
+    const hours = Math.floor((config?.sendTimeMinutes ?? DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES) / 60);
+    const mins = (config?.sendTimeMinutes ?? DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES) % 60;
     const timeValue = `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
 
     const todayStr = formatDateInputValueInTimeZone(new Date(), "Europe/Rome");
@@ -193,8 +211,8 @@ export default async function AdminDailyReminderPage() {
           </p>
           <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">Promemoria quotidiano staff</h1>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Invia automaticamente un riepilogo degli appuntamenti del giorno successivo a ogni medico o membro dello staff assegnato.
-            Ogni destinatario riceve esclusivamente la propria agenda.
+            Invia automaticamente ogni sera (dopo le 20:00 ora italiana) un riepilogo degli appuntamenti del giorno successivo ai medici con profilo associato.
+            Ogni destinatario riceve esclusivamente la propria agenda, solo se ha almeno un appuntamento.
           </p>
         </div>
 
@@ -236,6 +254,20 @@ export default async function AdminDailyReminderPage() {
                   />
                 </label>
 
+                <label className="flex flex-col gap-2 text-sm font-medium">
+                  Email in copia nascosta (BCC)
+                  <input
+                    type="email"
+                    name="bccEmail"
+                    defaultValue={config?.bccEmail ?? DEFAULT_DAILY_REMINDER_BCC_EMAIL}
+                    placeholder={DEFAULT_DAILY_REMINDER_BCC_EMAIL}
+                    className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-950/50"
+                  />
+                  <span className="text-xs font-normal text-zinc-500">
+                    Ogni promemoria inviato ai medici include questa casella in BCC. Lascia vuoto per disattivare la copia.
+                  </span>
+                </label>
+
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50">Ruoli destinatari</p>
                   <p className="text-xs text-zinc-500">Seleziona quali ruoli devono ricevere il promemoria. Nota: l&apos;utente deve avere un profilo medico associato in &quot;Utenti Sistema&quot;.</p>
@@ -259,7 +291,8 @@ export default async function AdminDailyReminderPage() {
               <div className="rounded-xl bg-zinc-50 p-4 text-xs text-zinc-600 dark:bg-zinc-900/50 dark:text-zinc-400">
                 <p className="font-semibold text-zinc-900 dark:text-zinc-200">Dettagli invio</p>
                 <p className="mt-1">
-                  Il sistema scansiona l&apos;agenda del giorno successivo e invia una mail personalizzata a ogni utente dei ruoli selezionati che ha almeno un appuntamento programmato.
+                  Il sistema scansiona l&apos;agenda del giorno successivo e invia una mail personalizzata a ogni medico dei ruoli selezionati che ha almeno un appuntamento programmato.
+                  L&apos;invio automatico parte dopo l&apos;orario configurato (default 20:00, fuso Europe/Rome) e include la BCC configurata.
                 </p>
               </div>
 

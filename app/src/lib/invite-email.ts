@@ -9,10 +9,6 @@ const roleLabels: Partial<Record<Role, string>> = {
   [ASSISTANT_ROLE]: "Assistente",
 };
 
-export function buildStaffInviteEmail(role: Role) {
-  const roleLabel = roleLabels[role] ?? role;
-  return {
-    subject: "Benvenuto nello staff di Agovino & Angrisano",
-    text: `Ciao! Benvenuto nello staff di Agovino & Angrisano Studio Associato. Il tuo ruolo e' ${roleLabel} - Questo e' il tuo codice monouso per accedere:`,
-  };
+export function getStaffRoleLabel(role: Role) {
+  return roleLabels[role] ?? role;
 }

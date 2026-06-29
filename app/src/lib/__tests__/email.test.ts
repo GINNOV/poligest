@@ -46,6 +46,46 @@ describe("email rendering contract", () => {
     expect(payload.html).not.toMatch(/<li[\s>]/i);
   });
 
+  it("materializeTransactionalEmail renders HTML and plain-text bodies", async () => {
+    const { materializeTransactionalEmail, buildTransactionalButton } = await import(
+      "@/lib/email-template-utils"
+    );
+
+    const materialized = materializeTransactionalEmail({
+      subjectSource: "Promemoria {{appointmentDate}}",
+      bodySource: "Ciao {{patientName}},\n\n{{button}}\n\n{{clinicName}}",
+      data: {
+        patientName: "Mario Rossi",
+        appointmentDate: "30/06/2026",
+        clinicName: "Sorriso Splendente",
+        button: buildTransactionalButton("#059669"),
+      },
+      buttonColor: "#059669",
+      clinicName: "Sorriso Splendente",
+    });
+
+    expect(materialized.subject).toBe("Promemoria 30/06/2026");
+    expect(materialized.html).toMatch(/<table role="presentation"/);
+    expect(materialized.html).toMatch(/Apri dettaglio/);
+    expect(materialized.body).toContain("Mario Rossi");
+    expect(materialized.body).not.toMatch(/<a[\s>]/i);
+  });
+
+  it("sendEmailWithHtml supports optional BCC recipients", async () => {
+    const { sendEmailWithHtml } = await import("@/lib/email");
+
+    await sendEmailWithHtml(
+      "doctor@example.com",
+      "Agenda di domani",
+      "Plain body",
+      "<p>HTML body</p>",
+      { bcc: "studio.agovino.angrisano@gmail.com" },
+    );
+
+    const payload = sendMock.mock.calls[0][0];
+    expect(payload.bcc).toBe("studio.agovino.angrisano@gmail.com");
+  });
+
   it("sendEmailWithHtml preserves structured HTML for transactional emails", async () => {
     const { sendEmailWithHtml } = await import("@/lib/email");
     const body = "Plain fallback\nwith newlines";

@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => {
   };
   const put = vi.fn();
   const sharp = vi.fn();
-  const sendEmail = vi.fn();
+  const sendPatientWelcomeEmail = vi.fn();
   const pickRandomSystemAvatar = vi.fn();
   const pickSystemAvatar = vi.fn();
 
@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => {
     prisma,
     put,
     sharp,
-    sendEmail,
+    sendPatientWelcomeEmail,
     pickRandomSystemAvatar,
     pickSystemAvatar,
   };
@@ -76,8 +76,8 @@ vi.mock("sharp", () => ({
   default: mocks.sharp,
 }));
 
-vi.mock("@/lib/email", () => ({
-  sendEmail: mocks.sendEmail,
+vi.mock("@/lib/welcome-email", () => ({
+  sendPatientWelcomeEmail: mocks.sendPatientWelcomeEmail,
 }));
 
 vi.mock("@/lib/stack-app", () => ({
@@ -110,7 +110,7 @@ describe("createPatient", () => {
     });
     mocks.prisma.patient.update.mockResolvedValue(undefined);
     mocks.prisma.patientConsent.create.mockResolvedValue(undefined);
-    mocks.sendEmail.mockResolvedValue(undefined);
+    mocks.sendPatientWelcomeEmail.mockResolvedValue(undefined);
     mocks.put.mockResolvedValue({ url: "https://blob.test/signature.png" });
     mocks.pickRandomSystemAvatar.mockReturnValue("https://avatar.test/random.jpg");
     mocks.pickSystemAvatar.mockReturnValue("https://avatar.test/female.jpg");
@@ -181,11 +181,10 @@ describe("createPatient", () => {
         notes: expect.stringContaining("Firma digitale (Privacy): https://blob.test/signature.png"),
       }),
     });
-    expect(mocks.sendEmail).toHaveBeenCalledWith(
-      "maria@example.com",
-      "Accesso area pazienti",
-      expect.stringContaining("https://patients.poligest.test/handler/sign-in?audience=patient"),
-    );
+    expect(mocks.sendPatientWelcomeEmail).toHaveBeenCalledWith("maria@example.com", {
+      patientName: "Maria",
+      loginUrl: expect.stringContaining("https://patients.poligest.test/handler/sign-in?audience=patient"),
+    });
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pazienti/nuovo");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");

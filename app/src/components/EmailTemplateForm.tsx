@@ -2,7 +2,11 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { placeholderCatalog, previewData } from "@/lib/placeholder-data";
-import { createButton, renderEmailHtml, replacePlaceholders } from "@/lib/email-template-utils";
+import {
+  buildTransactionalButton,
+  materializeTransactionalEmail,
+  resolveTransactionalSiteOrigin,
+} from "@/lib/email-template-utils";
 import { sendTestEmail, updateEmailTemplate } from "@/actions/adminActions";
 import { PlaceholderGuide } from "@/components/PlaceholderGuide";
 
@@ -29,11 +33,18 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
   const previewHtml = useMemo(() => {
     const data = {
       ...previewData,
-      button: createButton("Apri dettaglio", "https://sorrisosplendente.com", buttonColor),
+      websiteUrl: previewData.websiteUrl || resolveTransactionalSiteOrigin(),
+      button: buildTransactionalButton(buttonColor, "Apri dettaglio", previewData.websiteUrl),
     };
-    const replaced = replacePlaceholders(body, data);
-    return renderEmailHtml(replaced, buttonColor);
-  }, [body, buttonColor]);
+
+    return materializeTransactionalEmail({
+      subjectSource: subject,
+      bodySource: body,
+      data,
+      buttonColor,
+      clinicName: data.clinicName,
+    }).html;
+  }, [body, buttonColor, subject]);
 
   const handleInsert = (key: string) => {
     const token = `{{${key}}}`;

@@ -10,12 +10,14 @@ const EXPECTED_CRONS = [
   { path: "/api/recalls/send", schedule: "0 7 * * *" },
   { path: "/api/notifications/recurring", schedule: "0 8 * * *" },
   { path: "/api/reports/weekly", schedule: "0 12 * * 6" },
+  { path: "/api/notifications/daily-reminder", schedule: "0,30 18,19 * * *" },
 ] as const;
 
 const CRON_ROUTE_FILES: Record<(typeof EXPECTED_CRONS)[number]["path"], string> = {
   "/api/recalls/send": "src/app/api/recalls/send/route.ts",
   "/api/notifications/recurring": "src/app/api/notifications/recurring/route.ts",
   "/api/reports/weekly": "src/app/api/reports/weekly/route.ts",
+  "/api/notifications/daily-reminder": "src/app/api/notifications/daily-reminder/route.ts",
 };
 
 const CRON_FIELD_PATTERN = /^(\*|[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*)$/;
@@ -63,6 +65,26 @@ describe("deployment and cron configuration", () => {
     }
 
     expect(vercelConfig.crons).toHaveLength(EXPECTED_CRONS.length);
+  });
+
+  it("keeps the daily reminder cron in the evening UTC window for 20:00 Europe/Rome", () => {
+    const vercelConfig = JSON.parse(readFileSync(resolve(appRoot, "vercel.json"), "utf8")) as {
+      crons?: Array<{ path: string; schedule: string }>;
+    };
+    const dailyReminderCron = vercelConfig.crons?.find(
+      (entry) => entry.path === "/api/notifications/daily-reminder",
+    );
+
+    expect(dailyReminderCron?.schedule).toBe("0,30 18,19 * * *");
+
+    const summerRomeHour = new Intl.DateTimeFormat("en-GB", {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false,
+      timeZone: "Europe/Rome",
+    }).format(new Date("2026-06-29T18:00:00.000Z"));
+
+    expect(summerRomeHour).toBe("20:00");
   });
 
   it("keeps the weekly report cron on Saturday afternoon, matching the admin UI promise", () => {

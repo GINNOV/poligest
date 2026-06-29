@@ -160,5 +160,29 @@ describe("recalls send domain", () => {
     expect(plan.wantsSms).toBe(false);
     expect(plan.body).toContain("Dr. Bianchi");
     expect(plan.body).toContain("11:30");
+    expect(plan.html).toBeUndefined();
+  });
+
+  it("materializes styled HTML when an email template is provided", () => {
+    const plan = buildAppointmentReminderDeliveryPlan({
+      patient: { firstName: "Mario", lastName: "Rossi" },
+      appointment: {
+        startsAt: new Date("2026-03-30T09:30:00.000Z"),
+        doctor: { fullName: "Dr. Bianchi" },
+      },
+      rule: {
+        channel: NotificationChannel.EMAIL,
+      },
+      template: {
+        subject: "Promemoria {{appointmentDate}}",
+        body: "Ciao {{patientName}}, appuntamento alle {{appointmentTime}} con {{doctorName}}.\n\n{{button}}",
+        buttonColor: "#0f766e",
+      },
+    });
+
+    expect(plan.html).toMatch(/<table role="presentation"/);
+    expect(plan.html).toMatch(/Apri dettaglio/);
+    expect(plan.body).toContain("Rossi Mario");
+    expect(plan.body).not.toMatch(/<a[\s>]/i);
   });
 });

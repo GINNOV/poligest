@@ -14,8 +14,7 @@ import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
 import { getRandomAvatarUrl } from "@/lib/avatars";
-import { sendEmail } from "@/lib/email";
-import { buildStaffInviteEmail } from "@/lib/invite-email";
+import { sendStaffWelcomeEmail } from "@/lib/welcome-email";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
@@ -103,8 +102,7 @@ async function upsertUser(formData: FormData) {
       await sender.sendMagicLinkEmail(user.email, { callbackUrl });
 
       if (user.role !== Role.PATIENT) {
-        const staffEmail = buildStaffInviteEmail(user.role);
-        await sendEmail(user.email, staffEmail.subject, staffEmail.text);
+        await sendStaffWelcomeEmail(user.email, user.role);
       }
     } catch (err) {
       await reportError({

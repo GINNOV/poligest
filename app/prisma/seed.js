@@ -39,11 +39,20 @@ const prisma = new PrismaClient({ adapter });
 
 const defaultEmailTemplates = [
   {
-    name: "welcome",
+    name: "welcome-staff",
+    subject: "Benvenuto nello staff di {{clinicName}}",
+    body:
+      "Ciao!\n\nBenvenuto nello staff di {{clinicName}}. Il tuo ruolo è {{staffRole}}.\n\nRiceverai a breve un'email con un codice monouso per accedere.\n\n{{customNote}}",
+    buttonColor: "#047857",
+    category: "Onboarding",
+    description: "Email di benvenuto per nuovi membri dello staff.",
+  },
+  {
+    name: "welcome-patient",
     subject: "Benvenuto in {{clinicName}}",
     body:
-      "Ciao {{patientName}},\n\nBenvenuto nello studio {{clinicName}}.\n\n{{customNote}}\n\n{{button}}\n\nPer maggiori informazioni visita {{websiteUrl}}.",
-    buttonColor: "#059669",
+      "Gentile {{patientName}},\n\nLa informiamo che l'accesso alla Sua area paziente è stato attivato.\n\nAttraverso il link qui sotto potrà visualizzare e gestire i Suoi appuntamenti:\n\n{{button}}\n\nPer assistenza contatti la segreteria.\n\nCordiali saluti,\n{{clinicName}}",
+    buttonColor: "#047857",
     category: "Onboarding",
     description: "Email di benvenuto per nuovi pazienti.",
   },

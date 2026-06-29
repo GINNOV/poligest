@@ -276,8 +276,9 @@ model User {
 model DailyReminderConfig {
   id              String   @id @default("default")
   enabled         Boolean  @default(true)
-  sendTimeMinutes Int      @default(1230) // 20:30 is 20*60 + 30 = 1230
-  targetRoles     Role[]   @default([ADMIN, MANAGER, ASSISTANT, SECRETARY])
+  sendTimeMinutes Int      @default(1200) // 20:00 is 20*60 = 1200
+  targetRoles     Role[]   @default([MANAGER, ADMIN])
+  bccEmail        String?  @default("studio.agovino.angrisano@gmail.com")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

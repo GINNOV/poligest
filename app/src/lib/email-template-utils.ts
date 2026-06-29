@@ -1,8 +1,77 @@
+const PUBLIC_SITE_ORIGIN = "https://sorrisosplendente.com";
+
+function normalizeSiteOrigin(rawOrigin: string | undefined) {
+  if (!rawOrigin) return "";
+  if (/^https?:\/\//.test(rawOrigin)) return rawOrigin.replace(/\/$/, "");
+  return `https://${rawOrigin.replace(/\/$/, "")}`;
+}
+
+function isPublicSiteOrigin(origin: string) {
+  if (!origin) return false;
+
+  try {
+    const parsed = new URL(origin);
+    return !["localhost", "127.0.0.1", "::1"].includes(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function resolveTransactionalSiteOrigin() {
+  const configuredOrigin = normalizeSiteOrigin(
+    process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
+  );
+
+  if (isPublicSiteOrigin(configuredOrigin)) {
+    return configuredOrigin;
+  }
+
+  return PUBLIC_SITE_ORIGIN;
+}
+
 export function replacePlaceholders(text: string, data: Record<string, string>) {
   return text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key) => {
     if (key in data) return data[key];
     return match;
   });
+}
+
+export function bodyContainsButtonPlaceholder(body: string) {
+  return /\{\{\s*button\s*\}\}/.test(body);
+}
+
+export function plainTextFromEmailBody(body: string) {
+  return body
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+export function buildTransactionalButton(
+  buttonColor?: string | null,
+  label = "Apri dettaglio",
+  url?: string,
+) {
+  const targetUrl = url ?? resolveTransactionalSiteOrigin();
+  return createButton(label, targetUrl, buttonColor ?? undefined);
+}
+
+export function materializeTransactionalEmail(params: {
+  subjectSource: string;
+  bodySource: string;
+  data: Record<string, string>;
+  buttonColor?: string | null;
+  clinicName?: string;
+}) {
+  const subject = replacePlaceholders(params.subjectSource, params.data);
+  const htmlBody = replacePlaceholders(params.bodySource, params.data);
+  const clinicName = params.clinicName ?? params.data.clinicName;
+  const html = renderEmailHtml(htmlBody, params.buttonColor ?? undefined, clinicName);
+  const body = plainTextFromEmailBody(htmlBody);
+
+  return { subject, body, html };
 }
 
 export function renderEmailHtml(body: string, buttonColor?: string, clinicName?: string) {

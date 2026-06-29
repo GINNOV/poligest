@@ -13,6 +13,12 @@ export const placeholderCatalog: PlaceholderDefinition[] = [
     example: "Mario Rossi",
   },
   {
+    key: "staffRole",
+    label: "Ruolo staff",
+    description: "Ruolo assegnato al nuovo membro dello staff.",
+    example: "Segreteria",
+  },
+  {
     key: "doctorName",
     label: "Nome medico",
     description: "Nome completo del medico.",
@@ -58,10 +64,11 @@ export const placeholderCatalog: PlaceholderDefinition[] = [
 
 export const previewData: Record<string, string> = {
   patientName: "Mario Rossi",
+  staffRole: "Segreteria",
   doctorName: "Dr. Giulia Bianchi",
   appointmentDate: "12/03/2026",
   appointmentTime: "09:30",
-  clinicName: "Sorriso Splendente",
+  clinicName: "Studio Agovino & Angrisano",
   websiteUrl: "https://sorrisosplendente.com",
   customNote: "Ricorda di arrivare 10 minuti prima.",
 };

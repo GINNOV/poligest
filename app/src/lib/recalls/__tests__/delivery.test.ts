@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/email", () => ({
   sendEmail: vi.fn().mockResolvedValue(undefined),
+  sendEmailWithHtml: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/sms", () => ({
@@ -12,7 +13,7 @@ vi.mock("@/lib/kapso-whatsapp", () => ({
   sendKapsoWhatsAppText: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { sendEmail } from "@/lib/email";
+import { sendEmail, sendEmailWithHtml } from "@/lib/email";
 import { sendKapsoWhatsAppText } from "@/lib/kapso-whatsapp";
 import { sendSms } from "@/lib/sms";
 import { deliverNotificationPlan } from "@/lib/recalls/delivery";
@@ -57,7 +58,7 @@ describe("recalls delivery", () => {
     expect(result).toEqual({ delivered: false, attempted: true });
   });
 
-  it("still supports email and SMS channels", async () => {
+  it("still supports plain email and SMS channels", async () => {
     await deliverNotificationPlan({
       patient: { id: "patient-1", email: "mario@example.com", phone: "+393331234567" },
       plan: {
@@ -70,7 +71,30 @@ describe("recalls delivery", () => {
     });
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(sendEmailWithHtml).not.toHaveBeenCalled();
     expect(sendSms).toHaveBeenCalledTimes(1);
     expect(sendKapsoWhatsAppText).not.toHaveBeenCalled();
+  });
+
+  it("sends styled HTML emails when a template body is materialized", async () => {
+    await deliverNotificationPlan({
+      patient: { id: "patient-1", email: "mario@example.com", phone: null },
+      plan: {
+        wantsEmail: true,
+        wantsSms: false,
+        wantsWhatsApp: false,
+        subject: "Promemoria appuntamento",
+        body: "Ciao Mario Rossi",
+        html: "<div>styled email</div>",
+      },
+    });
+
+    expect(sendEmailWithHtml).toHaveBeenCalledWith(
+      "mario@example.com",
+      "Promemoria appuntamento",
+      "Ciao Mario Rossi",
+      "<div>styled email</div>",
+    );
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

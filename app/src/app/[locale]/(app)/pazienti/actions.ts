@@ -12,7 +12,7 @@ import { parseOptionalBirthDate } from "@/lib/date";
 import { normalizePersonName } from "@/lib/name";
 import { PAPER_CONSENT_NOTE } from "@/lib/patients/paper-consent";
 import { put } from "@vercel/blob";
-import { sendEmail } from "@/lib/email";
+import { sendPatientWelcomeEmail } from "@/lib/welcome-email";
 import { getStackSignInUrl } from "@/lib/stack-app";
 import sharp from "sharp";
 import { pickRandomSystemAvatar, pickSystemAvatar } from "@/lib/patient-avatars";
@@ -296,14 +296,10 @@ export async function createPatient(formData: FormData) {
       : siteOrigin
         ? `${siteOrigin}${patientSignInUrl}`
         : patientSignInUrl;
-    const subject = "Accesso area pazienti";
-    const body = `Ciao ${firstName},
-
-Abbiamo creato il tuo profilo paziente. Accedi qui per visualizzare e gestire gli appuntamenti:
-${loginUrl}
-
-Se hai bisogno di assistenza, contatta la segreteria.`;
-    await sendEmail(email, subject, body);
+    await sendPatientWelcomeEmail(email, {
+      patientName: firstName,
+      loginUrl,
+    });
   }
 
   revalidatePath("/pazienti");

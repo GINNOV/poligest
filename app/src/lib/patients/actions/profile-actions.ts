@@ -8,7 +8,7 @@ import sharp from "sharp";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { parseOptionalBirthDate } from "@/lib/date";
-import { sendEmailWithHtml } from "@/lib/email";
+import { sendPatientWelcomeEmail } from "@/lib/welcome-email";
 import { normalizePersonName } from "@/lib/name";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
@@ -265,66 +265,14 @@ export async function sendPatientAccessEmailAction(formData: FormData) {
       : siteOrigin
         ? `${siteOrigin}${patientSignInUrl}`
         : patientSignInUrl;
-    const subject = "Accesso area pazienti";
-    const body = `Gentile Sig. ${patient.lastName ?? ""},
+    const patientName = patient.firstName
+      ? `${patient.firstName} ${patient.lastName ?? ""}`.trim()
+      : `Sig. ${patient.lastName ?? ""}`.trim();
 
-La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.
-
-Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:
-${loginUrl}
-
-Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.
-
-Cordiali saluti,
-
-
-Telefono: 081 8654557
-Email: studio.agovino.agrisano@gmail.com`;
-
-    const baseOrigin = siteOrigin || "http://localhost:3000";
-    const logoUrl = `${baseOrigin}/logo/studio_agovinoangrisano_logo.png`;
-    const html = `
-      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background: #f0fdf4; padding: 24px;">
-        <div style="max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #d1fae5; border-radius: 16px; padding: 24px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; border: 1px solid #d1fae5; border-radius: 14px; background: #f8fffb;">
-            <tr>
-              <td style="padding: 12px 14px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
-                  <tr>
-                    <td style="padding-right: 12px;">
-                      <img src="${logoUrl}" alt="Studio Agovino & Angrisano" width="48" height="48" style="display:block; border-radius:12px; border:1px solid #d1fae5; padding:4px; background:#ffffff; object-fit: contain;" />
-                    </td>
-                    <td>
-                      <div style="font-size: 12px; letter-spacing: 0.2em; font-weight: 700; text-transform: uppercase; color: #064e3b;">
-                        Studio Agovino &amp; Angrisano
-                      </div>
-                      <div style="font-size: 11px; letter-spacing: 0.18em; font-weight: 700; text-transform: uppercase; color: #047857;">
-                        by NoMore Caries
-                      </div>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-          <div style="margin-top: 18px; color: #0f172a; font-size: 14px; line-height: 1.6;">
-            <p style="margin: 0 0 12px;">Gentile Sig. ${patient.lastName ?? ""},</p>
-            <p style="margin: 0 0 12px;">La informiamo che l’accesso alla Sua area paziente è stato attivato con successo.</p>
-            <p style="margin: 0 0 12px;">Attraverso il seguente link potrà visualizzare e gestire i Suoi appuntamenti in modo semplice e sicuro:</p>
-            <p style="margin: 0 0 16px;">
-              <a href="${loginUrl}" style="display: inline-block; background: #047857; color: #ffffff; padding: 12px 18px; border-radius: 999px; font-weight: 700; text-decoration: none;">
-                Accedi all&apos;area paziente
-              </a>
-            </p>
-            <p style="margin: 0 0 12px;">Per eventuali chiarimenti o necessità di assistenza, La invitiamo a contattare la segreteria.</p>
-            <p style="margin: 0 0 16px;">Cordiali saluti,</p>
-            <p style="margin: 0;">Telefono: 081 8654557<br/>Email: studio.agovino.agrisano@gmail.com</p>
-          </div>
-        </div>
-      </div>
-    `;
-
-    await sendEmailWithHtml(patient.email, subject, body, html);
+    await sendPatientWelcomeEmail(patient.email, {
+      patientName,
+      loginUrl,
+    });
 
     await logAudit(user, {
       action: "patient.access_email_sent",

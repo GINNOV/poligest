@@ -1,5 +1,5 @@
 import { NotificationChannel } from "@prisma/client";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, sendEmailWithHtml } from "@/lib/email";
 import { sendKapsoWhatsAppText } from "@/lib/kapso-whatsapp";
 import { sendSms } from "@/lib/sms";
 
@@ -9,6 +9,7 @@ export type NotificationDeliveryPlan = {
   wantsWhatsApp: boolean;
   subject: string;
   body: string;
+  html?: string;
 };
 
 export async function deliverNotificationPlan(params: {
@@ -21,7 +22,16 @@ export async function deliverNotificationPlan(params: {
   if (params.plan.wantsEmail) {
     attempted = true;
     if (params.patient.email) {
-      await sendEmail(params.patient.email, params.plan.subject, params.plan.body);
+      if (params.plan.html) {
+        await sendEmailWithHtml(
+          params.patient.email,
+          params.plan.subject,
+          params.plan.body,
+          params.plan.html,
+        );
+      } else {
+        await sendEmail(params.patient.email, params.plan.subject, params.plan.body);
+      }
       delivered = true;
     }
   }

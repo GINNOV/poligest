@@ -1,7 +1,54 @@
 import { AppointmentStatus, NotificationChannel, RecallStatus } from "@prisma/client";
-import { replacePlaceholders } from "@/lib/email-template-utils";
+import {
+  bodyContainsButtonPlaceholder,
+  buildTransactionalButton,
+  materializeTransactionalEmail,
+  replacePlaceholders,
+  resolveTransactionalSiteOrigin,
+} from "@/lib/email-template-utils";
+import { previewData } from "@/lib/placeholder-data";
 import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 import { addDaysInTimeZone, formatDateInTimeZone, setTimeOfDayInTimeZone } from "@/lib/time-zone";
+
+export type TransactionalEmailTemplate = {
+  subject: string | null;
+  body: string | null;
+  buttonColor?: string | null;
+};
+
+function buildDeliveryContent(params: {
+  subjectSource: string;
+  bodySource: string;
+  placeholderData: Record<string, string>;
+  template?: TransactionalEmailTemplate | null;
+}) {
+  const data = { ...params.placeholderData };
+  if (params.template && bodyContainsButtonPlaceholder(params.bodySource)) {
+    data.button = buildTransactionalButton(
+      params.template.buttonColor,
+      "Apri dettaglio",
+      data.websiteUrl || resolveTransactionalSiteOrigin(),
+    );
+  } else {
+    data.button = "";
+  }
+
+  if (params.template) {
+    return materializeTransactionalEmail({
+      subjectSource: params.subjectSource,
+      bodySource: params.bodySource,
+      data,
+      buttonColor: params.template.buttonColor,
+      clinicName: data.clinicName,
+    });
+  }
+
+  return {
+    subject: replacePlaceholders(params.subjectSource, data),
+    body: replacePlaceholders(params.bodySource, data),
+    html: undefined,
+  };
+}
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -130,32 +177,38 @@ export function buildRecallDeliveryPlan(params: {
     message?: string | null;
     channel?: NotificationChannel | null;
   };
-  template?: { subject: string | null; body: string | null } | null;
+  template?: TransactionalEmailTemplate | null;
 }) {
   const patientName =
     `${params.patient.lastName ?? ""} ${params.patient.firstName ?? ""}`.trim() || "paziente";
   const serviceLabel =
     params.rule.serviceType === "ANY" ? "la prossima visita di controllo" : params.rule.serviceType ?? "";
-  const placeholderData = {
-    patientName,
-    patientFirstName: params.patient.firstName ?? "",
-    patientLastName: params.patient.lastName ?? "",
-    serviceType: serviceLabel,
-    button: "",
-  };
+  const subjectSource =
+    params.template?.subject ?? params.rule.emailSubject ?? `Promemoria ${serviceLabel}`;
+  const bodySource =
+    params.template?.body ??
+    params.rule.message ??
+    "Ciao {{patientFirstName}}, è tempo di prenotare {{serviceType}}. Contattaci per fissare un appuntamento.";
+  const content = buildDeliveryContent({
+    subjectSource,
+    bodySource,
+    template: params.template,
+    placeholderData: {
+      patientName,
+      patientFirstName: params.patient.firstName ?? "",
+      patientLastName: params.patient.lastName ?? "",
+      serviceType: serviceLabel,
+      clinicName: previewData.clinicName,
+      websiteUrl: resolveTransactionalSiteOrigin(),
+      customNote: "",
+    },
+  });
 
   return {
     ...buildChannelPlan(params.rule.channel),
-    subject: replacePlaceholders(
-      params.template?.subject ?? params.rule.emailSubject ?? `Promemoria ${serviceLabel}`,
-      placeholderData,
-    ),
-    body: replacePlaceholders(
-      params.template?.body ??
-        params.rule.message ??
-        "Ciao {{patientFirstName}}, è tempo di prenotare {{serviceType}}. Contattaci per fissare un appuntamento.",
-      placeholderData,
-    ),
+    subject: content.subject,
+    body: content.body,
+    html: content.html,
   };
 }
 
@@ -168,38 +221,44 @@ export function buildAppointmentReminderDeliveryPlan(params: {
     message?: string | null;
     channel?: NotificationChannel | null;
   };
-  template?: { subject: string | null; body: string | null } | null;
+  template?: TransactionalEmailTemplate | null;
 }) {
   const timeZone = params.timeZone ?? DEFAULT_PRACTICE_TIME_ZONE;
   const patientName =
     `${params.patient.lastName ?? ""} ${params.patient.firstName ?? ""}`.trim() || "paziente";
-  const placeholderData = {
-    patientName,
-    appointmentDate: formatDateInTimeZone(
-      params.appointment.startsAt,
-      { dateStyle: "medium" },
-      timeZone,
-    ),
-    appointmentTime: formatDateInTimeZone(
-      params.appointment.startsAt,
-      { timeStyle: "short" },
-      timeZone,
-    ),
-    doctorName: params.appointment.doctor?.fullName ?? "lo staff",
-    button: "",
-  };
+  const subjectSource =
+    params.template?.subject ?? params.rule.emailSubject ?? "Promemoria appuntamento";
+  const bodySource =
+    params.template?.body ??
+    params.rule.message ??
+    "Gentile {{patientName}}, promemoria per l'appuntamento del {{appointmentDate}} alle {{appointmentTime}} con {{doctorName}}.";
+  const content = buildDeliveryContent({
+    subjectSource,
+    bodySource,
+    template: params.template,
+    placeholderData: {
+      patientName,
+      appointmentDate: formatDateInTimeZone(
+        params.appointment.startsAt,
+        { dateStyle: "medium" },
+        timeZone,
+      ),
+      appointmentTime: formatDateInTimeZone(
+        params.appointment.startsAt,
+        { timeStyle: "short" },
+        timeZone,
+      ),
+      doctorName: params.appointment.doctor?.fullName ?? "lo staff",
+      clinicName: previewData.clinicName,
+      websiteUrl: resolveTransactionalSiteOrigin(),
+      customNote: "",
+    },
+  });
 
   return {
     ...buildChannelPlan(params.rule.channel),
-    subject: replacePlaceholders(
-      params.template?.subject ?? params.rule.emailSubject ?? "Promemoria appuntamento",
-      placeholderData,
-    ),
-    body: replacePlaceholders(
-      params.template?.body ??
-        params.rule.message ??
-        "Gentile {{patientName}}, promemoria per l'appuntamento del {{appointmentDate}} alle {{appointmentTime}} con {{doctorName}}.",
-      placeholderData,
-    ),
+    subject: content.subject,
+    body: content.body,
+    html: content.html,
   };
 }

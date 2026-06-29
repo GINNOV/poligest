@@ -1,7 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmailWithHtml } from "@/lib/email";
 import { placeholderCatalog, previewData } from "@/lib/placeholder-data";
-import { createButton, renderEmailHtml, replacePlaceholders } from "@/lib/email-template-utils";
+import {
+  buildTransactionalButton,
+  bodyContainsButtonPlaceholder,
+  materializeTransactionalEmail,
+  resolveTransactionalSiteOrigin,
+} from "@/lib/email-template-utils";
 
 export type EmailTemplateSeed = {
   name: string;
@@ -15,14 +20,24 @@ export type EmailTemplateSeed = {
 
 export const defaultEmailTemplates: EmailTemplateSeed[] = [
   {
-    name: "welcome",
-    title: "Benvenuto",
+    name: "welcome-staff",
+    title: "Benvenuto staff",
+    description: "Email di benvenuto per nuovi membri dello staff.",
+    category: "Onboarding",
+    subject: "Benvenuto nello staff di {{clinicName}}",
+    body:
+      "Ciao!\n\nBenvenuto nello staff di {{clinicName}}. Il tuo ruolo è {{staffRole}}.\n\nRiceverai a breve un'email con un codice monouso per accedere.\n\n{{customNote}}",
+    buttonColor: "#047857",
+  },
+  {
+    name: "welcome-patient",
+    title: "Benvenuto paziente",
     description: "Email di benvenuto per nuovi pazienti.",
     category: "Onboarding",
     subject: "Benvenuto in {{clinicName}}",
     body:
-      "Ciao {{patientName}},\n\nBenvenuto nello studio {{clinicName}}.\n\n{{customNote}}\n\n{{button}}\n\nPer maggiori informazioni visita {{websiteUrl}}.",
-    buttonColor: "#059669",
+      "Gentile {{patientName}},\n\nLa informiamo che l'accesso alla Sua area paziente è stato attivato.\n\nAttraverso il link qui sotto potrà visualizzare e gestire i Suoi appuntamenti:\n\n{{button}}\n\nPer assistenza contatti la segreteria.\n\nCordiali saluti,\n{{clinicName}}",
+    buttonColor: "#047857",
   },
   {
     name: "appointment-reminder",
@@ -108,22 +123,52 @@ export async function updateEmailTemplate(params: {
   });
 }
 
+function withButtonPlaceholder(
+  data: Record<string, string>,
+  bodySource: string,
+  buttonColor?: string | null,
+) {
+  if (!bodyContainsButtonPlaceholder(bodySource)) {
+    return { ...data, button: "" };
+  }
+
+  return {
+    ...data,
+    button: buildTransactionalButton(
+      buttonColor,
+      data.buttonLabel || "Apri dettaglio",
+      data.websiteUrl || resolveTransactionalSiteOrigin(),
+    ),
+  };
+}
+
 export async function sendEmailTemplate(params: {
   to: string;
   templateName: string;
   data: Record<string, string>;
-  override?: { subject?: string; body?: string };
+  override?: { subject?: string; body?: string; buttonColor?: string | null };
 }) {
   const template = await getEmailTemplateByName(params.templateName);
   if (!template) throw new Error("Template email non trovato");
 
   const subjectSource = params.override?.subject ?? template.subject;
   const bodySource = params.override?.body ?? template.body;
-  const subject = replacePlaceholders(subjectSource, params.data);
-  const body = replacePlaceholders(bodySource, params.data);
-  const html = renderEmailHtml(body, template.buttonColor ?? undefined, params.data.clinicName);
+  const buttonColor = params.override?.buttonColor ?? template.buttonColor;
+  const data = withButtonPlaceholder(params.data, bodySource, buttonColor);
+  const materialized = materializeTransactionalEmail({
+    subjectSource,
+    bodySource,
+    data,
+    buttonColor,
+    clinicName: data.clinicName,
+  });
 
-  await sendEmailWithHtml(params.to, subject, body, html);
+  await sendEmailWithHtml(
+    params.to,
+    materialized.subject,
+    materialized.body,
+    materialized.html,
+  );
 }
 
 export async function sendTestEmail(params: {
@@ -133,10 +178,18 @@ export async function sendTestEmail(params: {
   body?: string;
   buttonColor?: string | null;
 }) {
-  const data = {
-    ...previewData,
-    button: createButton("Apri dettaglio", "https://sorrisosplendente.com", params.buttonColor ?? undefined),
-  };
+  const template = await getEmailTemplateByName(params.templateName);
+  const bodySource = params.body ?? template?.body ?? "";
+  const buttonColor = params.buttonColor ?? template?.buttonColor ?? null;
+  const data = withButtonPlaceholder(
+    {
+      ...previewData,
+      websiteUrl: previewData.websiteUrl || resolveTransactionalSiteOrigin(),
+    },
+    bodySource,
+    buttonColor,
+  );
+
   await sendEmailTemplate({
     to: params.to,
     templateName: params.templateName,
@@ -144,11 +197,30 @@ export async function sendTestEmail(params: {
     override: {
       subject: params.subject,
       body: params.body,
+      buttonColor,
+    },
+  });
+}
+
+async function migrateLegacyWelcomeTemplate() {
+  const legacy = await prisma.emailTemplate.findUnique({ where: { name: "welcome" } });
+  const patient = await prisma.emailTemplate.findUnique({ where: { name: "welcome-patient" } });
+  if (!legacy || patient) return;
+
+  await prisma.emailTemplate.create({
+    data: {
+      name: "welcome-patient",
+      subject: legacy.subject,
+      body: legacy.body,
+      buttonColor: legacy.buttonColor,
+      category: "Onboarding",
+      description: "Email di benvenuto per nuovi pazienti.",
     },
   });
 }
 
 async function ensureDefaultTemplates() {
+  await migrateLegacyWelcomeTemplate();
   await Promise.all(
     defaultEmailTemplates.map((template) =>
       prisma.emailTemplate.upsert({

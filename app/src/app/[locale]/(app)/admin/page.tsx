@@ -93,8 +93,17 @@ export default async function AdminPage() {
       icon: "❓",
     },
     {
-      key: "updates",
-      title: "Sistema: Nuovi Utenti",
+      key: "welcome-message",
+      title: "Messaggio di Benvenuto",
+      description: "Email di benvenuto separate per staff e pazienti.",
+      href: "/admin/messaggio-benvenuto",
+      badge: "Onboarding",
+      tone: "primary",
+      icon: "👋",
+    },
+    {
+      key: "feature-updates",
+      title: "Sistema: Popup funzionalità",
       description: "Popup nuove funzionalità visibile allo staff una sola volta.",
       href: "/admin/aggiornamenti",
       badge: updatesCount ? `${updatesCount} versioni` : "Annunci",
@@ -260,15 +269,24 @@ export default async function AdminPage() {
     a.title.localeCompare(b.title, "it", { sensitivity: "base" })
   );
   const isSystem = (item: AdminShortcut) => item.title.startsWith("Sistema:");
-  const isMessages = (item: AdminShortcut) =>
+  const isCommunications = (item: AdminShortcut) =>
+    item.key === "weekly-report" ||
+    item.key === "daily-reminder" ||
+    item.key === "welcome-message" ||
     item.title.startsWith("Messaggi SMS") ||
     item.title.startsWith("Messaggi Emails") ||
     item.title.startsWith("Messaggi Clicksend") ||
     item.title.startsWith("Messaggi WhatsApp");
+  const isPrivacyAndSecurity = (item: AdminShortcut) =>
+    item.key === "privacy" ||
+    item.key === "consent-modules" ||
+    item.key === "users" ||
+    item.key === "feature-access";
   const systemShortcuts = sortedShortcuts.filter((item) => isSystem(item));
-  const messageShortcuts = sortedShortcuts.filter((item) => isMessages(item));
+  const communicationShortcuts = sortedShortcuts.filter((item) => isCommunications(item));
+  const privacyAndSecurityShortcuts = sortedShortcuts.filter((item) => isPrivacyAndSecurity(item));
   const primaryShortcuts = sortedShortcuts.filter(
-    (item) => !isSystem(item) && !isMessages(item)
+    (item) => !isSystem(item) && !isCommunications(item) && !isPrivacyAndSecurity(item)
   );
 
   const cardBaseStyles = "group relative flex h-full flex-col justify-between rounded-3xl border p-6 transition-all duration-300";
@@ -366,14 +384,26 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      {messageShortcuts.length > 0 && (
+      {communicationShortcuts.length > 0 && (
         <div className="space-y-8">
           <div className="flex items-center gap-4 border-l-4 border-blue-500 pl-4">
             <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Comunicazioni</h2>
             <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800/80" />
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {messageShortcuts.map((item) => renderShortcut(item, "border-blue-100/80 bg-gradient-to-br from-blue-50 to-blue-100/30 dark:border-blue-900/30 dark:from-blue-900/20 dark:via-zinc-950 dark:to-blue-900/10"))}
+            {communicationShortcuts.map((item) => renderShortcut(item, "border-blue-100/80 bg-gradient-to-br from-blue-50 to-blue-100/30 dark:border-blue-900/30 dark:from-blue-900/20 dark:via-zinc-950 dark:to-blue-900/10"))}
+          </div>
+        </div>
+      )}
+
+      {privacyAndSecurityShortcuts.length > 0 && (
+        <div className="space-y-8">
+          <div className="flex items-center gap-4 border-l-4 border-rose-500 pl-4">
+            <h2 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Privacy e Sicurezza</h2>
+            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800/80" />
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {privacyAndSecurityShortcuts.map((item) => renderShortcut(item, "border-rose-100/80 bg-gradient-to-br from-rose-50 to-rose-100/30 dark:border-rose-900/30 dark:from-rose-900/20 dark:via-zinc-950 dark:to-rose-900/10"))}
           </div>
         </div>
       )}
