@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { AppointmentAlternativeSlots } from "@/components/appointment-alternative-slots";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
@@ -10,7 +11,12 @@ import {
   CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY,
   CALENDAR_CLOSURE_WARNING_BYPASS_STORAGE_KEY,
 } from "@/lib/app-preferences";
-import { APPOINTMENT_TITLES } from "@/lib/client-enums";
+import { APPOINTMENT_TITLES, DEFAULT_APPOINTMENT_TITLE } from "@/lib/client-enums";
+import {
+  addMinutesToDateTimeLocal,
+  composeDateTimeLocal,
+  splitDateTimeLocal,
+} from "@/lib/appointments/datetime-input";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -54,12 +60,8 @@ export function AppointmentCreateForm({
 }: Props) {
   const formId = useId();
   const appointmentFormId = `appointment-create-form-${formId}`;
-  const formatLocalInput = (date: Date) => {
-    const pad = (n: number) => n.toString().padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-      date.getHours()
-    )}:${pad(date.getMinutes())}`;
-  };
+  const fieldClassName =
+    "h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40";
 
   const sortedServiceOptions = useMemo(
     () => [...serviceOptions].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" })),
@@ -72,14 +74,11 @@ export function AppointmentCreateForm({
   const [localStartsAt, setLocalStartsAt] = useState(initialStartsAt ?? "");
   const [localEndsAt, setLocalEndsAt] = useState<string>(() => {
     if (initialEndsAt) return initialEndsAt;
-    if (initialStartsAt) {
-      const start = new Date(initialStartsAt);
-      if (!Number.isNaN(start.getTime())) {
-        return formatLocalInput(new Date(start.getTime() + 60 * 60 * 1000));
-      }
-    }
+    if (initialStartsAt) return addMinutesToDateTimeLocal(initialStartsAt, 60);
     return "";
   });
+  const [doctorId, setDoctorId] = useState(initialDoctorId ?? "");
+  const [findFirstToken, setFindFirstToken] = useState(0);
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const selectedPatient = useMemo(
@@ -87,16 +86,40 @@ export function AppointmentCreateForm({
     [patients, selectedPatientId]
   );
   const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
-  const [title, setTitle] = useState<string>("Richiamo");
+  const [title, setTitle] = useState<string>(DEFAULT_APPOINTMENT_TITLE);
   const [serviceType, setServiceType] = useState<string>(() => sortedServiceOptions[0] ?? "");
+
+  const visitDate = splitDateTimeLocal(localStartsAt).date;
+  const startTime = splitDateTimeLocal(localStartsAt).time;
+  const endTime = splitDateTimeLocal(localEndsAt).time;
+
+  const updateVisitDate = (nextDate: string) => {
+    if (!nextDate || !startTime || !endTime) return;
+    setLocalStartsAt(composeDateTimeLocal(nextDate, startTime));
+    setLocalEndsAt(composeDateTimeLocal(nextDate, endTime));
+  };
+
+  const updateStartTime = (nextTime: string) => {
+    if (!visitDate || !nextTime) return;
+    setLocalStartsAt(composeDateTimeLocal(visitDate, nextTime));
+  };
+
+  const updateEndTime = (nextTime: string) => {
+    if (!visitDate || !nextTime) return;
+    setLocalEndsAt(composeDateTimeLocal(visitDate, nextTime));
+  };
 
   const setEndFromStart = (minutes: number) => {
     if (!localStartsAt) return;
-    const start = new Date(localStartsAt);
-    if (Number.isNaN(start.getTime())) return;
-    const end = new Date(start.getTime() + minutes * 60 * 1000);
-    setLocalEndsAt(formatLocalInput(end));
+    setLocalEndsAt(addMinutesToDateTimeLocal(localStartsAt, minutes));
   };
+
+  const durationMinutes = useMemo(() => {
+    const start = new Date(localStartsAt);
+    const end = new Date(localEndsAt);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return 60;
+    return Math.max(5, Math.round((end.getTime() - start.getTime()) / 60000));
+  }, [localStartsAt, localEndsAt]);
 
   const handleValidate = (form: HTMLFormElement) => {
     const startsAt = (form.elements.namedItem("startsAt") as HTMLInputElement | null)?.value;
@@ -268,9 +291,9 @@ export function AppointmentCreateForm({
             const isNew = id === "new";
             setIsNewPatient(isNew);
             if (isNew) {
-              setTitle("Prima visita");
-              setServiceType((prev) => 
-                prev === "Richiamo" || !prev 
+              setTitle(DEFAULT_APPOINTMENT_TITLE);
+              setServiceType((prev) =>
+                !prev
                   ? (serviceOptions.includes("Visita di controllo") ? "Visita di controllo" : serviceOptions[0] ?? "")
                   : prev
               );
@@ -385,78 +408,121 @@ export function AppointmentCreateForm({
           Scegli un servizio oppure inserisci un nome personalizzato.
         </span>
       </div>
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-        <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-        <input
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          type="datetime-local"
-          name="startsAt"
-          value={localStartsAt}
-          onChange={(e) => {
-            const value = e.target.value;
-            setLocalStartsAt(value);
-            if (value) {
-              const start = new Date(value);
-              if (!Number.isNaN(start.getTime())) {
-                const end = new Date(start.getTime() + 60 * 60 * 1000);
-                setLocalEndsAt(formatLocalInput(end));
-              }
-            }
-          }}
-          required
-        />
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-        <span className="font-bold text-rose-600 dark:text-rose-500">Stima di fine visita</span>
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+      <input type="hidden" name="startsAt" value={localStartsAt} />
+      <input type="hidden" name="endsAt" value={localEndsAt} />
+      <input type="hidden" name="doctorId" value={doctorId} />
+
+      <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold">Medico assegnato</span>
+          <select
+            value={doctorId}
+            onChange={(event) => setDoctorId(event.target.value)}
+            className={fieldClassName}
+          >
+            <option value="">—</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.fullName}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
           <input
-            className="h-11 flex-1 min-w-0 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-            type="datetime-local"
-            name="endsAt"
-            value={localEndsAt}
-            onChange={(e) => setLocalEndsAt(e.target.value)}
+            type="date"
+            value={visitDate}
+            onChange={(event) => updateVisitDate(event.target.value)}
+            className={fieldClassName}
             required
           />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-              onClick={() => setEndFromStart(60)}
-            >
-              1H
-            </button>
-            <button
-              type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-              onClick={() => setEndFromStart(30)}
-            >
-              30m
-            </button>
-            <button
-              type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-              onClick={() => setEndFromStart(15)}
-            >
-              15m
-            </button>
-          </div>
-        </div>
-      </label>
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-        <span className="font-bold">Medico assegnato</span>
-        <select
-          name="doctorId"
-          className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-          defaultValue={initialDoctorId ?? ""}
+        </label>
+
+        <button
+          type="button"
+          onClick={() => setFindFirstToken((token) => token + 1)}
+          className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <option value="">—</option>
-          {doctors.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.fullName}
-            </option>
-          ))}
-        </select>
-      </label>
+          Primo slot libero
+        </button>
+      </div>
+
+      <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(event) => updateStartTime(event.target.value)}
+            className={fieldClassName}
+            required
+          />
+        </label>
+
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(event) => updateEndTime(event.target.value)}
+            className={fieldClassName}
+            required
+          />
+        </label>
+
+        <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes > 45
+                ? "border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-100"
+                : "border-zinc-200 text-zinc-700 hover:border-violet-300 hover:text-violet-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500 dark:hover:text-violet-300"
+            }`}
+            onClick={() => setEndFromStart(60)}
+          >
+            1H
+          </button>
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes > 20 && durationMinutes <= 45
+                ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
+                : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+            }`}
+            onClick={() => setEndFromStart(30)}
+          >
+            30m
+          </button>
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes <= 20
+                ? "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100"
+                : "border-zinc-200 text-zinc-700 hover:border-sky-300 hover:text-sky-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-sky-500 dark:hover:text-sky-300"
+            }`}
+            onClick={() => setEndFromStart(15)}
+          >
+            15m
+          </button>
+        </div>
+      </div>
+
+      <AppointmentAlternativeSlots
+        doctorId={doctorId}
+        startsAt={localStartsAt}
+        endsAt={localEndsAt}
+        browseDate={visitDate}
+        onBrowseDateChange={updateVisitDate}
+        displayTimeZone={displayTimeZone}
+        variant="inline"
+        findFirstToken={findFirstToken}
+        onSelectSlot={({ startsAt, endsAt }) => {
+          setLocalStartsAt(startsAt);
+          setLocalEndsAt(endsAt);
+        }}
+      />
       <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
         <span className="font-bold">Note</span>
         <textarea

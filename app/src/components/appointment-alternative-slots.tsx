@@ -11,7 +11,7 @@ type AlternativeSlot = {
 };
 
 type Props = {
-  appointmentId: string;
+  appointmentId?: string;
   doctorId: string;
   startsAt: string;
   endsAt: string;
@@ -105,9 +105,9 @@ export function AppointmentAlternativeSlots({
         doctorId,
         date,
         durationMinutes: String(durationMinutes),
-        excludeId: appointmentId,
         timeZone: displayTimeZone,
       });
+      if (appointmentId) params.set("excludeId", appointmentId);
       const payload = await fetchSlots(params);
 
       setSlots(payload.slots ?? []);
@@ -166,9 +166,9 @@ export function AppointmentAlternativeSlots({
         mode: "first",
         date: fromDate,
         durationMinutes: String(durationMinutes),
-        excludeId: appointmentId,
         timeZone: displayTimeZone,
       });
+      if (appointmentId) params.set("excludeId", appointmentId);
       const payload = await fetchSlots(params);
       const foundSlots = payload.slots ?? [];
 
