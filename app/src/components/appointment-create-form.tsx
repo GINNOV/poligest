@@ -86,6 +86,7 @@ export function AppointmentCreateForm({
     [patients, selectedPatientId]
   );
   const [duplicatePatient, setDuplicatePatient] = useState<{ id: string; firstName: string; lastName: string; phone?: string | null } | null>(null);
+  const [activeTab, setActiveTab] = useState<"schedule" | "details">("schedule");
   const [title, setTitle] = useState<string>(DEFAULT_APPOINTMENT_TITLE);
   const [serviceType, setServiceType] = useState<string>(() => sortedServiceOptions[0] ?? "");
 
@@ -163,7 +164,11 @@ export function AppointmentCreateForm({
       window.localStorage.getItem(CALENDAR_AVAILABILITY_WARNING_BYPASS_STORAGE_KEY) === "true";
 
     if (!patientId || !title || !startsAt || !endsAt) {
-      setError("Dati mancanti: seleziona un paziente e compila i campi obbligatori.");
+      setError(
+        !patientId
+          ? "Seleziona un paziente nella scheda Dettagli prima di salvare."
+          : "Dati mancanti: compila i campi obbligatori."
+      );
       return;
     }
 
@@ -244,12 +249,153 @@ export function AppointmentCreateForm({
       <UnsavedChangesGuard formId={appointmentFormId} />
       <form
         onSubmit={handleSubmit}
-        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
         data-appointment-form="create"
         id={appointmentFormId}
       >
       {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       {displayTimeZone ? <input type="hidden" name="timeZone" value={displayTimeZone} /> : null}
+      <input type="hidden" name="startsAt" value={localStartsAt} />
+      <input type="hidden" name="endsAt" value={localEndsAt} />
+      <input type="hidden" name="doctorId" value={doctorId} />
+
+      <div className="col-span-full flex rounded-full border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-900/60">
+        <button
+          type="button"
+          onClick={() => setActiveTab("schedule")}
+          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            activeTab === "schedule"
+              ? "bg-white text-emerald-800 shadow-sm dark:bg-zinc-950 dark:text-emerald-200"
+              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          }`}
+        >
+          Orario
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("details")}
+          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            activeTab === "details"
+              ? "bg-white text-emerald-800 shadow-sm dark:bg-zinc-950 dark:text-emerald-200"
+              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          }`}
+        >
+          Dettagli
+        </button>
+      </div>
+
+      <div className={activeTab === "schedule" ? "contents" : "hidden"}>
+      <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold">Medico assegnato</span>
+          <select
+            value={doctorId}
+            onChange={(event) => setDoctorId(event.target.value)}
+            className={fieldClassName}
+          >
+            <option value="">—</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.fullName}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
+          <input
+            type="date"
+            value={visitDate}
+            onChange={(event) => updateVisitDate(event.target.value)}
+            className={fieldClassName}
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => setFindFirstToken((token) => token + 1)}
+          className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Primo slot libero
+        </button>
+      </div>
+
+      <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(event) => updateStartTime(event.target.value)}
+            className={fieldClassName}
+          />
+        </label>
+
+        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+          <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(event) => updateEndTime(event.target.value)}
+            className={fieldClassName}
+          />
+        </label>
+
+        <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes > 45
+                ? "border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-100"
+                : "border-zinc-200 text-zinc-700 hover:border-violet-300 hover:text-violet-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500 dark:hover:text-violet-300"
+            }`}
+            onClick={() => setEndFromStart(60)}
+          >
+            1H
+          </button>
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes > 20 && durationMinutes <= 45
+                ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
+                : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+            }`}
+            onClick={() => setEndFromStart(30)}
+          >
+            30m
+          </button>
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes <= 20
+                ? "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100"
+                : "border-zinc-200 text-zinc-700 hover:border-sky-300 hover:text-sky-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-sky-500 dark:hover:text-sky-300"
+            }`}
+            onClick={() => setEndFromStart(15)}
+          >
+            15m
+          </button>
+        </div>
+      </div>
+
+      <AppointmentAlternativeSlots
+        doctorId={doctorId}
+        startsAt={localStartsAt}
+        endsAt={localEndsAt}
+        browseDate={visitDate}
+        onBrowseDateChange={updateVisitDate}
+        displayTimeZone={displayTimeZone}
+        variant="inline"
+        findFirstToken={findFirstToken}
+        onSelectSlot={({ startsAt, endsAt }) => {
+          setLocalStartsAt(startsAt);
+          setLocalEndsAt(endsAt);
+        }}
+      />
+      </div>
+
+      <div className={activeTab === "details" ? "contents" : "hidden"}>
       <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         <span className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <span className="font-bold text-rose-600 dark:text-rose-500">Paziente</span>
@@ -408,122 +554,7 @@ export function AppointmentCreateForm({
           Scegli un servizio oppure inserisci un nome personalizzato.
         </span>
       </div>
-      <input type="hidden" name="startsAt" value={localStartsAt} />
-      <input type="hidden" name="endsAt" value={localEndsAt} />
-      <input type="hidden" name="doctorId" value={doctorId} />
-
-      <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold">Medico assegnato</span>
-          <select
-            value={doctorId}
-            onChange={(event) => setDoctorId(event.target.value)}
-            className={fieldClassName}
-          >
-            <option value="">—</option>
-            {doctors.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.fullName}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
-          <input
-            type="date"
-            value={visitDate}
-            onChange={(event) => updateVisitDate(event.target.value)}
-            className={fieldClassName}
-            required
-          />
-        </label>
-
-        <button
-          type="button"
-          onClick={() => setFindFirstToken((token) => token + 1)}
-          className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Primo slot libero
-        </button>
-      </div>
-
-      <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-          <input
-            type="time"
-            value={startTime}
-            onChange={(event) => updateStartTime(event.target.value)}
-            className={fieldClassName}
-            required
-          />
-        </label>
-
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-          <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
-          <input
-            type="time"
-            value={endTime}
-            onChange={(event) => updateEndTime(event.target.value)}
-            className={fieldClassName}
-            required
-          />
-        </label>
-
-        <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
-          <button
-            type="button"
-            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
-              durationMinutes > 45
-                ? "border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-100"
-                : "border-zinc-200 text-zinc-700 hover:border-violet-300 hover:text-violet-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500 dark:hover:text-violet-300"
-            }`}
-            onClick={() => setEndFromStart(60)}
-          >
-            1H
-          </button>
-          <button
-            type="button"
-            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
-              durationMinutes > 20 && durationMinutes <= 45
-                ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
-                : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-            }`}
-            onClick={() => setEndFromStart(30)}
-          >
-            30m
-          </button>
-          <button
-            type="button"
-            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
-              durationMinutes <= 20
-                ? "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100"
-                : "border-zinc-200 text-zinc-700 hover:border-sky-300 hover:text-sky-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-sky-500 dark:hover:text-sky-300"
-            }`}
-            onClick={() => setEndFromStart(15)}
-          >
-            15m
-          </button>
-        </div>
-      </div>
-
-      <AppointmentAlternativeSlots
-        doctorId={doctorId}
-        startsAt={localStartsAt}
-        endsAt={localEndsAt}
-        browseDate={visitDate}
-        onBrowseDateChange={updateVisitDate}
-        displayTimeZone={displayTimeZone}
-        variant="inline"
-        findFirstToken={findFirstToken}
-        onSelectSlot={({ startsAt, endsAt }) => {
-          setLocalStartsAt(startsAt);
-          setLocalEndsAt(endsAt);
-        }}
-      />
-      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+      <label className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
         <span className="font-bold">Note</span>
         <textarea
           name="notes"
@@ -531,6 +562,18 @@ export function AppointmentCreateForm({
           placeholder="Note per il team"
         ></textarea>
       </label>
+      </div>
+
+      {activeTab === "schedule" && selectedPatientId ? (
+        <input type="hidden" name="patientId" value={selectedPatientId} />
+      ) : null}
+      {activeTab === "schedule" ? (
+        <>
+          <input type="hidden" name="title" value={title === "altro" ? "altro" : title} />
+          <input type="hidden" name="serviceType" value={serviceType} />
+        </>
+      ) : null}
+
       {error ? <p className="col-span-full text-sm text-rose-600 font-bold">{error}</p> : null}
       <div className="col-span-full">
         <FormSubmitButton
