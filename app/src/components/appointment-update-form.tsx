@@ -357,9 +357,6 @@ export function AppointmentUpdateForm({
             >
               15m
             </button>
-            <span className="flex h-9 items-center text-xs text-zinc-500 dark:text-zinc-400">
-              {durationMinutes} min
-            </span>
           </div>
         </div>
 

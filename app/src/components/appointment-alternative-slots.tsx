@@ -289,13 +289,7 @@ export function AppointmentAlternativeSlots({
 
   return (
     <div className="col-span-full rounded-2xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
-        <span className="text-xs text-sky-800/80 dark:text-sky-200/80">
-          Durata: {durationMinutes} min
-          {durationMinutes <= 20 ? " · 15m" : durationMinutes <= 45 ? " · 30m" : " · 1h"}
-        </span>
-      </div>
+      <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
       <div className="mt-3">{panelContent}</div>
     </div>
   );
