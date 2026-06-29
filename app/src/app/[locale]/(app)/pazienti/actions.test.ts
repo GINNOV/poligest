@@ -191,6 +191,26 @@ describe("createPatient", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
   });
 
+  it("assigns a system avatar using name and tax id when gender is not specified", async () => {
+    mocks.prisma.consentModule.findMany.mockResolvedValue([]);
+
+    const formData = new FormData();
+    formData.set("firstName", "Giulia");
+    formData.set("lastName", "Bianchi");
+    formData.set("phone", "3331234567");
+    formData.set("taxId", "BNCGLI90A41H501Z");
+    formData.set("gender", Gender.NOT_SPECIFIED);
+
+    await expect(createPatient(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.resolveStoredPatientPhotoUrl).toHaveBeenCalledWith({
+      patientId: "patient-1",
+      firstName: "Giulia",
+      gender: Gender.NOT_SPECIFIED,
+      taxId: "BNCGLI90A41H501Z",
+    });
+  });
+
   it("rejects the create flow when required consent modules are missing", async () => {
     mocks.prisma.consentModule.findMany.mockResolvedValue([
       { id: "consent-required", name: "Privacy" },

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { AuditFiltersForm } from "@/components/admin/audit-filters-form";
 import { AuditRecordNav } from "@/components/admin/AuditRecordNav";
 import { auditLogVisibilityFilter } from "@/lib/audit";
+import { buildAuditLogFilters } from "@/lib/admin/audit-search";
 const auditRoleLabels: Record<Role, string> = {
   [Role.ADMIN]: "Amministratore",
   [Role.MANAGER]: "Medico / Manager",
@@ -29,80 +30,7 @@ export default async function AuditPage({
   const t = await getTranslations("admin");
   const searchParamsValue = await searchParams;
 
-  const q =
-    typeof searchParamsValue.q === "string"
-      ? searchParamsValue.q.trim()
-      : Array.isArray(searchParamsValue.q)
-        ? searchParamsValue.q[0]?.trim()
-        : "";
-
-  const dateParam =
-    typeof searchParamsValue.date === "string"
-      ? searchParamsValue.date
-      : Array.isArray(searchParamsValue.date)
-        ? searchParamsValue.date[0]
-        : undefined;
-
-  const roleParam =
-    typeof searchParamsValue.role === "string"
-      ? searchParamsValue.role
-      : Array.isArray(searchParamsValue.role)
-        ? searchParamsValue.role[0]
-        : undefined;
-
-  const typeParam =
-    typeof searchParamsValue.type === "string"
-      ? searchParamsValue.type
-      : Array.isArray(searchParamsValue.type)
-        ? searchParamsValue.type[0]
-        : undefined;
-
-  let dateFilter:
-    | {
-        gte: Date;
-        lt: Date;
-      }
-    | undefined;
-
-  if (dateParam && !Number.isNaN(Date.parse(dateParam))) {
-    const start = new Date(dateParam);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-    dateFilter = { gte: start, lt: end };
-  }
-
-  const filters: Prisma.AuditLogWhereInput[] = [auditLogVisibilityFilter()];
-  if (q) {
-    filters.push({
-      OR: [
-        { action: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { entity: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        { entityId: { contains: q, mode: Prisma.QueryMode.insensitive } },
-        {
-          user: {
-            OR: [
-              { email: { contains: q, mode: Prisma.QueryMode.insensitive } },
-              { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
-            ],
-          },
-        },
-      ],
-    });
-  }
-  if (dateFilter) {
-    filters.push({ createdAt: dateFilter });
-  }
-  if (roleParam) {
-    filters.push({
-      user: {
-        role: roleParam as Role,
-      },
-    });
-  }
-  if (typeParam) {
-    filters.push({ action: typeParam });
-  }
+  const filters = buildAuditLogFilters(searchParamsValue);
 
   const [logs, actionTypes] = await Promise.all([
     prisma.auditLog.findMany({

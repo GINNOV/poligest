@@ -53,6 +53,30 @@ describe("resolvePatientPhotoUrl", () => {
 
     expect(avatarPools.female).toContain(avatar);
   });
+
+  it("infers gender from codice fiscale when gender is not specified", () => {
+    const avatar = resolvePatientPhotoUrl({
+      patientId: "patient-3",
+      firstName: "Sconosciuto",
+      gender: "NOT_SPECIFIED",
+      taxId: "RSSMRA80A41H501U",
+      photoUrl: "/avatars/avatar_4.jpg",
+    });
+
+    expect(avatarPools.female).toContain(avatar);
+  });
+
+  it("prefers explicit gender over stale system avatars and name inference", () => {
+    const avatar = resolvePatientPhotoUrl({
+      patientId: "patient-4",
+      firstName: "Maria",
+      gender: "MALE",
+      photoUrl: "/avatars/avatar_1.jpg",
+    });
+
+    expect(avatarPools.male).toContain(avatar);
+    expect(avatarPools.female).not.toContain(avatar);
+  });
 });
 
 describe("resolveStoredPatientPhotoUrl", () => {

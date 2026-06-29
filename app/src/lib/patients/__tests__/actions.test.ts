@@ -208,6 +208,7 @@ describe("patient actions", () => {
       notes: "Promemoria\nIndirizzo: Via vecchia 1, Roma",
       photoUrl: null,
       gender: Gender.MALE,
+      firstName: "Mario",
     });
 
     const formData = new FormData();
@@ -225,6 +226,72 @@ describe("patient actions", () => {
         firstName: "Maria",
         lastName: "Rossi",
         gender: Gender.FEMALE,
+        photoUrl: "https://avatar.test/female.jpg",
+      }),
+    });
+    expect(mocks.resolveStoredPatientPhotoUrl).toHaveBeenCalledWith({
+      patientId: "patient-1",
+      firstName: "Maria",
+      gender: Gender.FEMALE,
+      taxId: null,
+    });
+  });
+
+  it("refreshes stored system avatars when gender changes", async () => {
+    mocks.isSystemAvatar.mockReturnValue(true);
+    mocks.prisma.patient.findUnique.mockResolvedValue({
+      notes: "",
+      photoUrl: "/avatars/avatar_4.jpg",
+      gender: Gender.MALE,
+      firstName: "Mario",
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("firstName", "Maria");
+    formData.set("lastName", "Rossi");
+    formData.set("gender", Gender.FEMALE);
+    formData.set("birthDate", "1980-01-01");
+
+    await expect(updatePatientAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.resolveStoredPatientPhotoUrl).toHaveBeenCalledWith({
+      patientId: "patient-1",
+      firstName: "Maria",
+      gender: Gender.FEMALE,
+      taxId: null,
+    });
+    expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
+      where: { id: "patient-1" },
+      data: expect.objectContaining({
+        photoUrl: "https://avatar.test/female.jpg",
+      }),
+    });
+  });
+
+  it("keeps custom uploaded photos when gender changes", async () => {
+    mocks.isSystemAvatar.mockReturnValue(false);
+    mocks.prisma.patient.findUnique.mockResolvedValue({
+      notes: "",
+      photoUrl: "https://blob.test/custom-photo.jpg",
+      gender: Gender.MALE,
+      firstName: "Mario",
+    });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("firstName", "Maria");
+    formData.set("lastName", "Rossi");
+    formData.set("gender", Gender.FEMALE);
+    formData.set("birthDate", "1980-01-01");
+
+    await expect(updatePatientAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(mocks.resolveStoredPatientPhotoUrl).not.toHaveBeenCalled();
+    expect(mocks.prisma.patient.update).toHaveBeenCalledWith({
+      where: { id: "patient-1" },
+      data: expect.objectContaining({
+        photoUrl: "https://blob.test/custom-photo.jpg",
       }),
     });
   });
