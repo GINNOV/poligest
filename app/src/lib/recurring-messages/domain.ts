@@ -1,4 +1,5 @@
 import { RecurringMessageKind, RecurringMessageStatus } from "@prisma/client";
+import { APP_BRAND_NAME } from "@/lib/brand";
 import {
   RECURRING_MESSAGE_DEFAULTS,
   applyTemplate,
@@ -258,7 +259,7 @@ export function getAdminBackupReminderMonthKey(date: Date) {
 }
 
 const ADMIN_BACKUP_REMINDER_STEPS = [
-  "Accedi alla dashboard amministrativa di PoliGest.",
+  `Accedi alla dashboard amministrativa di ${APP_BRAND_NAME}.`,
   "Apri la sezione Admin > Sistema: Database.",
   'Nella scheda "Esporta dati" lascia selezionate le tabelle necessarie.',
   'Premi "Esporta selezione" e salva il file JSON in una cartella sicura.',
@@ -275,7 +276,7 @@ export function buildAdminBackupReminderBody(params: {
   return [
     `${greeting}`,
     "",
-    `ti ricordiamo di eseguire il backup mensile di PoliGest per ${params.monthLabel}.`,
+    `ti ricordiamo di eseguire il backup mensile di ${APP_BRAND_NAME} per ${params.monthLabel}.`,
     "",
     "Passaggi consigliati:",
     ...ADMIN_BACKUP_REMINDER_STEPS.map((step, index) => `${index + 1}. ${step}`),
@@ -305,13 +306,13 @@ export function buildAdminBackupReminderHtml(params: {
         <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#d1fae5;">
           Manutenzione sistema
         </p>
-        <h1 style="margin:8px 0 0;font-size:24px;color:#ffffff;">Backup mensile PoliGest</h1>
+        <h1 style="margin:8px 0 0;font-size:24px;color:#ffffff;">Backup mensile ${APP_BRAND_NAME}</h1>
         <p style="margin:8px 0 0;font-size:14px;color:#d1fae5;">${monthLabel}</p>
       </div>
       <div style="padding:24px;border:1px solid #e4e4e7;border-top:none;border-radius:0 0 16px 16px;background:#ffffff;">
         <p style="margin:0 0 16px;font-size:15px;color:#3f3f46;">${greeting}</p>
         <p style="margin:0 0 20px;font-size:15px;color:#3f3f46;">
-          ti ricordiamo di eseguire il backup mensile di PoliGest per <strong>${monthLabel}</strong>.
+          ti ricordiamo di eseguire il backup mensile di ${APP_BRAND_NAME} per <strong>${monthLabel}</strong>.
         </p>
 
         <div style="margin:0 0 24px;padding:18px;border:1px solid #e4e4e7;border-radius:12px;background:#fafafa;">
@@ -367,7 +368,7 @@ export function buildAdminBackupReminderCandidates(params: {
         name: admin.name,
         monthKey,
         auditEntityId,
-        subject: `Promemoria backup mensile PoliGest - ${monthLabel}`,
+        subject: `Promemoria backup mensile ${APP_BRAND_NAME} - ${monthLabel}`,
         body: buildAdminBackupReminderBody(reminderParams),
         html: buildAdminBackupReminderHtml(reminderParams),
       };

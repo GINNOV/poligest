@@ -298,7 +298,7 @@ export function UserMenu({
                   </div>
                   <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     {isStaff
-                      ? "Modifica le preferenze per adattare Poligest al tuo flusso di lavoro."
+                      ? "Modifica le preferenze per adattare SORRISO al tuo flusso di lavoro."
                       : "Personalizza l'aspetto e il fuso orario del tuo spazio pazienti."}
                   </p>
                 </div>

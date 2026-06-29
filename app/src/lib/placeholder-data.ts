@@ -40,7 +40,7 @@ export const placeholderCatalog: PlaceholderDefinition[] = [
     key: "clinicName",
     label: "Nome studio",
     description: "Nome dello studio o clinica.",
-    example: "Sorriso Splendente",
+    example: "Studio Agovino & Angrisano",
   },
   {
     key: "websiteUrl",

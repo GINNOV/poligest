@@ -1,4 +1,5 @@
 import { AppointmentStatus, RecurringMessageStatus, Role, type Prisma } from "@prisma/client";
+import { APP_BRAND_NAME } from "@/lib/brand";
 import { prisma } from "@/lib/prisma";
 import { sendEmailWithHtml } from "@/lib/email";
 import { logAudit, resolveAppointmentSchedulers } from "@/lib/audit";
@@ -437,7 +438,7 @@ export function generateDailyReminderContent(
           Apri agenda
         </a>
         <p style="margin:16px 0 0;font-size:12px;line-height:18px;color:#71717a;">
-          Invio automatico del sistema Poligest · Buon lavoro!
+          Invio automatico di ${APP_BRAND_NAME} · Buon lavoro!
         </p>
       </div>
     </div>

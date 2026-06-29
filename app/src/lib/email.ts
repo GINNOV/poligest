@@ -1,8 +1,20 @@
 import { Resend } from "resend";
+import { APP_BRAND_NAME } from "@/lib/brand";
 
 const resendApiKey = process.env.RESEND_API_KEY || process.env.RESEND_TOKEN;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const defaultFrom = process.env.RESEND_FROM_EMAIL || "noreply@sorrisosplendente.com";
+
+function resolveEmailFromAddress() {
+  const configured = process.env.RESEND_FROM_EMAIL || "noreply@sorrisosplendente.com";
+  if (/<[^>]+>/.test(configured)) {
+    return configured;
+  }
+
+  const displayName = process.env.RESEND_FROM_NAME || APP_BRAND_NAME;
+  return `${displayName} <${configured}>`;
+}
+
+const defaultFrom = resolveEmailFromAddress();
 
 export type EmailDeliveryOptions = {
   bcc?: string | string[];

@@ -1,3 +1,5 @@
+import { APP_BRAND_NAME } from "@/lib/brand";
+
 const PUBLIC_SITE_ORIGIN = "https://sorrisosplendente.com";
 
 function normalizeSiteOrigin(rawOrigin: string | undefined) {
@@ -75,7 +77,7 @@ export function materializeTransactionalEmail(params: {
 }
 
 export function renderEmailHtml(body: string, buttonColor?: string, clinicName?: string) {
-  const footerName = clinicName || "Sorriso Splendente";
+  const footerName = clinicName || APP_BRAND_NAME;
   return `<!doctype html>
 <html>
   <head>

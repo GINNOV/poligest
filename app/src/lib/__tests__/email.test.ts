@@ -57,11 +57,11 @@ describe("email rendering contract", () => {
       data: {
         patientName: "Mario Rossi",
         appointmentDate: "30/06/2026",
-        clinicName: "Sorriso Splendente",
+        clinicName: "SORRISO",
         button: buildTransactionalButton("#059669"),
       },
       buttonColor: "#059669",
-      clinicName: "Sorriso Splendente",
+      clinicName: "SORRISO",
     });
 
     expect(materialized.subject).toBe("Promemoria 30/06/2026");
@@ -69,6 +69,15 @@ describe("email rendering contract", () => {
     expect(materialized.html).toMatch(/Apri dettaglio/);
     expect(materialized.body).toContain("Mario Rossi");
     expect(materialized.body).not.toMatch(/<a[\s>]/i);
+  });
+
+  it("uses the SORRISO display name for outbound email sender", async () => {
+    const { sendEmail } = await import("@/lib/email");
+
+    await sendEmail("doctor@example.com", "Test", "Body");
+
+    const payload = sendMock.mock.calls[0][0];
+    expect(payload.from).toBe("SORRISO <noreply@sorrisosplendente.com>");
   });
 
   it("sendEmailWithHtml supports optional BCC recipients", async () => {
@@ -129,10 +138,10 @@ describe("buildAdminBackupReminderHtml", () => {
     const html = buildAdminBackupReminderHtml(reminderParams);
 
     expect(body).toContain("\n");
-    expect(body).toMatch(/1\. Accedi alla dashboard amministrativa di PoliGest\./);
+    expect(body).toMatch(/1\. Accedi alla dashboard amministrativa di SORRISO\./);
 
-    expect(html).not.toMatch(/1\. Accedi alla dashboard amministrativa di PoliGest\./);
-    expect(html).toMatch(/<li[^>]*>Accedi alla dashboard amministrativa di PoliGest\.<\/li>/);
+    expect(html).not.toMatch(/1\. Accedi alla dashboard amministrativa di SORRISO\./);
+    expect(html).toMatch(/<li[^>]*>Accedi alla dashboard amministrativa di SORRISO\.<\/li>/);
     expect(html).not.toMatch(/Passaggi consigliati:\n1\./);
   });
 });

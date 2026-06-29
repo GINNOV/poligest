@@ -253,7 +253,7 @@ describe("recurring messages domain", () => {
     });
     expect(candidates[0]?.subject).toContain("backup mensile");
     expect(candidates[0]?.body).toContain("Passaggi consigliati:");
-    expect(candidates[0]?.html).toContain("Backup mensile PoliGest");
+    expect(candidates[0]?.html).toContain("Backup mensile SORRISO");
     expect(candidates[0]?.html).toContain("<ol");
   });
 
@@ -269,7 +269,7 @@ describe("recurring messages domain", () => {
     });
 
     expect(body).toContain("Ciao Mario,");
-    expect(body).toContain("1. Accedi alla dashboard amministrativa di PoliGest.");
+    expect(body).toContain("1. Accedi alla dashboard amministrativa di SORRISO.");
     expect(body).toContain("6. Verifica che i file si aprano correttamente");
     expect(body).toContain("https://poligest.example.com/admin/reset");
 

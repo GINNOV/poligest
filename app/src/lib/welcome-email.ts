@@ -1,9 +1,8 @@
 import { Role } from "@prisma/client";
+import { DEFAULT_CLINIC_NAME } from "@/lib/brand";
 import { sendEmailTemplate } from "@/lib/email-templates";
 import { resolveTransactionalSiteOrigin } from "@/lib/email-template-utils";
 import { getStaffRoleLabel } from "@/lib/invite-email";
-
-export const DEFAULT_CLINIC_NAME = "Studio Agovino & Angrisano";
 
 export const WELCOME_STAFF_TEMPLATE = "welcome-staff";
 export const WELCOME_PATIENT_TEMPLATE = "welcome-patient";

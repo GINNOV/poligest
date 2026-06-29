@@ -126,5 +126,6 @@ describe("daily reminder helpers", () => {
     expect(text).toContain("Dr. Mario Rossi");
     expect(text).toContain("Prenotato da: Admin Studio");
     expect(text).toContain("Da confermare: 1");
+    expect(html).toContain("Invio automatico di SORRISO");
   });
 });
