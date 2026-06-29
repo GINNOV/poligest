@@ -326,21 +326,33 @@ export function AppointmentUpdateForm({
           <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+                durationMinutes > 45
+                  ? "border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-700 dark:bg-violet-950/40 dark:text-violet-100"
+                  : "border-zinc-200 text-zinc-700 hover:border-violet-300 hover:text-violet-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-violet-500 dark:hover:text-violet-300"
+              }`}
               onClick={() => setEndFromStart(60)}
             >
               1H
             </button>
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+                durationMinutes > 20 && durationMinutes <= 45
+                  ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-100"
+                  : "border-zinc-200 text-zinc-700 hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              }`}
               onClick={() => setEndFromStart(30)}
             >
               30m
             </button>
             <button
               type="button"
-              className="h-9 rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+                durationMinutes <= 20
+                  ? "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100"
+                  : "border-zinc-200 text-zinc-700 hover:border-sky-300 hover:text-sky-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-sky-500 dark:hover:text-sky-300"
+              }`}
               onClick={() => setEndFromStart(15)}
             >
               15m

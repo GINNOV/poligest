@@ -122,8 +122,27 @@ export function AppointmentAlternativeSlots({
 
   const applySlot = (slot: AlternativeSlot, message: string) => {
     onSelectSlot({ startsAt: slot.startsAtLocal, endsAt: slot.endsAtLocal });
-    onBrowseDateChange(slot.startsAtLocal.split("T")[0] ?? browseDate);
     setAppliedSlotMessage(message);
+  };
+
+  const slotDurationClass = (isSelected: boolean) => {
+    if (isSelected) {
+      if (durationMinutes <= 20) {
+        return "border-sky-500 bg-sky-100 text-sky-900 dark:border-sky-500 dark:bg-sky-950/50 dark:text-sky-100";
+      }
+      if (durationMinutes <= 45) {
+        return "border-emerald-500 bg-emerald-100 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/50 dark:text-emerald-100";
+      }
+      return "border-violet-500 bg-violet-100 text-violet-900 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100";
+    }
+
+    if (durationMinutes <= 20) {
+      return "border-sky-200 bg-white text-sky-800 hover:border-sky-300 hover:bg-sky-50 dark:border-sky-900/50 dark:bg-zinc-950 dark:text-sky-200 dark:hover:bg-sky-950/30";
+    }
+    if (durationMinutes <= 45) {
+      return "border-emerald-200 bg-white text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-zinc-950 dark:text-emerald-200 dark:hover:bg-emerald-950/30";
+    }
+    return "border-violet-200 bg-white text-violet-800 hover:border-violet-300 hover:bg-violet-50 dark:border-violet-900/50 dark:bg-zinc-950 dark:text-violet-200 dark:hover:bg-violet-950/30";
   };
 
   const handleFindFirst = async () => {
@@ -232,11 +251,7 @@ export function AppointmentAlternativeSlots({
                     key={`${slot.startsAtLocal}-${slot.endsAtLocal}`}
                     type="button"
                     onClick={() => applySlot(slot, "Slot applicato ai campi sopra.")}
-                    className={`shrink-0 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:shrink ${
-                      isSelected
-                        ? "border-emerald-500 bg-emerald-100 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/50 dark:text-emerald-100"
-                        : "border-emerald-200 bg-white text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-zinc-950 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
-                    }`}
+                    className={`shrink-0 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:shrink ${slotDurationClass(isSelected)}`}
                   >
                     {slot.label}
                   </button>
@@ -276,7 +291,10 @@ export function AppointmentAlternativeSlots({
     <div className="col-span-full rounded-2xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
-        <span className="text-xs text-sky-800/80 dark:text-sky-200/80">Durata: {durationMinutes} min</span>
+        <span className="text-xs text-sky-800/80 dark:text-sky-200/80">
+          Durata: {durationMinutes} min
+          {durationMinutes <= 20 ? " · 15m" : durationMinutes <= 45 ? " · 30m" : " · 1h"}
+        </span>
       </div>
       <div className="mt-3">{panelContent}</div>
     </div>
