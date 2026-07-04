@@ -22,14 +22,14 @@ import {
 import { revalidateRichiami } from "@/lib/recalls/side-effects";
 
 export async function createRecallRule(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const payload = parseCreateRecallRulePayload(formData);
   await createRecallRuleRecord(payload);
   revalidateRichiami();
 }
 
 export async function updateAppointmentReminderRule(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const payload = parseAppointmentReminderRulePayload(formData);
   await upsertAppointmentReminderRuleRecord(payload);
   revalidateRichiami();
@@ -43,7 +43,7 @@ export async function scheduleRecall(formData: FormData) {
 }
 
 export async function deleteRecallRule(formData: FormData) {
-  await requireUser([Role.ADMIN]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const ruleId = formData.get("ruleId") as string;
   if (!ruleId) throw new Error("Regola non valida");
 
@@ -52,14 +52,14 @@ export async function deleteRecallRule(formData: FormData) {
 }
 
 export async function updateRecurringConfig(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const payload = parseRecurringMessagePayload(formData);
   await upsertRecurringMessageConfigRecord(payload);
   revalidateRichiami();
 }
 
 export async function updateRecallRule(formData: FormData) {
-  await requireUser([Role.ADMIN, Role.MANAGER]);
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   const payload = parseUpdateRecallRulePayload(formData);
   await updateRecallRuleRecord(payload);
   revalidateRichiami();

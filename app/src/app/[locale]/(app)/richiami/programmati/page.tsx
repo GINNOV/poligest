@@ -1,5 +1,6 @@
 import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import Link from "next/link";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
@@ -7,6 +8,9 @@ import { RecallStatus, Role } from "@prisma/client";
 import { deleteScheduledRecall, scheduleRecall } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getNotificationChannelLabels } from "@/lib/recalls/delivery";
+import { normalizeItalianPhone } from "@/lib/phone";
+import { buildRecallDeliveryPlan } from "@/lib/recalls/send-domain";
+import { getAllEmailTemplates } from "@/lib/email-templates";
 
 const channelBadgeStyles = {
   whatsapp:
@@ -38,7 +42,7 @@ export default async function RichiamiProgrammatiPage({
   const soon = new Date();
   soon.setDate(soon.getDate() + 30);
 
-  const [recalls, rules, patients] = await Promise.all([
+  const [recalls, rules, patients, emailTemplates] = await Promise.all([
     prisma.recall.findMany({
       where: {
         AND: [
@@ -71,6 +75,7 @@ export default async function RichiamiProgrammatiPage({
     }),
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
+    getAllEmailTemplates(),
   ]);
 
   return (
@@ -142,6 +147,21 @@ export default async function RichiamiProgrammatiPage({
                   : recall.status === RecallStatus.SKIPPED
                     ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900/40"
                     : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40";
+              const patientPhone = normalizeItalianPhone(recall.patient.phone);
+              const whatsappPhone = patientPhone ? patientPhone.replace(/^\+/, "") : null;
+              const template = recall.rule.templateName
+                ? emailTemplates.find((t) => t.name === recall.rule.templateName)
+                : null;
+              const plan = buildRecallDeliveryPlan({
+                patient: recall.patient,
+                rule: recall.rule,
+                template,
+              });
+              const whatsappMessage = plan.body;
+              const whatsappHref = whatsappPhone
+                ? `whatsapp://send?phone=${whatsappPhone}&text=${encodeURIComponent(whatsappMessage)}`
+                : null;
+
               return (
                 <div
                   key={recall.id}
@@ -185,6 +205,24 @@ export default async function RichiamiProgrammatiPage({
                     >
                       {statusLabel}
                     </span>
+                    {recall.status === RecallStatus.PENDING ? (
+                      whatsappHref ? (
+                        <a
+                          href={whatsappHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 hover:bg-emerald-600 px-3 py-1 text-xs font-semibold text-white transition shrink-0"
+                        >
+                          <Image src="/whatsapp.png" alt="" width={14} height={14} className="shrink-0 brightness-0 invert" />
+                          <span>Invia WhatsApp</span>
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700/60 opacity-70 px-3 py-1 text-xs font-semibold text-white cursor-not-allowed shrink-0">
+                          <Image src="/whatsapp.png" alt="" width={14} height={14} className="shrink-0 brightness-0 invert" />
+                          <span>Invia WhatsApp</span>
+                        </span>
+                      )
+                    ) : null}
                     {recall.status === RecallStatus.PENDING ? (
                       <form
                         action={deleteScheduledRecall}
