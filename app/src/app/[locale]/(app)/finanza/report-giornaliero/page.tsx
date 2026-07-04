@@ -206,7 +206,9 @@ export default async function ReportGiornalieroPage({
                   return (
                     <tr key={entry.id} className={`transition-colors ${getRowColor(entry.method)}`}>
                       <td className="px-4 py-3 text-zinc-700">
-                        {new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(entry.occurredAt)}
+                        {entry.occurredAt && !isNaN(new Date(entry.occurredAt).getTime())
+                          ? new Intl.DateTimeFormat("it-IT", { timeStyle: "short" }).format(new Date(entry.occurredAt))
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 font-medium text-zinc-900">{patientName}</td>
                       <td className="px-4 py-3 text-zinc-700">{entry.description}</td>

@@ -7,7 +7,7 @@ type Payment = {
   id: string;
   amount: string;
   description: string;
-  occurredAt: Date;
+  occurredAt: Date | null;
   methodLabel: string | null;
 };
 
@@ -35,7 +35,8 @@ export function AmendDoctorPaymentButton({ payment, action }: Props) {
     }
   }
 
-  const dateValue = payment.occurredAt.toISOString().split("T")[0];
+  const parsedDate = payment.occurredAt ? new Date(payment.occurredAt) : null;
+  const dateValue = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate.toISOString().split("T")[0] : "";
   
   // Try to map the localized label back to the enum value for the default selection
   const methodMap: Record<string, string> = {

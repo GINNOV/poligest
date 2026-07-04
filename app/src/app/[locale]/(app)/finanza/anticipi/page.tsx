@@ -94,7 +94,7 @@ export default async function AnticipiPage({
     return {
       id: entry.id,
       amount: entry.amount,
-      occurredAt: entry.occurredAt,
+      occurredAt: entry.occurredAt ? new Date(entry.occurredAt) : null,
       description: description
         .replace(`${DOCTOR_PAYMENT_PREFIX} · `, "")
         .replace(/Metodo: [^·]+ · /, "")
@@ -344,7 +344,9 @@ export default async function AnticipiPage({
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <div className="text-xs text-zinc-600 dark:text-zinc-400">
-                          {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(payment.occurredAt)}
+                          {payment.occurredAt && !isNaN(new Date(payment.occurredAt).getTime())
+                            ? new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(new Date(payment.occurredAt))
+                            : "Data non disponibile"}
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-50">
                           {payment.description.includes("(CORRETTO)") && (

@@ -538,4 +538,25 @@ describe("finanza actions", () => {
 
     await expect(createDoctorPayment(formData)).rejects.toThrow("Medico non trovato");
   });
+
+  it("rejects doctor payments with invalid dates", async () => {
+    const formData = new FormData();
+    formData.set("doctorId", "doctor-1");
+    formData.set("amount", "120.75");
+    formData.set("occurredAt", "not-a-date");
+
+    await expect(createDoctorPayment(formData)).rejects.toThrow("Data non valida");
+  });
+
+  it("rejects patient payment with invalid dates", async () => {
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("quoteItemId", "quote-item-1");
+    formData.set("amount", "50");
+    formData.set("paidAt", "not-a-date");
+
+    await expect(recordPatientPayment(formData)).rejects.toThrow("Data non valida");
+  });
 });
+

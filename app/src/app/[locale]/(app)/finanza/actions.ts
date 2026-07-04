@@ -145,6 +145,11 @@ export async function recordPatientPayment(formData: FormData) {
     throw new Error("Dati mancanti");
   }
 
+  const paidAtDate = new Date(paidAt);
+  if (Number.isNaN(paidAtDate.getTime())) {
+    throw new Error("Data non valida");
+  }
+
   const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
   if (Number.isNaN(amountNumber) || amountNumber <= 0) {
     throw new Error("Importo non valido");
@@ -223,7 +228,7 @@ export async function recordPatientPayment(formData: FormData) {
         quoteId,
         quoteItemId: paymentQuoteItemId,
         amount: new Prisma.Decimal(amountNumber),
-        paidAt: new Date(paidAt),
+        paidAt: paidAtDate,
         method,
         kind,
         note,
@@ -245,7 +250,7 @@ export async function recordPatientPayment(formData: FormData) {
           .filter(Boolean)
           .join(" · "),
         amount: new Prisma.Decimal(amountNumber),
-        occurredAt: new Date(paidAt),
+        occurredAt: paidAtDate,
         doctorId: targetDoctorId,
         userId: user.id,
         patientId: patientId,
@@ -374,6 +379,11 @@ export async function recordExpense(formData: FormData) {
 
   if (!description || !amount || !purchaseDate) throw new Error("Dati mancanti");
 
+  const purchaseDateDate = new Date(purchaseDate);
+  if (Number.isNaN(purchaseDateDate.getTime())) {
+    throw new Error("Data non valida");
+  }
+
   const [supplier, product] = await Promise.all([
     supplierId ? prisma.supplier.findUnique({ where: { id: supplierId }, select: { name: true } }) : null,
     productId ? prisma.product.findUnique({ where: { id: productId }, select: { name: true } }) : null,
@@ -394,7 +404,7 @@ export async function recordExpense(formData: FormData) {
       type: "EXPENSE",
       description: details.join(" · "),
       amount,
-      occurredAt: new Date(purchaseDate),
+      occurredAt: purchaseDateDate,
       userId: user.id,
     },
   });
@@ -421,6 +431,11 @@ export async function createCashAdvance(formData: FormData) {
   const note = (formData.get("note") as string)?.trim() || null;
   if (!patientId || !amount || !issuedAt) throw new Error("Dati mancanti");
 
+  const issuedAtDate = new Date(issuedAt);
+  if (Number.isNaN(issuedAtDate.getTime())) {
+    throw new Error("Data non valida");
+  }
+
   const [patient, lastAppt] = await Promise.all([
     prisma.patient.findUnique({
       where: { id: patientId },
@@ -441,7 +456,7 @@ export async function createCashAdvance(formData: FormData) {
       data: {
         patientId,
         amount: new Prisma.Decimal(amount.replace(",", ".")),
-        issuedAt: new Date(issuedAt),
+        issuedAt: issuedAtDate,
         note,
         userId: user.id,
       },
@@ -452,7 +467,7 @@ export async function createCashAdvance(formData: FormData) {
         type: "INCOME",
         description: [`Anticipo paziente ${patientName}`, note].filter(Boolean).join(" · "),
         amount: new Prisma.Decimal(amount.replace(",", ".")),
-        occurredAt: new Date(issuedAt),
+        occurredAt: issuedAtDate,
         doctorId: targetDoctorId,
         userId: user.id,
         patientId: patientId,
@@ -494,6 +509,11 @@ export async function createDoctorPayment(formData: FormData) {
     throw new Error("Dati mancanti");
   }
 
+  const occurredAtDate = new Date(occurredAt);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    throw new Error("Data non valida");
+  }
+
   const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
   if (Number.isNaN(amountNumber) || amountNumber <= 0) {
     throw new Error("Importo non valido");
@@ -524,7 +544,7 @@ export async function createDoctorPayment(formData: FormData) {
       type: "EXPENSE",
       description: ["Pagamento medico", `Metodo: ${methodLabel}`, note || "Liquidazione"].join(" · "),
       amount: new Prisma.Decimal(amountNumber),
-      occurredAt: new Date(occurredAt),
+      occurredAt: occurredAtDate,
       doctorId,
       userId: user.id,
     },
@@ -558,6 +578,11 @@ export async function amendDoctorPayment(formData: FormData) {
 
   if (!entryId || !amountRaw || !occurredAt) {
     throw new Error("Dati mancanti");
+  }
+
+  const occurredAtDate = new Date(occurredAt);
+  if (Number.isNaN(occurredAtDate.getTime())) {
+    throw new Error("Data non valida");
   }
 
   const amountNumber = Number.parseFloat(amountRaw.replace(",", "."));
@@ -602,7 +627,7 @@ export async function amendDoctorPayment(formData: FormData) {
       where: { id: entryId },
       data: {
         amount: new Prisma.Decimal(amountNumber),
-        occurredAt: new Date(occurredAt),
+        occurredAt: occurredAtDate,
         description: newDescription,
       },
     });
@@ -615,7 +640,7 @@ export async function amendDoctorPayment(formData: FormData) {
         oldAmount: entry.amount.toString(),
         newAmount: amountNumber.toString(),
         oldDate: entry.occurredAt.toISOString(),
-        newDate: new Date(occurredAt).toISOString(),
+        newDate: occurredAtDate.toISOString(),
         oldDescription: entry.description,
         newDescription: newDescription,
       },
