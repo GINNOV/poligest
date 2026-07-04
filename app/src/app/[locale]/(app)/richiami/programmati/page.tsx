@@ -4,7 +4,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess, getRoleFeatureAccess } from "@/lib/feature-access";
-import { RecallStatus, Role } from "@prisma/client";
+import { Prisma, RecallStatus, Role } from "@prisma/client";
 import { deleteScheduledRecall, scheduleRecall, markRecallAsContacted } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getNotificationChannelLabels } from "@/lib/recalls/delivery";
@@ -62,40 +62,38 @@ export default async function RichiamiProgrammatiPage({
   const soonStr = soon.toISOString().split("T")[0];
 
   // Build Prisma where clause
-  const whereClause: any = {
-    AND: []
-  };
+  const andConditions: Prisma.RecallWhereInput[] = [];
 
   // 1. Status Filter
   if (statusParam && statusParam !== "ALL") {
-    whereClause.AND.push({ status: statusParam as RecallStatus });
+    andConditions.push({ status: statusParam as RecallStatus });
   } else {
-    whereClause.AND.push({ status: { in: [RecallStatus.PENDING, RecallStatus.CONTACTED, RecallStatus.SKIPPED] } });
+    andConditions.push({ status: { in: [RecallStatus.PENDING, RecallStatus.CONTACTED, RecallStatus.SKIPPED] } });
   }
 
   // 2. Rule Filter
   if (ruleIdParam) {
-    whereClause.AND.push({ ruleId: ruleIdParam });
+    andConditions.push({ ruleId: ruleIdParam });
   }
 
   // 3. Calendar Date Filters
   if (fromParam) {
-    whereClause.AND.push({ dueAt: { gte: new Date(fromParam) } });
+    andConditions.push({ dueAt: { gte: new Date(fromParam) } });
   } else {
     // If not specified, default to today
-    whereClause.AND.push({ dueAt: { gte: new Date(todayStr) } });
+    andConditions.push({ dueAt: { gte: new Date(todayStr) } });
   }
 
   if (toParam) {
-    whereClause.AND.push({ dueAt: { lte: new Date(toParam + "T23:59:59.999Z") } });
+    andConditions.push({ dueAt: { lte: new Date(toParam + "T23:59:59.999Z") } });
   } else {
     // If not specified, default to 30 days from now
-    whereClause.AND.push({ dueAt: { lte: new Date(soonStr + "T23:59:59.999Z") } });
+    andConditions.push({ dueAt: { lte: new Date(soonStr + "T23:59:59.999Z") } });
   }
 
   // 4. Text search
   if (query) {
-    whereClause.AND.push({
+    andConditions.push({
       OR: [
         {
           patient: {
@@ -113,6 +111,10 @@ export default async function RichiamiProgrammatiPage({
       ],
     });
   }
+
+  const whereClause: Prisma.RecallWhereInput = {
+    AND: andConditions,
+  };
 
   const [totalRecalls, recalls, rules, patients, emailTemplates] = await Promise.all([
     prisma.recall.count({ where: whereClause }),
