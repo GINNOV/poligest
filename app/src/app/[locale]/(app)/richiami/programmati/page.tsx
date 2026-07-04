@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { requireFeatureAccess } from "@/lib/feature-access";
+import { requireFeatureAccess, getRoleFeatureAccess } from "@/lib/feature-access";
 import { RecallStatus, Role } from "@prisma/client";
 import { deleteScheduledRecall, scheduleRecall, markRecallAsContacted } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
@@ -31,6 +31,8 @@ export default async function RichiamiProgrammatiPage({
 }) {
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "agenda");
+  const { isAllowed } = await getRoleFeatureAccess(user.role);
+  const showPatientLink = isAllowed("patients");
   const params = await searchParams;
 
   // Extract query filters
@@ -377,6 +379,15 @@ export default async function RichiamiProgrammatiPage({
                           </div>
 
                           <div className="flex items-center gap-1.5">
+                            {showPatientLink ? (
+                              <Link
+                                href={`/pazienti/${recall.patient.id}`}
+                                className="rounded-full border border-zinc-200 dark:border-zinc-800 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 transition hover:border-emerald-200 dark:hover:border-emerald-800 hover:text-emerald-700"
+                              >
+                                Scheda
+                              </Link>
+                            ) : null}
+
                             {recall.status === RecallStatus.PENDING ? (
                               whatsappHref ? (
                                 <RecallWhatsappButton
