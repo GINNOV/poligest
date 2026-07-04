@@ -18,6 +18,7 @@ import {
   upsertAppointmentReminderRuleRecord,
   updateRecallRuleRecord,
   upsertRecurringMessageConfigRecord,
+  markRecallAsContactedRecord,
 } from "@/lib/recalls/persistence";
 import { revalidateRichiami } from "@/lib/recalls/side-effects";
 
@@ -71,5 +72,11 @@ export async function deleteScheduledRecall(formData: FormData) {
   if (!recallId) throw new Error("Richiamo non valido");
 
   await deleteScheduledRecallRecord(recallId);
+  revalidateRichiami();
+}
+
+export async function markRecallAsContacted(recallId: string) {
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  await markRecallAsContactedRecord(recallId);
   revalidateRichiami();
 }

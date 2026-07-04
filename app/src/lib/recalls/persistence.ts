@@ -131,6 +131,16 @@ export async function deleteScheduledRecallRecord(recallId: string) {
   await prisma.recall.delete({ where: { id: recallId } });
 }
 
+export async function markRecallAsContactedRecord(recallId: string) {
+  await prisma.recall.update({
+    where: { id: recallId },
+    data: {
+      status: RecallStatus.CONTACTED,
+      lastContactAt: new Date(),
+    },
+  });
+}
+
 export async function upsertRecurringMessageConfigRecord(payload: RecurringMessagePayload) {
   await prisma.recurringMessageConfig.upsert({
     where: { kind: payload.kind },

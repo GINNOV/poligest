@@ -5,12 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { RecallStatus, Role } from "@prisma/client";
-import { deleteScheduledRecall, scheduleRecall } from "@/app/[locale]/(app)/richiami/actions";
+import { deleteScheduledRecall, scheduleRecall, markRecallAsContacted } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getNotificationChannelLabels } from "@/lib/recalls/delivery";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { buildRecallDeliveryPlan } from "@/lib/recalls/send-domain";
 import { getAllEmailTemplates } from "@/lib/email-templates";
+import { PatientSearchCombobox } from "@/components/patient-search-combobox";
+import { RecallWhatsappButton } from "@/components/recall-whatsapp-button";
 
 const channelBadgeStyles = {
   whatsapp:
@@ -125,6 +127,18 @@ export default async function RichiamiProgrammatiPage({
   ]);
 
   const totalPages = Math.ceil(totalRecalls / limit);
+
+  const patientSearchOptions = patients.map((p) => {
+    const notesLines = (p.notes ?? "").split("\n");
+    const taxIdLine = notesLines.find((line) => line.startsWith("Codice Fiscale:"));
+    const parsedTaxId = taxIdLine?.replace("Codice Fiscale:", "").trim() ?? "";
+    return {
+      id: p.id,
+      fullName: `${p.lastName} ${p.firstName}`.trim(),
+      phone: p.phone,
+      taxId: parsedTaxId,
+    };
+  });
 
   // Group the page's recalls by month
   const groupedRecalls: { month: string; items: typeof recalls }[] = [];
@@ -273,7 +287,7 @@ export default async function RichiamiProgrammatiPage({
                     const overdue = recall.dueAt < now;
                     const statusLabel =
                       recall.status === RecallStatus.CONTACTED
-                        ? "Consegnato"
+                        ? "Avvisato"
                         : recall.status === RecallStatus.SKIPPED
                           ? "Problema"
                           : "Programmato";
@@ -301,7 +315,13 @@ export default async function RichiamiProgrammatiPage({
                     return (
                       <div
                         key={recall.id}
-                        className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 shadow-sm flex flex-col justify-between hover:border-emerald-200 dark:hover:border-emerald-800 transition"
+                        className={`rounded-xl border p-5 shadow-sm flex flex-col justify-between transition ${
+                          recall.status === RecallStatus.CONTACTED
+                            ? "border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10 hover:border-emerald-300 dark:hover:border-emerald-800"
+                            : recall.status === RecallStatus.SKIPPED
+                              ? "border-rose-200 dark:border-rose-900/40 bg-rose-50/20 dark:bg-rose-950/10 hover:border-rose-300 dark:hover:border-rose-800"
+                              : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-emerald-200 dark:hover:border-emerald-800"
+                        }`}
                       >
                         <div className="space-y-3">
                           <div className="flex items-start justify-between gap-2">
@@ -309,6 +329,11 @@ export default async function RichiamiProgrammatiPage({
                               <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">
                                 {recall.patient.lastName} {recall.patient.firstName}
                               </h3>
+                              {recall.patient.phone ? (
+                                <p className="text-xs text-zinc-650 dark:text-zinc-400 font-medium">
+                                  Tel: {recall.patient.phone}
+                                </p>
+                              ) : null}
                               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                 In data: {new Intl.DateTimeFormat("it-IT", { dateStyle: "medium" }).format(recall.dueAt)}
                               </p>
@@ -354,15 +379,11 @@ export default async function RichiamiProgrammatiPage({
                           <div className="flex items-center gap-1.5">
                             {recall.status === RecallStatus.PENDING ? (
                               whatsappHref ? (
-                                <a
-                                  href={whatsappHref}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 hover:bg-emerald-600 px-2.5 py-1 text-[11px] font-semibold text-white transition shrink-0"
-                                >
-                                  <Image src="/whatsapp.png" alt="" width={12} height={12} className="shrink-0 brightness-0 invert" />
-                                  <span>Invia</span>
-                                </a>
+                                <RecallWhatsappButton
+                                  recallId={recall.id}
+                                  whatsappHref={whatsappHref}
+                                  action={markRecallAsContacted}
+                                />
                               ) : (
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700/60 opacity-70 px-2.5 py-1 text-[11px] font-semibold text-white cursor-not-allowed shrink-0">
                                   <Image src="/whatsapp.png" alt="" width={12} height={12} className="shrink-0 brightness-0 invert" />
@@ -474,21 +495,12 @@ export default async function RichiamiProgrammatiPage({
         <form action={scheduleRecall} className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <label className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Paziente</span>
-            <select
+            <PatientSearchCombobox
               name="patientId"
-              required
-              defaultValue=""
-              className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-3 text-sm text-zinc-900 dark:text-zinc-50 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/20"
-            >
-              <option value="" disabled className="dark:bg-zinc-950">
-                Seleziona paziente
-              </option>
-              {patients.map((p) => (
-                <option key={p.id} value={p.id} className="dark:bg-zinc-950">
-                  {p.lastName} {p.firstName}
-                </option>
-              ))}
-            </select>
+              patients={patientSearchOptions}
+              placeholder="Cerca paziente..."
+              className="h-10 w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 px-3 text-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-500/20"
+            />
           </label>
           <label className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Regola</span>
