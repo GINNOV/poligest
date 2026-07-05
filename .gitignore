@@ -56,3 +56,4 @@ output
 macos/ScanID.app
 macos/*.dmg
 exports
+quicknotes/build
