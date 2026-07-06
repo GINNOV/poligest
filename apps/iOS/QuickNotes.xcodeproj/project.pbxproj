@@ -9,8 +9,10 @@
 /* Begin PBXBuildFile section */
 		13D3A1E14E054B07A1B28D1F /* TransactionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20121BC6142342D1A3839740 /* TransactionFormView.swift */; };
 		15C9BA4E2F4A4D8A9F4D4FF7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BB45979C8149B1AA4DE3D2 /* ContentView.swift */; };
+		2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */; };
 		37191F649CE94DED90C8CBEF /* PDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */; };
 		463AB7FCEB7E46F68FB78D60 /* QuickNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */; };
+		4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */; };
 		6C84D9A5085745C79D7E628A /* MonthDrillDownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */; };
 		7527A2228ABF4983A7D4D3C7 /* PatientLookupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CC6754622A412DB52146CE /* PatientLookupService.swift */; };
 		80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */; };
@@ -23,6 +25,7 @@
 		C85C0072D4FD4CBCA33DC8B9 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AD0A1046A3459A90B30525 /* Transaction.swift */; };
 		D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */; };
 		E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */; };
+		E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */; };
 		F3BF3EB2BC5249B5980D0A10 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */; };
 		FA8E3082487F41C78084232D /* BiometricAuthenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */; };
 /* End PBXBuildFile section */
@@ -40,10 +43,12 @@
 /* Begin PBXFileReference section */
 		14BA53D92CBA4CC897799E49 /* QuickNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthDrillDownView.swift; path = QuickNotes/QuickNotes/MonthDrillDownView.swift; sourceTree = "<group>"; };
+		1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogService.swift; path = QuickNotes/QuickNotes/ServiceCatalogService.swift; sourceTree = "<group>"; };
 		20121BC6142342D1A3839740 /* TransactionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransactionFormView.swift; path = QuickNotes/QuickNotes/TransactionFormView.swift; sourceTree = "<group>"; };
 		24AD0A1046A3459A90B30525 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Transaction.swift; path = QuickNotes/QuickNotes/Transaction.swift; sourceTree = "<group>"; };
 		27BB45979C8149B1AA4DE3D2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = QuickNotes/QuickNotes/ContentView.swift; sourceTree = "<group>"; };
 		30CC6754622A412DB52146CE /* PatientLookupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientLookupService.swift; path = QuickNotes/QuickNotes/PatientLookupService.swift; sourceTree = "<group>"; };
+		3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceDirectoryView.swift; path = QuickNotes/QuickNotes/ServiceDirectoryView.swift; sourceTree = "<group>"; };
 		5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = QuickNotes/QuickNotes/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientDirectoryView.swift; path = QuickNotes/QuickNotes/PatientDirectoryView.swift; sourceTree = "<group>"; };
 		86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthlyReportsView.swift; path = QuickNotes/QuickNotes/MonthlyReportsView.swift; sourceTree = "<group>"; };
@@ -56,6 +61,7 @@
 		BDF2468ACE13579BDF2468AC /* QuickNotesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuickNotesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransactionStoreTests.swift; path = QuickNotesTests/TransactionStoreTests.swift; sourceTree = "<group>"; };
 		C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FinanceSyncService.swift; path = QuickNotes/QuickNotes/FinanceSyncService.swift; sourceTree = "<group>"; };
+		D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogServiceTests.swift; path = QuickNotesTests/ServiceCatalogServiceTests.swift; sourceTree = "<group>"; };
 		E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickNotesApp.swift; path = QuickNotes/QuickNotes/QuickNotesApp.swift; sourceTree = "<group>"; };
 		E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenView.swift; path = QuickNotes/QuickNotes/LockScreenView.swift; sourceTree = "<group>"; };
 		F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFGeneratorTests.swift; path = QuickNotesTests/PDFGeneratorTests.swift; sourceTree = "<group>"; };
@@ -114,6 +120,7 @@
 			children = (
 				20121BC6142342D1A3839740 /* TransactionFormView.swift */,
 				7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */,
+				3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */,
 				86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */,
 				0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */,
 			);
@@ -124,6 +131,7 @@
 			isa = PBXGroup;
 			children = (
 				30CC6754622A412DB52146CE /* PatientLookupService.swift */,
+				1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */,
 				C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */,
 				A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */,
 				8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */,
@@ -147,6 +155,7 @@
 				C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */,
 				F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */,
 				A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */,
+				D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */,
 			);
 			name = Tests;
 			sourceTree = "<group>";
@@ -295,7 +304,9 @@
 				93D10817A7294F759669F3DE /* MonthlyReportsView.swift in Sources */,
 				6C84D9A5085745C79D7E628A /* MonthDrillDownView.swift in Sources */,
 				7527A2228ABF4983A7D4D3C7 /* PatientLookupService.swift in Sources */,
+				2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */,
 				9B5F32CC92FC47E0B6FC75E8 /* PatientDirectoryView.swift in Sources */,
+				4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */,
 				80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */,
 				84FC522DE9C34098B3568EA2 /* SettingsView.swift in Sources */,
 			);
@@ -308,6 +319,7 @@
 				D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */,
 				E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */,
 				B13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift in Sources */,
+				E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

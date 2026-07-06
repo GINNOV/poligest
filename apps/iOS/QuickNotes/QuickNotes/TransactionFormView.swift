@@ -16,6 +16,7 @@ struct TransactionFormView: View {
     @State private var patientLookupState: PatientLookupState = .idle
     @State private var isSaving = false
     @State private var showingPatientDirectory = false
+    @State private var showingServiceDirectory = false
     @State private var pendingUnlinkedIncome: PendingTransaction?
     @State private var didTrySavingWithMissingClientName = false
     
@@ -54,6 +55,14 @@ struct TransactionFormView: View {
                 ) { patient in
                     clientName = patient.displayName ?? clientName
                     patientLookupState = .matched(patient)
+                }
+            }
+            .sheet(isPresented: $showingServiceDirectory) {
+                ServiceDirectoryView(
+                    serverURL: serverUrl,
+                    apiToken: apiToken
+                ) { service in
+                    insertServiceInNote(service)
                 }
             }
             .task(id: lookupName) {
@@ -204,9 +213,25 @@ struct TransactionFormView: View {
 
     private var noteCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Nota", systemImage: "note.text")
-                .font(.subheadline.bold())
-                .foregroundColor(.secondary)
+            HStack {
+                Label("Nota", systemImage: "note.text")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button {
+                    showingServiceDirectory = true
+                } label: {
+                    Image(systemName: "list.bullet.rectangle")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.blue)
+                        .frame(width: 34, height: 34)
+                        .background(Color.blue.opacity(0.12), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Scegli servizio Sorriso")
+            }
 
             TextField("Aggiungi una nota", text: $note, axis: .vertical)
                 .font(.body)
@@ -445,6 +470,18 @@ struct TransactionFormView: View {
             return
         } catch {
             patientLookupState = .failed
+        }
+    }
+    
+    private func insertServiceInNote(_ service: SorrisoService) {
+        let serviceName = service.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !serviceName.isEmpty else { return }
+        
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedNote.isEmpty {
+            note = serviceName
+        } else if !trimmedNote.localizedCaseInsensitiveContains(serviceName) {
+            note = "\(trimmedNote)\n\(serviceName)"
         }
     }
 }
