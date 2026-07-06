@@ -26,10 +26,20 @@ enum TransactionType: String, Codable, CaseIterable, Identifiable {
 struct Transaction: Identifiable, Codable {
     var id = UUID()
     var clientName: String
+    var patientId: String?
+    var patientMatchKind: String?
+    var financePaymentId: String?
+    var financeEntryId: String?
+    var financeSyncedAt: Date?
+    var financeSyncError: String?
     var amount: Double
     var paymentMethod: PaymentMethod
     var type: TransactionType
     var date: Date
+    
+    var isUnlinkedSorrisoClient: Bool {
+        type == .income && patientId == nil && !clientName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 }
 
 class TransactionStore: ObservableObject {
@@ -39,12 +49,15 @@ class TransactionStore: ObservableObject {
         }
     }
     
-    private var fileURL: URL {
+    private let fileURL: URL
+    
+    private static var defaultFileURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0].appendingPathComponent("transactions.json")
     }
     
-    init() {
+    init(fileURL: URL = TransactionStore.defaultFileURL) {
+        self.fileURL = fileURL
         load()
     }
     
@@ -52,14 +65,33 @@ class TransactionStore: ObservableObject {
         transactions.append(transaction)
     }
     
+    func update(_ transaction: Transaction) {
+        guard let index = transactions.firstIndex(where: { $0.id == transaction.id }) else { return }
+        transactions[index] = transaction
+    }
+    
     func delete(at offsets: IndexSet) {
         transactions.remove(atOffsets: offsets)
+    }
+    
+    func configureICloudBackup(enabled: Bool) {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        
+        do {
+            var url = fileURL
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = !enabled
+            try url.setResourceValues(values)
+        } catch {
+            print("Error updating iCloud backup setting: \(error)")
+        }
     }
     
     func save() {
         do {
             let data = try JSONEncoder().encode(transactions)
             try data.write(to: fileURL)
+            configureICloudBackup(enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true)
         } catch {
             print("Error saving transactions: \(error)")
         }

@@ -5,6 +5,7 @@ struct DailyPDFView: View {
     let date: Date
     let transactions: [Transaction]
     let totals: (income: Double, expense: Double)
+    let showAmounts: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -26,7 +27,7 @@ struct DailyPDFView: View {
                     Text("ENTRATE TOTALI")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(String(format: "+ € %.2f", totals.income))
+                    Text(formatAmount(totals.income, prefix: "+ "))
                         .font(.title2)
                         .bold()
                         .foregroundColor(.green)
@@ -37,7 +38,7 @@ struct DailyPDFView: View {
                     Text("USCITE TOTALI")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text(String(format: "- € %.2f", totals.expense))
+                    Text(formatAmount(totals.expense, prefix: "- "))
                         .font(.title2)
                         .bold()
                         .foregroundColor(.red)
@@ -49,7 +50,7 @@ struct DailyPDFView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     let saldo = totals.income - totals.expense
-                    Text(String(format: "€ %.2f", saldo))
+                    Text(formatAmount(saldo))
                         .font(.title2)
                         .bold()
                         .foregroundColor(saldo >= 0 ? .green : .red)
@@ -102,7 +103,7 @@ struct DailyPDFView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(tx.paymentMethod.rawValue)
                                 .frame(width: 80, alignment: .leading)
-                            Text(String(format: "%@ € %.2f", tx.type == .income ? "+" : "-", tx.amount))
+                            Text(formatAmount(tx.amount, prefix: tx.type == .income ? "+ " : "- "))
                                 .foregroundColor(tx.type == .income ? .green : .red)
                                 .frame(width: 80, alignment: .trailing)
                         }
@@ -126,12 +127,17 @@ struct DailyPDFView: View {
         .frame(width: 595, height: 842) // A4 size at 72 dpi
         .background(Color.white)
     }
+    
+    private func formatAmount(_ value: Double, prefix: String = "") -> String {
+        showAmounts ? String(format: "%@€ %.2f", prefix, value) : "\(prefix)••••"
+    }
 }
 
 @MainActor
 struct MonthlyPDFView: View {
     let month: Date
     let transactions: [Transaction]
+    let showAmounts: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -158,19 +164,19 @@ struct MonthlyPDFView: View {
                 HStack {
                     Text("Totale Entrate:")
                     Spacer()
-                    Text(String(format: "+ € %.2f", income)).foregroundColor(.green).bold()
+                    Text(formatAmount(income, prefix: "+ ")).foregroundColor(.green).bold()
                 }
                 HStack {
                     Text("Totale Uscite:")
                     Spacer()
-                    Text(String(format: "- € %.2f", expense)).foregroundColor(.red).bold()
+                    Text(formatAmount(expense, prefix: "- ")).foregroundColor(.red).bold()
                 }
                 Divider()
                 HStack {
                     Text("Saldo Netto:")
                         .bold()
                     Spacer()
-                    Text(String(format: "€ %.2f", net))
+                    Text(formatAmount(net))
                         .foregroundColor(net >= 0 ? .green : .red)
                         .bold()
                 }
@@ -206,20 +212,20 @@ struct MonthlyPDFView: View {
                 
                 HStack {
                     Text("Contanti").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String(format: "€ %.2f", cashIncome)).frame(width: 120, alignment: .trailing)
-                    Text(String(format: "€ %.2f", cashExpense)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(cashIncome)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(cashExpense)).frame(width: 120, alignment: .trailing)
                 }
                 Divider()
                 HStack {
                     Text("POS").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String(format: "€ %.2f", posIncome)).frame(width: 120, alignment: .trailing)
-                    Text(String(format: "€ %.2f", posExpense)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(posIncome)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(posExpense)).frame(width: 120, alignment: .trailing)
                 }
                 Divider()
                 HStack {
                     Text("Bonifico").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(String(format: "€ %.2f", wireIncome)).frame(width: 120, alignment: .trailing)
-                    Text(String(format: "€ %.2f", wireExpense)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(wireIncome)).frame(width: 120, alignment: .trailing)
+                    Text(formatAmount(wireExpense)).frame(width: 120, alignment: .trailing)
                 }
             }
             .padding(.bottom, 20)
@@ -243,60 +249,80 @@ struct MonthlyPDFView: View {
         .frame(width: 595, height: 842)
         .background(Color.white)
     }
+    
+    private func formatAmount(_ value: Double, prefix: String = "") -> String {
+        showAmounts ? String(format: "%@€ %.2f", prefix, value) : "\(prefix)••••"
+    }
 }
 
 class PDFGenerator {
     @MainActor
-    static func generateDailyPDF(date: Date, transactions: [Transaction], totals: (income: Double, expense: Double)) -> URL? {
-        let pdfView = DailyPDFView(date: date, transactions: transactions, totals: totals)
-        let renderer = ImageRenderer(content: pdfView)
-        
-        let fileManager = FileManager.default
-        let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        
+    static func generateDailyPDF(date: Date, transactions: [Transaction], totals: (income: Double, expense: Double), showAmounts: Bool) -> URL? {
+        let pdfView = DailyPDFView(date: date, transactions: transactions, totals: totals, showAmounts: showAmounts)
+
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateString = formatter.string(from: date)
-        let fileName = "Resoconto_Giornaliero_\(dateString).pdf"
-        let outputURL = documentDirectory.appendingPathComponent(fileName)
-        
-        renderer.render { size, context in
-            var box = CGRect(x: 0, y: 0, width: 595, height: 842)
-            guard let pdfContext = CGContext(outputURL as CFURL, mediaBox: &box, nil) else { return }
-            
-            pdfContext.beginPDFPage(nil)
-            context(pdfContext)
-            pdfContext.endPDFPage()
-            pdfContext.closePDF()
-        }
-        
-        return outputURL
+
+        return renderPDF(content: pdfView, fileName: "Resoconto_Giornaliero_\(dateString).pdf")
     }
     
     @MainActor
-    static func generateMonthlyPDF(month: Date, transactions: [Transaction]) -> URL? {
-        let pdfView = MonthlyPDFView(month: month, transactions: transactions)
-        let renderer = ImageRenderer(content: pdfView)
-        
-        let fileManager = FileManager.default
-        let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        
+    static func generateMonthlyPDF(month: Date, transactions: [Transaction], showAmounts: Bool) -> URL? {
+        let pdfView = MonthlyPDFView(month: month, transactions: transactions, showAmounts: showAmounts)
+
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         let dateString = formatter.string(from: month)
-        let fileName = "Resoconto_Mensile_\(dateString).pdf"
-        let outputURL = documentDirectory.appendingPathComponent(fileName)
-        
-        renderer.render { size, context in
-            var box = CGRect(x: 0, y: 0, width: 595, height: 842)
-            guard let pdfContext = CGContext(outputURL as CFURL, mediaBox: &box, nil) else { return }
-            
-            pdfContext.beginPDFPage(nil)
-            context(pdfContext)
-            pdfContext.endPDFPage()
-            pdfContext.closePDF()
+
+        return renderPDF(content: pdfView, fileName: "Resoconto_Mensile_\(dateString).pdf")
+    }
+
+    @MainActor
+    private static func renderPDF<Content: View>(content: Content, fileName: String) -> URL? {
+        let pageRect = CGRect(x: 0, y: 0, width: 595, height: 842)
+        let renderer = ImageRenderer(content: content)
+        renderer.proposedSize = ProposedViewSize(width: pageRect.width, height: pageRect.height)
+
+        let fileManager = FileManager.default
+        guard let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
         }
-        
-        return outputURL
+
+        let outputURL = documentDirectory.appendingPathComponent(fileName)
+
+        do {
+            if fileManager.fileExists(atPath: outputURL.path) {
+                try fileManager.removeItem(at: outputURL)
+            }
+
+            var didRenderPage = false
+            renderer.render { _, renderContent in
+                var mediaBox = pageRect
+                guard let pdfContext = CGContext(outputURL as CFURL, mediaBox: &mediaBox, nil) else {
+                    return
+                }
+
+                pdfContext.beginPDFPage(nil)
+                renderContent(pdfContext)
+                pdfContext.endPDFPage()
+                pdfContext.closePDF()
+                didRenderPage = true
+            }
+
+            guard didRenderPage else {
+                return nil
+            }
+
+            let attributes = try fileManager.attributesOfItem(atPath: outputURL.path)
+            guard let fileSize = attributes[.size] as? NSNumber, fileSize.intValue > 0 else {
+                return nil
+            }
+
+            return outputURL
+        } catch {
+            print("Error generating PDF: \(error)")
+            return nil
+        }
     }
 }

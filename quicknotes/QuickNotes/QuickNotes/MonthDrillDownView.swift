@@ -160,6 +160,7 @@ private struct MonthPill: View {
 
 private struct MonthDetailView: View {
     let summary: MonthSummary
+    @AppStorage("showAmounts") private var showAmounts = true
     
     var body: some View {
         ScrollView {
@@ -183,11 +184,22 @@ private struct MonthDetailView: View {
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Movimenti")
-                        .font(.headline)
+                    HStack {
+                        Text("Movimenti")
+                            .font(.headline)
+                        Spacer()
+                        Button(action: { showAmounts.toggle() }) {
+                            Image(systemName: showAmounts ? "eye" : "eye.slash")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.secondary)
+                                .frame(width: 32, height: 32)
+                                .background(.thinMaterial, in: Circle())
+                        }
+                        .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
+                    }
                     
                     ForEach(summary.transactions.sorted(by: { $0.date > $1.date })) { transaction in
-                        DrillDownTransactionRow(transaction: transaction)
+                        DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
                     }
                 }
             }
@@ -225,6 +237,7 @@ private struct DetailMetric: View {
 
 private struct DrillDownTransactionRow: View {
     let transaction: Transaction
+    let showAmounts: Bool
     
     var body: some View {
         HStack(spacing: 12) {
@@ -235,10 +248,19 @@ private struct DrillDownTransactionRow: View {
                 .background((transaction.type == .income ? Color.green : Color.red).opacity(0.12), in: Circle())
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                HStack(spacing: 6) {
+                    Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    
+                    if transaction.isUnlinkedSorrisoClient {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.caption.bold())
+                            .foregroundColor(Color(red: 0.63, green: 0.46, blue: 0.0))
+                            .accessibilityLabel("Cliente non presente in Sorriso")
+                    }
+                }
                 Text(transaction.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -247,7 +269,7 @@ private struct DrillDownTransactionRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount))
+                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
                     .font(.headline.monospacedDigit())
                     .foregroundColor(transaction.type == .income ? .green : .red)
                     .lineLimit(1)
@@ -255,6 +277,11 @@ private struct DrillDownTransactionRow: View {
                 Text(transaction.paymentMethod.rawValue)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                if transaction.patientId != nil {
+                    Label("Paziente", systemImage: "link")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                }
             }
         }
         .padding(14)

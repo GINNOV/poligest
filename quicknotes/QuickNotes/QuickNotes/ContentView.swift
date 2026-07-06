@@ -3,11 +3,15 @@ import SwiftUI
 struct ContentView: View {
     @StateObject private var store = TransactionStore()
     @ObservedObject var authenticator: BiometricAuthenticator
+    @AppStorage("showAmounts") private var showAmounts = true
+    @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     
     @State private var showingForm = false
     @State private var formType: TransactionType = .income
     @State private var showingMonthlyReports = false
     @State private var showingMonthDrillDown = false
+    @State private var showingSettings = false
+    @State private var transactionPendingDeletion: Transaction?
     
     var body: some View {
         NavigationStack {
@@ -22,10 +26,15 @@ struct ContentView: View {
                 .padding(.bottom, 28)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Conto Semplice")
+            .navigationTitle("Jack il contabile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
+                    Button(action: { showingSettings = true }) {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Impostazioni")
+                    
                     Button(action: { showingMonthDrillDown = true }) {
                         Label("Mesi", systemImage: "calendar.day.timeline.left")
                     }
@@ -52,6 +61,19 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingMonthDrillDown) {
             MonthDrillDownView(store: store)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(store: store)
+        }
+        .alert("Eliminare questo movimento?", isPresented: deleteConfirmationIsPresented) {
+            Button("Annulla", role: .cancel) {
+                transactionPendingDeletion = nil
+            }
+            Button("Elimina", role: .destructive) {
+                confirmDeleteTransaction()
+            }
+        } message: {
+            Text("Questa operazione rimuoverà definitivamente il movimento da QuickNotes.")
         }
     }
     
@@ -113,11 +135,11 @@ struct ContentView: View {
             }
             
             Button(action: {
-                if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals) {
+                if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) {
                     shareFile(url: url)
                 }
             }) {
-                Label("PDF giornaliero", systemImage: "doc.text")
+                Label("Rapporto Giornaliero", systemImage: "doc.text")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -137,6 +159,15 @@ struct ContentView: View {
                 Text("Movimenti di oggi")
                     .font(.headline)
                 Spacer()
+                Button(action: { showAmounts.toggle() }) {
+                    Image(systemName: showAmounts ? "eye" : "eye.slash")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                        .background(.thinMaterial, in: Circle())
+                }
+                .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
+                
                 Text("\(todayTransactions.count)")
                     .font(.caption)
                     .bold()
@@ -151,8 +182,8 @@ struct ContentView: View {
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(todayTransactions) { tx in
-                        TransactionRow(transaction: tx) {
-                            deleteTransaction(tx)
+                        TransactionRow(transaction: tx, showAmounts: showAmounts) {
+                            transactionPendingDeletion = tx
                         }
                     }
                 }
@@ -165,6 +196,22 @@ struct ContentView: View {
         return store.transactions.filter { calendar.isDateInToday($0.date) }
     }
     
+    private var deleteConfirmationIsPresented: Binding<Bool> {
+        Binding {
+            transactionPendingDeletion != nil
+        } set: { isPresented in
+            if !isPresented {
+                transactionPendingDeletion = nil
+            }
+        }
+    }
+    
+    private func confirmDeleteTransaction() {
+        guard let transactionPendingDeletion else { return }
+        deleteTransaction(transactionPendingDeletion)
+        self.transactionPendingDeletion = nil
+    }
+    
     private func deleteTransaction(_ tx: Transaction) {
         if let storeIndex = store.transactions.firstIndex(where: { $0.id == tx.id }) {
             store.transactions.remove(at: storeIndex)
@@ -172,18 +219,7 @@ struct ContentView: View {
     }
     
     private func shareFile(url: URL) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else { return }
-        
-        let activityViewController = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        
-        if let popoverController = activityViewController.popoverPresentationController {
-            popoverController.sourceView = rootViewController.view
-            popoverController.sourceRect = CGRect(x: rootViewController.view.bounds.midX, y: rootViewController.view.bounds.midY, width: 0, height: 0)
-            popoverController.permittedArrowDirections = []
-        }
-        
-        rootViewController.present(activityViewController, animated: true, completion: nil)
+        FileSharePresenter.present(url)
     }
 }
 
@@ -244,6 +280,7 @@ private struct QuickActionButton: View {
 
 private struct TransactionRow: View {
     let transaction: Transaction
+    let showAmounts: Bool
     let onDelete: () -> Void
     
     var body: some View {
@@ -255,13 +292,26 @@ private struct TransactionRow: View {
                 .background((transaction.type == .income ? Color.green : Color.red).opacity(0.12), in: Circle())
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                HStack(spacing: 6) {
+                    Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    
+                    if transaction.isUnlinkedSorrisoClient {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.caption.bold())
+                            .foregroundColor(Color(red: 0.63, green: 0.46, blue: 0.0))
+                            .accessibilityLabel("Cliente non presente in Sorriso")
+                    }
+                }
                 HStack(spacing: 6) {
                     Text(transaction.date.formatted(date: .omitted, time: .shortened))
                     Text(transaction.paymentMethod.rawValue)
+                    if transaction.patientId != nil {
+                        Label("Paziente", systemImage: "link")
+                            .labelStyle(.titleAndIcon)
+                    }
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -269,7 +319,7 @@ private struct TransactionRow: View {
             
             Spacer(minLength: 8)
             
-            Text(String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount))
+            Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
                 .font(.headline.monospacedDigit())
                 .foregroundColor(transaction.type == .income ? .green : .red)
                 .lineLimit(1)

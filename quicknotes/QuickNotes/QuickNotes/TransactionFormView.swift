@@ -3,12 +3,18 @@ import SwiftUI
 struct TransactionFormView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var store: TransactionStore
+    @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
+    @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
     let type: TransactionType
     
     @State private var clientName = ""
     @State private var amountString = ""
     @State private var selectedMethod: PaymentMethod = .cash
+    @State private var patientLookupState: PatientLookupState = .idle
+    @State private var isSaving = false
+    @State private var showingPatientDirectory = false
+    @State private var pendingUnlinkedIncome: PendingTransaction?
     
     var body: some View {
         NavigationStack {
@@ -34,6 +40,29 @@ struct TransactionFormView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 saveBar
+            }
+            .sheet(isPresented: $showingPatientDirectory) {
+                PatientDirectoryView(
+                    serverURL: serverUrl,
+                    apiToken: apiToken,
+                    initialQuery: lookupName
+                ) { patient in
+                    clientName = patient.displayName ?? clientName
+                    patientLookupState = .matched(patient)
+                }
+            }
+            .task(id: lookupName) {
+                await lookupPatientIfNeeded()
+            }
+            .alert("Cliente non presente in Sorriso", isPresented: unlinkedIncomeConfirmationIsPresented) {
+                Button("Annulla", role: .cancel) {
+                    pendingUnlinkedIncome = nil
+                }
+                Button("Salva comunque") {
+                    savePendingUnlinkedIncome()
+                }
+            } message: {
+                Text("Vuoi aggiungere questo movimento alla contabilita senza collegarlo a un paziente Sorriso?")
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -77,9 +106,62 @@ struct TransactionFormView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            
+            Button {
+                showingPatientDirectory = true
+            } label: {
+                Label("Cerca in Sorriso", systemImage: "person.crop.circle.badge.magnifyingglass")
+                    .font(.subheadline.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.blue)
+            
+            patientLookupStatus
         }
         .padding(18)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+    
+    @ViewBuilder
+    private var patientLookupStatus: some View {
+        switch patientLookupState {
+        case .idle:
+            EmptyView()
+        case .searching:
+            Label("Ricerca paziente...", systemImage: "magnifyingglass")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        case .matched(let match):
+            Label("Paziente collegato: \(match.displayName ?? match.patientId)", systemImage: "checkmark.seal.fill")
+                .font(.caption)
+                .foregroundColor(.green)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        case .candidates(let candidates):
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Seleziona il paziente corretto", systemImage: "person.crop.circle.badge.questionmark")
+                    .font(.caption.bold())
+                    .foregroundColor(.orange)
+                
+                ForEach(candidates) { candidate in
+                    PatientCandidateButton(candidate: candidate) {
+                        clientName = candidate.displayName ?? clientName
+                        patientLookupState = .matched(candidate)
+                    }
+                }
+            }
+        case .notFound:
+            Label("Nessun paziente trovato sul server", systemImage: "person.crop.circle.badge.questionmark")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        case .failed:
+            Label("Impossibile verificare il paziente", systemImage: "wifi.exclamationmark")
+                .font(.caption)
+                .foregroundColor(.orange)
+        }
     }
     
     private var paymentCard: some View {
@@ -101,15 +183,24 @@ struct TransactionFormView: View {
     }
     
     private var saveBar: some View {
-        Button(action: saveTransaction) {
+        Button {
+            Task {
+                await saveTransaction()
+            }
+        } label: {
             HStack {
-                Image(systemName: "checkmark")
+                if isSaving {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Image(systemName: "checkmark")
+                }
                 Text(type == .income ? "Salva entrata" : "Salva uscita")
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(FormSaveButtonStyle(color: type == .income ? .green : .red, isEnabled: amountIsValid))
-        .disabled(!amountIsValid)
+        .buttonStyle(FormSaveButtonStyle(color: type == .income ? .green : .red, isEnabled: amountIsValid && !isSaving))
+        .disabled(!amountIsValid || isSaving)
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 8)
@@ -122,20 +213,222 @@ struct TransactionFormView: View {
         return amount > 0
     }
     
-    private func saveTransaction() {
+    private var lookupName: String {
+        clientName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private var matchedPatient: PatientMatch? {
+        if case .matched(let match) = patientLookupState {
+            return match
+        }
+        return nil
+    }
+    
+    @MainActor
+    private func saveTransaction() async {
+        guard !isSaving else { return }
+        
         let cleaned = amountString.replacingOccurrences(of: ",", with: ".")
         guard let amount = Double(cleaned) else { return }
-        
-        let newTx = Transaction(
-            clientName: clientName.trimmingCharacters(in: .whitespacesAndNewlines),
+        let trimmedClientName = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let draft = PendingTransaction(
+            clientName: trimmedClientName,
             amount: amount,
             paymentMethod: selectedMethod,
-            type: type,
+            type: type
+        )
+        isSaving = true
+        defer { isSaving = false }
+        
+        let patientMatch = await resolvedPatientMatch()
+        if shouldConfirmUnlinkedIncome(patientMatch: patientMatch) {
+            pendingUnlinkedIncome = draft
+            return
+        }
+        
+        saveTransaction(draft, patientMatch: patientMatch)
+    }
+    
+    @MainActor
+    private func resolvedPatientMatch() async -> PatientMatch? {
+        if let matchedPatient {
+            return matchedPatient
+        }
+        
+        let name = lookupName
+        guard type == .income, name.split(separator: " ").count >= 2 else {
+            return nil
+        }
+        
+        patientLookupState = .searching
+        
+        do {
+            let service = PatientLookupService(serverURL: serverUrl, apiToken: apiToken)
+            let result = try await service.lookupPatient(fullName: name)
+            if let match = result.match {
+                patientLookupState = .matched(match)
+                return match
+            } else if !result.candidates.isEmpty {
+                patientLookupState = .candidates(result.candidates)
+                return nil
+            }
+            patientLookupState = .notFound
+        } catch {
+            patientLookupState = .failed
+        }
+        
+        return nil
+    }
+    
+    private func shouldConfirmUnlinkedIncome(patientMatch: PatientMatch?) -> Bool {
+        guard type == .income, patientMatch == nil, !lookupName.isEmpty else {
+            return false
+        }
+        
+        return true
+    }
+    
+    private var unlinkedIncomeConfirmationIsPresented: Binding<Bool> {
+        Binding {
+            pendingUnlinkedIncome != nil
+        } set: { isPresented in
+            if !isPresented {
+                pendingUnlinkedIncome = nil
+            }
+        }
+    }
+    
+    private func savePendingUnlinkedIncome() {
+        guard let pendingUnlinkedIncome else { return }
+        saveTransaction(pendingUnlinkedIncome, patientMatch: nil)
+        self.pendingUnlinkedIncome = nil
+    }
+    
+    private func saveTransaction(_ pending: PendingTransaction, patientMatch: PatientMatch?) {
+        let newTx = Transaction(
+            clientName: pending.clientName.isEmpty ? patientMatch?.displayName ?? "" : pending.clientName,
+            patientId: patientMatch?.patientId,
+            patientMatchKind: patientMatch?.matchKind,
+            amount: pending.amount,
+            paymentMethod: pending.paymentMethod,
+            type: pending.type,
             date: Date()
         )
         
         store.add(newTx)
+        syncToFinanceIfNeeded(newTx)
         dismiss()
+    }
+    
+    private func syncToFinanceIfNeeded(_ transaction: Transaction) {
+        guard transaction.type == .income, transaction.patientId != nil else { return }
+        
+        Task {
+            var syncedTransaction = transaction
+            
+            do {
+                let service = FinanceSyncService(serverURL: serverUrl, apiToken: apiToken)
+                let result = try await service.syncPatientPayment(transaction: transaction)
+                syncedTransaction.financePaymentId = result.paymentId
+                syncedTransaction.financeEntryId = result.financeEntryId
+                syncedTransaction.financeSyncedAt = Date()
+                syncedTransaction.financeSyncError = nil
+            } catch {
+                syncedTransaction.financeSyncError = error.localizedDescription
+            }
+            
+            await MainActor.run {
+                store.update(syncedTransaction)
+            }
+        }
+    }
+    
+    private func lookupPatientIfNeeded() async {
+        let name = lookupName
+        if case .matched(let match) = patientLookupState,
+           match.displayName == name {
+            return
+        }
+        
+        let nameParts = name.split(separator: " ")
+        guard nameParts.count >= 2 else {
+            patientLookupState = .idle
+            return
+        }
+        
+        patientLookupState = .searching
+        
+        do {
+            try await Task.sleep(nanoseconds: 450_000_000)
+            try Task.checkCancellation()
+            
+            let service = PatientLookupService(serverURL: serverUrl, apiToken: apiToken)
+            let result = try await service.lookupPatient(fullName: name)
+            if let match = result.match {
+                patientLookupState = .matched(match)
+            } else if !result.candidates.isEmpty {
+                patientLookupState = .candidates(result.candidates)
+            } else {
+                patientLookupState = .notFound
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            patientLookupState = .failed
+        }
+    }
+}
+
+private enum PatientLookupState: Equatable {
+    case idle
+    case searching
+    case matched(PatientMatch)
+    case candidates([PatientMatch])
+    case notFound
+    case failed
+}
+
+private struct PendingTransaction: Equatable {
+    let clientName: String
+    let amount: Double
+    let paymentMethod: PaymentMethod
+    let type: TransactionType
+}
+
+private struct PatientCandidateButton: View {
+    let candidate: PatientMatch
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "person.text.rectangle")
+                    .font(.body)
+                    .foregroundColor(.blue)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(candidate.displayName ?? candidate.patientId)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    Text(candidate.detail ?? candidate.patientId)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                
+                Spacer(minLength: 8)
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 

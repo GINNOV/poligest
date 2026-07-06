@@ -3,8 +3,10 @@ import SwiftUI
 struct MonthlyReportsView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var store: TransactionStore
+    @AppStorage("showAmounts") private var showAmounts = true
     
     @State private var selectedMonth = Date()
+    @State private var showingPDFError = false
     
     var body: some View {
         NavigationStack {
@@ -30,6 +32,11 @@ struct MonthlyReportsView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 pdfBar
+            }
+            .alert("PDF non generato", isPresented: $showingPDFError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Non e stato possibile creare il resoconto mensile. Riprova tra poco.")
             }
         }
     }
@@ -77,7 +84,7 @@ struct MonthlyReportsView: View {
                     Text("Saldo netto")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text(String(format: "€ %.2f", total))
+                    Text(formatMonthlyAmount(total, showAmounts: showAmounts))
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .foregroundColor(total >= 0 ? .green : .red)
                         .lineLimit(1)
@@ -92,8 +99,8 @@ struct MonthlyReportsView: View {
             }
             
             HStack(spacing: 12) {
-                MonthlyMetric(title: "Entrate", amount: income, color: .green)
-                MonthlyMetric(title: "Uscite", amount: expense, color: .red)
+                MonthlyMetric(title: "Entrate", amount: income, color: .green, showAmounts: showAmounts)
+                MonthlyMetric(title: "Uscite", amount: expense, color: .red, showAmounts: showAmounts)
             }
         }
         .padding(18)
@@ -108,6 +115,15 @@ struct MonthlyReportsView: View {
                 Text("Movimenti")
                     .font(.headline)
                 Spacer()
+                Button(action: { showAmounts.toggle() }) {
+                    Image(systemName: showAmounts ? "eye" : "eye.slash")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                        .background(.thinMaterial, in: Circle())
+                }
+                .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
+                
                 Text("\(filteredTxs.count)")
                     .font(.caption.bold())
                     .foregroundColor(.secondary)
@@ -126,7 +142,7 @@ struct MonthlyReportsView: View {
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(filteredTxs) { tx in
-                        MonthlyTransactionRow(transaction: tx)
+                        MonthlyTransactionRow(transaction: tx, showAmounts: showAmounts)
                     }
                 }
             }
@@ -137,11 +153,13 @@ struct MonthlyReportsView: View {
         let filteredTxs = transactionsForSelectedMonth
         
         return Button(action: {
-            if let url = PDFGenerator.generateMonthlyPDF(month: selectedMonth, transactions: filteredTxs) {
+            if let url = PDFGenerator.generateMonthlyPDF(month: selectedMonth, transactions: filteredTxs, showAmounts: showAmounts) {
                 shareFile(url: url)
+            } else {
+                showingPDFError = true
             }
         }) {
-            Label("Genera PDF mensile", systemImage: "doc.text")
+            Label("Genera Rapporto Mensile", systemImage: "doc.text")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(MonthlyPDFButtonStyle(isEnabled: !filteredTxs.isEmpty))
@@ -167,18 +185,59 @@ struct MonthlyReportsView: View {
     }
     
     private func shareFile(url: URL) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootViewController = windowScene.windows.first?.rootViewController else { return }
+        FileSharePresenter.present(url)
+    }
+}
+
+private func formatMonthlyAmount(_ amount: Double, showAmounts: Bool) -> String {
+    showAmounts ? String(format: "€ %.2f", amount) : "••••"
+}
+
+@MainActor
+enum FileSharePresenter {
+    static func present(_ url: URL) {
+        guard let presenter = UIApplication.shared.visibleViewController else { return }
         
         let activityViewController = UIActivityViewController(activityItems: [url], applicationActivities: nil)
         
         if let popoverController = activityViewController.popoverPresentationController {
-            popoverController.sourceView = rootViewController.view
-            popoverController.sourceRect = CGRect(x: rootViewController.view.bounds.midX, y: rootViewController.view.bounds.midY, width: 0, height: 0)
+            popoverController.sourceView = presenter.view
+            popoverController.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 0, height: 0)
             popoverController.permittedArrowDirections = []
         }
         
-        rootViewController.present(activityViewController, animated: true, completion: nil)
+        presenter.present(activityViewController, animated: true, completion: nil)
+    }
+}
+
+private extension UIApplication {
+    var visibleViewController: UIViewController? {
+        connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController?
+            .topMostPresentedViewController
+    }
+}
+
+private extension UIViewController {
+    var topMostPresentedViewController: UIViewController {
+        if let presentedViewController {
+            return presentedViewController.topMostPresentedViewController
+        }
+        
+        if let navigationController = self as? UINavigationController,
+           let visibleViewController = navigationController.visibleViewController {
+            return visibleViewController.topMostPresentedViewController
+        }
+        
+        if let tabBarController = self as? UITabBarController,
+           let selectedViewController = tabBarController.selectedViewController {
+            return selectedViewController.topMostPresentedViewController
+        }
+        
+        return self
     }
 }
 
@@ -186,13 +245,14 @@ private struct MonthlyMetric: View {
     let title: String
     let amount: Double
     let color: Color
+    let showAmounts: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text(String(format: "€ %.2f", amount))
+            Text(formatMonthlyAmount(amount, showAmounts: showAmounts))
                 .font(.headline.monospacedDigit())
                 .foregroundColor(color)
                 .lineLimit(1)
@@ -206,6 +266,7 @@ private struct MonthlyMetric: View {
 
 private struct MonthlyTransactionRow: View {
     let transaction: Transaction
+    let showAmounts: Bool
     
     var body: some View {
         HStack(spacing: 12) {
@@ -216,10 +277,19 @@ private struct MonthlyTransactionRow: View {
                 .background(Color.blue.opacity(0.12), in: Circle())
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.clientName.isEmpty ? "Generico" : transaction.clientName)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                HStack(spacing: 6) {
+                    Text(transaction.clientName.isEmpty ? "Generico" : transaction.clientName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    
+                    if transaction.isUnlinkedSorrisoClient {
+                        Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            .font(.caption.bold())
+                            .foregroundColor(Color(red: 0.63, green: 0.46, blue: 0.0))
+                            .accessibilityLabel("Cliente non presente in Sorriso")
+                    }
+                }
                 Text(transaction.date.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -228,7 +298,7 @@ private struct MonthlyTransactionRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount))
+                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
                     .font(.headline.monospacedDigit())
                     .foregroundColor(transaction.type == .income ? .green : .red)
                     .lineLimit(1)
@@ -236,6 +306,11 @@ private struct MonthlyTransactionRow: View {
                 Text(transaction.paymentMethod.rawValue)
                     .font(.caption)
                     .foregroundColor(.secondary)
+                if transaction.patientId != nil {
+                    Label("Paziente", systemImage: "link")
+                        .font(.caption2)
+                        .foregroundColor(.blue)
+                }
             }
         }
         .padding(14)
