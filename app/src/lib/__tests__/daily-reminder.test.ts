@@ -61,6 +61,30 @@ describe("daily reminder helpers", () => {
     ).toBeUndefined();
   });
 
+  test("resolveDailyReminderBccEmail supports multiple configured BCC recipients", () => {
+    expect(
+      normalizeDailyReminderBccEmail(
+        " Studio.Agovino.Angrisano@gmail.com, admin@example.com\nADMIN@example.com ",
+      ),
+    ).toBe(`${DEFAULT_DAILY_REMINDER_BCC_EMAIL}, admin@example.com`);
+
+    expect(
+      resolveDailyReminderBccEmail(
+        `${DEFAULT_DAILY_REMINDER_BCC_EMAIL}, admin@example.com`,
+        "medico@example.com",
+      ),
+    ).toEqual([DEFAULT_DAILY_REMINDER_BCC_EMAIL, "admin@example.com"]);
+  });
+
+  test("resolveDailyReminderBccEmail removes the direct recipient from multiple BCC recipients", () => {
+    expect(
+      resolveDailyReminderBccEmail(
+        `${DEFAULT_DAILY_REMINDER_BCC_EMAIL}, medico@example.com`,
+        "medico@example.com",
+      ),
+    ).toBe(DEFAULT_DAILY_REMINDER_BCC_EMAIL);
+  });
+
   test("buildDailyReminderSubject matches report-style naming", () => {
     const subject = buildDailyReminderSubject(new Date("2026-06-30T10:00:00.000Z"), "Europe/Rome");
     expect(subject).toMatch(/^Agenda di domani · /);

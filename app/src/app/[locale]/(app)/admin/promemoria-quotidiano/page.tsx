@@ -258,13 +258,14 @@ export default async function AdminDailyReminderPage() {
                   Email in copia nascosta (BCC)
                   <input
                     type="email"
+                    multiple
                     name="bccEmail"
                     defaultValue={config?.bccEmail ?? DEFAULT_DAILY_REMINDER_BCC_EMAIL}
-                    placeholder={DEFAULT_DAILY_REMINDER_BCC_EMAIL}
+                    placeholder={`${DEFAULT_DAILY_REMINDER_BCC_EMAIL}, admin@example.com`}
                     className="w-full rounded-xl border border-zinc-200 bg-white p-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:focus:ring-emerald-950/50"
                   />
                   <span className="text-xs font-normal text-zinc-500">
-                    Ogni promemoria inviato ai medici include questa casella in BCC. Lascia vuoto per disattivare la copia.
+                    Ogni promemoria inviato ai medici include queste caselle in BCC. Separa piu email con virgole. Lascia vuoto per disattivare la copia.
                   </span>
                 </label>
 

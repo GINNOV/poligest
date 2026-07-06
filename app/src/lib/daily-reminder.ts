@@ -23,12 +23,25 @@ export const DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES = 20 * 60; // 20:00 Italy 
 export const DEFAULT_DAILY_REMINDER_TARGET_ROLES: Role[] = [Role.MANAGER, Role.ADMIN];
 export const DEFAULT_DAILY_REMINDER_BCC_EMAIL = "studio.agovino.angrisano@gmail.com";
 export const DAILY_REMINDER_SEND_WINDOW_MINUTES = 120;
+const DAILY_REMINDER_BCC_SEPARATOR = /[,\n;]/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function normalizeDailyReminderBccEmail(raw: string | null | undefined) {
-  const normalized = raw?.trim().toLowerCase();
-  if (!normalized) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return null;
-  return normalized;
+  const recipients = normalizeDailyReminderBccEmails(raw);
+  if (!recipients) return null;
+  return recipients.join(", ");
+}
+
+function normalizeDailyReminderBccEmails(raw: string | null | undefined) {
+  const parts = raw
+    ?.split(DAILY_REMINDER_BCC_SEPARATOR)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  if (!parts || parts.length === 0) return null;
+
+  const recipients = Array.from(new Set(parts));
+  if (recipients.some((recipient) => !EMAIL_PATTERN.test(recipient))) return null;
+  return recipients;
 }
 
 export function resolveDailyReminderBccEmail(
@@ -39,17 +52,18 @@ export function resolveDailyReminderBccEmail(
     return undefined;
   }
 
-  const bccEmail = normalizeDailyReminderBccEmail(
+  const bccEmails = normalizeDailyReminderBccEmails(
     configuredBccEmail ?? DEFAULT_DAILY_REMINDER_BCC_EMAIL,
   );
-  if (!bccEmail) return undefined;
+  if (!bccEmails) return undefined;
 
   const normalizedRecipient = recipientEmail?.trim().toLowerCase();
-  if (normalizedRecipient && normalizedRecipient === bccEmail) {
-    return undefined;
-  }
+  const recipients = normalizedRecipient
+    ? bccEmails.filter((bccEmail) => bccEmail !== normalizedRecipient)
+    : bccEmails;
+  if (recipients.length === 0) return undefined;
 
-  return bccEmail;
+  return recipients.length === 1 ? recipients[0] : recipients;
 }
 
 const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
