@@ -1,3 +1,4 @@
+import UIKit
 import SwiftUI
 
 struct TransactionFormView: View {
@@ -16,6 +17,8 @@ struct TransactionFormView: View {
     @State private var patientLookupState: PatientLookupState = .idle
     @State private var isSaving = false
     @State private var showingPatientDirectory = false
+    @State private var showingDoctorDirectory = false
+    @State private var showingSupplierDirectory = false
     @State private var showingServiceDirectory = false
     @State private var pendingUnlinkedIncome: PendingTransaction?
     @State private var didTrySavingWithMissingClientName = false
@@ -57,6 +60,28 @@ struct TransactionFormView: View {
                     patientLookupState = .matched(patient)
                 }
             }
+            .sheet(isPresented: $showingDoctorDirectory) {
+                QuickNotesContactDirectoryView(
+                    kind: .doctor,
+                    serverURL: serverUrl,
+                    apiToken: apiToken,
+                    initialQuery: lookupName
+                ) { contact in
+                    clientName = contact.displayName
+                    patientLookupState = .idle
+                }
+            }
+            .sheet(isPresented: $showingSupplierDirectory) {
+                QuickNotesContactDirectoryView(
+                    kind: .supplier,
+                    serverURL: serverUrl,
+                    apiToken: apiToken,
+                    initialQuery: lookupName
+                ) { contact in
+                    clientName = contact.displayName
+                    patientLookupState = .idle
+                }
+            }
             .sheet(isPresented: $showingServiceDirectory) {
                 ServiceDirectoryView(
                     serverURL: serverUrl,
@@ -92,11 +117,14 @@ struct TransactionFormView: View {
                 Text("€")
                     .font(.system(.title2, design: .rounded, weight: .semibold))
                     .foregroundColor(.secondary)
-                TextField("0,00", text: $amountString)
-                    .font(.system(size: 46, weight: .bold, design: .rounded))
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.leading)
-                    .submitLabel(.done)
+                AmountKeyboardTextField(text: $amountString)
+                    .frame(height: 58)
+                    .onChange(of: amountString) { newValue in
+                        let formattedValue = Self.formatEuroAmountInput(newValue)
+                        if formattedValue != newValue {
+                            amountString = formattedValue
+                        }
+                    }
             }
         }
         .padding(18)
@@ -109,11 +137,40 @@ struct TransactionFormView: View {
     
     private var clientCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Cliente", systemImage: "person")
-                .font(.subheadline.bold())
-                .foregroundColor(.secondary)
+            HStack {
+                Label(type == .income ? "Cliente" : "Beneficiario", systemImage: type == .income ? "person" : "person.crop.square")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if type == .income {
+                    lookupIconButton(
+                        systemImage: "magnifyingglass",
+                        accessibilityLabel: "Cerca paziente in Sorriso"
+                    ) {
+                        showingPatientDirectory = true
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        lookupIconButton(
+                            systemImage: QuickNotesContactKind.doctor.rowIconName,
+                            accessibilityLabel: "Cerca medico"
+                        ) {
+                            showingDoctorDirectory = true
+                        }
+
+                        lookupIconButton(
+                            systemImage: QuickNotesContactKind.supplier.rowIconName,
+                            accessibilityLabel: "Cerca fornitore"
+                        ) {
+                            showingSupplierDirectory = true
+                        }
+                    }
+                }
+            }
             
-            TextField("Nome cliente", text: $clientName)
+            TextField(type == .income ? "Nome cliente" : "Nome medico o fornitore", text: $clientName)
                 .font(.title3)
                 .textInputAutocapitalization(.words)
                 .submitLabel(.done)
@@ -129,29 +186,31 @@ struct TransactionFormView: View {
                         didTrySavingWithMissingClientName = false
                     }
                 }
-            
+
             if showClientNameRequiredMessage {
-                Label("Inserisci il nome del cliente per salvare.", systemImage: "exclamationmark.circle.fill")
+                Label(type == .income ? "Inserisci il nome del cliente per salvare." : "Inserisci medico o fornitore per salvare.", systemImage: "exclamationmark.circle.fill")
                     .font(.caption)
                     .foregroundColor(.red)
             }
-            
-            Button {
-                showingPatientDirectory = true
-            } label: {
-                Label("Cerca in Sorriso", systemImage: "person.crop.circle.badge.magnifyingglass")
-                    .font(.subheadline.bold())
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            if type == .income {
+                patientLookupStatus
             }
-            .buttonStyle(.plain)
-            .foregroundColor(.blue)
-            
-            patientLookupStatus
         }
         .padding(18)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    private func lookupIconButton(systemImage: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.blue)
+                .frame(width: 34, height: 34)
+                .background(Color.blue.opacity(0.12), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
     }
     
     @ViewBuilder
@@ -275,7 +334,7 @@ struct TransactionFormView: View {
                 } else {
                     Image(systemName: "checkmark")
                 }
-                Text(type == .income ? "Salva entrata" : "Salva uscita")
+                Text(type == .income ? "AGGIUNGI ENTRATA" : "AGGIUNGI USCITA")
             }
             .frame(maxWidth: .infinity)
         }
@@ -288,9 +347,12 @@ struct TransactionFormView: View {
     }
     
     private var amountIsValid: Bool {
-        let cleaned = amountString.replacingOccurrences(of: ",", with: ".")
-        guard let amount = Double(cleaned) else { return false }
+        guard let amount = parsedAmount else { return false }
         return amount > 0
+    }
+
+    private var parsedAmount: Double? {
+        Self.parseEuroAmount(amountString)
     }
     
     private var clientNameIsValid: Bool {
@@ -320,8 +382,7 @@ struct TransactionFormView: View {
             return
         }
         
-        let cleaned = amountString.replacingOccurrences(of: ",", with: ".")
-        guard let amount = Double(cleaned) else { return }
+        guard let amount = parsedAmount else { return }
         let trimmedClientName = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
         let draft = PendingTransaction(
             clientName: trimmedClientName,
@@ -421,6 +482,11 @@ struct TransactionFormView: View {
     }
     
     private func lookupPatientIfNeeded() async {
+        guard type == .income else {
+            patientLookupState = .idle
+            return
+        }
+
         let name = lookupName
         if case .matched(let match) = patientLookupState,
            match.displayName == name {
@@ -465,6 +531,88 @@ struct TransactionFormView: View {
         } else if !trimmedNote.localizedCaseInsensitiveContains(serviceName) {
             note = "\(trimmedNote)\n\(serviceName)"
         }
+    }
+
+    private static func formatEuroAmountInput(_ input: String) -> String {
+        let normalizedAmount = normalizedEuroAmount(input)
+        guard !normalizedAmount.integerDigits.isEmpty || normalizedAmount.hasDecimalSeparator else {
+            return ""
+        }
+
+        let integerDigits = normalizedAmount.integerDigits.isEmpty ? "0" : normalizedAmount.integerDigits
+        let integerValue = Int(integerDigits) ?? 0
+        let formattedInteger = euroIntegerFormatter.string(from: NSNumber(value: integerValue)) ?? integerDigits
+
+        guard normalizedAmount.hasDecimalSeparator else {
+            return formattedInteger
+        }
+
+        return "\(formattedInteger),\(normalizedAmount.fractionDigits)"
+    }
+
+    private static func parseEuroAmount(_ input: String) -> Double? {
+        let normalizedAmount = normalizedEuroAmount(input)
+        guard !normalizedAmount.integerDigits.isEmpty else { return nil }
+
+        let fractionDigits = normalizedAmount.fractionDigits.padding(toLength: 2, withPad: "0", startingAt: 0)
+        let decimalAmount = "\(normalizedAmount.integerDigits).\(fractionDigits)"
+        return Double(decimalAmount)
+    }
+
+    private static func normalizedEuroAmount(_ input: String) -> NormalizedEuroAmount {
+        let allowedCharacters = input.filter { character in
+            character.isNumber || character == "," || character == "."
+        }
+        let separatorIndex = decimalSeparatorIndex(in: allowedCharacters)
+
+        let integerCharacters: String
+        let fractionCharacters: String
+        if let separatorIndex {
+            integerCharacters = String(allowedCharacters[..<separatorIndex]).filter(\.isNumber)
+            fractionCharacters = String(allowedCharacters[allowedCharacters.index(after: separatorIndex)...])
+                .filter(\.isNumber)
+        } else {
+            integerCharacters = String(allowedCharacters).filter(\.isNumber)
+            fractionCharacters = ""
+        }
+
+        return NormalizedEuroAmount(
+            integerDigits: integerCharacters.trimmingLeadingZeros(),
+            fractionDigits: String(fractionCharacters.prefix(2)),
+            hasDecimalSeparator: separatorIndex != nil
+        )
+    }
+
+    private static func decimalSeparatorIndex(in input: String) -> String.Index? {
+        if let commaIndex = input.lastIndex(of: ",") {
+            return commaIndex
+        }
+
+        guard let dotIndex = input.lastIndex(of: ".") else { return nil }
+        let fractionDigits = input[input.index(after: dotIndex)...].filter(\.isNumber)
+        return fractionDigits.count <= 2 ? dotIndex : nil
+    }
+
+    private static let euroIntegerFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        formatter.minimumFractionDigits = 0
+        return formatter
+    }()
+}
+
+private struct NormalizedEuroAmount {
+    let integerDigits: String
+    let fractionDigits: String
+    let hasDecimalSeparator: Bool
+}
+
+private extension String {
+    func trimmingLeadingZeros() -> String {
+        let trimmed = drop { $0 == "0" }
+        return trimmed.isEmpty && contains("0") ? "0" : String(trimmed)
     }
 }
 
@@ -545,6 +693,63 @@ private struct PaymentChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct AmountKeyboardTextField: UIViewRepresentable {
+    @Binding var text: String
+
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.placeholder = "0,00"
+        textField.keyboardType = .numbersAndPunctuation
+        textField.autocapitalizationType = .none
+        textField.autocorrectionType = .no
+        textField.spellCheckingType = .no
+        textField.smartDashesType = .no
+        textField.smartInsertDeleteType = .no
+        textField.smartQuotesType = .no
+        textField.textAlignment = .left
+        textField.adjustsFontForContentSizeCategory = true
+        textField.font = roundedAmountFont
+        textField.inputAssistantItem.leadingBarButtonGroups = []
+        textField.inputAssistantItem.trailingBarButtonGroups = []
+        textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
+        return textField
+    }
+
+    func updateUIView(_ textField: UITextField, context: Context) {
+        if textField.text != text {
+            textField.text = text
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    private var roundedAmountFont: UIFont {
+        let baseFont = UIFont.systemFont(ofSize: 46, weight: .bold)
+        let descriptor = baseFont.fontDescriptor.withDesign(.rounded) ?? baseFont.fontDescriptor
+        return UIFont(descriptor: descriptor, size: 46)
+    }
+
+    final class Coordinator: NSObject, UITextFieldDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            _text = text
+        }
+
+        @objc func textDidChange(_ textField: UITextField) {
+            text = textField.text ?? ""
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
     }
 }
 

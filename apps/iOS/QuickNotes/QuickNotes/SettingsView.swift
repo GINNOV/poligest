@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var restoreAlertTitle = ""
     @State private var restoreAlertMessage = ""
     @State private var showingRestoreAlert = false
+    @State private var isRestoringBackup = false
 
     var body: some View {
         NavigationStack {
@@ -73,7 +74,7 @@ struct SettingsView: View {
                         Label {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Backup su iCloud")
-                                Text("Include i movimenti nel backup iCloud del dispositivo.")
+                                Text("Salva una copia privata dei movimenti su iCloud.")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -84,20 +85,27 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        restoreICloudBackup()
+                        Task {
+                            await restoreICloudBackup()
+                        }
                     } label: {
                         Label {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Ripristina backup iCloud")
-                                Text("Ricarica i movimenti ripristinati dal backup iCloud del dispositivo.")
+                                Text("Ricarica i movimenti salvati nel backup iCloud privato.")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
                         } icon: {
-                            Image(systemName: "icloud.and.arrow.down")
-                                .foregroundColor(.blue)
+                            if isRestoringBackup {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "icloud.and.arrow.down")
+                                    .foregroundColor(.blue)
+                            }
                         }
                     }
+                    .disabled(isRestoringBackup)
 
                     Toggle(isOn: $showAmounts) {
                         Label {
@@ -146,14 +154,20 @@ struct SettingsView: View {
         }
     }
 
-    private func restoreICloudBackup() {
-        switch store.restoreICloudBackup() {
+    @MainActor
+    private func restoreICloudBackup() async {
+        guard !isRestoringBackup else { return }
+        isRestoringBackup = true
+        let result = await store.restoreCloudBackup()
+        isRestoringBackup = false
+
+        switch result {
         case .restored(let transactionCount):
             restoreAlertTitle = "Backup ripristinato"
             restoreAlertMessage = "Movimenti caricati: \(transactionCount)."
         case .noBackupFound:
             restoreAlertTitle = "Nessun backup trovato"
-            restoreAlertMessage = "Non ci sono movimenti ripristinati dal backup iCloud del dispositivo."
+            restoreAlertMessage = "Non ci sono movimenti salvati nel backup iCloud."
         case .failed(let message):
             restoreAlertTitle = "Ripristino non riuscito"
             restoreAlertMessage = message

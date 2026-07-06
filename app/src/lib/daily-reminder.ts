@@ -339,10 +339,11 @@ export function generateDailyReminderContent(
     const time = formatTimeInputValueInTimeZone(appt.startsAt, timeZone);
     const endTime = formatTimeInputValueInTimeZone(appt.endsAt, timeZone);
     const patientName = `${appt.patient.lastName} ${appt.patient.firstName}`;
+    const patientUrl = `${siteOrigin}/pazienti/${encodeURIComponent(appt.patient.id)}/scheda`;
     const notes = appt.notes?.trim() || "—";
     const statusLabel = APPOINTMENT_STATUS_LABELS[appt.status];
     const scheduledBy = schedulerByAppointmentId.get(appt.id) ?? "Non tracciato";
-    return { time, endTime, patientName, notes, statusLabel, scheduledBy };
+    return { time, endTime, patientName, patientUrl, notes, statusLabel, scheduledBy };
   });
 
   const confirmedCount = appointments.filter((appt) => appt.status === AppointmentStatus.CONFIRMED).length;
@@ -356,7 +357,7 @@ export function generateDailyReminderContent(
     "",
     ...rows.map(
       (row) =>
-        `${row.time} - ${row.endTime} · ${row.patientName} (${row.statusLabel})\nPrenotato da: ${row.scheduledBy}\nNote: ${row.notes}`,
+        `${row.time} - ${row.endTime} · ${row.patientName} (${row.statusLabel})\nScheda paziente: ${row.patientUrl}\nPrenotato da: ${row.scheduledBy}\nNote: ${row.notes}`,
     ),
     "",
     `Totale appuntamenti: ${appointments.length}`,
@@ -376,7 +377,9 @@ export function generateDailyReminderContent(
                   ${escapeReportHtml(row.time)} - ${escapeReportHtml(row.endTime)}
                 </td>
                 <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;font-weight:600;">
-                  ${escapeReportHtml(row.patientName)}
+                  <a href="${escapeReportHtml(row.patientUrl)}" style="color:#047857;text-decoration:none;font-weight:700;">
+                    ${escapeReportHtml(row.patientName)}
+                  </a>
                 </td>
                 <td style="padding:12px 14px;border-bottom:1px solid #e4e4e7;font-size:14px;line-height:20px;color:#18181b;">
                   ${escapeReportHtml(row.statusLabel)}

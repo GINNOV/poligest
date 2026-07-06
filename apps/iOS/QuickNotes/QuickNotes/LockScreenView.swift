@@ -7,15 +7,18 @@ struct LockScreenView: View {
         VStack(spacing: 28) {
             Spacer(minLength: 32)
             
-            VStack(spacing: 18) {
-                Image(systemName: "faceid")
-                    .font(.system(size: 58, weight: .light))
-                    .foregroundColor(.blue)
-                    .frame(width: 96, height: 96)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+            VStack(spacing: 20) {
+                Image("StudioAgovinoAngrisanoLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: 300, maxHeight: 36)
+                    .padding(.horizontal, 32)
+                    .accessibilityLabel("Studio Agovino Angrisano")
+
+                AppLogoLockIcon()
                 
                 VStack(spacing: 8) {
-                    Text("QuickNotes")
+                    Text("Sorriso Mobile")
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                     Text("I tuoi conti al sicuro")
                         .font(.headline)
@@ -51,6 +54,24 @@ struct LockScreenView: View {
         .onAppear {
             authenticator.authenticate()
         }
+    }
+}
+
+private struct AppLogoLockIcon: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(.regularMaterial)
+
+            Image("AppLogo")
+                .resizable()
+                .scaledToFit()
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .padding(10)
+        }
+        .frame(width: 112, height: 112)
+        .shadow(color: Color.black.opacity(0.06), radius: 18, x: 0, y: 10)
+        .accessibilityHidden(true)
     }
 }
 

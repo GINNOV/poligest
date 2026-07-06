@@ -169,6 +169,39 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertEqual(store.transactions.map(\.clientName), ["Ripristinato"])
     }
 
+    func testRestoreICloudBackupRecoversTransactionDeletedAfterBackupSnapshot() throws {
+        let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
+        let backupURL = temporaryDirectory.appendingPathComponent("transactions.icloud-backup.json")
+        let store = TransactionStore(fileURL: storageURL, backupFileURL: backupURL)
+
+        store.add(Transaction(
+            clientName: "Da tenere",
+            amount: 10,
+            paymentMethod: .pos,
+            type: .income,
+            date: Date()
+        ))
+        store.add(Transaction(
+            clientName: "Da ripristinare",
+            amount: 20,
+            paymentMethod: .wire,
+            type: .income,
+            date: Date()
+        ))
+
+        store.delete(at: IndexSet(integer: 1))
+        XCTAssertEqual(store.transactions.map(\.clientName), ["Da tenere"])
+
+        switch store.restoreICloudBackup() {
+        case .restored(let transactionCount):
+            XCTAssertEqual(transactionCount, 2)
+        case .noBackupFound, .failed:
+            XCTFail("Expected restored backup")
+        }
+
+        XCTAssertEqual(store.transactions.map(\.clientName), ["Da tenere", "Da ripristinare"])
+    }
+
     func testRestoreICloudBackupReportsMissingBackup() {
         let storageURL = temporaryDirectory.appendingPathComponent("missing-transactions.json")
         let backupURL = temporaryDirectory.appendingPathComponent("missing-transactions.icloud-backup.json")
@@ -180,6 +213,36 @@ final class TransactionStoreTests: XCTestCase {
         case .restored, .failed:
             XCTFail("Expected missing backup result")
         }
+    }
+
+    func testRestoreCloudBackupRestoresPrivateCloudSnapshot() async {
+        let storageURL = temporaryDirectory.appendingPathComponent("cloud-transactions.json")
+        let cloudTransaction = Transaction(
+            clientName: "CloudKit",
+            amount: 80,
+            paymentMethod: .pos,
+            type: .income,
+            date: Date()
+        )
+        let cloudService = FakeCloudKitBackupService(restoredTransactions: [cloudTransaction])
+        let store = TransactionStore(fileURL: storageURL, cloudBackupService: cloudService)
+
+        store.add(Transaction(
+            clientName: "Locale",
+            amount: 20,
+            paymentMethod: .cash,
+            type: .expense,
+            date: Date()
+        ))
+
+        switch await store.restoreCloudBackup() {
+        case .restored(let transactionCount):
+            XCTAssertEqual(transactionCount, 1)
+        case .noBackupFound, .failed:
+            XCTFail("Expected restored CloudKit backup")
+        }
+
+        XCTAssertEqual(store.transactions.map(\.clientName), ["CloudKit"])
     }
     
     func testMergeImportedTransactionsAddsOnlyNewIds() {
@@ -231,5 +294,19 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertEqual(reloadedStore.transactions.count, 1)
         XCTAssertEqual(reloadedStore.transactions.first?.clientName, "Importato")
         XCTAssertEqual(reloadedStore.transactions.first?.paymentMethod, .wire)
+    }
+
+    private final class FakeCloudKitBackupService: CloudKitBackupServicing {
+        let restoredTransactions: [Transaction]
+
+        init(restoredTransactions: [Transaction]) {
+            self.restoredTransactions = restoredTransactions
+        }
+
+        func saveBackup(transactions: [Transaction]) async throws {}
+
+        func restoreBackup() async throws -> [Transaction] {
+            restoredTransactions
+        }
     }
 }

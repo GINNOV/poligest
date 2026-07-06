@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AppointmentStatus, NotificationChannel, RecallStatus } from "@prisma/client";
-import { deliverNotificationPlan } from "@/lib/recalls/delivery";
+import { deliverNotificationPlan, notificationPlanHasConfiguredChannel } from "@/lib/recalls/delivery";
 import { getEmailTemplateByName } from "@/lib/email-templates";
 import { errorResponse } from "@/lib/error-response";
 import { autoCompletePastAppointments } from "@/lib/appointments/status-automation";
@@ -177,6 +177,7 @@ export async function GET(req: Request) {
         delivered = result.delivered;
         attempted = result.attempted;
       } catch (err) {
+        attempted = notificationPlanHasConfiguredChannel(plan);
         console.error("[recalls] delivery failed", { recallId: recall.id, err });
       }
 
@@ -186,6 +187,7 @@ export async function GET(req: Request) {
           data: {
             status: delivered ? RecallStatus.CONTACTED : RecallStatus.SKIPPED,
             lastContactAt: new Date(),
+            deliveryFailureDismissedAt: null,
           },
         });
       }

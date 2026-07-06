@@ -6,8 +6,7 @@ struct ContentView: View {
     @AppStorage("showAmounts") private var showAmounts = true
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     
-    @State private var showingForm = false
-    @State private var formType: TransactionType = .income
+    @State private var formRoute: TransactionFormRoute?
     @State private var showingMonthlyReports = false
     @State private var showingMonthDrillDown = false
     @State private var showingSettings = false
@@ -70,8 +69,8 @@ struct ContentView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingForm) {
-            TransactionFormView(store: store, type: formType)
+        .sheet(item: $formRoute) { route in
+            TransactionFormView(store: store, type: route.type)
                 .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingMonthlyReports) {
@@ -109,7 +108,7 @@ struct ContentView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
-                    Text(String(format: "€ %.2f", balance))
+                    Text(EuroAmountFormatter.string(balance))
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .foregroundColor(balance >= 0 ? .green : .red)
                         .lineLimit(1)
@@ -145,13 +144,11 @@ struct ContentView: View {
         return VStack(spacing: 12) {
             HStack(spacing: 12) {
                 QuickActionButton(title: "Entrata", symbol: "plus", color: .green) {
-                    formType = .income
-                    showingForm = true
+                    formRoute = TransactionFormRoute(type: .income)
                 }
                 
                 QuickActionButton(title: "Uscita", symbol: "minus", color: .red) {
-                    formType = .expense
-                    showingForm = true
+                    formRoute = TransactionFormRoute(type: .expense)
                 }
             }
             
@@ -246,7 +243,7 @@ struct ContentView: View {
     
     private func deleteTransaction(_ tx: Transaction) {
         if let storeIndex = store.transactions.firstIndex(where: { $0.id == tx.id }) {
-            store.transactions.remove(at: storeIndex)
+            store.delete(at: IndexSet(integer: storeIndex))
         }
     }
     
@@ -278,7 +275,7 @@ private struct MetricTile: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(String(format: "€ %.2f", amount))
+                Text(EuroAmountFormatter.string(amount))
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .foregroundColor(color)
                     .lineLimit(1)
@@ -334,6 +331,12 @@ private struct QuickActionButton: View {
     }
 }
 
+private struct TransactionFormRoute: Identifiable {
+    let type: TransactionType
+
+    var id: TransactionType { type }
+}
+
 private struct TransactionRow: View {
     let transaction: Transaction
     let showAmounts: Bool
@@ -363,7 +366,7 @@ private struct TransactionRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
+                Text(EuroAmountFormatter.string(transaction.amount, showAmounts: showAmounts, sign: transaction.type == .income ? "+" : "-"))
                     .font(.headline.monospacedDigit())
                     .foregroundColor(transaction.type == .income ? .green : .red)
                     .lineLimit(1)

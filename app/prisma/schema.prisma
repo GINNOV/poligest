@@ -739,6 +739,7 @@ model Recall {
   dueAt         DateTime
   status        RecallStatus @default(PENDING)
   lastContactAt DateTime?
+  deliveryFailureDismissedAt DateTime?
   notes         String?
   createdAt     DateTime     @default(now())
 

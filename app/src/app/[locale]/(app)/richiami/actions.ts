@@ -19,6 +19,7 @@ import {
   updateRecallRuleRecord,
   upsertRecurringMessageConfigRecord,
   markRecallAsContactedRecord,
+  dismissRecallDeliveryFailureRecord,
 } from "@/lib/recalls/persistence";
 import { revalidateRichiami } from "@/lib/recalls/side-effects";
 
@@ -78,5 +79,14 @@ export async function deleteScheduledRecall(formData: FormData) {
 export async function markRecallAsContacted(recallId: string) {
   await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await markRecallAsContactedRecord(recallId);
+  revalidateRichiami();
+}
+
+export async function dismissRecallDeliveryFailure(formData: FormData) {
+  await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
+  const recallId = formData.get("recallId");
+  if (typeof recallId !== "string" || !recallId) throw new Error("Richiamo non valido");
+
+  await dismissRecallDeliveryFailureRecord(recallId);
   revalidateRichiami();
 }

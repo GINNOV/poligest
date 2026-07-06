@@ -129,7 +129,7 @@ private struct SyncStatusRow: View {
                 
                 Spacer(minLength: 8)
                 
-                Text(String(format: "€ %.2f", transaction.amount))
+                Text(EuroAmountFormatter.string(transaction.amount))
                     .font(.headline.monospacedDigit())
                     .foregroundColor(.green)
             }

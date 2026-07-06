@@ -190,7 +190,7 @@ struct MonthlyReportsView: View {
 }
 
 private func formatMonthlyAmount(_ amount: Double, showAmounts: Bool) -> String {
-    showAmounts ? String(format: "€ %.2f", amount) : "••••"
+    EuroAmountFormatter.string(amount, showAmounts: showAmounts)
 }
 
 @MainActor
@@ -296,7 +296,7 @@ private struct MonthlyTransactionRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
+                Text(EuroAmountFormatter.string(transaction.amount, showAmounts: showAmounts, sign: transaction.type == .income ? "+" : "-"))
                     .font(.headline.monospacedDigit())
                     .foregroundColor(transaction.type == .income ? .green : .red)
                     .lineLimit(1)

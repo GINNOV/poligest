@@ -4,8 +4,13 @@ import SwiftUI
 struct DailyPDFView: View {
     let date: Date
     let transactions: [Transaction]
+    let allTransactions: [Transaction]
+    let totalTransactionCount: Int
     let totals: (income: Double, expense: Double)
     let showAmounts: Bool
+    let pageNumber: Int
+    let pageCount: Int
+    private let timeColumnWidth: CGFloat = 72
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -73,16 +78,16 @@ struct DailyPDFView: View {
                 HStack {
                     Text("Ora")
                         .bold()
-                        .frame(width: 50, alignment: .leading)
+                        .frame(width: timeColumnWidth, alignment: .leading)
                     Text("Cliente / Descrizione")
                         .bold()
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Text("Metodo")
                         .bold()
-                        .frame(width: 80, alignment: .leading)
+                        .frame(width: 74, alignment: .leading)
                     Text("Importo")
                         .bold()
-                        .frame(width: 80, alignment: .trailing)
+                        .frame(width: 120, alignment: .trailing)
                 }
                 .font(.footnote)
                 .foregroundColor(.secondary)
@@ -97,8 +102,11 @@ struct DailyPDFView: View {
                 } else {
                     ForEach(transactions) { tx in
                         HStack {
-                            Text(tx.date.formatted(date: .omitted, time: .shortened))
-                                .frame(width: 50, alignment: .leading)
+                            Text(Self.formattedTime(tx.date))
+                                .font(.system(size: 15, weight: .regular, design: .monospaced))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: timeColumnWidth, alignment: .leading)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(tx.clientName.isEmpty ? "Generico" : tx.clientName)
                                 if let note = tx.displayNote {
@@ -109,10 +117,13 @@ struct DailyPDFView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             Text(tx.paymentMethod.rawValue)
-                                .frame(width: 80, alignment: .leading)
+                                .frame(width: 74, alignment: .leading)
                             Text(formatAmount(tx.amount, prefix: tx.type == .income ? "+ " : "- "))
+                                .font(.system(.body, design: .monospaced))
                                 .foregroundColor(tx.type == .income ? .green : .red)
-                                .frame(width: 80, alignment: .trailing)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+                                .frame(width: 120, alignment: .trailing)
                         }
                         .font(.body)
                         Divider()
@@ -121,11 +132,18 @@ struct DailyPDFView: View {
             }
             
             Spacer()
+
+            if pageNumber == pageCount {
+                PaymentMethodBreakdownView(transactions: allTransactions, showAmounts: showAmounts)
+            }
             
             // Footer
             HStack {
+                Text("Pagina \(pageNumber) di \(pageCount) • \(totalTransactionCount) movimenti")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 Spacer()
-                Text("Generato da QuickNotes")
+                Text("Generato da Sorriso Mobile")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -136,8 +154,19 @@ struct DailyPDFView: View {
     }
     
     private func formatAmount(_ value: Double, prefix: String = "") -> String {
-        showAmounts ? String(format: "%@€ %.2f", prefix, value) : "\(prefix)••••"
+        EuroAmountFormatter.string(value, showAmounts: showAmounts, sign: prefix.trimmingCharacters(in: .whitespaces))
     }
+
+    static func formattedTime(_ date: Date) -> String {
+        dailyTimeFormatter.string(from: date)
+    }
+
+    private static let dailyTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
 }
 
 @MainActor
@@ -194,60 +223,19 @@ struct MonthlyPDFView: View {
             .cornerRadius(10)
             .padding(.bottom, 20)
             
-            // Payment method breakdown
-            Text("METODI DI PAGAMENTO")
-                .font(.headline)
-            Divider()
-            
-            let cashIncome = transactions.filter { $0.type == .income && $0.paymentMethod == .cash }.reduce(0.0) { $0 + $1.amount }
-            let posIncome = transactions.filter { $0.type == .income && $0.paymentMethod == .pos }.reduce(0.0) { $0 + $1.amount }
-            let wireIncome = transactions.filter { $0.type == .income && $0.paymentMethod == .wire }.reduce(0.0) { $0 + $1.amount }
-            
-            let cashExpense = transactions.filter { $0.type == .expense && $0.paymentMethod == .cash }.reduce(0.0) { $0 + $1.amount }
-            let posExpense = transactions.filter { $0.type == .expense && $0.paymentMethod == .pos }.reduce(0.0) { $0 + $1.amount }
-            let wireExpense = transactions.filter { $0.type == .expense && $0.paymentMethod == .wire }.reduce(0.0) { $0 + $1.amount }
-            
-            VStack(spacing: 10) {
-                HStack {
-                    Text("Metodo").bold().frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Entrate").bold().foregroundColor(.green).frame(width: 120, alignment: .trailing)
-                    Text("Uscite").bold().foregroundColor(.red).frame(width: 120, alignment: .trailing)
-                }
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                Divider()
-                
-                HStack {
-                    Text("Contanti").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(formatAmount(cashIncome)).frame(width: 120, alignment: .trailing)
-                    Text(formatAmount(cashExpense)).frame(width: 120, alignment: .trailing)
-                }
-                Divider()
-                HStack {
-                    Text("POS").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(formatAmount(posIncome)).frame(width: 120, alignment: .trailing)
-                    Text(formatAmount(posExpense)).frame(width: 120, alignment: .trailing)
-                }
-                Divider()
-                HStack {
-                    Text("Bonifico").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(formatAmount(wireIncome)).frame(width: 120, alignment: .trailing)
-                    Text(formatAmount(wireExpense)).frame(width: 120, alignment: .trailing)
-                }
-            }
-            .padding(.bottom, 20)
-            
             Text("Resoconto generale basato su un totale di \(transactions.count) transazioni registrate nel mese corrente.")
                 .font(.body)
                 .italic()
                 .padding(.top, 10)
             
             Spacer()
+
+            PaymentMethodBreakdownView(transactions: transactions, showAmounts: showAmounts)
             
             // Footer
             HStack {
                 Spacer()
-                Text("Generato da QuickNotes")
+                Text("Generato da Sorriso Mobile")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -258,20 +246,89 @@ struct MonthlyPDFView: View {
     }
     
     private func formatAmount(_ value: Double, prefix: String = "") -> String {
-        showAmounts ? String(format: "%@€ %.2f", prefix, value) : "\(prefix)••••"
+        EuroAmountFormatter.string(value, showAmounts: showAmounts, sign: prefix.trimmingCharacters(in: .whitespaces))
+    }
+}
+
+@MainActor
+private struct PaymentMethodBreakdownView: View {
+    let transactions: [Transaction]
+    let showAmounts: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("TOTALI PER METODO DI PAGAMENTO")
+                .font(.headline)
+
+            VStack(spacing: 7) {
+                HStack {
+                    Text("Metodo")
+                        .bold()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Entrate")
+                        .bold()
+                        .foregroundColor(.green)
+                        .frame(width: 124, alignment: .trailing)
+                    Text("Uscite")
+                        .bold()
+                        .foregroundColor(.red)
+                        .frame(width: 124, alignment: .trailing)
+                }
+                .font(.footnote)
+                .foregroundColor(.secondary)
+
+                Divider()
+
+                ForEach(PaymentMethod.allCases) { paymentMethod in
+                    let totals = totals(for: paymentMethod)
+                    HStack {
+                        Text(paymentMethod.rawValue)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(formatAmount(totals.income))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 124, alignment: .trailing)
+                        Text(formatAmount(totals.expense))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 124, alignment: .trailing)
+                    }
+                    .font(.body)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+    }
+
+    private func totals(for paymentMethod: PaymentMethod) -> (income: Double, expense: Double) {
+        let matchingTransactions = transactions.filter { $0.paymentMethod == paymentMethod }
+        let income = matchingTransactions.filter { $0.type == .income }.reduce(0.0) { $0 + $1.amount }
+        let expense = matchingTransactions.filter { $0.type == .expense }.reduce(0.0) { $0 + $1.amount }
+        return (income, expense)
+    }
+
+    private func formatAmount(_ value: Double) -> String {
+        EuroAmountFormatter.string(value, showAmounts: showAmounts)
     }
 }
 
 class PDFGenerator {
+    private static let pageSize = CGSize(width: 595, height: 842)
+    private static let dailyTransactionsPerPage = 10
+
     @MainActor
     static func generateDailyPDF(date: Date, transactions: [Transaction], totals: (income: Double, expense: Double), showAmounts: Bool) -> URL? {
-        let pdfView = DailyPDFView(date: date, transactions: transactions, totals: totals, showAmounts: showAmounts)
-
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         let dateString = formatter.string(from: date)
 
-        return renderPDF(content: pdfView, fileName: "Resoconto_Giornaliero_\(dateString).pdf")
+        let pages = dailyPDFPages(
+            date: date,
+            transactions: transactions,
+            totals: totals,
+            showAmounts: showAmounts
+        )
+        return renderPDF(pages: pages, fileName: "Resoconto_Giornaliero_\(dateString).pdf")
     }
     
     @MainActor
@@ -286,10 +343,32 @@ class PDFGenerator {
     }
 
     @MainActor
+    private static func dailyPDFPages(date: Date, transactions: [Transaction], totals: (income: Double, expense: Double), showAmounts: Bool) -> [DailyPDFView] {
+        let transactionPages = transactions.isEmpty ? [[]] : transactions.chunked(into: dailyTransactionsPerPage)
+        let pageCount = transactionPages.count
+
+        return transactionPages.enumerated().map { index, pageTransactions in
+            DailyPDFView(
+                date: date,
+                transactions: pageTransactions,
+                allTransactions: transactions,
+                totalTransactionCount: transactions.count,
+                totals: totals,
+                showAmounts: showAmounts,
+                pageNumber: index + 1,
+                pageCount: pageCount
+            )
+        }
+    }
+
+    @MainActor
     private static func renderPDF<Content: View>(content: Content, fileName: String) -> URL? {
-        let pageRect = CGRect(x: 0, y: 0, width: 595, height: 842)
-        let renderer = ImageRenderer(content: content)
-        renderer.proposedSize = ProposedViewSize(width: pageRect.width, height: pageRect.height)
+        renderPDF(pages: [content], fileName: fileName)
+    }
+
+    @MainActor
+    private static func renderPDF<Content: View>(pages: [Content], fileName: String) -> URL? {
+        let pageRect = CGRect(origin: .zero, size: pageSize)
 
         let fileManager = FileManager.default
         guard let documentDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
@@ -303,23 +382,22 @@ class PDFGenerator {
                 try fileManager.removeItem(at: outputURL)
             }
 
-            var didRenderPage = false
-            renderer.render { _, renderContent in
-                var mediaBox = pageRect
-                guard let pdfContext = CGContext(outputURL as CFURL, mediaBox: &mediaBox, nil) else {
-                    return
-                }
-
-                pdfContext.beginPDFPage(nil)
-                renderContent(pdfContext)
-                pdfContext.endPDFPage()
-                pdfContext.closePDF()
-                didRenderPage = true
-            }
-
-            guard didRenderPage else {
+            var mediaBox = pageRect
+            guard let pdfContext = CGContext(outputURL as CFURL, mediaBox: &mediaBox, nil) else {
                 return nil
             }
+
+            for page in pages {
+                let renderer = ImageRenderer(content: page)
+                renderer.proposedSize = ProposedViewSize(width: pageRect.width, height: pageRect.height)
+                pdfContext.beginPDFPage(nil)
+                renderer.render { _, renderContent in
+                    renderContent(pdfContext)
+                }
+                pdfContext.endPDFPage()
+            }
+
+            pdfContext.closePDF()
 
             let attributes = try fileManager.attributesOfItem(atPath: outputURL.path)
             guard let fileSize = attributes[.size] as? NSNumber, fileSize.intValue > 0 else {
@@ -330,6 +408,16 @@ class PDFGenerator {
         } catch {
             print("Error generating PDF: \(error)")
             return nil
+        }
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else { return [self] }
+
+        return stride(from: 0, to: count, by: size).map { startIndex in
+            Array(self[startIndex..<Swift.min(startIndex + size, count)])
         }
     }
 }

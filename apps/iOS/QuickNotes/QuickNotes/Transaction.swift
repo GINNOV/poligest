@@ -23,6 +23,28 @@ enum TransactionType: String, Codable, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+enum EuroAmountFormatter {
+    private static let formatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "it_IT")
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.usesGroupingSeparator = true
+        return formatter
+    }()
+
+    static func string(_ value: Double, showAmounts: Bool = true, sign: String? = nil) -> String {
+        let resolvedSign = sign ?? (value < 0 ? "-" : "")
+        guard showAmounts else {
+            return "\(resolvedSign)••••"
+        }
+
+        let formattedAmount = formatter.string(from: NSNumber(value: abs(value))) ?? String(format: "%.2f", abs(value))
+        return "\(resolvedSign)€ \(formattedAmount)"
+    }
+}
+
 struct Transaction: Identifiable, Codable {
     var id = UUID()
     var clientName: String
@@ -68,7 +90,9 @@ class TransactionStore: ObservableObject {
 
     private let fileURL: URL
     private let backupFileURL: URL
+    private let cloudBackupService: CloudKitBackupServicing?
     private var isApplyingStoredTransactions = false
+    private var shouldUpdateBackupOnSave = true
 
     private static var defaultFileURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
@@ -81,9 +105,11 @@ class TransactionStore: ObservableObject {
             .appendingPathComponent("transactions.icloud-backup.json")
     }
 
-    init(fileURL: URL = TransactionStore.defaultFileURL, backupFileURL: URL? = nil) {
+    init(fileURL: URL = TransactionStore.defaultFileURL, backupFileURL: URL? = nil, cloudBackupService: CloudKitBackupServicing? = nil) {
         self.fileURL = fileURL
-        self.backupFileURL = backupFileURL ?? TransactionStore.defaultBackupFileURL(for: fileURL)
+        let resolvedBackupFileURL = backupFileURL ?? TransactionStore.defaultBackupFileURL(for: fileURL)
+        self.backupFileURL = resolvedBackupFileURL
+        self.cloudBackupService = cloudBackupService ?? (fileURL == TransactionStore.defaultFileURL ? CloudKitBackupService() : nil)
         load()
     }
 
@@ -98,6 +124,8 @@ class TransactionStore: ObservableObject {
     }
 
     func delete(at offsets: IndexSet) {
+        shouldUpdateBackupOnSave = false
+        defer { shouldUpdateBackupOnSave = true }
         for index in offsets.sorted(by: >) {
             transactions.remove(at: index)
         }
@@ -115,7 +143,7 @@ class TransactionStore: ObservableObject {
         return newTransactions.count
     }
 
-    func configureICloudBackup(enabled: Bool) {
+    func configureICloudBackup(enabled: Bool, uploadSnapshot: Bool = true) {
         for protectedFileURL in [fileURL, backupFileURL] where FileManager.default.fileExists(atPath: protectedFileURL.path) {
             do {
                 var url = protectedFileURL
@@ -126,16 +154,23 @@ class TransactionStore: ObservableObject {
                 print("Error updating iCloud backup setting: \(error)")
             }
         }
+
+        if uploadSnapshot && enabled && !transactions.isEmpty {
+            uploadCloudBackup(transactions)
+        }
     }
 
     func save() {
         do {
             let data = try JSONEncoder().encode(transactions)
             try data.write(to: fileURL)
-            if !transactions.isEmpty {
+            if shouldUpdateBackupOnSave && !transactions.isEmpty {
                 try data.write(to: backupFileURL)
             }
-            configureICloudBackup(enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true)
+            configureICloudBackup(
+                enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true,
+                uploadSnapshot: shouldUpdateBackupOnSave
+            )
         } catch {
             print("Error saving transactions: \(error)")
         }
@@ -162,6 +197,39 @@ class TransactionStore: ObservableObject {
             return .restored(transactionCount: restoredTransactions.count)
         } catch {
             return .failed(message: error.localizedDescription)
+        }
+    }
+
+    func restoreCloudBackup() async -> ICloudBackupRestoreResult {
+        guard let cloudBackupService else {
+            return restoreICloudBackup()
+        }
+
+        do {
+            let restoredTransactions = try await cloudBackupService.restoreBackup()
+            applyStoredTransactions(restoredTransactions)
+            save()
+            return .restored(transactionCount: restoredTransactions.count)
+        } catch CloudKitBackupError.noBackupFound {
+            return restoreICloudBackup()
+        } catch {
+            let localRestoreResult = restoreICloudBackup()
+            if case .noBackupFound = localRestoreResult {
+                return .failed(message: error.localizedDescription)
+            }
+            return localRestoreResult
+        }
+    }
+
+    private func uploadCloudBackup(_ backupTransactions: [Transaction]) {
+        guard let cloudBackupService else { return }
+
+        Task {
+            do {
+                try await cloudBackupService.saveBackup(transactions: backupTransactions)
+            } catch {
+                print("Error saving CloudKit backup: \(error)")
+            }
         }
     }
 

@@ -137,7 +137,15 @@ export async function markRecallAsContactedRecord(recallId: string) {
     data: {
       status: RecallStatus.CONTACTED,
       lastContactAt: new Date(),
+      deliveryFailureDismissedAt: null,
     },
+  });
+}
+
+export async function dismissRecallDeliveryFailureRecord(recallId: string) {
+  await prisma.recall.updateMany({
+    where: { id: recallId, status: RecallStatus.SKIPPED },
+    data: { deliveryFailureDismissedAt: new Date() },
   });
 }
 
@@ -159,5 +167,3 @@ export async function upsertRecurringMessageConfigRecord(payload: RecurringMessa
     },
   });
 }
-
-

@@ -193,10 +193,12 @@ describe("daily reminder helpers", () => {
     expect(html).toContain("studio_agovinoangrisano_logo.png");
     expect(html).toContain("Dettaglio appuntamenti");
     expect(html).toContain("Bianchi Luigi");
+    expect(html).toContain("href=\"https://sorrisosplendente.com/pazienti/patient-1/scheda\"");
     expect(html).toContain("Confermati");
     expect(html).toContain("Prenotato da");
     expect(html).toContain("Segretaria Rossi");
     expect(text).toContain("Dr. Mario Rossi");
+    expect(text).toContain("Scheda paziente: https://sorrisosplendente.com/pazienti/patient-2/scheda");
     expect(text).toContain("Prenotato da: Admin Studio");
     expect(text).toContain("Da confermare: 1");
     expect(html).toContain("Invio automatico di SORRISO");

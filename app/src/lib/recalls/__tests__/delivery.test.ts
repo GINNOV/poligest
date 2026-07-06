@@ -20,6 +20,7 @@ import {
   deliverNotificationPlan,
   formatNotificationChannel,
   getNotificationChannelLabels,
+  notificationPlanHasConfiguredChannel,
 } from "@/lib/recalls/delivery";
 import { NotificationChannel } from "@prisma/client";
 
@@ -112,5 +113,27 @@ describe("recalls delivery", () => {
       "<div>styled email</div>",
     );
     expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("reports whether a plan has any configured delivery channel", () => {
+    expect(
+      notificationPlanHasConfiguredChannel({
+        wantsEmail: false,
+        wantsSms: false,
+        wantsWhatsApp: false,
+        subject: "Promemoria",
+        body: "Messaggio",
+      }),
+    ).toBe(false);
+
+    expect(
+      notificationPlanHasConfiguredChannel({
+        wantsEmail: false,
+        wantsSms: false,
+        wantsWhatsApp: true,
+        subject: "Promemoria",
+        body: "Messaggio",
+      }),
+    ).toBe(true);
   });
 });

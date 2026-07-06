@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   upsertRecurringMessageConfigRecord: vi.fn(),
   updateRecallRuleRecord: vi.fn(),
   deleteScheduledRecallRecord: vi.fn(),
+  dismissRecallDeliveryFailureRecord: vi.fn(),
   revalidateRichiami: vi.fn(),
 }));
 
@@ -37,6 +38,7 @@ vi.mock("@/lib/recalls/persistence", () => ({
   upsertRecurringMessageConfigRecord: mocks.upsertRecurringMessageConfigRecord,
   updateRecallRuleRecord: mocks.updateRecallRuleRecord,
   deleteScheduledRecallRecord: mocks.deleteScheduledRecallRecord,
+  dismissRecallDeliveryFailureRecord: mocks.dismissRecallDeliveryFailureRecord,
 }));
 
 vi.mock("@/lib/recalls/side-effects", () => ({
@@ -51,6 +53,7 @@ import {
   updateRecallRule,
   scheduleRecall,
   deleteScheduledRecall,
+  dismissRecallDeliveryFailure,
 } from "@/app/[locale]/(app)/richiami/actions";
 
 describe("richiami actions", () => {
@@ -64,6 +67,7 @@ describe("richiami actions", () => {
     mocks.upsertRecurringMessageConfigRecord.mockResolvedValue(undefined);
     mocks.updateRecallRuleRecord.mockResolvedValue(undefined);
     mocks.deleteScheduledRecallRecord.mockResolvedValue(undefined);
+    mocks.dismissRecallDeliveryFailureRecord.mockResolvedValue(undefined);
   });
 
   it("persists rule/config mutations and revalidates the richiami area", async () => {
@@ -109,5 +113,21 @@ describe("richiami actions", () => {
     expect(mocks.deleteRecallRuleRecord).toHaveBeenCalledWith("rule-1");
     expect(mocks.deleteScheduledRecallRecord).toHaveBeenCalledWith("recall-1");
     expect(mocks.revalidateRichiami).toHaveBeenCalledTimes(2);
+  });
+
+  it("dismisses a failed delivery notification and revalidates richiami", async () => {
+    const form = new FormData();
+    form.set("recallId", "recall-1");
+
+    await dismissRecallDeliveryFailure(form);
+
+    expect(mocks.dismissRecallDeliveryFailureRecord).toHaveBeenCalledWith("recall-1");
+    expect(mocks.revalidateRichiami).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects failed delivery dismissal without a recall id", async () => {
+    await expect(dismissRecallDeliveryFailure(new FormData())).rejects.toThrow("Richiamo non valido");
+
+    expect(mocks.dismissRecallDeliveryFailureRecord).not.toHaveBeenCalled();
   });
 });

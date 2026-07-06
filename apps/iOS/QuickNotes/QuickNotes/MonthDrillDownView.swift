@@ -310,7 +310,7 @@ private struct MonthSummaryRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 6) {
-                Text(String(format: "€ %.2f", summary.balance))
+                Text(EuroAmountFormatter.string(summary.balance))
                     .font(.headline.monospacedDigit())
                     .foregroundColor(summary.balance >= 0 ? .green : .red)
                     .lineLimit(1)
@@ -335,7 +335,7 @@ private struct MonthPill: View {
     let color: Color
     
     var body: some View {
-        Text("\(title) \(String(format: "€ %.2f", amount))")
+        Text("\(title) \(EuroAmountFormatter.string(amount))")
             .font(.caption2.monospacedDigit())
             .foregroundColor(color)
             .lineLimit(1)
@@ -357,7 +357,7 @@ private struct MonthDetailView: View {
                     Text("Saldo netto")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text(String(format: "€ %.2f", summary.balance))
+                    Text(EuroAmountFormatter.string(summary.balance))
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
                         .foregroundColor(summary.balance >= 0 ? .green : .red)
                         .lineLimit(1)
@@ -411,7 +411,7 @@ private struct DetailMetric: View {
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
-            Text(String(format: "€ %.2f", amount))
+            Text(EuroAmountFormatter.string(amount))
                 .font(.headline.monospacedDigit())
                 .foregroundColor(color)
                 .lineLimit(1)
@@ -455,7 +455,7 @@ private struct DrillDownTransactionRow: View {
             Spacer(minLength: 8)
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
+                Text(EuroAmountFormatter.string(transaction.amount, showAmounts: showAmounts, sign: transaction.type == .income ? "+" : "-"))
                     .font(.headline.monospacedDigit())
                     .foregroundColor(transaction.type == .income ? .green : .red)
                     .lineLimit(1)
