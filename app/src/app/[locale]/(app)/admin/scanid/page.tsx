@@ -27,6 +27,10 @@ export default async function ScanIdAdminPage() {
               Integrazione macOS
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">ScanID</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+              App macOS per leggere i documenti dei pazienti e inviare a Sorriso i dati anagrafici già pronti da
+              verificare.
+            </p>
           </div>
         </div>
       </div>
@@ -49,6 +53,15 @@ export default async function ScanIdAdminPage() {
               Scarica
             </a>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Come si usa</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+            <li>Scarica e apri ScanID sul Mac dello studio.</li>
+            <li>Scansiona o seleziona il documento del paziente.</li>
+            <li>Controlla i dati importati in Sorriso prima di salvarli.</li>
+          </ol>
         </div>
       </div>
     </div>

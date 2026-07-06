@@ -16,6 +16,10 @@ export default async function AuthorizationTokensPage() {
           Sicurezza
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">Authorization Tokens</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+          Token server-side per autorizzare le app esterne dello studio a chiamare le API Sorriso senza login
+          utente.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
