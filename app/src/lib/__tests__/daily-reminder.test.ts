@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { AppointmentStatus } from "@prisma/client";
+import { AppointmentStatus, Gender, Role } from "@prisma/client";
 import {
   buildDailyReminderSubject,
   DEFAULT_DAILY_REMINDER_BCC_EMAIL,
@@ -72,36 +72,85 @@ describe("daily reminder helpers", () => {
       id: "user-1",
       email: "medico@example.com",
       name: "Dr. Rossi",
+      hashedPassword: null,
+      role: Role.ADMIN,
+      locale: "it",
+      isActive: true,
+      lastLoginAt: null,
+      avatarUrl: null,
+      personalPin: null,
+      gender: Gender.NOT_SPECIFIED,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
       doctor: {
         id: "doctor-1",
+        userId: "user-1",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+        phone: null,
+        notes: null,
         fullName: "Dr. Mario Rossi",
+        specialty: "Odontoiatria",
+        color: null,
       },
     } as const;
 
     const appointments = [
       {
         id: "appt-1",
+        title: "Controllo",
         startsAt: new Date("2026-06-30T07:00:00.000Z"),
         endsAt: new Date("2026-06-30T07:30:00.000Z"),
         status: AppointmentStatus.CONFIRMED,
+        serviceType: "Controllo",
         notes: "Controllo",
+        patientId: "patient-1",
+        doctorId: "doctor-1",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
         patient: {
+          id: "patient-1",
           firstName: "Luigi",
           lastName: "Bianchi",
+          email: null,
+          phone: null,
+          gender: Gender.NOT_SPECIFIED,
+          birthDate: null,
+          notes: null,
+          photoUrl: null,
+          hasPaperConsentForRequired: false,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
         },
       },
       {
         id: "appt-2",
+        title: "Prima visita",
         startsAt: new Date("2026-06-30T08:00:00.000Z"),
         endsAt: new Date("2026-06-30T08:45:00.000Z"),
         status: AppointmentStatus.TO_CONFIRM,
+        serviceType: "Prima visita",
         notes: null,
+        patientId: "patient-2",
+        doctorId: "doctor-1",
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        updatedAt: new Date("2026-01-01T00:00:00.000Z"),
         patient: {
+          id: "patient-2",
           firstName: "Anna",
           lastName: "Verdi",
+          email: null,
+          phone: null,
+          gender: Gender.NOT_SPECIFIED,
+          birthDate: null,
+          notes: null,
+          photoUrl: null,
+          hasPaperConsentForRequired: false,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+          updatedAt: new Date("2026-01-01T00:00:00.000Z"),
         },
       },
-    ] as const;
+    ];
 
     const schedulerByAppointmentId = new Map([
       ["appt-1", "Segretaria Rossi"],

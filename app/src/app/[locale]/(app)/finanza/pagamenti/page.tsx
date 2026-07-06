@@ -71,7 +71,7 @@ export default async function PagamentiPage({
         select: { id: true, firstName: true, lastName: true, email: true, phone: true },
       })
     : null;
-  const [services, latestQuote, doctors] =
+  const [services, latestQuote, doctors, standalonePayments] =
     selectedPatientId && selectedPatient
       ? await Promise.all([
           prisma.service.findMany({
@@ -132,8 +132,27 @@ export default async function PagamentiPage({
             orderBy: { fullName: "asc" },
             select: { id: true, fullName: true },
           }),
+          prisma.patientPayment.findMany({
+            where: {
+              patientId: selectedPatientId,
+              archivedAt: null,
+              quoteId: null,
+            },
+            orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+            select: {
+              id: true,
+              amount: true,
+              paidAt: true,
+              method: true,
+              kind: true,
+              note: true,
+              user: {
+                select: { name: true, email: true },
+              },
+            },
+          }),
         ])
-      : [[], null, []];
+      : [[], null, [], []];
 
   const parsedQuote = serializePatientQuoteDraft(
     latestQuote
@@ -220,9 +239,22 @@ export default async function PagamentiPage({
       quoteItem: null,
     })) ?? [];
 
-  const historicalPayments = [...itemHistoricalPayments, ...generalHistoricalPayments].sort(
-    (a, b) => b.paidAt.getTime() - a.paidAt.getTime()
-  );
+  const standaloneHistoricalPayments = standalonePayments.map((p) => ({
+    id: p.id,
+    amount: Number(p.amount.toString()),
+    paidAt: p.paidAt,
+    method: p.method,
+    kind: p.kind,
+    note: p.note,
+    user: p.user,
+    quoteItem: null,
+  }));
+
+  const historicalPayments = [
+    ...itemHistoricalPayments,
+    ...generalHistoricalPayments,
+    ...standaloneHistoricalPayments,
+  ].sort((a, b) => b.paidAt.getTime() - a.paidAt.getTime());
 
   const defaultServiceDate = formatDateInputValueInTimeZone(new Date(), displayTimeZone);
 

@@ -3,7 +3,7 @@ import { GET } from "./route";
 
 describe("GET /api/scanid/meta", () => {
   it("returns 200 with version and downloadUrl (using defaults)", async () => {
-    const res = await GET(new Request("http://localhost/api/scanid/meta"));
+    const res = await GET();
     expect(res.status).toBe(200);
 
     const json = await res.json();
@@ -27,7 +27,7 @@ describe("GET /api/scanid/meta", () => {
     process.env.SCANID_RELEASE_NOTES = "Test notes";
 
     try {
-      const res = await GET(new Request("http://localhost/api/scanid/meta"));
+      const res = await GET();
       const json = await res.json();
       expect(json.version).toBe("9.9.9-test");
       expect(json.downloadUrl).toBe("https://example.com/ScanID-test.zip");
