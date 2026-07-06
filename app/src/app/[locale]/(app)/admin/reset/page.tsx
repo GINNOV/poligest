@@ -72,6 +72,7 @@ async function resetSystem(formData: FormData) {
     prisma.recurringMessageLog.deleteMany(),
     prisma.recurringMessageConfig.deleteMany(),
     prisma.auditLog.deleteMany(),
+    prisma.quickNotesPaymentSync.deleteMany(),
     prisma.patientPayment.deleteMany(),
     prisma.quoteItem.deleteMany(),
     prisma.quote.deleteMany(),
@@ -299,6 +300,11 @@ async function resetSystem(formData: FormData) {
         if (entries.length) await tx.patientPayment.createMany({ data: entries });
       }
 
+      if (selected.includes("quickNotesPaymentSync")) {
+        const entries = tableData("quickNotesPaymentSync") as Prisma.QuickNotesPaymentSyncCreateManyInput[];
+        if (entries.length) await tx.quickNotesPaymentSync.createMany({ data: entries });
+      }
+
       if (selected.includes("appointmentReminders")) {
         const entries = tableData("appointmentReminders") as Prisma.AppointmentReminderCreateManyInput[];
         if (entries.length) await tx.appointmentReminder.createMany({ data: entries });
@@ -432,6 +438,7 @@ async function importData(formData: FormData) {
     await tx.recurringMessageLog.deleteMany();
     await tx.recurringMessageConfig.deleteMany();
     await tx.auditLog.deleteMany();
+    await tx.quickNotesPaymentSync.deleteMany();
     await tx.patientPayment.deleteMany();
     await tx.quoteItem.deleteMany();
     await tx.quote.deleteMany();
@@ -643,6 +650,11 @@ async function importData(formData: FormData) {
         amount: toDecimal(p.amount),
       }));
       if (entries.length) await tx.patientPayment.createMany({ data: entries });
+    }
+
+    if (selected.includes("quickNotesPaymentSync")) {
+      const entries = tableData("quickNotesPaymentSync") as Prisma.QuickNotesPaymentSyncCreateManyInput[];
+      if (entries.length) await tx.quickNotesPaymentSync.createMany({ data: entries });
     }
 
     if (selected.includes("appointmentReminders")) {

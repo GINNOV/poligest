@@ -33,6 +33,7 @@ export const exportTables = [
   { key: "stockMovements", label: "Movimenti magazzino", category: "Magazzino" },
   { key: "financeEntries", label: "Finanza", category: "Amministrazione" },
   { key: "patientPayments", label: "Pagamenti pazienti", category: "Amministrazione" },
+  { key: "quickNotesPaymentSync", label: "Sync pagamenti QuickNotes", category: "Amministrazione" },
   { key: "cashAdvances", label: "Anticipi", category: "Amministrazione" },
   { key: "recallRules", label: "Regole richiami", category: "Sistema" },
   { key: "recalls", label: "Richiami", category: "Agenda" },

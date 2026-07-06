@@ -40,6 +40,7 @@ const tableQueries = {
   stockMovements: () => prisma.stockMovement.findMany(),
   financeEntries: () => prisma.financeEntry.findMany(),
   patientPayments: () => prisma.patientPayment.findMany(),
+  quickNotesPaymentSync: () => prisma.quickNotesPaymentSync.findMany(),
   cashAdvances: () => prisma.cashAdvance.findMany(),
   recallRules: () => prisma.recallRule.findMany(),
   recalls: () => prisma.recall.findMany(),
