@@ -68,6 +68,7 @@ class TransactionStore: ObservableObject {
     }
 
     func add(_ transaction: Transaction) {
+        guard !transaction.clientName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         transactions.append(transaction)
     }
 

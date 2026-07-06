@@ -15,6 +15,7 @@ struct TransactionFormView: View {
     @State private var isSaving = false
     @State private var showingPatientDirectory = false
     @State private var pendingUnlinkedIncome: PendingTransaction?
+    @State private var didTrySavingWithMissingClientName = false
     
     var body: some View {
         NavigationStack {
@@ -106,6 +107,21 @@ struct TransactionFormView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(showClientNameRequiredMessage ? Color.red.opacity(0.65) : Color.clear, lineWidth: 1)
+                )
+                .onChange(of: clientName) { _ in
+                    if clientNameIsValid {
+                        didTrySavingWithMissingClientName = false
+                    }
+                }
+            
+            if showClientNameRequiredMessage {
+                Label("Inserisci il nome del cliente per salvare.", systemImage: "exclamationmark.circle.fill")
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
             
             Button {
                 showingPatientDirectory = true
@@ -213,6 +229,14 @@ struct TransactionFormView: View {
         return amount > 0
     }
     
+    private var clientNameIsValid: Bool {
+        !lookupName.isEmpty
+    }
+    
+    private var showClientNameRequiredMessage: Bool {
+        didTrySavingWithMissingClientName && !clientNameIsValid
+    }
+    
     private var lookupName: String {
         clientName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -227,6 +251,10 @@ struct TransactionFormView: View {
     @MainActor
     private func saveTransaction() async {
         guard !isSaving else { return }
+        guard clientNameIsValid else {
+            didTrySavingWithMissingClientName = true
+            return
+        }
         
         let cleaned = amountString.replacingOccurrences(of: ",", with: ".")
         guard let amount = Double(cleaned) else { return }

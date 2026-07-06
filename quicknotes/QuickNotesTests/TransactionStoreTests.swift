@@ -83,6 +83,29 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertTrue(emptyStore.transactions.isEmpty)
     }
 
+    func testAddIgnoresIncomeAndExpenseWhenClientNameIsBlank() {
+        let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
+        let store = TransactionStore(fileURL: storageURL)
+
+        store.add(Transaction(
+            clientName: "   ",
+            amount: 10,
+            paymentMethod: .cash,
+            type: .income,
+            date: Date()
+        ))
+        store.add(Transaction(
+            clientName: "",
+            amount: 10,
+            paymentMethod: .pos,
+            type: .expense,
+            date: Date()
+        ))
+
+        XCTAssertTrue(store.transactions.isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: storageURL.path))
+    }
+
     func testRestoreICloudBackupReloadsTransactionsFromStorage() throws {
         let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
         let store = TransactionStore(fileURL: storageURL)
