@@ -88,6 +88,7 @@ describe("POST /api/quicknotes/payments", () => {
     );
     mocks.logAudit.mockResolvedValue(undefined);
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   it("rejects unauthorized requests before reading or writing finance data", async () => {
@@ -164,6 +165,34 @@ describe("POST /api/quicknotes/payments", () => {
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
     expect(mocks.txPatientPaymentCreate).not.toHaveBeenCalled();
     expect(mocks.txFinanceEntryCreate).not.toHaveBeenCalled();
+  });
+
+  it("falls back to finance metadata when the QuickNotes sync table is not migrated yet", async () => {
+    const missingTableError = new Prisma.PrismaClientKnownRequestError("The table does not exist", {
+      code: "P2021",
+      clientVersion: "test",
+    });
+    mocks.prisma.quickNotesPaymentSync.findUnique.mockRejectedValue(missingTableError);
+
+    const response = await POST(quickNotesRequest(validPayload));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      duplicate: false,
+      paymentId: "payment-1",
+      financeEntryId: "finance-1",
+    });
+    expect(mocks.txPatientPaymentCreate).toHaveBeenCalled();
+    expect(mocks.txFinanceEntryCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          quickNotesTransactionId: "quicknotes-tx-1",
+          paymentId: "payment-1",
+        }),
+      }),
+    });
+    expect(mocks.txQuickNotesPaymentSyncCreate).not.toHaveBeenCalled();
   });
 
   it("creates the patient payment and finance entry inside the same transaction", async () => {

@@ -38,8 +38,9 @@ export async function POST(req: Request) {
     }
 
     const existingSync = await findExistingQuickNotesSync(quickNotesTransactionId);
-    if (existingSync) {
-      return duplicateResponse(existingSync.patientPaymentId, existingSync.financeEntryId);
+    const quickNotesSyncTableAvailable = !existingSync.unavailable;
+    if (existingSync.record) {
+      return duplicateResponse(existingSync.record.patientPaymentId, existingSync.record.financeEntryId);
     }
 
     const patient = await prisma.patient.findUnique({
@@ -117,14 +118,16 @@ export async function POST(req: Request) {
         },
       });
 
-      await tx.quickNotesPaymentSync.create({
-        data: {
-          quickNotesTransactionId,
-          patientId,
-          patientPaymentId: p.id,
-          financeEntryId: financeEntry.id,
-        },
-      });
+      if (quickNotesSyncTableAvailable) {
+        await tx.quickNotesPaymentSync.create({
+          data: {
+            quickNotesTransactionId,
+            patientId,
+            patientPaymentId: p.id,
+            financeEntryId: financeEntry.id,
+          },
+        });
+      }
 
       return { payment: p, financeEntry };
     });
@@ -163,8 +166,8 @@ export async function POST(req: Request) {
   } catch (error) {
     if (isUniqueConstraintError(error)) {
       const existingSync = await findExistingQuickNotesSync(requestQuickNotesTransactionId);
-      if (existingSync) {
-        return duplicateResponse(existingSync.patientPaymentId, existingSync.financeEntryId);
+      if (existingSync.record) {
+        return duplicateResponse(existingSync.record.patientPaymentId, existingSync.record.financeEntryId);
       }
     }
 
@@ -179,6 +182,11 @@ type QuickNotesSyncRecord = {
   financeEntryId: string;
 };
 
+type QuickNotesSyncLookup = {
+  record: QuickNotesSyncRecord | null;
+  unavailable: boolean;
+};
+
 function duplicateResponse(paymentId: string | null, financeEntryId: string) {
   return NextResponse.json({
     ok: true,
@@ -188,20 +196,35 @@ function duplicateResponse(paymentId: string | null, financeEntryId: string) {
   });
 }
 
-function findExistingQuickNotesSync(quickNotesTransactionId: string): Promise<QuickNotesSyncRecord | null> {
+async function findExistingQuickNotesSync(quickNotesTransactionId: string): Promise<QuickNotesSyncLookup> {
   if (!quickNotesTransactionId) {
-    return Promise.resolve(null);
+    return { record: null, unavailable: false };
   }
 
-  return prisma.quickNotesPaymentSync.findUnique({
-    where: { quickNotesTransactionId },
-    select: {
-      patientPaymentId: true,
-      financeEntryId: true,
-    },
-  });
+  try {
+    const record = await prisma.quickNotesPaymentSync.findUnique({
+      where: { quickNotesTransactionId },
+      select: {
+        patientPaymentId: true,
+        financeEntryId: true,
+      },
+    });
+
+    return { record, unavailable: false };
+  } catch (error) {
+    if (isMissingQuickNotesSyncTableError(error)) {
+      console.warn("QuickNotes sync table is unavailable; falling back to finance metadata idempotency.");
+      return { record: null, unavailable: true };
+    }
+
+    throw error;
+  }
 }
 
 function isUniqueConstraintError(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+function isMissingQuickNotesSyncTableError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && ["P2021", "P2022"].includes(error.code);
 }
