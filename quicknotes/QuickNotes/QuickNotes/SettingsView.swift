@@ -3,13 +3,16 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: TransactionStore
-    
+
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     @AppStorage("showAmounts") private var showAmounts = true
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     @State private var showApiToken = false
-    
+    @State private var restoreAlertTitle = ""
+    @State private var restoreAlertMessage = ""
+    @State private var showingRestoreAlert = false
+
     var body: some View {
         NavigationStack {
             List {
@@ -27,7 +30,7 @@ struct SettingsView: View {
                         Image(systemName: "network")
                             .foregroundColor(.blue)
                     }
-                    
+
                     Label {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
@@ -42,7 +45,7 @@ struct SettingsView: View {
                                         .autocorrectionDisabled()
                                         .font(.caption.monospaced())
                                 }
-                                
+
                                 Button {
                                     showApiToken.toggle()
                                 } label: {
@@ -52,7 +55,7 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                                 .accessibilityLabel(showApiToken ? "Nascondi chiave API" : "Mostra chiave API")
                             }
-                            
+
                             Text("Usa la stessa chiave configurata in ScanID.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -64,7 +67,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Sorriso")
                 }
-                
+
                 Section {
                     Toggle(isOn: $iCloudBackupEnabled) {
                         Label {
@@ -79,7 +82,23 @@ struct SettingsView: View {
                                 .foregroundColor(.blue)
                         }
                     }
-                    
+
+                    Button {
+                        restoreICloudBackup()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Ripristina backup iCloud")
+                                Text("Ricarica i movimenti ripristinati dal backup iCloud del dispositivo.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "icloud.and.arrow.down")
+                                .foregroundColor(.blue)
+                        }
+                    }
+
                     Toggle(isOn: $showAmounts) {
                         Label {
                             VStack(alignment: .leading, spacing: 3) {
@@ -94,7 +113,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                
+
                 Section("Versione") {
                     HStack {
                         Text("App")
@@ -119,9 +138,30 @@ struct SettingsView: View {
             .onChange(of: iCloudBackupEnabled) { enabled in
                 store.configureICloudBackup(enabled: enabled)
             }
+            .alert(restoreAlertTitle, isPresented: $showingRestoreAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(restoreAlertMessage)
+            }
         }
     }
-    
+
+    private func restoreICloudBackup() {
+        switch store.restoreICloudBackup() {
+        case .restored(let transactionCount):
+            restoreAlertTitle = "Backup ripristinato"
+            restoreAlertMessage = "Movimenti caricati: \(transactionCount)."
+        case .noBackupFound:
+            restoreAlertTitle = "Nessun backup trovato"
+            restoreAlertMessage = "Non ci sono movimenti ripristinati dal backup iCloud del dispositivo."
+        case .failed(let message):
+            restoreAlertTitle = "Ripristino non riuscito"
+            restoreAlertMessage = message
+        }
+
+        showingRestoreAlert = true
+    }
+
     private var appVersionText: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"

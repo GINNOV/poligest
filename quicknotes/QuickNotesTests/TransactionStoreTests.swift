@@ -82,4 +82,48 @@ final class TransactionStoreTests: XCTestCase {
         let emptyStore = TransactionStore(fileURL: storageURL)
         XCTAssertTrue(emptyStore.transactions.isEmpty)
     }
+
+    func testRestoreICloudBackupReloadsTransactionsFromStorage() throws {
+        let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
+        let store = TransactionStore(fileURL: storageURL)
+        let originalTransaction = Transaction(
+            clientName: "Originale",
+            amount: 10,
+            paymentMethod: .cash,
+            type: .income,
+            date: Date()
+        )
+        let restoredTransaction = Transaction(
+            clientName: "Ripristinato",
+            amount: 30,
+            paymentMethod: .pos,
+            type: .income,
+            date: Date()
+        )
+
+        store.add(originalTransaction)
+        let restoredData = try JSONEncoder().encode([restoredTransaction])
+        try restoredData.write(to: storageURL)
+
+        switch store.restoreICloudBackup() {
+        case .restored(let transactionCount):
+            XCTAssertEqual(transactionCount, 1)
+        case .noBackupFound, .failed:
+            XCTFail("Expected restored backup")
+        }
+
+        XCTAssertEqual(store.transactions.map(\.clientName), ["Ripristinato"])
+    }
+
+    func testRestoreICloudBackupReportsMissingStorage() {
+        let storageURL = temporaryDirectory.appendingPathComponent("missing-transactions.json")
+        let store = TransactionStore(fileURL: storageURL)
+
+        switch store.restoreICloudBackup() {
+        case .noBackupFound:
+            break
+        case .restored, .failed:
+            XCTFail("Expected missing backup result")
+        }
+    }
 }
