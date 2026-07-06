@@ -9,6 +9,8 @@ type PrismaClientWithLogs = PrismaClient<
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientWithLogs };
 const isDev = process.env.NODE_ENV !== "production";
+const poolMaxConnections = isDev ? 10 : 1;
+const connectionTimeoutMillis = isDev ? 10000 : 30000;
 
 const devLogLevels: Prisma.LogDefinition[] = [
   { level: "warn", emit: "event" },
@@ -67,9 +69,9 @@ const createPrismaClient = () => {
   const pool = new Pool({
     connectionString,
     ssl: true,
-    max: 10, // Connection pool size
+    max: poolMaxConnections,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis,
   });
 
   // Test the pool connection immediately to fail fast if there's an issue

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { emitToast } from "@/components/global-toasts";
 import {
   getFetchRequestPath,
+  isIgnoredFetchFailure,
   resolveFetchRequestUrl,
 } from "@/lib/fetch-error-filter";
 import { shouldEmitFetchErrorToast } from "@/lib/fetch-toast-policy";
@@ -227,7 +228,7 @@ export function GlobalLoadingOverlay() {
         }
         return response;
       } catch (error) {
-        if (hadFreshInteraction(5000)) {
+        if (hadFreshInteraction(5000) && !isIgnoredFetchFailure(requestUrl, 0)) {
           let errorCode: string | undefined;
           try {
             const reportRes = await originalFetch("/api/errors/report", {

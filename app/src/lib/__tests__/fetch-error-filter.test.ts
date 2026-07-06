@@ -21,6 +21,7 @@ describe("fetch error filter", () => {
     ).toBe(true);
     expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 429)).toBe(true);
     expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 500)).toBe(true);
+    expect(isIgnoredFetchFailure("/api/stack/v1/analytics/events/batch", 0)).toBe(true);
   });
 
   it("ignores known Stack oauth token rate limits", () => {
