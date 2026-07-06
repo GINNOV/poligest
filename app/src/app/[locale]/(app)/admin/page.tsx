@@ -167,6 +167,15 @@ export default async function AdminPage() {
       icon: "🛡️",
     },
     {
+      key: "authorization-tokens",
+      title: "Authorization Tokens",
+      description: "ScanID, QuickNotes.",
+      href: "/admin/authorization-tokens",
+      badge: "API",
+      tone: "primary",
+      icon: "API",
+    },
+    {
       key: "errors",
       title: "Sistema: Errori",
       description: "Registro errori applicativi con codici per il supporto.",
@@ -282,7 +291,8 @@ export default async function AdminPage() {
     item.key === "privacy" ||
     item.key === "consent-modules" ||
     item.key === "users" ||
-    item.key === "feature-access";
+    item.key === "feature-access" ||
+    item.key === "authorization-tokens";
   const systemShortcuts = sortedShortcuts.filter((item) => isSystem(item));
   const communicationShortcuts = sortedShortcuts.filter((item) => isCommunications(item));
   const privacyAndSecurityShortcuts = sortedShortcuts.filter((item) => isPrivacyAndSecurity(item));

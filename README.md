@@ -16,7 +16,7 @@ For clinical work, each patient has a full record: anamnesis, notes, consent mod
 
 Behind that sits inventory (products, implants, suppliers, stock movements), automated and manual recall rules, recurring messages for closures and birthdays, SMS through ClickSend, WhatsApp reminder links for appointments and recalls, email templates, a daily agenda email to staff, and a weekly report for managers.
 
-Administration covers database export and restore, user and role management, per-feature access control, a full audit trail of data changes, error reporting, privacy and GDPR tooling, service catalogues, and the ScanID API key for the Mac scanner.
+Administration covers database export and restore, user and role management, per-feature access control, a full audit trail of data changes, error reporting, privacy and GDPR tooling, service catalogues, and authorization tokens for companion apps.
 
 ## ScanID
 
@@ -76,7 +76,7 @@ Routes: `app/src/app/[locale]/(app)/` · API: `app/src/app/api/`
 
 ## ScanID (macOS)
 
-Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS with an API key configured in `/admin/scanid`.
+Swift/SwiftUI app using Apple Vision for OCR. Connects to Sorriso over HTTPS with the Sorriso API token from `/admin/authorization-tokens`.
 
 ### Download
 
@@ -154,10 +154,10 @@ node app/scripts/update-scanid-meta.mjs 1.2.0 "…"
 | Setting | Where | Purpose |
 |---------|-------|---------|
 | Server URL | ScanID preferences | Base URL of the Sorriso deployment (default: `https://sorrisosplendente.com`) |
-| API key | ScanID preferences | Sent as `x-api-key` on patient creation |
+| API key | Authorization Tokens admin page | Sent as `x-api-key` by companion apps |
 | `MACOS_APP_API_KEY` | Web server env | Expected token for `POST /api/patients` (default in dev: `poligest_macos_secret`) |
 
-Admin page for key and setup: `/admin/scanid`.
+Admin page for authorization tokens: `/admin/authorization-tokens`.
 
 Extracted fields (surname, name, codice fiscale, birth date, gender, etc.) are parsed on the Mac. Only name, birth date, gender, email, phone, and notes are persisted to the `Patient` model today.
 

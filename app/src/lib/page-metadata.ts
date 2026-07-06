@@ -53,6 +53,7 @@ export const PAGE_TITLES = {
   errori: "Errori sistema",
   audit: "Audit sistema",
   privacy: "Privacy e GDPR",
+  authorizationTokens: "Authorization Tokens",
   servizi: "Servizi offerti",
   anamnesi: "Anamnesi",
   messaggiSms: "Messaggi SMS",
