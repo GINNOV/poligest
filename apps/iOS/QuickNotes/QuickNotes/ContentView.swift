@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showingMonthlyReports = false
     @State private var showingMonthDrillDown = false
     @State private var showingSettings = false
+    @State private var showingSyncStatus = false
     @State private var transactionPendingDeletion: Transaction?
     
     var body: some View {
@@ -45,10 +46,27 @@ struct ContentView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { authenticator.logOut() }) {
-                        Image(systemName: "lock.fill")
+                    HStack(spacing: 12) {
+                        if pendingSyncCount > 0 {
+                            Button(action: { showingSyncStatus = true }) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .overlay(alignment: .topTrailing) {
+                                        Text("\(pendingSyncCount)")
+                                            .font(.caption2.bold())
+                                            .foregroundColor(.white)
+                                            .frame(minWidth: 16, minHeight: 16)
+                                            .background(Color.red, in: Circle())
+                                            .offset(x: 8, y: -8)
+                                    }
+                            }
+                            .accessibilityLabel("Movimenti da sincronizzare")
+                        }
+                        
+                        Button(action: { authenticator.logOut() }) {
+                            Image(systemName: "lock.fill")
+                        }
+                        .accessibilityLabel("Blocca")
                     }
-                    .accessibilityLabel("Blocca")
                 }
             }
         }
@@ -64,6 +82,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView(store: store)
+        }
+        .sheet(isPresented: $showingSyncStatus) {
+            SyncStatusView(store: store)
         }
         .alert("Eliminare questo movimento?", isPresented: deleteConfirmationIsPresented) {
             Button("Annulla", role: .cancel) {
@@ -201,6 +222,10 @@ struct ContentView: View {
     private var transactionsForToday: [Transaction] {
         let calendar = Calendar.current
         return store.transactions.filter { calendar.isDateInToday($0.date) }
+    }
+    
+    private var pendingSyncCount: Int {
+        store.transactions.filter { $0.shouldSyncToSorriso && $0.financeSyncedAt == nil }.count
     }
     
     private var deleteConfirmationIsPresented: Binding<Bool> {

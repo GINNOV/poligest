@@ -1,41 +1,37 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct MonthDrillDownView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var store: TransactionStore
     
+    @State private var exportedDocument: TransactionsDocument?
+    @State private var isImporting = false
+    @State private var pendingImport: PendingTransactionsImport?
+    @State private var importResult: ImportResult?
+    
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if monthSummaries.isEmpty {
-                        emptyState
-                    } else {
-                        ForEach(monthSummaries) { summary in
-                            NavigationLink(value: summary) {
-                                MonthSummaryRow(summary: summary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
-            }
-            .background(Color(.systemGroupedBackground))
+            monthList
             .navigationTitle("Mesi")
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: MonthSummary.self) { summary in
                 MonthDetailView(summary: summary)
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fine") {
-                        dismiss()
-                    }
-                }
+            .toolbar { toolbarContent }
+            .fileExporter(
+                isPresented: exportIsPresented,
+                document: exportedDocument,
+                contentType: .json,
+                defaultFilename: exportFileName
+            ) { result in
+                handleExport(result)
             }
+            .fileImporter(isPresented: $isImporting, allowedContentTypes: [.json]) { result in
+                handleImport(result)
+            }
+            .confirmationDialog("Importa movimenti", isPresented: pendingImportIsPresented, actions: importDialogActions, message: importDialogMessage)
+            .alert(item: $importResult, content: importResultAlert)
         }
     }
     
@@ -68,6 +64,198 @@ struct MonthDrillDownView: View {
         .padding(.horizontal, 20)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
+
+    private var monthList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                if monthSummaries.isEmpty {
+                    emptyState
+                } else {
+                    ForEach(monthSummaries) { summary in
+                        NavigationLink(value: summary) {
+                            MonthSummaryRow(summary: summary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 28)
+        }
+        .background(Color(.systemGroupedBackground))
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            importExportMenu
+
+            Button("Fine") {
+                dismiss()
+            }
+        }
+    }
+
+    private var importExportMenu: some View {
+        Menu {
+            Button(action: beginExport) {
+                Label("Esporta JSON", systemImage: "square.and.arrow.up")
+            }
+            .disabled(store.transactions.isEmpty)
+
+            Button(action: beginImport) {
+                Label("Importa JSON", systemImage: "square.and.arrow.down")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .accessibilityLabel("Importa o esporta movimenti")
+    }
+    
+    private var exportFileName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "QuickNotes-Movimenti-\(formatter.string(from: Date())).json"
+    }
+
+    private var exportIsPresented: Binding<Bool> {
+        Binding {
+            exportedDocument != nil
+        } set: { isPresented in
+            if !isPresented {
+                exportedDocument = nil
+            }
+        }
+    }
+    
+    private var pendingImportIsPresented: Binding<Bool> {
+        Binding {
+            pendingImport != nil
+        } set: { isPresented in
+            if !isPresented {
+                pendingImport = nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func importDialogActions() -> some View {
+        Button("Unisci \(pendingImport?.transactions.count ?? 0) movimenti", action: mergePendingImport)
+
+        Button("Sostituisci tutto", role: .destructive, action: replaceWithPendingImport)
+
+        Button("Annulla", role: .cancel) {
+            pendingImport = nil
+        }
+    }
+
+    private func importDialogMessage() -> some View {
+        Text("Scegli se unire i movimenti importati a quelli attuali o sostituire l'archivio locale.")
+    }
+
+    private func importResultAlert(_ result: ImportResult) -> Alert {
+        Alert(
+            title: Text(result.title),
+            message: Text(result.message),
+            dismissButton: .default(Text("OK"))
+        )
+    }
+
+    private func beginExport() {
+        exportedDocument = TransactionsDocument(transactions: store.transactions)
+    }
+
+    private func beginImport() {
+        isImporting = true
+    }
+
+    private func handleExport(_ result: Result<URL, Error>) {
+        exportedDocument = nil
+
+        if case .failure(let error) = result {
+            importResult = ImportResult(title: "Esportazione non riuscita", message: error.localizedDescription)
+        }
+    }
+
+    private func mergePendingImport() {
+        guard let pendingImport else { return }
+
+        let importedCount = store.mergeImportedTransactions(pendingImport.transactions)
+        importResult = ImportResult(
+            title: "Importazione completata",
+            message: "\(importedCount) nuovi movimenti importati."
+        )
+        self.pendingImport = nil
+    }
+
+    private func replaceWithPendingImport() {
+        guard let pendingImport else { return }
+
+        store.replaceAll(with: pendingImport.transactions)
+        importResult = ImportResult(
+            title: "Archivio sostituito",
+            message: "\(pendingImport.transactions.count) movimenti importati."
+        )
+        self.pendingImport = nil
+    }
+    
+    private func handleImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success(let url):
+            do {
+                let canAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if canAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
+                let data = try Data(contentsOf: url)
+                let transactions = try JSONDecoder().decode([Transaction].self, from: data)
+                pendingImport = PendingTransactionsImport(transactions: transactions)
+            } catch {
+                importResult = ImportResult(title: "Importazione non riuscita", message: error.localizedDescription)
+            }
+        case .failure(let error):
+            importResult = ImportResult(title: "Importazione non riuscita", message: error.localizedDescription)
+        }
+    }
+}
+
+private struct TransactionsDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    
+    let transactions: [Transaction]
+    
+    init(transactions: [Transaction]) {
+        self.transactions = transactions
+    }
+    
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        transactions = try JSONDecoder().decode([Transaction].self, from: data)
+    }
+    
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        let data = try encoder.encode(transactions)
+        return FileWrapper(regularFileWithContents: data)
+    }
+}
+
+private struct PendingTransactionsImport: Identifiable {
+    let id = UUID()
+    let transactions: [Transaction]
+}
+
+private struct ImportResult: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
 }
 
 private struct MonthSummary: Identifiable, Hashable {

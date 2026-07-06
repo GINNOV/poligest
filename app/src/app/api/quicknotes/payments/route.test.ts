@@ -4,6 +4,7 @@ import { PatientPaymentKind, PatientPaymentMethod, Prisma } from "@prisma/client
 const mocks = vi.hoisted(() => {
   const txPatientPaymentCreate = vi.fn();
   const txFinanceEntryCreate = vi.fn();
+  const txQuickNotesPaymentSyncCreate = vi.fn();
 
   const prisma = {
     patient: {
@@ -11,6 +12,9 @@ const mocks = vi.hoisted(() => {
     },
     financeEntry: {
       findFirst: vi.fn(),
+    },
+    quickNotesPaymentSync: {
+      findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
   };
@@ -21,6 +25,7 @@ const mocks = vi.hoisted(() => {
     prisma,
     txPatientPaymentCreate,
     txFinanceEntryCreate,
+    txQuickNotesPaymentSyncCreate,
   };
 });
 
@@ -70,12 +75,15 @@ describe("POST /api/quicknotes/payments", () => {
       lastName: "Rossi",
     });
     mocks.prisma.financeEntry.findFirst.mockResolvedValue(null);
+    mocks.prisma.quickNotesPaymentSync.findUnique.mockResolvedValue(null);
     mocks.txPatientPaymentCreate.mockResolvedValue({ id: "payment-1" });
     mocks.txFinanceEntryCreate.mockResolvedValue({ id: "finance-1" });
+    mocks.txQuickNotesPaymentSyncCreate.mockResolvedValue({ id: "sync-1" });
     mocks.prisma.$transaction.mockImplementation(async (callback) =>
       callback({
         patientPayment: { create: mocks.txPatientPaymentCreate },
         financeEntry: { create: mocks.txFinanceEntryCreate },
+        quickNotesPaymentSync: { create: mocks.txQuickNotesPaymentSyncCreate },
       }),
     );
     mocks.logAudit.mockResolvedValue(undefined);
@@ -92,6 +100,7 @@ describe("POST /api/quicknotes/payments", () => {
 
     expect(response.status).toBe(401);
     expect(mocks.prisma.patient.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.quickNotesPaymentSync.findUnique).not.toHaveBeenCalled();
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -100,6 +109,27 @@ describe("POST /api/quicknotes/payments", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.prisma.patient.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.quickNotesPaymentSync.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing synced payment before reading patient data", async () => {
+    mocks.prisma.quickNotesPaymentSync.findUnique.mockResolvedValue({
+      patientPaymentId: "payment-existing",
+      financeEntryId: "finance-existing",
+    });
+
+    const response = await POST(quickNotesRequest(validPayload));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      duplicate: true,
+      paymentId: "payment-existing",
+      financeEntryId: "finance-existing",
+    });
+    expect(mocks.prisma.patient.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.financeEntry.findFirst).not.toHaveBeenCalled();
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
 
@@ -170,11 +200,45 @@ describe("POST /api/quicknotes/payments", () => {
         },
       }),
     });
+    expect(mocks.txQuickNotesPaymentSyncCreate).toHaveBeenCalledWith({
+      data: {
+        quickNotesTransactionId: "quicknotes-tx-1",
+        patientId: "patient-1",
+        patientPaymentId: "payment-1",
+        financeEntryId: "finance-1",
+      },
+    });
     expect(mocks.logAudit).toHaveBeenCalledWith(null, expect.objectContaining({
       action: "finance.quicknotes_payment.recorded",
       entityId: "payment-1",
     }));
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/finanza/pagamenti");
+  });
+
+  it("returns duplicate success when a concurrent request already inserted the sync key", async () => {
+    const uniqueError = new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+      code: "P2002",
+      clientVersion: "test",
+    });
+    mocks.prisma.$transaction.mockRejectedValue(uniqueError);
+    mocks.prisma.quickNotesPaymentSync.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        patientPaymentId: "payment-race",
+        financeEntryId: "finance-race",
+      });
+
+    const response = await POST(quickNotesRequest(validPayload));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      duplicate: true,
+      paymentId: "payment-race",
+      financeEntryId: "finance-race",
+    });
+    expect(mocks.logAudit).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
   it("does not report success or run side effects when the atomic database transaction fails", async () => {

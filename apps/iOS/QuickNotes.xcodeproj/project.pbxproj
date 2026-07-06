@@ -10,6 +10,7 @@
 		13D3A1E14E054B07A1B28D1F /* TransactionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20121BC6142342D1A3839740 /* TransactionFormView.swift */; };
 		15C9BA4E2F4A4D8A9F4D4FF7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BB45979C8149B1AA4DE3D2 /* ContentView.swift */; };
 		2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */; };
+		30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */; };
 		37191F649CE94DED90C8CBEF /* PDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */; };
 		463AB7FCEB7E46F68FB78D60 /* QuickNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */; };
 		4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */; };
@@ -21,6 +22,7 @@
 		9B5F32CC92FC47E0B6FC75E8 /* PatientDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */; };
 		A9B4D7958A6246A1BC26A7F3 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */; };
 		B13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */; };
+		B0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */; };
 		C22955669053446780FA3C50 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A330F89F4B05434DA8ECD6D8 /* Assets.xcassets */; };
 		C85C0072D4FD4CBCA33DC8B9 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AD0A1046A3459A90B30525 /* Transaction.swift */; };
 		D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */; };
@@ -43,6 +45,7 @@
 /* Begin PBXFileReference section */
 		14BA53D92CBA4CC897799E49 /* QuickNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthDrillDownView.swift; path = QuickNotes/QuickNotes/MonthDrillDownView.swift; sourceTree = "<group>"; };
+		10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SyncStatusView.swift; path = QuickNotes/QuickNotes/SyncStatusView.swift; sourceTree = "<group>"; };
 		1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogService.swift; path = QuickNotes/QuickNotes/ServiceCatalogService.swift; sourceTree = "<group>"; };
 		20121BC6142342D1A3839740 /* TransactionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransactionFormView.swift; path = QuickNotes/QuickNotes/TransactionFormView.swift; sourceTree = "<group>"; };
 		24AD0A1046A3459A90B30525 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Transaction.swift; path = QuickNotes/QuickNotes/Transaction.swift; sourceTree = "<group>"; };
@@ -55,6 +58,7 @@
 		8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFGenerator.swift; path = QuickNotes/QuickNotes/PDFGenerator.swift; sourceTree = "<group>"; };
 		8D7965A0F61F4ACC9C2AD0A5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = QuickNotes/QuickNotes/Info.plist; sourceTree = "<group>"; };
 		A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BiometricAuthenticator.swift; path = QuickNotes/QuickNotes/BiometricAuthenticator.swift; sourceTree = "<group>"; };
+		A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickNotesSyncCoordinator.swift; path = QuickNotes/QuickNotes/QuickNotesSyncCoordinator.swift; sourceTree = "<group>"; };
 		A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientLookupServiceTests.swift; path = QuickNotesTests/PatientLookupServiceTests.swift; sourceTree = "<group>"; };
 		A330F89F4B05434DA8ECD6D8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = QuickNotes/Assets.xcassets; sourceTree = "<group>"; };
 		B8154D1B294E420BA90FC528 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = QuickNotes/QuickNotes/SettingsView.swift; sourceTree = "<group>"; };
@@ -121,6 +125,7 @@
 				20121BC6142342D1A3839740 /* TransactionFormView.swift */,
 				7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */,
 				3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */,
+				10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */,
 				86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */,
 				0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */,
 			);
@@ -133,6 +138,7 @@
 				30CC6754622A412DB52146CE /* PatientLookupService.swift */,
 				1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */,
 				C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */,
+				A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */,
 				A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */,
 				8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */,
 			);
@@ -308,6 +314,8 @@
 				9B5F32CC92FC47E0B6FC75E8 /* PatientDirectoryView.swift in Sources */,
 				4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */,
 				80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */,
+				B0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift in Sources */,
+				30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */,
 				84FC522DE9C34098B3568EA2 /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

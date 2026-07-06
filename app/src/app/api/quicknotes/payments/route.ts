@@ -12,11 +12,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  let requestQuickNotesTransactionId = "";
+
   try {
     const body = await req.json();
     const patientId = typeof body.patientId === "string" ? body.patientId.trim() : "";
     const quickNotesTransactionId =
       typeof body.quickNotesTransactionId === "string" ? body.quickNotesTransactionId.trim() : "";
+    requestQuickNotesTransactionId = quickNotesTransactionId;
     const amount = Number.parseFloat(String(body.amount ?? "").replace(",", "."));
     const paidAt = body.paidAt ? new Date(body.paidAt) : new Date();
     const methodRaw = String(body.method || PatientPaymentMethod.ELECTRONIC).toUpperCase();
@@ -32,6 +35,11 @@ export async function POST(req: Request) {
 
     if (Number.isNaN(paidAt.getTime())) {
       return NextResponse.json({ error: "Invalid payment date" }, { status: 400 });
+    }
+
+    const existingSync = await findExistingQuickNotesSync(quickNotesTransactionId);
+    if (existingSync) {
+      return duplicateResponse(existingSync.patientPaymentId, existingSync.financeEntryId);
     }
 
     const patient = await prisma.patient.findUnique({
@@ -109,6 +117,15 @@ export async function POST(req: Request) {
         },
       });
 
+      await tx.quickNotesPaymentSync.create({
+        data: {
+          quickNotesTransactionId,
+          patientId,
+          patientPaymentId: p.id,
+          financeEntryId: financeEntry.id,
+        },
+      });
+
       return { payment: p, financeEntry };
     });
 
@@ -144,8 +161,47 @@ export async function POST(req: Request) {
       financeEntryId: payment.financeEntry.id,
     });
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      const existingSync = await findExistingQuickNotesSync(requestQuickNotesTransactionId);
+      if (existingSync) {
+        return duplicateResponse(existingSync.patientPaymentId, existingSync.financeEntryId);
+      }
+    }
+
     console.error("QuickNotes payment sync failed:", error);
     const message = error instanceof Error ? error.message : "Failed to record QuickNotes payment";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+type QuickNotesSyncRecord = {
+  patientPaymentId: string;
+  financeEntryId: string;
+};
+
+function duplicateResponse(paymentId: string | null, financeEntryId: string) {
+  return NextResponse.json({
+    ok: true,
+    duplicate: true,
+    paymentId,
+    financeEntryId,
+  });
+}
+
+function findExistingQuickNotesSync(quickNotesTransactionId: string): Promise<QuickNotesSyncRecord | null> {
+  if (!quickNotesTransactionId) {
+    return Promise.resolve(null);
+  }
+
+  return prisma.quickNotesPaymentSync.findUnique({
+    where: { quickNotesTransactionId },
+    select: {
+      patientPaymentId: true,
+      financeEntryId: true,
+    },
+  });
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }

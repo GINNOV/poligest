@@ -411,31 +411,13 @@ struct TransactionFormView: View {
         )
         
         store.add(newTx)
-        syncToFinanceIfNeeded(newTx)
+        QuickNotesSyncCoordinator.syncToFinanceIfNeeded(
+            newTx,
+            store: store,
+            serverURL: serverUrl,
+            apiToken: apiToken
+        )
         dismiss()
-    }
-    
-    private func syncToFinanceIfNeeded(_ transaction: Transaction) {
-        guard transaction.shouldSyncToSorriso else { return }
-        
-        Task {
-            var syncedTransaction = transaction
-            
-            do {
-                let service = FinanceSyncService(serverURL: serverUrl, apiToken: apiToken)
-                let result = try await service.syncPatientPayment(transaction: transaction)
-                syncedTransaction.financePaymentId = result.paymentId
-                syncedTransaction.financeEntryId = result.financeEntryId
-                syncedTransaction.financeSyncedAt = Date()
-                syncedTransaction.financeSyncError = nil
-            } catch {
-                syncedTransaction.financeSyncError = error.localizedDescription
-            }
-            
-            await MainActor.run {
-                store.update(syncedTransaction)
-            }
-        }
     }
     
     private func lookupPatientIfNeeded() async {

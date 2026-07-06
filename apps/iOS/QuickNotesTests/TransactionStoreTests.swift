@@ -181,4 +181,55 @@ final class TransactionStoreTests: XCTestCase {
             XCTFail("Expected missing backup result")
         }
     }
+    
+    func testMergeImportedTransactionsAddsOnlyNewIds() {
+        let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
+        let store = TransactionStore(fileURL: storageURL)
+        let existing = Transaction(
+            clientName: "Esistente",
+            amount: 10,
+            paymentMethod: .cash,
+            type: .income,
+            date: Date()
+        )
+        let imported = Transaction(
+            clientName: "Importato",
+            amount: 20,
+            paymentMethod: .pos,
+            type: .income,
+            date: Date()
+        )
+        
+        store.add(existing)
+        let importedCount = store.mergeImportedTransactions([existing, imported])
+        
+        XCTAssertEqual(importedCount, 1)
+        XCTAssertEqual(store.transactions.map(\.clientName), ["Esistente", "Importato"])
+    }
+    
+    func testReplaceAllWithImportedTransactionsPersistsReplacement() {
+        let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
+        let store = TransactionStore(fileURL: storageURL)
+        store.add(Transaction(
+            clientName: "Da sostituire",
+            amount: 10,
+            paymentMethod: .cash,
+            type: .income,
+            date: Date()
+        ))
+        
+        let imported = Transaction(
+            clientName: "Importato",
+            amount: 20,
+            paymentMethod: .wire,
+            type: .expense,
+            date: Date()
+        )
+        store.replaceAll(with: [imported])
+        
+        let reloadedStore = TransactionStore(fileURL: storageURL)
+        XCTAssertEqual(reloadedStore.transactions.count, 1)
+        XCTAssertEqual(reloadedStore.transactions.first?.clientName, "Importato")
+        XCTAssertEqual(reloadedStore.transactions.first?.paymentMethod, .wire)
+    }
 }

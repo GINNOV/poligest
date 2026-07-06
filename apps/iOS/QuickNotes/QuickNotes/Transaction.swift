@@ -102,6 +102,18 @@ class TransactionStore: ObservableObject {
             transactions.remove(at: index)
         }
     }
+    
+    func replaceAll(with importedTransactions: [Transaction]) {
+        transactions = importedTransactions
+    }
+    
+    func mergeImportedTransactions(_ importedTransactions: [Transaction]) -> Int {
+        let existingIds = Set(transactions.map(\.id))
+        let newTransactions = importedTransactions.filter { !existingIds.contains($0.id) }
+        guard !newTransactions.isEmpty else { return 0 }
+        transactions.append(contentsOf: newTransactions)
+        return newTransactions.count
+    }
 
     func configureICloudBackup(enabled: Bool) {
         for protectedFileURL in [fileURL, backupFileURL] where FileManager.default.fileExists(atPath: protectedFileURL.path) {

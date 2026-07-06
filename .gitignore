@@ -58,3 +58,4 @@ apps/macos/*.dmg
 exports
 apps/iOS/build
 UserInterfaceState.xcuserstate
+quicknotes/build
