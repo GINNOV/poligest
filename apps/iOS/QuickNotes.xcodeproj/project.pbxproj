@@ -12,6 +12,7 @@
 		2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */; };
 		30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */; };
 		37191F649CE94DED90C8CBEF /* PDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */; };
+		3A4B5C6D7E8F901234567890 /* DailyReportWhatsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */; };
 		463AB7FCEB7E46F68FB78D60 /* QuickNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */; };
 		4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */; };
 		6C84D9A5085745C79D7E628A /* MonthDrillDownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */; };
@@ -27,6 +28,7 @@
 		C1A0D10C10D0BACC00000002 /* CloudKitBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D10C10D0BACC00000001 /* CloudKitBackupService.swift */; };
 		C85C0072D4FD4CBCA33DC8B9 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AD0A1046A3459A90B30525 /* Transaction.swift */; };
 		D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */; };
+		D4E5F60718293A4B5C6D7E8F /* DailyReportWhatsAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */; };
 		E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */; };
 		E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */; };
 		F3BF3EB2BC5249B5980D0A10 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */; };
@@ -53,6 +55,7 @@
 		27BB45979C8149B1AA4DE3D2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = QuickNotes/QuickNotes/ContentView.swift; sourceTree = "<group>"; };
 		30CC6754622A412DB52146CE /* PatientLookupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientLookupService.swift; path = QuickNotes/QuickNotes/PatientLookupService.swift; sourceTree = "<group>"; };
 		3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceDirectoryView.swift; path = QuickNotes/QuickNotes/ServiceDirectoryView.swift; sourceTree = "<group>"; };
+		4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DailyReportWhatsApp.swift; path = QuickNotes/QuickNotes/DailyReportWhatsApp.swift; sourceTree = "<group>"; };
 		5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = QuickNotes/QuickNotes/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientDirectoryView.swift; path = QuickNotes/QuickNotes/PatientDirectoryView.swift; sourceTree = "<group>"; };
 		86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthlyReportsView.swift; path = QuickNotes/QuickNotes/MonthlyReportsView.swift; sourceTree = "<group>"; };
@@ -71,6 +74,7 @@
 		D2B4A6C81E9F4A3B8C7D6E5F /* BuildNumber.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = BuildNumber.xcconfig; path = QuickNotes/BuildNumber.xcconfig; sourceTree = "<group>"; };
 		D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogServiceTests.swift; path = QuickNotesTests/ServiceCatalogServiceTests.swift; sourceTree = "<group>"; };
 		E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickNotesApp.swift; path = QuickNotes/QuickNotes/QuickNotesApp.swift; sourceTree = "<group>"; };
+		E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DailyReportWhatsAppTests.swift; path = QuickNotesTests/DailyReportWhatsAppTests.swift; sourceTree = "<group>"; };
 		E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenView.swift; path = QuickNotes/QuickNotes/LockScreenView.swift; sourceTree = "<group>"; };
 		F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFGeneratorTests.swift; path = QuickNotesTests/PDFGeneratorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -144,6 +148,7 @@
 				C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */,
 				A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */,
 				C1A0D10C10D0BACC00000001 /* CloudKitBackupService.swift */,
+				4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */,
 				A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */,
 				8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */,
 			);
@@ -167,6 +172,7 @@
 				F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */,
 				A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */,
 				D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */,
+				E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */,
 			);
 			name = Tests;
 			sourceTree = "<group>";
@@ -324,6 +330,7 @@
 				80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */,
 				B0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift in Sources */,
 				C1A0D10C10D0BACC00000002 /* CloudKitBackupService.swift in Sources */,
+				3A4B5C6D7E8F901234567890 /* DailyReportWhatsApp.swift in Sources */,
 				30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */,
 				84FC522DE9C34098B3568EA2 /* SettingsView.swift in Sources */,
 			);
@@ -337,6 +344,7 @@
 				E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */,
 				B13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift in Sources */,
 				E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */,
+				D4E5F60718293A4B5C6D7E8F /* DailyReportWhatsAppTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -6,8 +6,14 @@ struct SettingsView: View {
 
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     @AppStorage("showAmounts") private var showAmounts = true
+    @AppStorage("showMesiShortcut") private var showMesiShortcut = true
+    @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
+    @AppStorage("whatsappRecipientOneName") private var whatsappRecipientOneName = "Utente 1"
+    @AppStorage("whatsappRecipientOnePhone") private var whatsappRecipientOnePhone = ""
+    @AppStorage("whatsappRecipientTwoName") private var whatsappRecipientTwoName = "Utente 2"
+    @AppStorage("whatsappRecipientTwoPhone") private var whatsappRecipientTwoPhone = ""
     @State private var showApiToken = false
     @State private var restoreAlertTitle = ""
     @State private var restoreAlertMessage = ""
@@ -70,6 +76,24 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    WhatsAppRecipientFields(
+                        title: "Destinatario 1",
+                        name: $whatsappRecipientOneName,
+                        phone: $whatsappRecipientOnePhone
+                    )
+
+                    WhatsAppRecipientFields(
+                        title: "Destinatario 2",
+                        name: $whatsappRecipientTwoName,
+                        phone: $whatsappRecipientTwoPhone
+                    )
+                } header: {
+                    Text("WhatsApp")
+                } footer: {
+                    Text("Il resoconto giornaliero apre WhatsApp con il messaggio compilato. L'invio va confermato dentro WhatsApp.")
+                }
+
+                Section {
                     Toggle(isOn: $iCloudBackupEnabled) {
                         Label {
                             VStack(alignment: .leading, spacing: 3) {
@@ -118,6 +142,34 @@ struct SettingsView: View {
                         } icon: {
                             Image(systemName: showAmounts ? "eye" : "eye.slash")
                                 .foregroundColor(.purple)
+                        }
+                    }
+
+                    Toggle(isOn: $showMesiShortcut) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Mostra Mesi")
+                                Text("Mostra o nasconde il collegamento Mesi nella schermata principale.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "calendar.day.timeline.left")
+                                .foregroundColor(.blue)
+                        }
+                    }
+
+                    Toggle(isOn: $showMonthlyReportShortcut) {
+                        Label {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Mostra resoconto mensile")
+                                Text("Mostra o nasconde il collegamento Resoconti nella schermata principale.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "calendar")
+                                .foregroundColor(.blue)
                         }
                     }
                 }
@@ -180,5 +232,31 @@ struct SettingsView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
+    }
+}
+
+private struct WhatsAppRecipientFields: View {
+    let title: String
+    @Binding var name: String
+    @Binding var phone: String
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+
+                TextField("Nome", text: $name)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+
+                TextField("+39 333 123 4567", text: $phone)
+                    .keyboardType(.phonePad)
+                    .textContentType(.telephoneNumber)
+            }
+        } icon: {
+            Image(systemName: "message")
+                .foregroundColor(.green)
+        }
     }
 }

@@ -116,7 +116,7 @@ struct MonthDrillDownView: View {
     private var exportFileName: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        return "QuickNotes-Movimenti-\(formatter.string(from: Date())).json"
+        return "Sorriso-Mobile-Movimenti-\(formatter.string(from: Date())).json"
     }
 
     private var exportIsPresented: Binding<Bool> {

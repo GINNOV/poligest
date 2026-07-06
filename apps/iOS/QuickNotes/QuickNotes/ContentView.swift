@@ -5,12 +5,15 @@ struct ContentView: View {
     @ObservedObject var authenticator: BiometricAuthenticator
     @AppStorage("showAmounts") private var showAmounts = true
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
+    @AppStorage("showMesiShortcut") private var showMesiShortcut = true
+    @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
     
     @State private var formRoute: TransactionFormRoute?
     @State private var showingMonthlyReports = false
     @State private var showingMonthDrillDown = false
     @State private var showingSettings = false
     @State private var showingSyncStatus = false
+    @State private var reportShareAlert: ReportShareAlert?
     @State private var transactionPendingDeletion: Transaction?
     
     var body: some View {
@@ -35,12 +38,16 @@ struct ContentView: View {
                     }
                     .accessibilityLabel("Impostazioni")
                     
-                    Button(action: { showingMonthDrillDown = true }) {
-                        Label("Mesi", systemImage: "calendar.day.timeline.left")
+                    if showMesiShortcut {
+                        Button(action: { showingMonthDrillDown = true }) {
+                            Label("Mesi", systemImage: "calendar.day.timeline.left")
+                        }
                     }
                     
-                    Button(action: { showingMonthlyReports = true }) {
-                        Label("Resoconti", systemImage: "calendar")
+                    if showMonthlyReportShortcut {
+                        Button(action: { showingMonthlyReports = true }) {
+                            Label("Resoconti", systemImage: "calendar")
+                        }
                     }
                 }
                 
@@ -93,7 +100,14 @@ struct ContentView: View {
                 confirmDeleteTransaction()
             }
         } message: {
-            Text("Questa operazione rimuoverà definitivamente il movimento da QuickNotes.")
+            Text("Questa operazione rimuoverà definitivamente il movimento da Sorriso Mobile.")
+        }
+        .alert(item: $reportShareAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
     
@@ -152,20 +166,17 @@ struct ContentView: View {
                 }
             }
             
-            Button(action: {
-                if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) {
-                    shareFile(url: url)
+            HStack(spacing: 12) {
+                ReportActionButton(title: "PDF", symbol: "doc.text", isEnabled: !todayTransactions.isEmpty) {
+                    if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) {
+                        shareFile(url: url)
+                    }
                 }
-            }) {
-                Label("Resoconto Giornaliero", systemImage: "doc.text")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                ReportActionButton(title: "WhatsApp", symbol: "message", isEnabled: !todayTransactions.isEmpty) {
+                    sendDailyReportViaWhatsApp()
+                }
             }
-            .buttonStyle(.plain)
-            .foregroundColor(todayTransactions.isEmpty ? .secondary : .blue)
-            .disabled(todayTransactions.isEmpty)
         }
     }
     
@@ -246,9 +257,52 @@ struct ContentView: View {
             store.delete(at: IndexSet(integer: storeIndex))
         }
     }
+
+    private func sendDailyReportViaWhatsApp() {
+        let todayTransactions = transactionsForToday
+        let totals = store.totals(for: Date())
+        guard let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) else {
+            reportShareAlert = ReportShareAlert(
+                title: "PDF non generato",
+                message: "Non è stato possibile creare il resoconto giornaliero."
+            )
+            return
+        }
+
+        FileSharePresenter.present(items: [
+            DailyReportWhatsApp.defaultMessage(date: Date()),
+            url,
+        ])
+    }
     
     private func shareFile(url: URL) {
         FileSharePresenter.present(url)
+    }
+}
+
+private struct ReportShareAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
+private struct ReportActionButton: View {
+    let title: String
+    let symbol: String
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(isEnabled ? .blue : .secondary)
+        .disabled(!isEnabled)
     }
 }
 

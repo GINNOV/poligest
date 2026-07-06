@@ -67,7 +67,7 @@ struct SyncStatusView: View {
                 .foregroundColor(.green)
             Text("Tutto sincronizzato")
                 .font(.headline)
-            Text("Non ci sono movimenti QuickNotes in attesa di Sorriso.")
+            Text("Non ci sono movimenti Sorriso Mobile in attesa di Sorriso.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

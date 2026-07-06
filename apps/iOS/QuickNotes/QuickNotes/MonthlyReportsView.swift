@@ -21,7 +21,7 @@ struct MonthlyReportsView: View {
                 .padding(.bottom, 96)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Resoconto")
+            .navigationTitle("Resoconto Mensile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -196,9 +196,13 @@ private func formatMonthlyAmount(_ amount: Double, showAmounts: Bool) -> String 
 @MainActor
 enum FileSharePresenter {
     static func present(_ url: URL) {
+        present(items: [url])
+    }
+
+    static func present(items: [Any]) {
         guard let presenter = UIApplication.shared.visibleViewController else { return }
         
-        let activityViewController = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        let activityViewController = UIActivityViewController(activityItems: items, applicationActivities: nil)
         
         if let popoverController = activityViewController.popoverPresentationController {
             popoverController.sourceView = presenter.view
