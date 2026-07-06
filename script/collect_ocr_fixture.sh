@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CORPUS_DIR="$ROOT_DIR/macos/OCRFixtures"
+CORPUS_DIR="$ROOT_DIR/apps/macos/OCRFixtures"
 EXPORT_DIR=""
 EXPORTS_ROOT="${SCANID_COLLECT_EXPORTS_DIR:-$ROOT_DIR/exports}"
 DRY_RUN=0

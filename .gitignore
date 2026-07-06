@@ -53,7 +53,8 @@ output
 # macOS build artifacts (ScanID companion)
 *.dmg
 *.app
-macos/ScanID.app
-macos/*.dmg
+apps/macos/ScanID.app
+apps/macos/*.dmg
 exports
-quicknotes/build
+apps/iOS/build
+UserInterfaceState.xcuserstate

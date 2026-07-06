@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEFAULT_CORPUS_DIR="$ROOT_DIR/macos/OCRFixtures"
+DEFAULT_CORPUS_DIR="$ROOT_DIR/apps/macos/OCRFixtures"
 DRY_RUN=0
 EXPECTED_TARGET=""
 EXPECT_NEXT=0
@@ -134,7 +134,7 @@ ditto "$SOURCE_DIR" "$PREVIEW_DIR"
 
 set +e
 (
-  cd "$ROOT_DIR/macos"
+  cd "$ROOT_DIR/apps/macos"
   SCANID_OCR_FIXTURES_DIR="$PREVIEW_CORPUS_DIR" \
     SCANID_FAIL_INCOMPLETE_OCR_FIXTURE_METADATA=1 \
     bash verify.sh >"$PREFLIGHT_LOG" 2>&1

@@ -5,7 +5,7 @@ MODE="${1:-run}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_NAME="ScanID"
 BUNDLE_ID="com.poligest.ScanID"
-DERIVED_DATA="$ROOT_DIR/macos/build/DerivedData"
+DERIVED_DATA="$ROOT_DIR/apps/macos/build/DerivedData"
 APP_BUNDLE="$DERIVED_DATA/Build/Products/Debug/$APP_NAME.app"
 
 usage() {
@@ -18,7 +18,7 @@ kill_app() {
 
 build_app() {
   xcodebuild \
-    -project "$ROOT_DIR/macos/ScanID.xcodeproj" \
+    -project "$ROOT_DIR/apps/macos/ScanID.xcodeproj" \
     -scheme "$APP_NAME" \
     -configuration Debug \
     -destination 'platform=macOS' \

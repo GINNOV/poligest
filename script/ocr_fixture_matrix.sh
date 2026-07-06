@@ -61,7 +61,7 @@ trap cleanup EXIT
 
 set +e
 (
-  cd "$ROOT_DIR/macos"
+  cd "$ROOT_DIR/apps/macos"
   if [[ -n "$FIXTURES_DIR" ]]; then
     SCANID_REQUIRE_REAL_OCR_FIXTURES=1 \
       SCANID_OCR_FIXTURES_DIR="$FIXTURES_DIR" \

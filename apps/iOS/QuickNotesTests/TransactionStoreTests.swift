@@ -27,6 +27,7 @@ final class TransactionStoreTests: XCTestCase {
             clientName: "Mario Rossi",
             patientId: "patient-1",
             patientMatchKind: "name",
+            note: "Prima visita",
             amount: 120,
             paymentMethod: .pos,
             type: .income,
@@ -51,6 +52,7 @@ final class TransactionStoreTests: XCTestCase {
 
         let reloadedStore = TransactionStore(fileURL: storageURL)
         XCTAssertEqual(reloadedStore.transactions.count, 3)
+        XCTAssertEqual(reloadedStore.transactions.first?.note, "Prima visita")
 
         let totals = reloadedStore.totals(for: day)
         XCTAssertEqual(totals.income, 120)
@@ -106,17 +108,11 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageURL.path))
     }
 
-    func testRestoreICloudBackupReloadsTransactionsFromStorage() throws {
+    func testRestoreICloudBackupRecoversAfterDeletingAllTransactions() throws {
         let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
-        let store = TransactionStore(fileURL: storageURL)
-        let originalTransaction = Transaction(
-            clientName: "Originale",
-            amount: 10,
-            paymentMethod: .cash,
-            type: .income,
-            date: Date()
-        )
-        let restoredTransaction = Transaction(
+        let backupURL = temporaryDirectory.appendingPathComponent("transactions.icloud-backup.json")
+        let store = TransactionStore(fileURL: storageURL, backupFileURL: backupURL)
+        let savedTransaction = Transaction(
             clientName: "Ripristinato",
             amount: 30,
             paymentMethod: .pos,
@@ -124,9 +120,14 @@ final class TransactionStoreTests: XCTestCase {
             date: Date()
         )
 
-        store.add(originalTransaction)
-        let restoredData = try JSONEncoder().encode([restoredTransaction])
-        try restoredData.write(to: storageURL)
+        store.add(savedTransaction)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: storageURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: backupURL.path))
+
+        store.delete(at: IndexSet(integer: 0))
+
+        let deletedStore = TransactionStore(fileURL: storageURL, backupFileURL: backupURL)
+        XCTAssertTrue(deletedStore.transactions.isEmpty)
 
         switch store.restoreICloudBackup() {
         case .restored(let transactionCount):
@@ -138,9 +139,10 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertEqual(store.transactions.map(\.clientName), ["Ripristinato"])
     }
 
-    func testRestoreICloudBackupReportsMissingStorage() {
+    func testRestoreICloudBackupReportsMissingBackup() {
         let storageURL = temporaryDirectory.appendingPathComponent("missing-transactions.json")
-        let store = TransactionStore(fileURL: storageURL)
+        let backupURL = temporaryDirectory.appendingPathComponent("missing-transactions.icloud-backup.json")
+        let store = TransactionStore(fileURL: storageURL, backupFileURL: backupURL)
 
         switch store.restoreICloudBackup() {
         case .noBackupFound:

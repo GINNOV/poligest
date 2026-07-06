@@ -70,7 +70,7 @@ export function renderUpdateMarkdown(markdown: string) {
           className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={alt} className="mx-auto h-auto w-2/5 max-w-sm" />
+          <img src={src} alt={alt} className="mx-auto block h-auto max-h-[45vh] max-w-full object-contain" />
           {alt ? (
             <figcaption className="border-t border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
               {alt}

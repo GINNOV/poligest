@@ -33,10 +33,10 @@ release_info_plist="$tmpdir/release-Info.plist"
 cp "$SOURCE_PROJECT_FILE" "$release_project_file"
 cp "$SOURCE_INFO_PLIST" "$release_info_plist"
 release_before=$(read_version "$release_project_file")
-CONFIGURATION=Release PROJECT_FILE_PATH="$release_project_file" INFOPLIST_FILE="$release_info_plist" /bin/sh "$SCRIPT_DIR/increment_build_number.sh" >/dev/null
+CONFIGURATION=Release AUTO_INCREMENT_BUILD_NUMBER=1 PROJECT_FILE_PATH="$release_project_file" INFOPLIST_FILE="$release_info_plist" /bin/sh "$SCRIPT_DIR/increment_build_number.sh" >/dev/null
 release_after=$(read_version "$release_project_file")
-assert_equal "$release_after" "$((release_before + 1))"
-assert_equal "$(read_plist_build_number "$release_info_plist")" "$release_after"
+assert_equal "$release_after" "$release_before"
+assert_equal "$(read_plist_build_number "$release_info_plist")" "$((release_before + 1))"
 if [ "$(read_versions "$release_project_file" | sort -u | wc -l | tr -d ' ')" != "1" ]; then
   echo "Expected all Release build-number entries to be normalized." >&2
   exit 1
@@ -47,10 +47,11 @@ debug_info_plist="$tmpdir/debug-Info.plist"
 cp "$SOURCE_PROJECT_FILE" "$debug_project_file"
 cp "$SOURCE_INFO_PLIST" "$debug_info_plist"
 debug_before=$(read_version "$debug_project_file")
+debug_plist_before=$(read_plist_build_number "$debug_info_plist")
 CONFIGURATION=Debug PROJECT_FILE_PATH="$debug_project_file" INFOPLIST_FILE="$debug_info_plist" /bin/sh "$SCRIPT_DIR/increment_build_number.sh" >/dev/null
 debug_after=$(read_version "$debug_project_file")
-assert_equal "$debug_after" "$((debug_before + 1))"
-assert_equal "$(read_plist_build_number "$debug_info_plist")" "$debug_after"
+assert_equal "$debug_after" "$debug_before"
+assert_equal "$(read_plist_build_number "$debug_info_plist")" "$debug_plist_before"
 
 skip_project_file="$tmpdir/skip.pbxproj"
 skip_info_plist="$tmpdir/skip-Info.plist"
@@ -62,5 +63,16 @@ CONFIGURATION=Release SKIP_AUTO_INCREMENT_BUILD=1 PROJECT_FILE_PATH="$skip_proje
 skip_after=$(read_version "$skip_project_file")
 assert_equal "$skip_after" "$skip_before"
 assert_equal "$(read_plist_build_number "$skip_info_plist")" "$skip_plist_before"
+
+disabled_project_file="$tmpdir/disabled.pbxproj"
+disabled_info_plist="$tmpdir/disabled-Info.plist"
+cp "$SOURCE_PROJECT_FILE" "$disabled_project_file"
+cp "$SOURCE_INFO_PLIST" "$disabled_info_plist"
+disabled_before=$(read_version "$disabled_project_file")
+disabled_plist_before=$(read_plist_build_number "$disabled_info_plist")
+CONFIGURATION=Release PROJECT_FILE_PATH="$disabled_project_file" INFOPLIST_FILE="$disabled_info_plist" /bin/sh "$SCRIPT_DIR/increment_build_number.sh" >/dev/null
+disabled_after=$(read_version "$disabled_project_file")
+assert_equal "$disabled_after" "$disabled_before"
+assert_equal "$(read_plist_build_number "$disabled_info_plist")" "$disabled_plist_before"
 
 echo "Build number increment script tests passed."

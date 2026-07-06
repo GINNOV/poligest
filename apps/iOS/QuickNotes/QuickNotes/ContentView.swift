@@ -15,16 +15,16 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    headerSummary
-                    actionStrip
-                    recentTransactions
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
+            List {
+                headerSummary
+                    .listRowStyle()
+                actionStrip
+                    .listRowStyle()
+                recentTransactions
             }
+            .listStyle(.plain)
+            .environment(\.defaultMinListRowHeight, 1)
+            .scrollContentBackground(.hidden)
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Jack il contabile")
             .navigationBarTitleDisplayMode(.large)
@@ -139,7 +139,7 @@ struct ContentView: View {
                     shareFile(url: url)
                 }
             }) {
-                Label("Rapporto Giornaliero", systemImage: "doc.text")
+                Label("Resoconto Giornaliero", systemImage: "doc.text")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -151,10 +151,11 @@ struct ContentView: View {
         }
     }
     
+    @ViewBuilder
     private var recentTransactions: some View {
         let todayTransactions = transactionsForToday.sorted(by: { $0.date > $1.date })
         
-        return VStack(alignment: .leading, spacing: 12) {
+        Section {
             HStack {
                 Text("Movimenti di oggi")
                     .font(.headline)
@@ -176,16 +177,22 @@ struct ContentView: View {
                     .padding(.vertical, 5)
                     .background(.thinMaterial, in: Capsule())
             }
+            .listRowStyle()
             
             if todayTransactions.isEmpty {
                 EmptyTransactionsView()
+                    .listRowStyle()
             } else {
-                LazyVStack(spacing: 10) {
-                    ForEach(todayTransactions) { tx in
-                        TransactionRow(transaction: tx, showAmounts: showAmounts) {
-                            transactionPendingDeletion = tx
+                ForEach(todayTransactions) { tx in
+                    TransactionRow(transaction: tx, showAmounts: showAmounts)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                transactionPendingDeletion = tx
+                            } label: {
+                                Label("Elimina", systemImage: "trash")
+                            }
                         }
-                    }
+                        .listRowStyle()
                 }
             }
         }
@@ -281,61 +288,76 @@ private struct QuickActionButton: View {
 private struct TransactionRow: View {
     let transaction: Transaction
     let showAmounts: Bool
-    let onDelete: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: transaction.type == .income ? "plus" : "minus")
-                .font(.caption.bold())
-                .foregroundColor(transaction.type == .income ? .green : .red)
-                .frame(width: 34, height: 34)
-                .background((transaction.type == .income ? Color.green : Color.red).opacity(0.12), in: Circle())
-            
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    
-                    if transaction.isUnlinkedSorrisoClient {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.caption.bold())
-                            .foregroundColor(Color(red: 0.63, green: 0.46, blue: 0.0))
-                            .accessibilityLabel("Cliente non presente in Sorriso")
-                    }
-                }
+                Text(transaction.clientName.isEmpty ? "Cliente generico" : transaction.clientName)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 HStack(spacing: 6) {
                     Text(transaction.date.formatted(date: .omitted, time: .shortened))
                     Text(transaction.paymentMethod.rawValue)
-                    if transaction.patientId != nil {
-                        Label("Paziente", systemImage: "link")
-                            .labelStyle(.titleAndIcon)
-                    }
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+                if let note = transaction.displayNote {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
             }
             
             Spacer(minLength: 8)
             
-            Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
-                .font(.headline.monospacedDigit())
-                .foregroundColor(transaction.type == .income ? .green : .red)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-            
-            Button(action: onDelete) {
-                Image(systemName: "trash")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(width: 32, height: 32)
-                    .background(.thinMaterial, in: Circle())
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(showAmounts ? String(format: "%@€ %.2f", transaction.type == .income ? "+" : "-", transaction.amount) : "\(transaction.type == .income ? "+" : "-")••••")
+                    .font(.headline.monospacedDigit())
+                    .foregroundColor(transaction.type == .income ? .green : .red)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                PatientLinkStatus(transaction: transaction)
             }
-            .accessibilityLabel("Elimina movimento")
         }
         .padding(14)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+struct PatientLinkStatus: View {
+    let transaction: Transaction
+    var font: Font = .caption
+
+    var body: some View {
+        if transaction.patientId != nil {
+            Label("Paziente", systemImage: "link")
+                .font(font)
+                .foregroundColor(.blue)
+        } else if transaction.isUnlinkedSorrisoClient {
+            HStack(spacing: 4) {
+                Image(systemName: "link")
+                    .overlay {
+                        Rectangle()
+                            .fill(Color.red)
+                            .frame(width: 14, height: 1.5)
+                            .rotationEffect(.degrees(-45))
+                    }
+                Text("mancante")
+            }
+                .font(font)
+                .foregroundColor(.red)
+        }
+    }
+}
+
+private extension View {
+    func listRowStyle() -> some View {
+        listRowInsets(.init(top: 5, leading: 20, bottom: 5, trailing: 20))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
     }
 }
 

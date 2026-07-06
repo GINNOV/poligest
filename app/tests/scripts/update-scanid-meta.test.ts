@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 const repoRoot = path.resolve(__dirname, "../../..");
 const scriptPath = path.join(repoRoot, "app/scripts/update-scanid-meta.mjs");
 const metaFile = path.join(repoRoot, "app/src/lib/scanid-meta.ts");
-const infoPlistFile = path.join(repoRoot, "macos/Info.plist");
+const infoPlistFile = path.join(repoRoot, "apps/macos/Info.plist");
 
 let originalMeta = "";
 let originalPlist = "";

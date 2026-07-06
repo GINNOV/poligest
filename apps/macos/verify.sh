@@ -2,6 +2,7 @@
 # CI: GitHub Actions runs this via .github/workflows/macos-verify.yml (and scanid-release.yml).
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERIFY_TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/scanid-verify.XXXXXX")"
 TEST_MAIN="$VERIFY_TMP_DIR/main.swift"
 TEST_RUNNER="$VERIFY_TMP_DIR/test_runner"
@@ -4793,6 +4794,16 @@ if verificationFailures > 0 {
 print("\n=== Verification Complete ===")
 EOF
 
-swiftc Parser.swift BelfioreCodes.swift Scanner.swift ScanCaptureLogic.swift LiveScanController.swift "$TEST_MAIN" -o "$TEST_RUNNER"
+swiftc \
+    "$SCRIPT_DIR/Parser.swift" \
+    "$SCRIPT_DIR/BelfioreCodes.swift" \
+    "$SCRIPT_DIR/Scanner.swift" \
+    "$SCRIPT_DIR/ScanCaptureLogic.swift" \
+    "$SCRIPT_DIR/LiveScanController.swift" \
+    "$TEST_MAIN" \
+    -o "$TEST_RUNNER"
 
-"$TEST_RUNNER"
+(
+    cd "$SCRIPT_DIR"
+    "$TEST_RUNNER"
+)

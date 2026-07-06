@@ -56,7 +56,7 @@ struct SettingsView: View {
                                 .accessibilityLabel(showApiToken ? "Nascondi chiave API" : "Mostra chiave API")
                             }
 
-                            Text("Usa la stessa chiave configurata in ScanID.")
+                            Text("Usa il token registrato dentro Sorriso.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

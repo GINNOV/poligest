@@ -27,7 +27,9 @@ A macOS companion for reception. Point the camera at an Italian ID card or drop 
 ```
 poligest/
 ├── app/          Next.js web application (patients, agenda, finance, inventory, admin)
-├── macos/        ScanID — Swift/SwiftUI macOS app
+├── apps/
+│   ├── macos/    ScanID — Swift/SwiftUI macOS app
+│   └── iOS/      QuickNotes — Swift/SwiftUI iOS app
 ├── web_assets/   Shared static assets (logos, avatars, favicons)
 ├── LICENSE
 └── COMMERCIAL.md
@@ -96,7 +98,7 @@ If it still won't run, open **System Settings → Privacy & Security**, scroll t
 
 ### Build
 
-Run from `macos/`:
+Run from `apps/macos/`:
 
 ```bash
 ./build.sh         # compile ScanID.app, ad-hoc sign
@@ -104,7 +106,7 @@ Run from `macos/`:
 ./verify.sh        # unit tests for card parsing logic
 ```
 
-Icons live in `macos/Assets.xcassets` (Xcode asset catalog, App Store–ready). Source: `macos/Assets/AppIcon-1024.png`. Run `./generate-icon.sh` to regenerate all sizes, `Assets/AppIcon.icns`, and `macos/AppStore/MarketingIcon-1024.png` (upload this 1024×1024 PNG in App Store Connect if prompted separately from the bundle).
+Icons live in `apps/macos/Assets.xcassets` (Xcode asset catalog, App Store–ready). Source: `apps/macos/Assets/AppIcon-1024.png`. Run `./generate-icon.sh` to regenerate all sizes, `Assets/AppIcon.icns`, and `apps/macos/AppStore/MarketingIcon-1024.png` (upload this 1024×1024 PNG in App Store Connect if prompted separately from the bundle).
 
 Open `ScanID.xcodeproj` in Xcode for Archive → Distribute App. The catalog includes all required macOS icon sizes (16 through 1024). Belfiore place-of-birth codes ship as `BelfioreCodes.json` (not compiled Swift) to keep Xcode builds fast.
 
@@ -114,7 +116,7 @@ To bump the version before building:
 VERSION=1.2.0 ./build.sh && ./create-dmg.sh
 ```
 
-(or edit `CFBundleShortVersionString` in `macos/Info.plist`)
+(or edit `CFBundleShortVersionString` in `apps/macos/Info.plist`)
 
 For a Gatekeeper-approved distribution build, sign with a Developer ID Application
 identity and notarize the DMG:
@@ -132,9 +134,9 @@ and `spctl` will reject it even when it is not quarantined.
 
 Use the **ScanID Release** GitHub Actions workflow (`workflow_dispatch`). It will:
 
-1. Run `macos/verify.sh`, build the app, and create the DMG
+1. Run `apps/macos/verify.sh`, build the app, and create the DMG
 2. Publish a GitHub release (`scanid-vX.Y.Z`) with the DMG attached
-3. Update `app/src/lib/scanid-meta.ts` and `macos/Info.plist` defaults
+3. Update `app/src/lib/scanid-meta.ts` and `apps/macos/Info.plist` defaults
 4. Sync `SCANID_*` production env vars on Vercel and redeploy
 
 In GitHub: **Actions → ScanID Release → Run workflow** with the new version (and optional release notes for the in-app update dialog).
@@ -178,6 +180,12 @@ Server-side overrides (Vercel env or code defaults):
 | `SCANID_RELEASE_NOTES` | _(empty)_ | Shown in the update dialog |
 
 ---
+
+## QuickNotes (iOS)
+
+QuickNotes lives under `apps/iOS/`. The folder is named for the platform; the app, Xcode project, scheme, product, and bundle name remain `QuickNotes`.
+
+Open `apps/iOS/QuickNotes.xcodeproj` in Xcode to build and run the iOS app.
 
 ## License
 

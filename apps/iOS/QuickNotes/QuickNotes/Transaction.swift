@@ -32,10 +32,16 @@ struct Transaction: Identifiable, Codable {
     var financeEntryId: String?
     var financeSyncedAt: Date?
     var financeSyncError: String?
+    var note: String?
     var amount: Double
     var paymentMethod: PaymentMethod
     var type: TransactionType
     var date: Date
+
+    var displayNote: String? {
+        let trimmedNote = note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedNote.isEmpty ? nil : trimmedNote
+    }
 
     var isUnlinkedSorrisoClient: Bool {
         type == .income && patientId == nil && !clientName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -51,19 +57,29 @@ enum ICloudBackupRestoreResult {
 class TransactionStore: ObservableObject {
     @Published var transactions: [Transaction] = [] {
         didSet {
+            guard !isApplyingStoredTransactions else { return }
             save()
         }
     }
 
     private let fileURL: URL
+    private let backupFileURL: URL
+    private var isApplyingStoredTransactions = false
 
     private static var defaultFileURL: URL {
         let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
         return paths[0].appendingPathComponent("transactions.json")
     }
 
-    init(fileURL: URL = TransactionStore.defaultFileURL) {
+    private static func defaultBackupFileURL(for fileURL: URL) -> URL {
+        fileURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("transactions.icloud-backup.json")
+    }
+
+    init(fileURL: URL = TransactionStore.defaultFileURL, backupFileURL: URL? = nil) {
         self.fileURL = fileURL
+        self.backupFileURL = backupFileURL ?? TransactionStore.defaultBackupFileURL(for: fileURL)
         load()
     }
 
@@ -84,15 +100,15 @@ class TransactionStore: ObservableObject {
     }
 
     func configureICloudBackup(enabled: Bool) {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
-
-        do {
-            var url = fileURL
-            var values = URLResourceValues()
-            values.isExcludedFromBackup = !enabled
-            try url.setResourceValues(values)
-        } catch {
-            print("Error updating iCloud backup setting: \(error)")
+        for protectedFileURL in [fileURL, backupFileURL] where FileManager.default.fileExists(atPath: protectedFileURL.path) {
+            do {
+                var url = protectedFileURL
+                var values = URLResourceValues()
+                values.isExcludedFromBackup = !enabled
+                try url.setResourceValues(values)
+            } catch {
+                print("Error updating iCloud backup setting: \(error)")
+            }
         }
     }
 
@@ -100,6 +116,9 @@ class TransactionStore: ObservableObject {
         do {
             let data = try JSONEncoder().encode(transactions)
             try data.write(to: fileURL)
+            if !transactions.isEmpty {
+                try data.write(to: backupFileURL)
+            }
             configureICloudBackup(enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true)
         } catch {
             print("Error saving transactions: \(error)")
@@ -109,29 +128,35 @@ class TransactionStore: ObservableObject {
     func load() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
         do {
-            transactions = try loadTransactionsFromStorage()
+            applyStoredTransactions(try loadTransactions(from: fileURL))
         } catch {
             print("Error loading transactions: \(error)")
         }
     }
 
     func restoreICloudBackup() -> ICloudBackupRestoreResult {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        guard FileManager.default.fileExists(atPath: backupFileURL.path) else {
             return .noBackupFound
         }
 
         do {
-            let restoredTransactions = try loadTransactionsFromStorage()
-            transactions = restoredTransactions
-            configureICloudBackup(enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true)
+            let restoredTransactions = try loadTransactions(from: backupFileURL)
+            applyStoredTransactions(restoredTransactions)
+            save()
             return .restored(transactionCount: restoredTransactions.count)
         } catch {
             return .failed(message: error.localizedDescription)
         }
     }
 
-    private func loadTransactionsFromStorage() throws -> [Transaction] {
-        let data = try Data(contentsOf: fileURL)
+    private func applyStoredTransactions(_ restoredTransactions: [Transaction]) {
+        isApplyingStoredTransactions = true
+        defer { isApplyingStoredTransactions = false }
+        transactions = restoredTransactions
+    }
+
+    private func loadTransactions(from url: URL) throws -> [Transaction] {
+        let data = try Data(contentsOf: url)
         return try JSONDecoder().decode([Transaction].self, from: data)
     }
 

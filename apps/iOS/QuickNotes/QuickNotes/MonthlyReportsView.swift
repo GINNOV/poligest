@@ -159,7 +159,7 @@ struct MonthlyReportsView: View {
                 showingPDFError = true
             }
         }) {
-            Label("Genera Rapporto Mensile", systemImage: "doc.text")
+            Label("Genera Resoconto Mensile", systemImage: "doc.text")
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(MonthlyPDFButtonStyle(isEnabled: !filteredTxs.isEmpty))
@@ -277,22 +277,20 @@ private struct MonthlyTransactionRow: View {
                 .background(Color.blue.opacity(0.12), in: Circle())
             
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(transaction.clientName.isEmpty ? "Generico" : transaction.clientName)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                    
-                    if transaction.isUnlinkedSorrisoClient {
-                        Image(systemName: "person.crop.circle.badge.exclamationmark")
-                            .font(.caption.bold())
-                            .foregroundColor(Color(red: 0.63, green: 0.46, blue: 0.0))
-                            .accessibilityLabel("Cliente non presente in Sorriso")
-                    }
-                }
+                Text(transaction.clientName.isEmpty ? "Generico" : transaction.clientName)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text(transaction.date.formatted(date: .abbreviated, time: .omitted))
                     .font(.caption)
                     .foregroundColor(.secondary)
+
+                if let note = transaction.displayNote {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
             }
             
             Spacer(minLength: 8)
@@ -306,11 +304,7 @@ private struct MonthlyTransactionRow: View {
                 Text(transaction.paymentMethod.rawValue)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                if transaction.patientId != nil {
-                    Label("Paziente", systemImage: "link")
-                        .font(.caption2)
-                        .foregroundColor(.blue)
-                }
+                PatientLinkStatus(transaction: transaction, font: .caption2)
             }
         }
         .padding(14)

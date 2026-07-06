@@ -82,22 +82,53 @@
 		88D7DF4812394E7F8D1890DC /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				FC4D7E1326AE4B2291000001 /* App */,
+				FC4D7E1326AE4B2291000002 /* Models */,
+				FC4D7E1326AE4B2291000003 /* Views */,
+				FC4D7E1326AE4B2291000004 /* Services */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		FC4D7E1326AE4B2291000001 /* App */ = {
+			isa = PBXGroup;
+			children = (
 				E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */,
 				27BB45979C8149B1AA4DE3D2 /* ContentView.swift */,
+				E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */,
+				B8154D1B294E420BA90FC528 /* SettingsView.swift */,
+			);
+			name = App;
+			sourceTree = "<group>";
+		};
+		FC4D7E1326AE4B2291000002 /* Models */ = {
+			isa = PBXGroup;
+			children = (
 				24AD0A1046A3459A90B30525 /* Transaction.swift */,
-				30CC6754622A412DB52146CE /* PatientLookupService.swift */,
+			);
+			name = Models;
+			sourceTree = "<group>";
+		};
+		FC4D7E1326AE4B2291000003 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				20121BC6142342D1A3839740 /* TransactionFormView.swift */,
 				7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */,
+				86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */,
+				0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */,
+			);
+			name = Views;
+			sourceTree = "<group>";
+		};
+		FC4D7E1326AE4B2291000004 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				30CC6754622A412DB52146CE /* PatientLookupService.swift */,
 				C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */,
 				A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */,
 				8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */,
-				E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */,
-				B8154D1B294E420BA90FC528 /* SettingsView.swift */,
-				20121BC6142342D1A3839740 /* TransactionFormView.swift */,
-				86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */,
-				0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */,
-				5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */,
 			);
-			name = Sources;
+			name = Services;
 			sourceTree = "<group>";
 		};
 		A6378116279341329D7C694C = {
@@ -230,7 +261,6 @@
 /* Begin PBXShellScriptBuildPhase section */
 		F1134B1923E74B08A52E1B43 /* Auto Increment Build Number */ = {
 			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -242,6 +272,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/QuickNotesBuildNumberIncrement.stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -341,7 +372,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_APP_INTENTS_METADATA = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -371,7 +402,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 21;
 				ENABLE_APP_INTENTS_METADATA = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;

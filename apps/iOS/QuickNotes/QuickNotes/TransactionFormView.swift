@@ -9,6 +9,7 @@ struct TransactionFormView: View {
     let type: TransactionType
     
     @State private var clientName = ""
+    @State private var note = ""
     @State private var amountString = ""
     @State private var selectedMethod: PaymentMethod = .cash
     @State private var patientLookupState: PatientLookupState = .idle
@@ -23,6 +24,7 @@ struct TransactionFormView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     amountCard
                     clientCard
+                    noteCard
                     paymentCard
                 }
                 .padding(.horizontal, 20)
@@ -197,6 +199,25 @@ struct TransactionFormView: View {
         .padding(18)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
+
+    private var noteCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Nota", systemImage: "note.text")
+                .font(.subheadline.bold())
+                .foregroundColor(.secondary)
+
+            TextField("Aggiungi una nota", text: $note, axis: .vertical)
+                .font(.body)
+                .lineLimit(3...6)
+                .textInputAutocapitalization(.sentences)
+                .submitLabel(.done)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .padding(18)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
     
     private var saveBar: some View {
         Button {
@@ -261,6 +282,7 @@ struct TransactionFormView: View {
         let trimmedClientName = clientName.trimmingCharacters(in: .whitespacesAndNewlines)
         let draft = PendingTransaction(
             clientName: trimmedClientName,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             amount: amount,
             paymentMethod: selectedMethod,
             type: type
@@ -337,6 +359,7 @@ struct TransactionFormView: View {
             clientName: pending.clientName.isEmpty ? patientMatch?.displayName ?? "" : pending.clientName,
             patientId: patientMatch?.patientId,
             patientMatchKind: patientMatch?.matchKind,
+            note: pending.note.isEmpty ? nil : pending.note,
             amount: pending.amount,
             paymentMethod: pending.paymentMethod,
             type: pending.type,
@@ -418,6 +441,7 @@ private enum PatientLookupState: Equatable {
 
 private struct PendingTransaction: Equatable {
     let clientName: String
+    let note: String
     let amount: Double
     let paymentMethod: PaymentMethod
     let type: TransactionType

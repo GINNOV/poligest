@@ -19,7 +19,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.join(scriptDir, "..");
 const repoRoot = path.join(appRoot, "..");
 const metaFile = path.join(appRoot, "src/lib/scanid-meta.ts");
-const infoPlistFile = path.join(repoRoot, "macos/Info.plist");
+const infoPlistFile = path.join(repoRoot, "apps/macos/Info.plist");
 const downloadUrl = `https://github.com/GINNOV/poligest/releases/download/scanid-v${version}/ScanID-${version}.dmg`;
 
 let src = fs.readFileSync(metaFile, "utf8");

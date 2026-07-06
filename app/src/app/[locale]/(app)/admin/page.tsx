@@ -13,6 +13,7 @@ type AdminShortcut = {
   description: string;
   href?: string;
   badge?: string;
+  apps?: readonly string[];
   tone?: "neutral" | "primary" | "warning";
   disabled?: boolean;
   icon?: string;
@@ -249,10 +250,11 @@ export default async function AdminPage() {
     },
     {
       key: "scanid",
-      title: "Sistema: Integrazione ScanID",
-      description: "Visualizza la chiave API e la guida alla configurazione per lo scanner macOS.",
+      title: "Sistema: Integrazione Applicazione",
+      description: "Installazione e note operative per le app collegate a Sorriso.",
       href: "/admin/scanid",
       badge: "macOS",
+      apps: ["ScanID", "QuickNotes"],
       tone: "primary",
       icon: "📱",
     },
@@ -325,6 +327,18 @@ export default async function AdminPage() {
                 >
                   {item.badge}
                 </span>
+              ) : null}
+              {item.apps ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {item.apps.map((appName) => (
+                    <span
+                      key={appName}
+                      className="inline-block rounded-full bg-white/60 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-zinc-700 ring-1 ring-white/70 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700/50"
+                    >
+                      {appName}
+                    </span>
+                  ))}
+                </div>
               ) : null}
             </div>
           </div>

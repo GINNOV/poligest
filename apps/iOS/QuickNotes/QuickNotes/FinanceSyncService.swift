@@ -32,7 +32,7 @@ struct FinanceSyncService {
             paidAt: transaction.date,
             method: transaction.paymentMethod.financeMethod,
             clientName: transaction.clientName,
-            note: "Registrato da QuickNotes"
+            note: transaction.displayNote ?? "Registrato da QuickNotes"
         ))
         
         let (data, response) = try await URLSession.shared.data(for: request)

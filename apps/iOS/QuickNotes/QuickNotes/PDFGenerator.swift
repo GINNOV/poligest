@@ -99,8 +99,15 @@ struct DailyPDFView: View {
                         HStack {
                             Text(tx.date.formatted(date: .omitted, time: .shortened))
                                 .frame(width: 50, alignment: .leading)
-                            Text(tx.clientName.isEmpty ? "Generico" : tx.clientName)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(tx.clientName.isEmpty ? "Generico" : tx.clientName)
+                                if let note = tx.displayNote {
+                                    Text(note)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             Text(tx.paymentMethod.rawValue)
                                 .frame(width: 80, alignment: .leading)
                             Text(formatAmount(tx.amount, prefix: tx.type == .income ? "+ " : "- "))

@@ -13,7 +13,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>12</string>
+	<string>21</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Usa il Face ID per sbloccare l'applicazione e accedere ai tuoi conti in sicurezza.</string>
 	<key>UILaunchStoryboardName</key>

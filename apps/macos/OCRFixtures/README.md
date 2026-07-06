@@ -276,7 +276,7 @@ The JSON output includes `status`, the raw `missing` verifier gaps,
 When `incompleteMetadata` is not empty, fix those entries first; the matrix
 helper reports that as the next action before suggesting more captures.
 
-To check a temporary or isolated corpus instead of `macos/OCRFixtures`, pass:
+To check a temporary or isolated corpus instead of `apps/macos/OCRFixtures`, pass:
 
 ```bash
 ./script/ocr_fixture_matrix.sh --fixtures-dir /path/to/OCRFixtures --json
