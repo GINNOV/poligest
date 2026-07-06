@@ -138,6 +138,13 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertFalse(unlinkedWireIncome.shouldSyncToSorriso)
     }
 
+    func testEuroAmountFormatterKeepsLegacyDecimalStyleWithGrouping() {
+        XCTAssertEqual(EuroAmountFormatter.string(23_648.88), "€ 23,648.88")
+        XCTAssertEqual(EuroAmountFormatter.string(1_234.56, sign: "+"), "+€ 1,234.56")
+        XCTAssertEqual(EuroAmountFormatter.string(1_234.56, sign: "-"), "-€ 1,234.56")
+        XCTAssertEqual(EuroAmountFormatter.string(1_234.56, showAmounts: false, sign: "+"), "+••••")
+    }
+
     func testRestoreICloudBackupRecoversAfterDeletingAllTransactions() throws {
         let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
         let backupURL = temporaryDirectory.appendingPathComponent("transactions.icloud-backup.json")

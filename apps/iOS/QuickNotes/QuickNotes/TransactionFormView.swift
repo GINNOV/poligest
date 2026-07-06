@@ -16,10 +16,7 @@ struct TransactionFormView: View {
     @State private var selectedMethod: PaymentMethod = .cash
     @State private var patientLookupState: PatientLookupState = .idle
     @State private var isSaving = false
-    @State private var showingPatientDirectory = false
-    @State private var showingDoctorDirectory = false
-    @State private var showingSupplierDirectory = false
-    @State private var showingServiceDirectory = false
+    @State private var activeSheet: TransactionFormSheet?
     @State private var pendingUnlinkedIncome: PendingTransaction?
     @State private var didTrySavingWithMissingClientName = false
     
@@ -50,45 +47,8 @@ struct TransactionFormView: View {
             .safeAreaInset(edge: .bottom) {
                 saveBar
             }
-            .sheet(isPresented: $showingPatientDirectory) {
-                PatientDirectoryView(
-                    serverURL: serverUrl,
-                    apiToken: apiToken,
-                    initialQuery: lookupName
-                ) { patient in
-                    clientName = patient.displayName ?? clientName
-                    patientLookupState = .matched(patient)
-                }
-            }
-            .sheet(isPresented: $showingDoctorDirectory) {
-                QuickNotesContactDirectoryView(
-                    kind: .doctor,
-                    serverURL: serverUrl,
-                    apiToken: apiToken,
-                    initialQuery: lookupName
-                ) { contact in
-                    clientName = contact.displayName
-                    patientLookupState = .idle
-                }
-            }
-            .sheet(isPresented: $showingSupplierDirectory) {
-                QuickNotesContactDirectoryView(
-                    kind: .supplier,
-                    serverURL: serverUrl,
-                    apiToken: apiToken,
-                    initialQuery: lookupName
-                ) { contact in
-                    clientName = contact.displayName
-                    patientLookupState = .idle
-                }
-            }
-            .sheet(isPresented: $showingServiceDirectory) {
-                ServiceDirectoryView(
-                    serverURL: serverUrl,
-                    apiToken: apiToken
-                ) { service in
-                    insertServiceInNote(service)
-                }
+            .sheet(item: $activeSheet) { sheet in
+                directorySheet(sheet)
             }
             .task(id: lookupName) {
                 await lookupPatientIfNeeded()
@@ -149,7 +109,7 @@ struct TransactionFormView: View {
                         systemImage: "magnifyingglass",
                         accessibilityLabel: "Cerca paziente in Sorriso"
                     ) {
-                        showingPatientDirectory = true
+                        activeSheet = .patientDirectory
                     }
                 } else {
                     HStack(spacing: 8) {
@@ -157,14 +117,14 @@ struct TransactionFormView: View {
                             systemImage: QuickNotesContactKind.doctor.rowIconName,
                             accessibilityLabel: "Cerca medico"
                         ) {
-                            showingDoctorDirectory = true
+                            activeSheet = .doctorDirectory
                         }
 
                         lookupIconButton(
                             systemImage: QuickNotesContactKind.supplier.rowIconName,
                             accessibilityLabel: "Cerca fornitore"
                         ) {
-                            showingSupplierDirectory = true
+                            activeSheet = .supplierDirectory
                         }
                     }
                 }
@@ -211,6 +171,48 @@ struct TransactionFormView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    @ViewBuilder
+    private func directorySheet(_ sheet: TransactionFormSheet) -> some View {
+        switch sheet {
+        case .patientDirectory:
+            PatientDirectoryView(
+                serverURL: serverUrl,
+                apiToken: apiToken,
+                initialQuery: lookupName
+            ) { patient in
+                clientName = patient.displayName ?? clientName
+                patientLookupState = .matched(patient)
+            }
+        case .doctorDirectory:
+            QuickNotesContactDirectoryView(
+                kind: .doctor,
+                serverURL: serverUrl,
+                apiToken: apiToken,
+                initialQuery: lookupName
+            ) { contact in
+                clientName = contact.displayName
+                patientLookupState = .idle
+            }
+        case .supplierDirectory:
+            QuickNotesContactDirectoryView(
+                kind: .supplier,
+                serverURL: serverUrl,
+                apiToken: apiToken,
+                initialQuery: lookupName
+            ) { contact in
+                clientName = contact.displayName
+                patientLookupState = .idle
+            }
+        case .serviceDirectory:
+            ServiceDirectoryView(
+                serverURL: serverUrl,
+                apiToken: apiToken
+            ) { service in
+                insertServiceInNote(service)
+            }
+        }
     }
     
     @ViewBuilder
@@ -280,7 +282,7 @@ struct TransactionFormView: View {
                 Spacer()
                 
                 Button {
-                    showingServiceDirectory = true
+                    activeSheet = .serviceDirectory
                 } label: {
                     Image(systemName: "list.bullet.rectangle")
                         .font(.subheadline.weight(.semibold))
@@ -623,6 +625,26 @@ private enum PatientLookupState: Equatable {
     case candidates([PatientMatch])
     case notFound
     case failed
+}
+
+private enum TransactionFormSheet: Identifiable {
+    case patientDirectory
+    case doctorDirectory
+    case supplierDirectory
+    case serviceDirectory
+
+    var id: String {
+        switch self {
+        case .patientDirectory:
+            return "patientDirectory"
+        case .doctorDirectory:
+            return "doctorDirectory"
+        case .supplierDirectory:
+            return "supplierDirectory"
+        case .serviceDirectory:
+            return "serviceDirectory"
+        }
+    }
 }
 
 private struct PendingTransaction: Equatable {
