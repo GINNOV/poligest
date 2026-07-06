@@ -5,10 +5,6 @@ if [ "${SKIP_AUTO_INCREMENT_BUILD:-}" = "1" ]; then
   exit 0
 fi
 
-if [ "${CONFIGURATION:-}" != "Release" ]; then
-  exit 0
-fi
-
 PROJECT_FILE="${PROJECT_FILE_PATH:-}"
 if [ -z "$PROJECT_FILE" ] || [ ! -f "$PROJECT_FILE" ]; then
   PROJECT_FILE="${PROJECT_DIR:-}/QuickNotes.xcodeproj/project.pbxproj"
@@ -16,6 +12,20 @@ fi
 
 if [ -z "$PROJECT_FILE" ] || [ ! -f "$PROJECT_FILE" ]; then
   echo "warning: Cannot find project file for build number increment."
+  exit 0
+fi
+
+INFO_PLIST="${INFOPLIST_FILE:-}"
+if [ -n "$INFO_PLIST" ] && [ "${INFO_PLIST#/}" = "$INFO_PLIST" ]; then
+  INFO_PLIST="${PROJECT_DIR:-}/$INFO_PLIST"
+fi
+
+if [ -z "$INFO_PLIST" ] || [ ! -f "$INFO_PLIST" ]; then
+  INFO_PLIST="${PROJECT_DIR:-}/QuickNotes/QuickNotes/Info.plist"
+fi
+
+if [ -z "$INFO_PLIST" ] || [ ! -f "$INFO_PLIST" ]; then
+  echo "warning: Cannot find Info.plist for build number increment."
   exit 0
 fi
 
@@ -35,4 +45,5 @@ fi
 
 NEXT_VERSION=$((CURRENT_VERSION + 1))
 /usr/bin/perl -0pi -e "s/CURRENT_PROJECT_VERSION = \\d+;/CURRENT_PROJECT_VERSION = $NEXT_VERSION;/g" "$PROJECT_FILE"
-echo "Incremented CURRENT_PROJECT_VERSION from $CURRENT_VERSION to $NEXT_VERSION."
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEXT_VERSION" "$INFO_PLIST" >/dev/null
+echo "Incremented build number from $CURRENT_VERSION to $NEXT_VERSION."
