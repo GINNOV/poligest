@@ -108,6 +108,36 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: storageURL.path))
     }
 
+    func testCashIncomeDoesNotSyncToSorrisoEvenWhenPatientIsLinked() {
+        let cashIncome = Transaction(
+            clientName: "Mario Rossi",
+            patientId: "patient-1",
+            amount: 90,
+            paymentMethod: .cash,
+            type: .income,
+            date: Date()
+        )
+        let posIncome = Transaction(
+            clientName: "Mario Rossi",
+            patientId: "patient-1",
+            amount: 90,
+            paymentMethod: .pos,
+            type: .income,
+            date: Date()
+        )
+        let unlinkedWireIncome = Transaction(
+            clientName: "Mario Rossi",
+            amount: 90,
+            paymentMethod: .wire,
+            type: .income,
+            date: Date()
+        )
+
+        XCTAssertFalse(cashIncome.shouldSyncToSorriso)
+        XCTAssertTrue(posIncome.shouldSyncToSorriso)
+        XCTAssertFalse(unlinkedWireIncome.shouldSyncToSorriso)
+    }
+
     func testRestoreICloudBackupRecoversAfterDeletingAllTransactions() throws {
         let storageURL = temporaryDirectory.appendingPathComponent("transactions.json")
         let backupURL = temporaryDirectory.appendingPathComponent("transactions.icloud-backup.json")

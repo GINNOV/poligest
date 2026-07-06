@@ -237,26 +237,50 @@ private struct MetricTile: View {
     let symbol: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: symbol)
-                .font(.caption.bold())
-                .foregroundColor(color)
-                .frame(width: 28, height: 28)
-                .background(color.opacity(0.14), in: Circle())
-            
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundColor(color)
+                    .frame(width: 30, height: 30)
+                    .background(color.opacity(0.14), in: Circle())
+
                 Text(title)
-                    .font(.caption)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundColor(.secondary)
+
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(String(format: "€ %.2f", amount))
-                    .font(.headline)
+                    .font(.system(.title3, design: .rounded, weight: .bold))
+                    .foregroundColor(color)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.65)
+                    .minimumScaleFactor(0.7)
+                Rectangle()
+                    .fill(color.opacity(0.28))
+                    .frame(width: 34, height: 3)
+                    .clipShape(Capsule())
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    color.opacity(0.11),
+                    Color(.secondarySystemGroupedBackground)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(color.opacity(0.12), lineWidth: 1)
+        )
     }
 }
 

@@ -11,6 +11,7 @@ struct TransactionFormView: View {
     @State private var clientName = ""
     @State private var note = ""
     @State private var amountString = ""
+    @State private var selectedDate = Date()
     @State private var selectedMethod: PaymentMethod = .cash
     @State private var patientLookupState: PatientLookupState = .idle
     @State private var isSaving = false
@@ -26,6 +27,7 @@ struct TransactionFormView: View {
                     clientCard
                     noteCard
                     paymentCard
+                    dateCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -218,6 +220,22 @@ struct TransactionFormView: View {
         .padding(18)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
+
+    private var dateCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Data", systemImage: "calendar")
+                .font(.subheadline.bold())
+                .foregroundColor(.secondary)
+
+            DatePicker("Data movimento", selection: $selectedDate, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .tint(type == .income ? .green : .red)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(18)
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
     
     private var saveBar: some View {
         Button {
@@ -283,6 +301,7 @@ struct TransactionFormView: View {
         let draft = PendingTransaction(
             clientName: trimmedClientName,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            date: selectedDate,
             amount: amount,
             paymentMethod: selectedMethod,
             type: type
@@ -363,7 +382,7 @@ struct TransactionFormView: View {
             amount: pending.amount,
             paymentMethod: pending.paymentMethod,
             type: pending.type,
-            date: Date()
+            date: pending.date
         )
         
         store.add(newTx)
@@ -372,7 +391,7 @@ struct TransactionFormView: View {
     }
     
     private func syncToFinanceIfNeeded(_ transaction: Transaction) {
-        guard transaction.type == .income, transaction.patientId != nil else { return }
+        guard transaction.shouldSyncToSorriso else { return }
         
         Task {
             var syncedTransaction = transaction
@@ -442,6 +461,7 @@ private enum PatientLookupState: Equatable {
 private struct PendingTransaction: Equatable {
     let clientName: String
     let note: String
+    let date: Date
     let amount: Double
     let paymentMethod: PaymentMethod
     let type: TransactionType

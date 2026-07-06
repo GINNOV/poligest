@@ -46,6 +46,10 @@ struct Transaction: Identifiable, Codable {
     var isUnlinkedSorrisoClient: Bool {
         type == .income && patientId == nil && !clientName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
+
+    var shouldSyncToSorriso: Bool {
+        type == .income && patientId != nil && paymentMethod != .cash
+    }
 }
 
 enum ICloudBackupRestoreResult {
