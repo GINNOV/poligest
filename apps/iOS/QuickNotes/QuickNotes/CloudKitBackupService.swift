@@ -29,7 +29,7 @@ struct CloudKitBackupService: CloudKitBackupServicing {
     }
 
     func saveBackup(transactions: [Transaction]) async throws {
-        let data = try JSONEncoder().encode(transactions)
+        let data = try TransactionJSONCoding.makeEncoder().encode(transactions)
         let record = await fetchExistingRecord() ?? CKRecord(recordType: recordType, recordID: recordID)
         record[payloadKey] = data as NSData
         record[updatedAtKey] = Date() as NSDate
@@ -43,7 +43,7 @@ struct CloudKitBackupService: CloudKitBackupServicing {
         }
 
         let data = payload as Data
-        return try JSONDecoder().decode([Transaction].self, from: data)
+        return try TransactionJSONCoding.makeDecoder().decode([Transaction].self, from: data)
     }
 
     private func fetchExistingRecord() async -> CKRecord? {

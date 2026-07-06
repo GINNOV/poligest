@@ -725,7 +725,7 @@ private struct AmountKeyboardTextField: UIViewRepresentable {
         let textField = UITextField()
         textField.delegate = context.coordinator
         textField.placeholder = "0,00"
-        textField.keyboardType = .numbersAndPunctuation
+        textField.keyboardType = .decimalPad
         textField.autocapitalizationType = .none
         textField.autocorrectionType = .no
         textField.spellCheckingType = .no
@@ -742,6 +742,13 @@ private struct AmountKeyboardTextField: UIViewRepresentable {
     }
 
     func updateUIView(_ textField: UITextField, context: Context) {
+        if textField.keyboardType != .decimalPad {
+            textField.keyboardType = .decimalPad
+            if textField.isFirstResponder {
+                textField.reloadInputViews()
+            }
+        }
+
         if textField.text != text {
             textField.text = text
         }
@@ -766,6 +773,16 @@ private struct AmountKeyboardTextField: UIViewRepresentable {
 
         @objc func textDidChange(_ textField: UITextField) {
             text = textField.text ?? ""
+        }
+
+        func textField(
+            _ textField: UITextField,
+            shouldChangeCharactersIn range: NSRange,
+            replacementString string: String
+        ) -> Bool {
+            string.allSatisfy { character in
+                character.isNumber || character == "," || character == "."
+            }
         }
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {

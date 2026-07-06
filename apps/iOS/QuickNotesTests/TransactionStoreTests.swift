@@ -303,6 +303,62 @@ final class TransactionStoreTests: XCTestCase {
         XCTAssertEqual(reloadedStore.transactions.first?.paymentMethod, .wire)
     }
 
+    func testTransactionImportDecodesLegacyEnglishValuesAndISODate() throws {
+        let json = """
+        [
+          {
+            "id": "00000000-0000-0000-0000-000000000001",
+            "clientName": "Legacy Client",
+            "amount": 123.45,
+            "paymentMethod": "cash",
+            "type": "income",
+            "date": "2026-07-06T14:30:00Z"
+          },
+          {
+            "id": "00000000-0000-0000-0000-000000000002",
+            "clientName": "Legacy Supplier",
+            "note": "Materiale",
+            "amount": 80,
+            "paymentMethod": "wire",
+            "type": "expense",
+            "date": "2026-07-06"
+          }
+        ]
+        """
+
+        let transactions = try TransactionJSONCoding.makeDecoder()
+            .decode([Transaction].self, from: try XCTUnwrap(json.data(using: .utf8)))
+
+        XCTAssertEqual(transactions.map(\.clientName), ["Legacy Client", "Legacy Supplier"])
+        XCTAssertEqual(transactions.map(\.paymentMethod), [.cash, .wire])
+        XCTAssertEqual(transactions.map(\.type), [.income, .expense])
+        XCTAssertEqual(transactions[1].note, "Materiale")
+    }
+
+    func testTransactionExportRoundTripsThroughImportDecoder() throws {
+        let original = [
+            Transaction(
+                clientName: "Round Trip",
+                patientId: "patient-1",
+                patientMatchKind: "manual",
+                note: "Nota",
+                amount: 75,
+                paymentMethod: .pos,
+                type: .income,
+                date: Date(timeIntervalSinceReferenceDate: 804_000_000)
+            )
+        ]
+
+        let data = try TransactionJSONCoding.makeEncoder().encode(original)
+        let decoded = try TransactionJSONCoding.makeDecoder().decode([Transaction].self, from: data)
+
+        XCTAssertEqual(decoded.count, 1)
+        XCTAssertEqual(decoded[0].clientName, "Round Trip")
+        XCTAssertEqual(decoded[0].paymentMethod, .pos)
+        XCTAssertEqual(decoded[0].type, .income)
+        XCTAssertEqual(decoded[0].date.timeIntervalSinceReferenceDate, original[0].date.timeIntervalSinceReferenceDate, accuracy: 0.001)
+    }
+
     private final class FakeCloudKitBackupService: CloudKitBackupServicing {
         let restoredTransactions: [Transaction]
 

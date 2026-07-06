@@ -14,6 +14,28 @@ enum PaymentMethod: String, Codable, CaseIterable, Identifiable {
         case .wire: return "arrow.up.right.and.arrow.down.left.rectangle"
         }
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        let normalizedValue = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        switch normalizedValue {
+        case "contanti", "cash":
+            self = .cash
+        case "pos", "card", "carta", "creditcard", "credit_card":
+            self = .pos
+        case "bonifico", "wire", "bank_transfer", "banktransfer", "transfer":
+            self = .wire
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Metodo di pagamento non supportato: \(rawValue)"
+            )
+        }
+    }
 }
 
 enum TransactionType: String, Codable, CaseIterable, Identifiable {
@@ -21,6 +43,26 @@ enum TransactionType: String, Codable, CaseIterable, Identifiable {
     case expense = "Uscita"
 
     var id: String { self.rawValue }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        let normalizedValue = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        switch normalizedValue {
+        case "entrata", "income":
+            self = .income
+        case "uscita", "expense":
+            self = .expense
+        default:
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Tipo movimento non supportato: \(rawValue)"
+            )
+        }
+    }
 }
 
 enum EuroAmountFormatter {
@@ -74,6 +116,63 @@ struct Transaction: Identifiable, Codable {
     var shouldSyncToSorriso: Bool {
         type == .income && patientId != nil && paymentMethod != .cash
     }
+}
+
+enum TransactionJSONCoding {
+    static func makeEncoder() -> JSONEncoder {
+        JSONEncoder()
+    }
+
+    static func makeDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            try decodeDate(from: decoder)
+        }
+        return decoder
+    }
+
+    private static func decodeDate(from decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+
+        if let numericValue = try? container.decode(Double.self) {
+            return Date(timeIntervalSinceReferenceDate: numericValue)
+        }
+
+        let stringValue = try container.decode(String.self)
+        let trimmedValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let date = iso8601WithFractionalSeconds.date(from: trimmedValue)
+            ?? iso8601WithoutFractionalSeconds.date(from: trimmedValue)
+            ?? dayFormatter.date(from: trimmedValue) {
+            return date
+        }
+
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Data movimento non supportata: \(stringValue)"
+        )
+    }
+
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601WithoutFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 }
 
 enum ICloudBackupRestoreResult {
@@ -164,7 +263,7 @@ class TransactionStore: ObservableObject {
 
     func save() {
         do {
-            let data = try JSONEncoder().encode(transactions)
+            let data = try TransactionJSONCoding.makeEncoder().encode(transactions)
             try data.write(to: fileURL)
             if shouldUpdateBackupOnSave && !transactions.isEmpty {
                 try data.write(to: backupFileURL)
@@ -243,7 +342,7 @@ class TransactionStore: ObservableObject {
 
     private func loadTransactions(from url: URL) throws -> [Transaction] {
         let data = try Data(contentsOf: url)
-        return try JSONDecoder().decode([Transaction].self, from: data)
+        return try TransactionJSONCoding.makeDecoder().decode([Transaction].self, from: data)
     }
 
     func totals(for date: Date) -> (income: Double, expense: Double) {

@@ -212,7 +212,7 @@ struct MonthDrillDownView: View {
                 }
                 
                 let data = try Data(contentsOf: url)
-                let transactions = try JSONDecoder().decode([Transaction].self, from: data)
+                let transactions = try TransactionJSONCoding.makeDecoder().decode([Transaction].self, from: data)
                 pendingImport = PendingTransactionsImport(transactions: transactions)
             } catch {
                 importResult = ImportResult(title: "Importazione non riuscita", message: error.localizedDescription)
@@ -236,11 +236,11 @@ private struct TransactionsDocument: FileDocument {
         guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        transactions = try JSONDecoder().decode([Transaction].self, from: data)
+        transactions = try TransactionJSONCoding.makeDecoder().decode([Transaction].self, from: data)
     }
     
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        let encoder = JSONEncoder()
+        let encoder = TransactionJSONCoding.makeEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(transactions)
         return FileWrapper(regularFileWithContents: data)
