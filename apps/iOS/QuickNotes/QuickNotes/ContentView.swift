@@ -7,6 +7,7 @@ struct ContentView: View {
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     @AppStorage("showMesiShortcut") private var showMesiShortcut = true
     @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
+    @AppStorage("whatsappDailyReportMessage") private var whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
     
     @State private var formRoute: TransactionFormRoute?
     @State private var showingMonthlyReports = false
@@ -270,7 +271,7 @@ struct ContentView: View {
         }
 
         FileSharePresenter.present(items: [
-            DailyReportWhatsApp.defaultMessage(date: Date()),
+            DailyReportWhatsApp.message(template: whatsappDailyReportMessage, date: Date()),
             url,
         ])
     }

@@ -10,10 +10,7 @@ struct SettingsView: View {
     @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
-    @AppStorage("whatsappRecipientOneName") private var whatsappRecipientOneName = "Utente 1"
-    @AppStorage("whatsappRecipientOnePhone") private var whatsappRecipientOnePhone = ""
-    @AppStorage("whatsappRecipientTwoName") private var whatsappRecipientTwoName = "Utente 2"
-    @AppStorage("whatsappRecipientTwoPhone") private var whatsappRecipientTwoPhone = ""
+    @AppStorage("whatsappDailyReportMessage") private var whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
     @State private var showApiToken = false
     @State private var restoreAlertTitle = ""
     @State private var restoreAlertMessage = ""
@@ -76,21 +73,30 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    WhatsAppRecipientFields(
-                        title: "Destinatario 1",
-                        name: $whatsappRecipientOneName,
-                        phone: $whatsappRecipientOnePhone
-                    )
+                    Label {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Messaggio predefinito")
+                                .font(.subheadline.weight(.semibold))
 
-                    WhatsAppRecipientFields(
-                        title: "Destinatario 2",
-                        name: $whatsappRecipientTwoName,
-                        phone: $whatsappRecipientTwoPhone
-                    )
+                            TextEditor(text: $whatsappDailyReportMessage)
+                                .frame(minHeight: 92)
+                                .scrollContentBackground(.hidden)
+                                .padding(8)
+                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                            Button("Ripristina messaggio standard") {
+                                whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
+                    } icon: {
+                        Image(systemName: "message")
+                            .foregroundColor(.green)
+                    }
                 } header: {
                     Text("WhatsApp")
                 } footer: {
-                    Text("Il resoconto giornaliero apre WhatsApp con il messaggio compilato. L'invio va confermato dentro WhatsApp.")
+                    Text("Usa {date} per inserire automaticamente la data del resoconto. L'invio va confermato dentro WhatsApp.")
                 }
 
                 Section {
@@ -232,31 +238,5 @@ struct SettingsView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
-    }
-}
-
-private struct WhatsAppRecipientFields: View {
-    let title: String
-    @Binding var name: String
-    @Binding var phone: String
-
-    var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-
-                TextField("Nome", text: $name)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled()
-
-                TextField("+39 333 123 4567", text: $phone)
-                    .keyboardType(.phonePad)
-                    .textContentType(.telephoneNumber)
-            }
-        } icon: {
-            Image(systemName: "message")
-                .foregroundColor(.green)
-        }
     }
 }
