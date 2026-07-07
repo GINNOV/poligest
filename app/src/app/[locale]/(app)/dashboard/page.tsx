@@ -56,13 +56,6 @@ const getDateKey = (date: Date, timeZone: string) =>
     month: "2-digit",
     day: "2-digit",
   }).format(date);
-const formatLocalDateTime = (date: Date) => {
-  const pad = (value: number) => value.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-};
-
 type DashboardLayout = "rows" | "cards";
 
 function buildDashboardHref({
@@ -395,8 +388,8 @@ export default async function DashboardPage({
   const reminderCounts = await getAppointmentWhatsappReminderCounts(listAppointments.map((appt) => appt.id));
   const appointmentsForList = listAppointments.map((appt) => ({
     id: appt.id,
-    startsAt: formatLocalDateTime(appt.startsAt),
-    endsAt: formatLocalDateTime(appt.endsAt),
+    startsAt: appt.startsAt.toISOString(),
+    endsAt: appt.endsAt.toISOString(),
     status: appt.status,
     title: appt.title,
     serviceType: appt.serviceType,
