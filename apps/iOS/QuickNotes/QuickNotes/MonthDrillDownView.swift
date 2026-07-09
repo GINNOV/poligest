@@ -411,106 +411,109 @@ private struct MonthDetailView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                // Header Net Balance Card
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Saldo netto")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text(EuroAmountFormatter.string(balance))
-                        .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                        .foregroundColor(balance >= 0 ? .green : .red)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                    
-                    HStack(spacing: 12) {
-                        DetailMetric(title: "Entrate", amount: totals.income, color: .green)
-                        DetailMetric(title: "Uscite", amount: totals.expense, color: .red)
-                    }
-                }
-                .padding(18)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        List {
+            // Header Net Balance Card
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Saldo netto")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Text(EuroAmountFormatter.string(balance))
+                    .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                    .foregroundColor(balance >= 0 ? .green : .red)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                 
-                // Grouped Transactions list by Day
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack {
-                        Text("Movimenti Giornalieri")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { showAmounts.toggle() }) {
-                            Image(systemName: showAmounts ? "eye" : "eye.slash")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 32, height: 32)
-                                .background(.thinMaterial, in: Circle())
-                        }
-                        .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
-                    }
+                HStack(spacing: 12) {
+                    DetailMetric(title: "Entrate", amount: totals.income, color: .green)
+                    DetailMetric(title: "Uscite", amount: totals.expense, color: .red)
+                }
+            }
+            .padding(18)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .listRowStyle()
+            .padding(.top, 12)
+            
+            // Movimenti Giornalieri Section Header / Row
+            HStack {
+                Text("Movimenti Giornalieri")
+                    .font(.headline)
+                Spacer()
+                Button(action: { showAmounts.toggle() }) {
+                    Image(systemName: showAmounts ? "eye" : "eye.slash")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 32, height: 32)
+                        .background(.thinMaterial, in: Circle())
+                }
+                .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
+            }
+            .listRowStyle()
+            
+            if transactionsByDay.isEmpty {
+                Text("Nessun movimento registrato in questo mese.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 32)
+                    .listRowStyle()
+            } else {
+                ForEach(transactionsByDay, id: \.date) { day in
+                    let dayTotals = calculateTotals(for: day.transactions)
                     
-                    if transactionsByDay.isEmpty {
-                        Text("Nessun movimento registrato in questo mese.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 32)
-                    } else {
-                        ForEach(transactionsByDay, id: \.date) { day in
-                            let dayTotals = calculateTotals(for: day.transactions)
-                            
-                            VStack(alignment: .leading, spacing: 10) {
-                                // Day Header
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "it_IT"))).localizedCapitalized)
-                                            .font(.title3.bold())
-                                        
-                                        HStack(spacing: 8) {
-                                            Text("Entrate: \(EuroAmountFormatter.string(dayTotals.income, showAmounts: showAmounts))")
-                                                .foregroundColor(.green)
-                                            Text("•")
-                                                .foregroundColor(.secondary)
-                                            Text("Uscite: \(EuroAmountFormatter.string(dayTotals.expense, showAmounts: showAmounts))")
-                                                .foregroundColor(.red)
-                                        }
-                                        .font(.caption.bold())
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Generate Daily PDF Button
-                                    Button(action: {
-                                        if let url = PDFGenerator.generateDailyPDF(date: day.date, transactions: day.transactions, totals: dayTotals, showAmounts: showAmounts) {
-                                            FileSharePresenter.present(url)
-                                        }
-                                    }) {
-                                        Label("Genera Resoconto", systemImage: "doc.text")
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(.blue)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(.regularMaterial, in: Capsule())
-                                    }
-                                }
-                                .padding(.horizontal, 4)
-                                .padding(.top, 8)
-                                
-                                // Transactions for this Day
-                                ForEach(day.transactions.sorted(by: { $0.date > $1.date })) { transaction in
-                                    DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts) {
+                    Section {
+                        ForEach(day.transactions.sorted(by: { $0.date > $1.date })) { transaction in
+                            DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
                                         transactionPendingDeletion = transaction
+                                    } label: {
+                                        Label("Elimina", systemImage: "trash")
                                     }
                                 }
-                            }
-                            .padding(.bottom, 8)
+                                .listRowStyle()
                         }
+                    } header: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "it_IT"))).localizedCapitalized)
+                                    .font(.title3.bold())
+                                    .foregroundColor(.primary)
+                                
+                                HStack(spacing: 8) {
+                                    Text("Entrate: \(EuroAmountFormatter.string(dayTotals.income, showAmounts: showAmounts))")
+                                        .foregroundColor(.green)
+                                    Text("•")
+                                        .foregroundColor(.secondary)
+                                    Text("Uscite: \(EuroAmountFormatter.string(dayTotals.expense, showAmounts: showAmounts))")
+                                        .foregroundColor(.red)
+                                }
+                                .font(.caption.bold())
+                            }
+                            
+                            Spacer()
+                            
+                            // Generate Daily PDF Button
+                            Button(action: {
+                                if let url = PDFGenerator.generateDailyPDF(date: day.date, transactions: day.transactions, totals: dayTotals, showAmounts: showAmounts) {
+                                    FileSharePresenter.present(url)
+                                }
+                            }) {
+                                Label("Genera Resoconto", systemImage: "doc.text")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(.regularMaterial, in: Capsule())
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.top, 8)
+                        .textCase(nil)
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 28)
         }
+        .listStyle(.plain)
         .background(Color(.systemGroupedBackground))
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -552,7 +555,6 @@ private struct DetailMetric: View {
 private struct DrillDownTransactionRow: View {
     let transaction: Transaction
     let showAmounts: Bool
-    let onDelete: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -592,16 +594,16 @@ private struct DrillDownTransactionRow: View {
                     .foregroundColor(.secondary)
                 PatientLinkStatus(transaction: transaction, font: .caption2)
             }
-            
-            Button(role: .destructive, action: onDelete) {
-                Image(systemName: "trash")
-                    .foregroundColor(.red)
-                    .padding(8)
-                    .background(Color.red.opacity(0.08), in: Circle())
-            }
-            .buttonStyle(.plain)
         }
         .padding(14)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+private extension View {
+    func listRowStyle() -> some View {
+        listRowInsets(.init(top: 5, leading: 20, bottom: 5, trailing: 20))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
     }
 }
