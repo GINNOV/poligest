@@ -9,9 +9,10 @@
 #   VERSION=1.1.0 ./build-macos.sh
 #
 # Environment:
-#   VERSION                      Override CFBundleShortVersionString / MARKETING_VERSION
+#   VERSION                        Override CFBundleShortVersionString / MARKETING_VERSION
 #   QUICKNOTES_CODE_SIGN_IDENTITY  Code signing identity (default: Xcode automatic signing)
-#   DERIVED_DATA_PATH            Xcode derived data location (default: build/DerivedData)
+#   QUICKNOTES_ADHOC_SIGN=1        Build without provisioning (used on CI)
+#   DERIVED_DATA_PATH              Xcode derived data location (default: build/DerivedData)
 
 set -euo pipefail
 
@@ -40,7 +41,13 @@ if [ -n "${VERSION:-}" ]; then
   XCODEBUILD_ARGS+=(MARKETING_VERSION="$VERSION")
 fi
 
-if [ -n "${QUICKNOTES_CODE_SIGN_IDENTITY:-}" ]; then
+if [ -n "${CI:-}" ] || [ "${QUICKNOTES_ADHOC_SIGN:-}" = "1" ]; then
+  echo "   Building without code signing (CI/ad-hoc distribution)..."
+  XCODEBUILD_ARGS+=(
+    CODE_SIGNING_ALLOWED=NO
+    CODE_SIGNING_REQUIRED=NO
+  )
+elif [ -n "${QUICKNOTES_CODE_SIGN_IDENTITY:-}" ]; then
   echo "   Using code sign identity: ${QUICKNOTES_CODE_SIGN_IDENTITY}"
   XCODEBUILD_ARGS+=(
     CODE_SIGN_IDENTITY="$QUICKNOTES_CODE_SIGN_IDENTITY"

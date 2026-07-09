@@ -23,6 +23,8 @@ jobs:
 
       - name: Build QuickNotes (Mac Catalyst)
         working-directory: apps/iOS
+        env:
+          QUICKNOTES_ADHOC_SIGN: "1"
         run: VERSION=${{ inputs.version }} ./build-macos.sh
 
       - name: Create DMG
