@@ -122,7 +122,8 @@ export default async function ScanIdAdminPage() {
         version={quickNotesMeta.version}
         downloadUrl={quickNotesMeta.downloadUrl}
         usageSteps={[
-          "Scarica e trascina QuickNotes in Applicazioni.",
+          "Scarica e trascina QuickNotes in Applicazioni (Mac Apple Silicon, macOS 13+).",
+          "Al primo avvio fai tasto destro su QuickNotes.app → Apri per confermare l'apertura.",
           "Configura URL server Sorriso e il token API dalle impostazioni.",
           "Registra pagamenti e note sincronizzandoli con Sorriso.",
         ]}

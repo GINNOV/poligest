@@ -66,6 +66,11 @@ echo "==> Copying built app to ${OUTPUT_APP}"
 rm -rf "$OUTPUT_APP"
 cp -R "$BUILT_APP" "$OUTPUT_APP"
 
+if [ -n "${CI:-}" ] || [ "${QUICKNOTES_ADHOC_SIGN:-}" = "1" ]; then
+  echo "==> Ad-hoc code signing app bundle for distribution..."
+  codesign -s - --force --deep --timestamp=none "$OUTPUT_APP"
+fi
+
 codesign --verify --deep --strict "$OUTPUT_APP" 2>/dev/null || true
 
 VERSION_BUILT=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$OUTPUT_APP/Contents/Info.plist")
