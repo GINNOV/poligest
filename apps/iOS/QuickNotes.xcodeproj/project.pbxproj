@@ -1,622 +1,1771 @@
-// !$*UTF8*$!
-{
-	archiveVersion = 1;
-	classes = {
-	};
-	objectVersion = 56;
-	objects = {
-
-/* Begin PBXBuildFile section */
-		13D3A1E14E054B07A1B28D1F /* TransactionFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20121BC6142342D1A3839740 /* TransactionFormView.swift */; };
-		15C9BA4E2F4A4D8A9F4D4FF7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BB45979C8149B1AA4DE3D2 /* ContentView.swift */; };
-		2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */; };
-		30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */; };
-		37191F649CE94DED90C8CBEF /* PDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */; };
-		3A4B5C6D7E8F901234567890 /* DailyReportWhatsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */; };
-		463AB7FCEB7E46F68FB78D60 /* QuickNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */; };
-		4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */; };
-		6C84D9A5085745C79D7E628A /* MonthDrillDownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */; };
-		7527A2228ABF4983A7D4D3C7 /* PatientLookupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30CC6754622A412DB52146CE /* PatientLookupService.swift */; };
-		80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */; };
-		84FC522DE9C34098B3568EA2 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8154D1B294E420BA90FC528 /* SettingsView.swift */; };
-		93D10817A7294F759669F3DE /* MonthlyReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */; };
-		9B5F32CC92FC47E0B6FC75E8 /* PatientDirectoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */; };
-		A9B4D7958A6246A1BC26A7F3 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */; };
-		B13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */; };
-		B0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */; };
-		C22955669053446780FA3C50 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A330F89F4B05434DA8ECD6D8 /* Assets.xcassets */; };
-		C1A0D10C10D0BACC00000002 /* CloudKitBackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A0D10C10D0BACC00000001 /* CloudKitBackupService.swift */; };
-		C85C0072D4FD4CBCA33DC8B9 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AD0A1046A3459A90B30525 /* Transaction.swift */; };
-		D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */; };
-		D4E5F60718293A4B5C6D7E8F /* DailyReportWhatsAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */; };
-		E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */; };
-		E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */; };
-		F3BF3EB2BC5249B5980D0A10 /* LockScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */; };
-		FA8E3082487F41C78084232D /* BiometricAuthenticator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		1234567890ABCDEF12345678 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BD3A4493999A41828A8EB551 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DD14F66B2FBD469CBB0723B7;
-			remoteInfo = QuickNotes;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXFileReference section */
-		14BA53D92CBA4CC897799E49 /* QuickNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthDrillDownView.swift; path = QuickNotes/QuickNotes/MonthDrillDownView.swift; sourceTree = "<group>"; };
-		10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SyncStatusView.swift; path = QuickNotes/QuickNotes/SyncStatusView.swift; sourceTree = "<group>"; };
-		1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogService.swift; path = QuickNotes/QuickNotes/ServiceCatalogService.swift; sourceTree = "<group>"; };
-		20121BC6142342D1A3839740 /* TransactionFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransactionFormView.swift; path = QuickNotes/QuickNotes/TransactionFormView.swift; sourceTree = "<group>"; };
-		24AD0A1046A3459A90B30525 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Transaction.swift; path = QuickNotes/QuickNotes/Transaction.swift; sourceTree = "<group>"; };
-		27BB45979C8149B1AA4DE3D2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentView.swift; path = QuickNotes/QuickNotes/ContentView.swift; sourceTree = "<group>"; };
-		30CC6754622A412DB52146CE /* PatientLookupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientLookupService.swift; path = QuickNotes/QuickNotes/PatientLookupService.swift; sourceTree = "<group>"; };
-		3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceDirectoryView.swift; path = QuickNotes/QuickNotes/ServiceDirectoryView.swift; sourceTree = "<group>"; };
-		4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DailyReportWhatsApp.swift; path = QuickNotes/QuickNotes/DailyReportWhatsApp.swift; sourceTree = "<group>"; };
-		5EA90F5857CC4F8A9A83A098 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = QuickNotes/QuickNotes/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientDirectoryView.swift; path = QuickNotes/QuickNotes/PatientDirectoryView.swift; sourceTree = "<group>"; };
-		86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MonthlyReportsView.swift; path = QuickNotes/QuickNotes/MonthlyReportsView.swift; sourceTree = "<group>"; };
-		8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFGenerator.swift; path = QuickNotes/QuickNotes/PDFGenerator.swift; sourceTree = "<group>"; };
-		8D7965A0F61F4ACC9C2AD0A5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = QuickNotes/QuickNotes/Info.plist; sourceTree = "<group>"; };
-		A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BiometricAuthenticator.swift; path = QuickNotes/QuickNotes/BiometricAuthenticator.swift; sourceTree = "<group>"; };
-		A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickNotesSyncCoordinator.swift; path = QuickNotes/QuickNotes/QuickNotesSyncCoordinator.swift; sourceTree = "<group>"; };
-		A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PatientLookupServiceTests.swift; path = QuickNotesTests/PatientLookupServiceTests.swift; sourceTree = "<group>"; };
-		A330F89F4B05434DA8ECD6D8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = QuickNotes/Assets.xcassets; sourceTree = "<group>"; };
-		B8154D1B294E420BA90FC528 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SettingsView.swift; path = QuickNotes/QuickNotes/SettingsView.swift; sourceTree = "<group>"; };
-		BDF2468ACE13579BDF2468AC /* QuickNotesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = QuickNotesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TransactionStoreTests.swift; path = QuickNotesTests/TransactionStoreTests.swift; sourceTree = "<group>"; };
-		C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FinanceSyncService.swift; path = QuickNotes/QuickNotes/FinanceSyncService.swift; sourceTree = "<group>"; };
-		C1A0D10C10D0BACC00000001 /* CloudKitBackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CloudKitBackupService.swift; path = QuickNotes/QuickNotes/CloudKitBackupService.swift; sourceTree = "<group>"; };
-		C1A0D10C10D0BACC00000003 /* QuickNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = QuickNotes.entitlements; path = QuickNotes/QuickNotes/QuickNotes.entitlements; sourceTree = "<group>"; };
-		D2B4A6C81E9F4A3B8C7D6E5F /* BuildNumber.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = BuildNumber.xcconfig; path = QuickNotes/BuildNumber.xcconfig; sourceTree = "<group>"; };
-		D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ServiceCatalogServiceTests.swift; path = QuickNotesTests/ServiceCatalogServiceTests.swift; sourceTree = "<group>"; };
-		E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QuickNotesApp.swift; path = QuickNotes/QuickNotes/QuickNotesApp.swift; sourceTree = "<group>"; };
-		E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DailyReportWhatsAppTests.swift; path = QuickNotesTests/DailyReportWhatsAppTests.swift; sourceTree = "<group>"; };
-		E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LockScreenView.swift; path = QuickNotes/QuickNotes/LockScreenView.swift; sourceTree = "<group>"; };
-		F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFGeneratorTests.swift; path = QuickNotesTests/PDFGeneratorTests.swift; sourceTree = "<group>"; };
-/* End PBXFileReference section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		79D2AAD2979747B4A39C6BA4 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		9ACE13579BDF2468ACE13579 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXGroup section */
-		88D7DF4812394E7F8D1890DC /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				FC4D7E1326AE4B2291000001 /* App */,
-				FC4D7E1326AE4B2291000002 /* Models */,
-				FC4D7E1326AE4B2291000003 /* Views */,
-				FC4D7E1326AE4B2291000004 /* Services */,
-			);
-			name = Sources;
-			sourceTree = "<group>";
-		};
-		FC4D7E1326AE4B2291000001 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				E6EEE83BF7A14111A26ACB1A /* QuickNotesApp.swift */,
-				27BB45979C8149B1AA4DE3D2 /* ContentView.swift */,
-				E7FF8AEC32E744BA8DEF380F /* LockScreenView.swift */,
-				B8154D1B294E420BA90FC528 /* SettingsView.swift */,
-			);
-			name = App;
-			sourceTree = "<group>";
-		};
-		FC4D7E1326AE4B2291000002 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				24AD0A1046A3459A90B30525 /* Transaction.swift */,
-			);
-			name = Models;
-			sourceTree = "<group>";
-		};
-		FC4D7E1326AE4B2291000003 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				20121BC6142342D1A3839740 /* TransactionFormView.swift */,
-				7F0D490C89034F25A8796A3B /* PatientDirectoryView.swift */,
-				3F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift */,
-				10A1B2C3D4E5F60718293A4B /* SyncStatusView.swift */,
-				86C0553811434C4EA50E5E21 /* MonthlyReportsView.swift */,
-				0B3E0B23C4E74E0E9C9D10E0 /* MonthDrillDownView.swift */,
-			);
-			name = Views;
-			sourceTree = "<group>";
-		};
-		FC4D7E1326AE4B2291000004 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				30CC6754622A412DB52146CE /* PatientLookupService.swift */,
-				1F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift */,
-				C0436616F0644615BA0FF7AA /* FinanceSyncService.swift */,
-				A0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift */,
-				C1A0D10C10D0BACC00000001 /* CloudKitBackupService.swift */,
-				4A5B6C7D8E9F012345678901 /* DailyReportWhatsApp.swift */,
-				A0352719DB194D5282AF65BB /* BiometricAuthenticator.swift */,
-				8855EE58591D4CE1AFACF009 /* PDFGenerator.swift */,
-			);
-			name = Services;
-			sourceTree = "<group>";
-		};
-		A6378116279341329D7C694C = {
-			isa = PBXGroup;
-			children = (
-				88D7DF4812394E7F8D1890DC /* Sources */,
-				9BDF2468ACE13579BDF2468A /* Tests */,
-				B01FB8E370324385AEC68731 /* Supporting Files */,
-				E501C7F689CB4906B72BC1DE /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		9BDF2468ACE13579BDF2468A /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				C13579BDF2468ACE13579BDF /* TransactionStoreTests.swift */,
-				F13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift */,
-				A13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift */,
-				D7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift */,
-				E5F60718293A4B5C6D7E8F90 /* DailyReportWhatsAppTests.swift */,
-			);
-			name = Tests;
-			sourceTree = "<group>";
-		};
-		B01FB8E370324385AEC68731 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				D2B4A6C81E9F4A3B8C7D6E5F /* BuildNumber.xcconfig */,
-				8D7965A0F61F4ACC9C2AD0A5 /* Info.plist */,
-				C1A0D10C10D0BACC00000003 /* QuickNotes.entitlements */,
-				A330F89F4B05434DA8ECD6D8 /* Assets.xcassets */,
-			);
-			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		E501C7F689CB4906B72BC1DE /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				14BA53D92CBA4CC897799E49 /* QuickNotes.app */,
-				BDF2468ACE13579BDF2468AC /* QuickNotesTests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-/* End PBXGroup section */
-
-/* Begin PBXNativeTarget section */
-		DD14F66B2FBD469CBB0723B7 /* QuickNotes */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 1BE177D1B3D84873A1C948D3 /* Build configuration list for PBXNativeTarget "QuickNotes" */;
-			buildPhases = (
-				F1134B1923E74B08A52E1B43 /* Auto Increment Build Number */,
-				CA88B2FA3EBE4FCDBD684557 /* Sources */,
-				79D2AAD2979747B4A39C6BA4 /* Frameworks */,
-				BA3A311BFDD940F18AF456CF /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = QuickNotes;
-			productName = QuickNotes;
-			productReference = 14BA53D92CBA4CC897799E49 /* QuickNotes.app */;
-			productType = "com.apple.product-type.application";
-		};
-		9DF2468ACE13579BDF2468AC /* QuickNotesTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 8ACE13579BDF2468ACE13579 /* Build configuration list for PBXNativeTarget "QuickNotesTests" */;
-			buildPhases = (
-				8BDF2468ACE13579BDF2468A /* Sources */,
-				9ACE13579BDF2468ACE13579 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				2468ACE13579BDF2468ACE13 /* PBXTargetDependency */,
-			);
-			name = QuickNotesTests;
-			productName = QuickNotesTests;
-			productReference = BDF2468ACE13579BDF2468AC /* QuickNotesTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-/* End PBXNativeTarget section */
-
-/* Begin PBXProject section */
-		BD3A4493999A41828A8EB551 /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 2660;
-				TargetAttributes = {
-					DD14F66B2FBD469CBB0723B7 = {
-						CreatedOnToolsVersion = 15.0;
-						LastSwiftMigration = 1500;
-					};
-					9DF2468ACE13579BDF2468AC = {
-						CreatedOnToolsVersion = 15.0;
-						TestTargetID = DD14F66B2FBD469CBB0723B7;
-					};
-				};
-			};
-			buildConfigurationList = DEFEC2A945024D00998D5B88 /* Build configuration list for PBXProject "QuickNotes" */;
-			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = it;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				it,
-				Base,
-			);
-			mainGroup = A6378116279341329D7C694C;
-			productRefGroup = E501C7F689CB4906B72BC1DE /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				DD14F66B2FBD469CBB0723B7 /* QuickNotes */,
-				9DF2468ACE13579BDF2468AC /* QuickNotesTests */,
-			);
-		};
-/* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		BA3A311BFDD940F18AF456CF /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A9B4D7958A6246A1BC26A7F3 /* LaunchScreen.storyboard in Resources */,
-				C22955669053446780FA3C50 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		F1134B1923E74B08A52E1B43 /* Auto Increment Build Number */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Auto Increment Build Number";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/QuickNotesBuildNumberIncrement.stamp",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/bin/sh \"$PROJECT_DIR/scripts/increment_build_number.sh\"";
-		};
-/* End PBXShellScriptBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
-		CA88B2FA3EBE4FCDBD684557 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				463AB7FCEB7E46F68FB78D60 /* QuickNotesApp.swift in Sources */,
-				15C9BA4E2F4A4D8A9F4D4FF7 /* ContentView.swift in Sources */,
-				C85C0072D4FD4CBCA33DC8B9 /* Transaction.swift in Sources */,
-				FA8E3082487F41C78084232D /* BiometricAuthenticator.swift in Sources */,
-				37191F649CE94DED90C8CBEF /* PDFGenerator.swift in Sources */,
-				F3BF3EB2BC5249B5980D0A10 /* LockScreenView.swift in Sources */,
-				13D3A1E14E054B07A1B28D1F /* TransactionFormView.swift in Sources */,
-				93D10817A7294F759669F3DE /* MonthlyReportsView.swift in Sources */,
-				6C84D9A5085745C79D7E628A /* MonthDrillDownView.swift in Sources */,
-				7527A2228ABF4983A7D4D3C7 /* PatientLookupService.swift in Sources */,
-				2F7A8B9C0D1E2F3041526374 /* ServiceCatalogService.swift in Sources */,
-				9B5F32CC92FC47E0B6FC75E8 /* PatientDirectoryView.swift in Sources */,
-				4F7A8B9C0D1E2F3041526374 /* ServiceDirectoryView.swift in Sources */,
-				80B21D278F0D487EAE75F99E /* FinanceSyncService.swift in Sources */,
-				B0A1B2C3D4E5F60718293A4B /* QuickNotesSyncCoordinator.swift in Sources */,
-				C1A0D10C10D0BACC00000002 /* CloudKitBackupService.swift in Sources */,
-				3A4B5C6D7E8F901234567890 /* DailyReportWhatsApp.swift in Sources */,
-				30A1B2C3D4E5F60718293A4B /* SyncStatusView.swift in Sources */,
-				84FC522DE9C34098B3568EA2 /* SettingsView.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		8BDF2468ACE13579BDF2468A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D13579BDF2468ACE13579BDF /* TransactionStoreTests.swift in Sources */,
-				E13579BDF2468ACE13579BDF /* PDFGeneratorTests.swift in Sources */,
-				B13579BDF2468ACE13579BDF /* PatientLookupServiceTests.swift in Sources */,
-				E7A8B9C0D1E2F30415263748 /* ServiceCatalogServiceTests.swift in Sources */,
-				D4E5F60718293A4B5C6D7E8F /* DailyReportWhatsAppTests.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		2468ACE13579BDF2468ACE13 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DD14F66B2FBD469CBB0723B7 /* QuickNotes */;
-			targetProxy = 1234567890ABCDEF12345678 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
-/* Begin XCBuildConfiguration section */
-		68ACE13579BDF2468ACE1357 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.poligest.QuickNotesTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_CONST_VALUE_PROTOCOLS = " ";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/QuickNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/QuickNotes";
-			};
-			name = Debug;
-		};
-		79BDF2468ACE13579BDF2468 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.poligest.QuickNotesTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_CONST_VALUE_PROTOCOLS = " ";
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/QuickNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/QuickNotes";
-			};
-			name = Release;
-		};
-		10E0F689EE7547F2934E4BC8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = D2B4A6C81E9F4A3B8C7D6E5F /* BuildNumber.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphonesimulator*]" = "";
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING = NO;
-				CODE_SIGN_ENTITLEMENTS = QuickNotes/QuickNotes/QuickNotes.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				ENABLE_APP_INTENTS_METADATA = NO;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = QuickNotes/QuickNotes/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.poligest.QuickNotes;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_CONST_VALUE_PROTOCOLS = " ";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VERSIONING_SYSTEM = "apple-generic";
-			};
-			name = Debug;
-		};
-		356009896C7841A5A2D1AE62 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = D2B4A6C81E9F4A3B8C7D6E5F /* BuildNumber.xcconfig */;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphonesimulator*]" = "";
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING = NO;
-				CODE_SIGN_ENTITLEMENTS = QuickNotes/QuickNotes/QuickNotes.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				ENABLE_APP_INTENTS_METADATA = NO;
-				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				INFOPLIST_FILE = QuickNotes/QuickNotes/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.poligest.QuickNotes;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_CONST_VALUE_PROTOCOLS = " ";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				VERSIONING_SYSTEM = "apple-generic";
-			};
-			name = Release;
-		};
-		BC53DFD9ED7E48059B4E10F3 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_REPLAY = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = QQ9PTQU945;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_ACTUAL = YES_AGGRESSIVE;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-			};
-			name = Release;
-		};
-		E6D5E74B0AA14149B0089C27 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_CXX_LIBRARY = "libc++";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_REPLAY = YES;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = QQ9PTQU945;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_ACTUAL = YES_AGGRESSIVE;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-/* End XCBuildConfiguration section */
-
-/* Begin XCConfigurationList section */
-		1BE177D1B3D84873A1C948D3 /* Build configuration list for PBXNativeTarget "QuickNotes" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				10E0F689EE7547F2934E4BC8 /* Debug */,
-				356009896C7841A5A2D1AE62 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		8ACE13579BDF2468ACE13579 /* Build configuration list for PBXNativeTarget "QuickNotesTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				68ACE13579BDF2468ACE1357 /* Debug */,
-				79BDF2468ACE13579BDF2468 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		DEFEC2A945024D00998D5B88 /* Build configuration list for PBXProject "QuickNotes" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				E6D5E74B0AA14149B0089C27 /* Debug */,
-				BC53DFD9ED7E48059B4E10F3 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-/* End XCConfigurationList section */
-	};
-	rootObject = BD3A4493999A41828A8EB551 /* Project object */;
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>archiveVersion</key>
+	<string>1</string>
+	<key>classes</key>
+	<dict/>
+	<key>objectVersion</key>
+	<string>56</string>
+	<key>objects</key>
+	<dict>
+		<key>0353CE400F7F447DAD903502</key>
+		<dict>
+			<key>buildActionMask</key>
+			<integer>2147483647</integer>
+			<key>files</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXResourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<integer>0</integer>
+		</dict>
+		<key>0B3E0B23C4E74E0E9C9D10E0</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>MonthDrillDownView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/MonthDrillDownView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>10A1B2C3D4E5F60718293A4B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>SyncStatusView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/SyncStatusView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>10D545384D1445ED9E56C6C3</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/WatchConnectivityManager.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>10E0F689EE7547F2934E4BC8</key>
+		<dict>
+			<key>baseConfigurationReference</key>
+			<string>D2B4A6C81E9F4A3B8C7D6E5F</string>
+			<key>buildSettings</key>
+			<dict>
+				<key>APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING</key>
+				<string>NO</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>AppIcon</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphonesimulator*]</key>
+				<string></string>
+				<key>ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME</key>
+				<string>AccentColor</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>QuickNotes/QuickNotes/QuickNotes.entitlements</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>ENABLE_APP_INTENTS_METADATA</key>
+				<string>NO</string>
+				<key>ENABLE_PREVIEWS</key>
+				<string>YES</string>
+				<key>ENABLE_USER_SCRIPT_SANDBOXING</key>
+				<string>NO</string>
+				<key>INFOPLIST_FILE</key>
+				<string>QuickNotes/QuickNotes/Info.plist</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/Frameworks</string>
+				</array>
+				<key>MARKETING_VERSION</key>
+				<string>1.0</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotes</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>iphoneos iphonesimulator</string>
+				<key>SWIFT_EMIT_CONST_VALUE_PROTOCOLS</key>
+				<string> </string>
+				<key>SWIFT_EMIT_LOC_STRINGS</key>
+				<string>YES</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1,2</string>
+				<key>VERSIONING_SYSTEM</key>
+				<string>apple-generic</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>11B598589757420789A65A37</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>QuickNotesWatch/QuickNotesWatchApp.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>1234567890ABCDEF12345678</key>
+		<dict>
+			<key>containerPortal</key>
+			<string>BD3A4493999A41828A8EB551</string>
+			<key>isa</key>
+			<string>PBXContainerItemProxy</string>
+			<key>proxyType</key>
+			<string>1</string>
+			<key>remoteGlobalIDString</key>
+			<string>DD14F66B2FBD469CBB0723B7</string>
+			<key>remoteInfo</key>
+			<string>QuickNotes</string>
+		</dict>
+		<key>13D3A1E14E054B07A1B28D1F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>20121BC6142342D1A3839740</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>14BA53D92CBA4CC897799E49</key>
+		<dict>
+			<key>explicitFileType</key>
+			<string>wrapper.application</string>
+			<key>includeInIndex</key>
+			<string>0</string>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>path</key>
+			<string>QuickNotes.app</string>
+			<key>sourceTree</key>
+			<string>BUILT_PRODUCTS_DIR</string>
+		</dict>
+		<key>15C9BA4E2F4A4D8A9F4D4FF7</key>
+		<dict>
+			<key>fileRef</key>
+			<string>27BB45979C8149B1AA4DE3D2</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>1BE177D1B3D84873A1C948D3</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>10E0F689EE7547F2934E4BC8</string>
+				<string>356009896C7841A5A2D1AE62</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+			<key>defaultConfigurationName</key>
+			<string>Release</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>1D562891E016455C88034623</key>
+		<dict>
+			<key>fileRef</key>
+			<string>9B57E670AE0742AF907E5CA1</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>1F7A8B9C0D1E2F3041526374</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>ServiceCatalogService.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/ServiceCatalogService.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>20121BC6142342D1A3839740</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>TransactionFormView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/TransactionFormView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>2468ACE13579BDF2468ACE13</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXTargetDependency</string>
+			<key>target</key>
+			<string>DD14F66B2FBD469CBB0723B7</string>
+			<key>targetProxy</key>
+			<string>1234567890ABCDEF12345678</string>
+		</dict>
+		<key>24AD0A1046A3459A90B30525</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>Transaction.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/Transaction.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>27BB45979C8149B1AA4DE3D2</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>ContentView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/ContentView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>2F7A8B9C0D1E2F3041526374</key>
+		<dict>
+			<key>fileRef</key>
+			<string>1F7A8B9C0D1E2F3041526374</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>30A1B2C3D4E5F60718293A4B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>10A1B2C3D4E5F60718293A4B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>30CC6754622A412DB52146CE</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>PatientLookupService.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/PatientLookupService.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>356009896C7841A5A2D1AE62</key>
+		<dict>
+			<key>baseConfigurationReference</key>
+			<string>D2B4A6C81E9F4A3B8C7D6E5F</string>
+			<key>buildSettings</key>
+			<dict>
+				<key>APP_SHORTCUTS_ENABLE_FLEXIBLE_MATCHING</key>
+				<string>NO</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>AppIcon</string>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphonesimulator*]</key>
+				<string></string>
+				<key>ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME</key>
+				<string>AccentColor</string>
+				<key>CODE_SIGN_ENTITLEMENTS</key>
+				<string>QuickNotes/QuickNotes/QuickNotes.entitlements</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>ENABLE_APP_INTENTS_METADATA</key>
+				<string>NO</string>
+				<key>ENABLE_PREVIEWS</key>
+				<string>YES</string>
+				<key>ENABLE_USER_SCRIPT_SANDBOXING</key>
+				<string>NO</string>
+				<key>INFOPLIST_FILE</key>
+				<string>QuickNotes/QuickNotes/Info.plist</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/Frameworks</string>
+				</array>
+				<key>MARKETING_VERSION</key>
+				<string>1.0</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotes</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>iphoneos iphonesimulator</string>
+				<key>SWIFT_EMIT_CONST_VALUE_PROTOCOLS</key>
+				<string> </string>
+				<key>SWIFT_EMIT_LOC_STRINGS</key>
+				<string>YES</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1,2</string>
+				<key>VERSIONING_SYSTEM</key>
+				<string>apple-generic</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>37191F649CE94DED90C8CBEF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>8855EE58591D4CE1AFACF009</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>3A4B5C6D7E8F901234567890</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4A5B6C7D8E9F012345678901</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>3F7A8B9C0D1E2F3041526374</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>ServiceDirectoryView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/ServiceDirectoryView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>463AB7FCEB7E46F68FB78D60</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E6EEE83BF7A14111A26ACB1A</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>4A5B6C7D8E9F012345678901</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>DailyReportWhatsApp.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/DailyReportWhatsApp.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>4C85FDD114F94153988558C7</key>
+		<dict>
+			<key>explicitFileType</key>
+			<string>wrapper.application</string>
+			<key>includeInIndex</key>
+			<integer>0</integer>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>path</key>
+			<string>QuickNotesWatch.app</string>
+			<key>sourceTree</key>
+			<string>BUILT_PRODUCTS_DIR</string>
+		</dict>
+		<key>4F7A8B9C0D1E2F3041526374</key>
+		<dict>
+			<key>fileRef</key>
+			<string>3F7A8B9C0D1E2F3041526374</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>50E26514FF96420A9DDFE9BD</key>
+		<dict>
+			<key>buildConfigurationList</key>
+			<string>FBDB04C605134546BF18A001</string>
+			<key>buildPhases</key>
+			<array>
+				<string>BD75C9D7392F41FBA65CB4C2</string>
+				<string>8DC6DA15C8E24DC99EA8397B</string>
+				<string>0353CE400F7F447DAD903502</string>
+			</array>
+			<key>buildRules</key>
+			<array/>
+			<key>dependencies</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXNativeTarget</string>
+			<key>name</key>
+			<string>QuickNotesWatch</string>
+			<key>productName</key>
+			<string>QuickNotesWatch</string>
+			<key>productReference</key>
+			<string>4C85FDD114F94153988558C7</string>
+			<key>productType</key>
+			<string>com.apple.product-type.application</string>
+		</dict>
+		<key>5EA90F5857CC4F8A9A83A098</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>file.storyboard</string>
+			<key>name</key>
+			<string>LaunchScreen.storyboard</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/LaunchScreen.storyboard</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>651F9DCB607649E3AEB20BDF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>4C85FDD114F94153988558C7</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+			<key>settings</key>
+			<dict>
+				<key>ATTRIBUTES</key>
+				<array>
+					<string>RemoveHeadersOnCopy</string>
+				</array>
+			</dict>
+		</dict>
+		<key>68ACE13579BDF2468ACE1357</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>BUNDLE_LOADER</key>
+				<string>$(TEST_HOST)</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/Frameworks</string>
+					<string>@loader_path/Frameworks</string>
+				</array>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotesTests</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SWIFT_EMIT_CONST_VALUE_PROTOCOLS</key>
+				<string> </string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1,2</string>
+				<key>TEST_HOST</key>
+				<string>$(BUILT_PRODUCTS_DIR)/QuickNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/QuickNotes</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>6C84D9A5085745C79D7E628A</key>
+		<dict>
+			<key>fileRef</key>
+			<string>0B3E0B23C4E74E0E9C9D10E0</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>7527A2228ABF4983A7D4D3C7</key>
+		<dict>
+			<key>fileRef</key>
+			<string>30CC6754622A412DB52146CE</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>79BDF2468ACE13579BDF2468</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>BUNDLE_LOADER</key>
+				<string>$(TEST_HOST)</string>
+				<key>CODE_SIGN_STYLE</key>
+				<string>Automatic</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<array>
+					<string>$(inherited)</string>
+					<string>@executable_path/Frameworks</string>
+					<string>@loader_path/Frameworks</string>
+				</array>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotesTests</string>
+				<key>PRODUCT_NAME</key>
+				<string>$(TARGET_NAME)</string>
+				<key>SWIFT_EMIT_CONST_VALUE_PROTOCOLS</key>
+				<string> </string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>1,2</string>
+				<key>TEST_HOST</key>
+				<string>$(BUILT_PRODUCTS_DIR)/QuickNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/QuickNotes</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>79D2AAD2979747B4A39C6BA4</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXFrameworksBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>7F0D490C89034F25A8796A3B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>PatientDirectoryView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/PatientDirectoryView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>80B21D278F0D487EAE75F99E</key>
+		<dict>
+			<key>fileRef</key>
+			<string>C0436616F0644615BA0FF7AA</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>84FC522DE9C34098B3568EA2</key>
+		<dict>
+			<key>fileRef</key>
+			<string>B8154D1B294E420BA90FC528</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>86C0553811434C4EA50E5E21</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>MonthlyReportsView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/MonthlyReportsView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>8855EE58591D4CE1AFACF009</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>PDFGenerator.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/PDFGenerator.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>88D7DF4812394E7F8D1890DC</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>FC4D7E1326AE4B2291000001</string>
+				<string>FC4D7E1326AE4B2291000002</string>
+				<string>FC4D7E1326AE4B2291000003</string>
+				<string>FC4D7E1326AE4B2291000004</string>
+				<string>10D545384D1445ED9E56C6C3</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Sources</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>8ACE13579BDF2468ACE13579</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>68ACE13579BDF2468ACE1357</string>
+				<string>79BDF2468ACE13579BDF2468</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+			<key>defaultConfigurationName</key>
+			<string>Release</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>8BDF2468ACE13579BDF2468A</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>D13579BDF2468ACE13579BDF</string>
+				<string>E13579BDF2468ACE13579BDF</string>
+				<string>B13579BDF2468ACE13579BDF</string>
+				<string>E7A8B9C0D1E2F30415263748</string>
+				<string>D4E5F60718293A4B5C6D7E8F</string>
+			</array>
+			<key>isa</key>
+			<string>PBXSourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>8D7965A0F61F4ACC9C2AD0A5</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.plist.xml</string>
+			<key>name</key>
+			<string>Info.plist</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/Info.plist</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>8DC6DA15C8E24DC99EA8397B</key>
+		<dict>
+			<key>buildActionMask</key>
+			<integer>2147483647</integer>
+			<key>files</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXFrameworksBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<integer>0</integer>
+		</dict>
+		<key>8E436A0A31B9410ABF590E66</key>
+		<dict>
+			<key>containerPortal</key>
+			<string>BD3A4493999A41828A8EB551</string>
+			<key>isa</key>
+			<string>PBXContainerItemProxy</string>
+			<key>proxyType</key>
+			<integer>1</integer>
+			<key>remoteGlobalIDString</key>
+			<string>50E26514FF96420A9DDFE9BD</string>
+			<key>remoteInfo</key>
+			<string>QuickNotesWatch</string>
+		</dict>
+		<key>93D10817A7294F759669F3DE</key>
+		<dict>
+			<key>fileRef</key>
+			<string>86C0553811434C4EA50E5E21</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>96A16FB844EE42FBA56D9D97</key>
+		<dict>
+			<key>fileRef</key>
+			<string>24AD0A1046A3459A90B30525</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>977B163D0AF748A5A59DBA3E</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>11B598589757420789A65A37</string>
+				<string>9B57E670AE0742AF907E5CA1</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>QuickNotesWatch</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>9ACE13579BDF2468ACE13579</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXFrameworksBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>9B57E670AE0742AF907E5CA1</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>path</key>
+			<string>QuickNotesWatch/QuickNotesWatchView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>9B5F32CC92FC47E0B6FC75E8</key>
+		<dict>
+			<key>fileRef</key>
+			<string>7F0D490C89034F25A8796A3B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>9BDF2468ACE13579BDF2468A</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>C13579BDF2468ACE13579BDF</string>
+				<string>F13579BDF2468ACE13579BDF</string>
+				<string>A13579BDF2468ACE13579BDF</string>
+				<string>D7A8B9C0D1E2F30415263748</string>
+				<string>E5F60718293A4B5C6D7E8F90</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Tests</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>9DF2468ACE13579BDF2468AC</key>
+		<dict>
+			<key>buildConfigurationList</key>
+			<string>8ACE13579BDF2468ACE13579</string>
+			<key>buildPhases</key>
+			<array>
+				<string>8BDF2468ACE13579BDF2468A</string>
+				<string>9ACE13579BDF2468ACE13579</string>
+			</array>
+			<key>buildRules</key>
+			<array/>
+			<key>dependencies</key>
+			<array>
+				<string>2468ACE13579BDF2468ACE13</string>
+			</array>
+			<key>isa</key>
+			<string>PBXNativeTarget</string>
+			<key>name</key>
+			<string>QuickNotesTests</string>
+			<key>productName</key>
+			<string>QuickNotesTests</string>
+			<key>productReference</key>
+			<string>BDF2468ACE13579BDF2468AC</string>
+			<key>productType</key>
+			<string>com.apple.product-type.bundle.unit-test</string>
+		</dict>
+		<key>A0352719DB194D5282AF65BB</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>BiometricAuthenticator.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/BiometricAuthenticator.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A0A1B2C3D4E5F60718293A4B</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>QuickNotesSyncCoordinator.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/QuickNotesSyncCoordinator.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>PatientLookupServiceTests.swift</string>
+			<key>path</key>
+			<string>QuickNotesTests/PatientLookupServiceTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A330F89F4B05434DA8ECD6D8</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>folder.assetcatalog</string>
+			<key>name</key>
+			<string>Assets.xcassets</string>
+			<key>path</key>
+			<string>QuickNotes/Assets.xcassets</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A6378116279341329D7C694C</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>88D7DF4812394E7F8D1890DC</string>
+				<string>9BDF2468ACE13579BDF2468A</string>
+				<string>B01FB8E370324385AEC68731</string>
+				<string>E501C7F689CB4906B72BC1DE</string>
+				<string>977B163D0AF748A5A59DBA3E</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>A6D86AA433E142E6A2AD145F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>10D545384D1445ED9E56C6C3</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>A9B4D7958A6246A1BC26A7F3</key>
+		<dict>
+			<key>fileRef</key>
+			<string>5EA90F5857CC4F8A9A83A098</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>AE7CB56D49624CEC8B7A8EBD</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>AppIcon</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
+				<string>QuickNotes Watch</string>
+				<key>INFOPLIST_KEY_WKApplication</key>
+				<string>YES</string>
+				<key>INFOPLIST_KEY_WKCompanionAppBundleIdentifier</key>
+				<string>com.poligest.QuickNotes</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<string>$(inherited) @executable_path/Frameworks</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotes.watchkitapp</string>
+				<key>PRODUCT_NAME</key>
+				<string>QuickNotesWatch</string>
+				<key>SDKROOT</key>
+				<string>watchos</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>watchos watchsimulator</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>4</string>
+				<key>WATCHOS_DEPLOYMENT_TARGET</key>
+				<string>9.0</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>B01FB8E370324385AEC68731</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>D2B4A6C81E9F4A3B8C7D6E5F</string>
+				<string>8D7965A0F61F4ACC9C2AD0A5</string>
+				<string>C1A0D10C10D0BACC00000003</string>
+				<string>A330F89F4B05434DA8ECD6D8</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Supporting Files</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>B0A1B2C3D4E5F60718293A4B</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A0A1B2C3D4E5F60718293A4B</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>B13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A13579BDF2468ACE13579BDF</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>B1EB66B4FF564919821A8E2F</key>
+		<dict>
+			<key>buildActionMask</key>
+			<integer>2147483647</integer>
+			<key>dstPath</key>
+			<string></string>
+			<key>dstSubfolderSpec</key>
+			<integer>16</integer>
+			<key>files</key>
+			<array>
+				<string>651F9DCB607649E3AEB20BDF</string>
+			</array>
+			<key>isa</key>
+			<string>PBXCopyFilesBuildPhase</string>
+			<key>name</key>
+			<string>Embed Watch Content</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<integer>0</integer>
+		</dict>
+		<key>B8154D1B294E420BA90FC528</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>SettingsView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/SettingsView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>BA3A311BFDD940F18AF456CF</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>A9B4D7958A6246A1BC26A7F3</string>
+				<string>C22955669053446780FA3C50</string>
+			</array>
+			<key>isa</key>
+			<string>PBXResourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>BC53DFD9ED7E48059B4E10F3</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>CLANG_ANALYZER_NONNULL</key>
+				<string>YES</string>
+				<key>CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_CXX_LANGUAGE_STANDARD</key>
+				<string>gnu++20</string>
+				<key>CLANG_CXX_LIBRARY</key>
+				<string>libc++</string>
+				<key>CLANG_ENABLE_MODULES</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_ARC</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_WEAK</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BOOL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_COMMA</key>
+				<string>YES</string>
+				<key>CLANG_WARN_CONSTANT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DIRECT_OBJC_REPLAY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DOCUMENTATION_COMMENTS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_EMPTY_BODY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_ENUM_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INFINITE_RECURSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_NON_LITERAL_NULL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_LITERAL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_ROOT_CLASS</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER</key>
+				<string>YES</string>
+				<key>CLANG_WARN_RANGE_LOOP_ANALYSIS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_STRICT_PROTOTYPES</key>
+				<string>YES</string>
+				<key>CLANG_WARN_SUSPICIOUS_MOVE</key>
+				<string>YES</string>
+				<key>CLANG_WARN_UNGUARDED_AVAILABILITY</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_WARN_UNREACHABLE_CODE</key>
+				<string>YES</string>
+				<key>CLANG_WARN__DUPLICATE_METHOD_MATCH</key>
+				<string>YES</string>
+				<key>COPY_PHASE_STRIP</key>
+				<string>NO</string>
+				<key>DEBUG_INFORMATION_FORMAT</key>
+				<string>dwarf-with-dsym</string>
+				<key>DEVELOPMENT_TEAM</key>
+				<string>QQ9PTQU945</string>
+				<key>ENABLE_NS_ASSERTIONS</key>
+				<string>NO</string>
+				<key>ENABLE_STRICT_OBJC_MSGSEND</key>
+				<string>YES</string>
+				<key>ENABLE_USER_SCRIPT_SANDBOXING</key>
+				<string>YES</string>
+				<key>GCC_C_LANGUAGE_STANDARD</key>
+				<string>gnu11</string>
+				<key>GCC_NO_COMMON_BLOCKS</key>
+				<string>YES</string>
+				<key>GCC_WARN_64_TO_32_BIT_CONVERSION</key>
+				<string>YES</string>
+				<key>GCC_WARN_ABOUT_RETURN_TYPE</key>
+				<string>YES_ERROR</string>
+				<key>GCC_WARN_UNDECLARED_SELECTOR</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNINITIALIZED_ACTUAL</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>GCC_WARN_UNINITIALIZED_AUTOS</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_FUNCTION</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_VARIABLE</key>
+				<string>YES</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>MTL_ENABLE_DEBUG_INFO</key>
+				<string>NO</string>
+				<key>MTL_FAST_MATH</key>
+				<string>YES</string>
+				<key>SDKROOT</key>
+				<string>iphoneos</string>
+				<key>STRING_CATALOG_GENERATE_SYMBOLS</key>
+				<string>YES</string>
+				<key>SWIFT_COMPILATION_MODE</key>
+				<string>wholemodule</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-O</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Release</string>
+		</dict>
+		<key>BD3A4493999A41828A8EB551</key>
+		<dict>
+			<key>attributes</key>
+			<dict>
+				<key>BuildIndependentTargetsInParallel</key>
+				<string>1</string>
+				<key>LastSwiftUpdateCheck</key>
+				<string>1500</string>
+				<key>LastUpgradeCheck</key>
+				<string>2660</string>
+				<key>TargetAttributes</key>
+				<dict>
+					<key>50E26514FF96420A9DDFE9BD</key>
+					<dict>
+						<key>CreatedOnToolsVersion</key>
+						<string>15.0</string>
+						<key>LastSwiftMigration</key>
+						<integer>1500</integer>
+					</dict>
+					<key>9DF2468ACE13579BDF2468AC</key>
+					<dict>
+						<key>CreatedOnToolsVersion</key>
+						<string>15.0</string>
+						<key>TestTargetID</key>
+						<string>DD14F66B2FBD469CBB0723B7</string>
+					</dict>
+					<key>DD14F66B2FBD469CBB0723B7</key>
+					<dict>
+						<key>CreatedOnToolsVersion</key>
+						<string>15.0</string>
+						<key>LastSwiftMigration</key>
+						<string>1500</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>buildConfigurationList</key>
+			<string>DEFEC2A945024D00998D5B88</string>
+			<key>compatibilityVersion</key>
+			<string>Xcode 14.0</string>
+			<key>developmentRegion</key>
+			<string>it</string>
+			<key>hasScannedForEncodings</key>
+			<string>0</string>
+			<key>isa</key>
+			<string>PBXProject</string>
+			<key>knownRegions</key>
+			<array>
+				<string>it</string>
+				<string>Base</string>
+			</array>
+			<key>mainGroup</key>
+			<string>A6378116279341329D7C694C</string>
+			<key>productRefGroup</key>
+			<string>E501C7F689CB4906B72BC1DE</string>
+			<key>projectDirPath</key>
+			<string></string>
+			<key>projectRoot</key>
+			<string></string>
+			<key>targets</key>
+			<array>
+				<string>DD14F66B2FBD469CBB0723B7</string>
+				<string>9DF2468ACE13579BDF2468AC</string>
+				<string>50E26514FF96420A9DDFE9BD</string>
+			</array>
+		</dict>
+		<key>BD75C9D7392F41FBA65CB4C2</key>
+		<dict>
+			<key>buildActionMask</key>
+			<integer>2147483647</integer>
+			<key>files</key>
+			<array>
+				<string>F41610734BC9426091428DDE</string>
+				<string>FB13F65766864948A4307817</string>
+				<string>1D562891E016455C88034623</string>
+				<string>96A16FB844EE42FBA56D9D97</string>
+			</array>
+			<key>isa</key>
+			<string>PBXSourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<integer>0</integer>
+		</dict>
+		<key>BDF2468ACE13579BDF2468AC</key>
+		<dict>
+			<key>explicitFileType</key>
+			<string>wrapper.cfbundle</string>
+			<key>includeInIndex</key>
+			<string>0</string>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>path</key>
+			<string>QuickNotesTests.xctest</string>
+			<key>sourceTree</key>
+			<string>BUILT_PRODUCTS_DIR</string>
+		</dict>
+		<key>C0436616F0644615BA0FF7AA</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>FinanceSyncService.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/FinanceSyncService.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>C13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>TransactionStoreTests.swift</string>
+			<key>path</key>
+			<string>QuickNotesTests/TransactionStoreTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>C1A0D10C10D0BACC00000001</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>CloudKitBackupService.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/CloudKitBackupService.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>C1A0D10C10D0BACC00000002</key>
+		<dict>
+			<key>fileRef</key>
+			<string>C1A0D10C10D0BACC00000001</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C1A0D10C10D0BACC00000003</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.plist.entitlements</string>
+			<key>name</key>
+			<string>QuickNotes.entitlements</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/QuickNotes.entitlements</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>C22955669053446780FA3C50</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A330F89F4B05434DA8ECD6D8</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>C85C0072D4FD4CBCA33DC8B9</key>
+		<dict>
+			<key>fileRef</key>
+			<string>24AD0A1046A3459A90B30525</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>CA88B2FA3EBE4FCDBD684557</key>
+		<dict>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array>
+				<string>463AB7FCEB7E46F68FB78D60</string>
+				<string>15C9BA4E2F4A4D8A9F4D4FF7</string>
+				<string>C85C0072D4FD4CBCA33DC8B9</string>
+				<string>FA8E3082487F41C78084232D</string>
+				<string>37191F649CE94DED90C8CBEF</string>
+				<string>F3BF3EB2BC5249B5980D0A10</string>
+				<string>13D3A1E14E054B07A1B28D1F</string>
+				<string>93D10817A7294F759669F3DE</string>
+				<string>6C84D9A5085745C79D7E628A</string>
+				<string>7527A2228ABF4983A7D4D3C7</string>
+				<string>2F7A8B9C0D1E2F3041526374</string>
+				<string>9B5F32CC92FC47E0B6FC75E8</string>
+				<string>4F7A8B9C0D1E2F3041526374</string>
+				<string>80B21D278F0D487EAE75F99E</string>
+				<string>B0A1B2C3D4E5F60718293A4B</string>
+				<string>C1A0D10C10D0BACC00000002</string>
+				<string>3A4B5C6D7E8F901234567890</string>
+				<string>30A1B2C3D4E5F60718293A4B</string>
+				<string>84FC522DE9C34098B3568EA2</string>
+				<string>A6D86AA433E142E6A2AD145F</string>
+			</array>
+			<key>isa</key>
+			<string>PBXSourcesBuildPhase</string>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+		</dict>
+		<key>D13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>C13579BDF2468ACE13579BDF</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>D2B4A6C81E9F4A3B8C7D6E5F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>text.xcconfig</string>
+			<key>name</key>
+			<string>BuildNumber.xcconfig</string>
+			<key>path</key>
+			<string>QuickNotes/BuildNumber.xcconfig</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>D4E5F60718293A4B5C6D7E8F</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E5F60718293A4B5C6D7E8F90</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>D7A8B9C0D1E2F30415263748</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>ServiceCatalogServiceTests.swift</string>
+			<key>path</key>
+			<string>QuickNotesTests/ServiceCatalogServiceTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>DD14F66B2FBD469CBB0723B7</key>
+		<dict>
+			<key>buildConfigurationList</key>
+			<string>1BE177D1B3D84873A1C948D3</string>
+			<key>buildPhases</key>
+			<array>
+				<string>F1134B1923E74B08A52E1B43</string>
+				<string>CA88B2FA3EBE4FCDBD684557</string>
+				<string>79D2AAD2979747B4A39C6BA4</string>
+				<string>BA3A311BFDD940F18AF456CF</string>
+				<string>B1EB66B4FF564919821A8E2F</string>
+			</array>
+			<key>buildRules</key>
+			<array/>
+			<key>dependencies</key>
+			<array>
+				<string>E1929D86AF3C4CE9896ABB83</string>
+			</array>
+			<key>isa</key>
+			<string>PBXNativeTarget</string>
+			<key>name</key>
+			<string>QuickNotes</string>
+			<key>productName</key>
+			<string>QuickNotes</string>
+			<key>productReference</key>
+			<string>14BA53D92CBA4CC897799E49</string>
+			<key>productType</key>
+			<string>com.apple.product-type.application</string>
+		</dict>
+		<key>DEFEC2A945024D00998D5B88</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>E6D5E74B0AA14149B0089C27</string>
+				<string>BC53DFD9ED7E48059B4E10F3</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<string>0</string>
+			<key>defaultConfigurationName</key>
+			<string>Release</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>E13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>fileRef</key>
+			<string>F13579BDF2468ACE13579BDF</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E1929D86AF3C4CE9896ABB83</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXTargetDependency</string>
+			<key>target</key>
+			<string>50E26514FF96420A9DDFE9BD</string>
+			<key>targetProxy</key>
+			<string>8E436A0A31B9410ABF590E66</string>
+		</dict>
+		<key>E501C7F689CB4906B72BC1DE</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>14BA53D92CBA4CC897799E49</string>
+				<string>BDF2468ACE13579BDF2468AC</string>
+				<string>4C85FDD114F94153988558C7</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Products</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E5F60718293A4B5C6D7E8F90</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>DailyReportWhatsAppTests.swift</string>
+			<key>path</key>
+			<string>QuickNotesTests/DailyReportWhatsAppTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E6D5E74B0AA14149B0089C27</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ALWAYS_SEARCH_USER_PATHS</key>
+				<string>NO</string>
+				<key>CLANG_ANALYZER_NONNULL</key>
+				<string>YES</string>
+				<key>CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_CXX_LANGUAGE_STANDARD</key>
+				<string>gnu++20</string>
+				<key>CLANG_CXX_LIBRARY</key>
+				<string>libc++</string>
+				<key>CLANG_ENABLE_MODULES</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_ARC</key>
+				<string>YES</string>
+				<key>CLANG_ENABLE_OBJC_WEAK</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING</key>
+				<string>YES</string>
+				<key>CLANG_WARN_BOOL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_COMMA</key>
+				<string>YES</string>
+				<key>CLANG_WARN_CONSTANT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DIRECT_OBJC_REPLAY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_DOCUMENTATION_COMMENTS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_EMPTY_BODY</key>
+				<string>YES</string>
+				<key>CLANG_WARN_ENUM_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INFINITE_RECURSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_INT_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_NON_LITERAL_NULL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_LITERAL_CONVERSION</key>
+				<string>YES</string>
+				<key>CLANG_WARN_OBJC_ROOT_CLASS</key>
+				<string>YES_ERROR</string>
+				<key>CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER</key>
+				<string>YES</string>
+				<key>CLANG_WARN_RANGE_LOOP_ANALYSIS</key>
+				<string>YES</string>
+				<key>CLANG_WARN_STRICT_PROTOTYPES</key>
+				<string>YES</string>
+				<key>CLANG_WARN_SUSPICIOUS_MOVE</key>
+				<string>YES</string>
+				<key>CLANG_WARN_UNGUARDED_AVAILABILITY</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>CLANG_WARN_UNREACHABLE_CODE</key>
+				<string>YES</string>
+				<key>CLANG_WARN__DUPLICATE_METHOD_MATCH</key>
+				<string>YES</string>
+				<key>COPY_PHASE_STRIP</key>
+				<string>NO</string>
+				<key>DEBUG_INFORMATION_FORMAT</key>
+				<string>dwarf</string>
+				<key>DEVELOPMENT_TEAM</key>
+				<string>QQ9PTQU945</string>
+				<key>ENABLE_STRICT_OBJC_MSGSEND</key>
+				<string>YES</string>
+				<key>ENABLE_TESTABILITY</key>
+				<string>YES</string>
+				<key>ENABLE_USER_SCRIPT_SANDBOXING</key>
+				<string>YES</string>
+				<key>GCC_C_LANGUAGE_STANDARD</key>
+				<string>gnu11</string>
+				<key>GCC_DYNAMIC_NO_PIC</key>
+				<string>NO</string>
+				<key>GCC_NO_COMMON_BLOCKS</key>
+				<string>YES</string>
+				<key>GCC_OPTIMIZATION_LEVEL</key>
+				<string>0</string>
+				<key>GCC_PREPROCESSOR_DEFINITIONS</key>
+				<array>
+					<string>DEBUG=1</string>
+					<string>$(inherited)</string>
+				</array>
+				<key>GCC_WARN_64_TO_32_BIT_CONVERSION</key>
+				<string>YES</string>
+				<key>GCC_WARN_ABOUT_RETURN_TYPE</key>
+				<string>YES_ERROR</string>
+				<key>GCC_WARN_UNDECLARED_SELECTOR</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNINITIALIZED_ACTUAL</key>
+				<string>YES_AGGRESSIVE</string>
+				<key>GCC_WARN_UNINITIALIZED_AUTOS</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_FUNCTION</key>
+				<string>YES</string>
+				<key>GCC_WARN_UNUSED_VARIABLE</key>
+				<string>YES</string>
+				<key>IPHONEOS_DEPLOYMENT_TARGET</key>
+				<string>16.0</string>
+				<key>MTL_ENABLE_DEBUG_INFO</key>
+				<string>INCLUDE_SOURCE</string>
+				<key>MTL_FAST_MATH</key>
+				<string>YES</string>
+				<key>ONLY_ACTIVE_ARCH</key>
+				<string>YES</string>
+				<key>SDKROOT</key>
+				<string>iphoneos</string>
+				<key>STRING_CATALOG_GENERATE_SYMBOLS</key>
+				<string>YES</string>
+				<key>SWIFT_ACTIVE_COMPILATION_CONDITIONS</key>
+				<string>DEBUG</string>
+				<key>SWIFT_OPTIMIZATION_LEVEL</key>
+				<string>-Onone</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>E6EEE83BF7A14111A26ACB1A</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>QuickNotesApp.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/QuickNotesApp.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E7A8B9C0D1E2F30415263748</key>
+		<dict>
+			<key>fileRef</key>
+			<string>D7A8B9C0D1E2F30415263748</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>E7FF8AEC32E744BA8DEF380F</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>LockScreenView.swift</string>
+			<key>path</key>
+			<string>QuickNotes/QuickNotes/LockScreenView.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>E9FEFD5714FA4469AFCB9F3B</key>
+		<dict>
+			<key>buildSettings</key>
+			<dict>
+				<key>ASSETCATALOG_COMPILER_APPICON_NAME</key>
+				<string>AppIcon</string>
+				<key>GENERATE_INFOPLIST_FILE</key>
+				<string>YES</string>
+				<key>INFOPLIST_KEY_CFBundleDisplayName</key>
+				<string>QuickNotes Watch</string>
+				<key>INFOPLIST_KEY_WKApplication</key>
+				<string>YES</string>
+				<key>INFOPLIST_KEY_WKCompanionAppBundleIdentifier</key>
+				<string>com.poligest.QuickNotes</string>
+				<key>LD_RUNPATH_SEARCH_PATHS</key>
+				<string>$(inherited) @executable_path/Frameworks</string>
+				<key>PRODUCT_BUNDLE_IDENTIFIER</key>
+				<string>com.poligest.QuickNotes.watchkitapp</string>
+				<key>PRODUCT_NAME</key>
+				<string>QuickNotesWatch</string>
+				<key>SDKROOT</key>
+				<string>watchos</string>
+				<key>SUPPORTED_PLATFORMS</key>
+				<string>watchos watchsimulator</string>
+				<key>SWIFT_VERSION</key>
+				<string>5.0</string>
+				<key>TARGETED_DEVICE_FAMILY</key>
+				<string>4</string>
+				<key>WATCHOS_DEPLOYMENT_TARGET</key>
+				<string>9.0</string>
+			</dict>
+			<key>isa</key>
+			<string>XCBuildConfiguration</string>
+			<key>name</key>
+			<string>Debug</string>
+		</dict>
+		<key>F1134B1923E74B08A52E1B43</key>
+		<dict>
+			<key>alwaysOutOfDate</key>
+			<string>1</string>
+			<key>buildActionMask</key>
+			<string>2147483647</string>
+			<key>files</key>
+			<array/>
+			<key>inputFileListPaths</key>
+			<array/>
+			<key>inputPaths</key>
+			<array/>
+			<key>isa</key>
+			<string>PBXShellScriptBuildPhase</string>
+			<key>name</key>
+			<string>Auto Increment Build Number</string>
+			<key>outputFileListPaths</key>
+			<array/>
+			<key>outputPaths</key>
+			<array>
+				<string>$(DERIVED_FILE_DIR)/QuickNotesBuildNumberIncrement.stamp</string>
+			</array>
+			<key>runOnlyForDeploymentPostprocessing</key>
+			<string>0</string>
+			<key>shellPath</key>
+			<string>/bin/sh</string>
+			<key>shellScript</key>
+			<string>/bin/sh "$PROJECT_DIR/scripts/increment_build_number.sh"</string>
+		</dict>
+		<key>F13579BDF2468ACE13579BDF</key>
+		<dict>
+			<key>isa</key>
+			<string>PBXFileReference</string>
+			<key>lastKnownFileType</key>
+			<string>sourcecode.swift</string>
+			<key>name</key>
+			<string>PDFGeneratorTests.swift</string>
+			<key>path</key>
+			<string>QuickNotesTests/PDFGeneratorTests.swift</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>F3BF3EB2BC5249B5980D0A10</key>
+		<dict>
+			<key>fileRef</key>
+			<string>E7FF8AEC32E744BA8DEF380F</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>F41610734BC9426091428DDE</key>
+		<dict>
+			<key>fileRef</key>
+			<string>10D545384D1445ED9E56C6C3</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>FA8E3082487F41C78084232D</key>
+		<dict>
+			<key>fileRef</key>
+			<string>A0352719DB194D5282AF65BB</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>FB13F65766864948A4307817</key>
+		<dict>
+			<key>fileRef</key>
+			<string>11B598589757420789A65A37</string>
+			<key>isa</key>
+			<string>PBXBuildFile</string>
+		</dict>
+		<key>FBDB04C605134546BF18A001</key>
+		<dict>
+			<key>buildConfigurations</key>
+			<array>
+				<string>E9FEFD5714FA4469AFCB9F3B</string>
+				<string>AE7CB56D49624CEC8B7A8EBD</string>
+			</array>
+			<key>defaultConfigurationIsVisible</key>
+			<integer>0</integer>
+			<key>defaultConfigurationName</key>
+			<string>Release</string>
+			<key>isa</key>
+			<string>XCConfigurationList</string>
+		</dict>
+		<key>FC4D7E1326AE4B2291000001</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>E6EEE83BF7A14111A26ACB1A</string>
+				<string>27BB45979C8149B1AA4DE3D2</string>
+				<string>E7FF8AEC32E744BA8DEF380F</string>
+				<string>B8154D1B294E420BA90FC528</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>App</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FC4D7E1326AE4B2291000002</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>24AD0A1046A3459A90B30525</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Models</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FC4D7E1326AE4B2291000003</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>20121BC6142342D1A3839740</string>
+				<string>7F0D490C89034F25A8796A3B</string>
+				<string>3F7A8B9C0D1E2F3041526374</string>
+				<string>10A1B2C3D4E5F60718293A4B</string>
+				<string>86C0553811434C4EA50E5E21</string>
+				<string>0B3E0B23C4E74E0E9C9D10E0</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Views</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+		<key>FC4D7E1326AE4B2291000004</key>
+		<dict>
+			<key>children</key>
+			<array>
+				<string>30CC6754622A412DB52146CE</string>
+				<string>1F7A8B9C0D1E2F3041526374</string>
+				<string>C0436616F0644615BA0FF7AA</string>
+				<string>A0A1B2C3D4E5F60718293A4B</string>
+				<string>C1A0D10C10D0BACC00000001</string>
+				<string>4A5B6C7D8E9F012345678901</string>
+				<string>A0352719DB194D5282AF65BB</string>
+				<string>8855EE58591D4CE1AFACF009</string>
+			</array>
+			<key>isa</key>
+			<string>PBXGroup</string>
+			<key>name</key>
+			<string>Services</string>
+			<key>sourceTree</key>
+			<string>&lt;group&gt;</string>
+		</dict>
+	</dict>
+	<key>rootObject</key>
+	<string>BD3A4493999A41828A8EB551</string>
+</dict>
+</plist>

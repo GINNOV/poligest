@@ -23,6 +23,7 @@ struct QuickNotesApp: App {
             }
             .onAppear {
                 NotificationManager.shared.requestAuthorizationAndScheduleIfNeeded()
+                _ = WatchConnectivityManager.shared
             }
         }
     }

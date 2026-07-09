@@ -212,6 +212,7 @@ class TransactionStore: ObservableObject {
         self.backupFileURL = resolvedBackupFileURL
         self.cloudBackupService = cloudBackupService ?? (fileURL == TransactionStore.defaultFileURL ? CloudKitBackupService() : nil)
         load()
+        WatchConnectivityManager.shared.sendTransactionsToWatch(transactions)
     }
 
     func add(_ transaction: Transaction) {
@@ -272,6 +273,7 @@ class TransactionStore: ObservableObject {
                 enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true,
                 uploadSnapshot: shouldUpdateBackupOnSave
             )
+            WatchConnectivityManager.shared.sendTransactionsToWatch(transactions)
         } catch {
             print("Error saving transactions: \(error)")
         }
@@ -355,3 +357,19 @@ class TransactionStore: ObservableObject {
         return (income, expense)
     }
 }
+
+#if !os(iOS)
+protocol CloudKitBackupServicing {
+    func saveBackup(transactions: [Transaction]) async throws
+    func restoreBackup() async throws -> [Transaction]
+}
+
+struct CloudKitBackupService: CloudKitBackupServicing {
+    func saveBackup(transactions: [Transaction]) async throws {}
+    func restoreBackup() async throws -> [Transaction] { return [] }
+}
+
+enum CloudKitBackupError: Error {
+    case noBackupFound
+}
+#endif
