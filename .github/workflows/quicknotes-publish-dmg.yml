@@ -1,0 +1,35 @@
+name: QuickNotes Publish DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "QuickNotes version (e.g. 1.0)"
+        required: true
+        type: string
+      notes:
+        description: "Release notes shown in the web admin download page (optional)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify DMG exists
+        run: |
+          test -f "releases/quicknotes/QuickNotes-${{ inputs.version }}.dmg"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: quicknotes-v${{ inputs.version }}
+          name: QuickNotes ${{ inputs.version }}
+          body: ${{ inputs.notes }}
+          files: releases/quicknotes/QuickNotes-${{ inputs.version }}.dmg
+          generate_release_notes: ${{ inputs.notes == '' }}
