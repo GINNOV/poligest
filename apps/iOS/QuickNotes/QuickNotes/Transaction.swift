@@ -373,3 +373,22 @@ enum CloudKitBackupError: Error {
     case noBackupFound
 }
 #endif
+
+struct TransactionFormRoute: Identifiable {
+    let type: TransactionType
+    let editingTransaction: Transaction?
+
+    init(type: TransactionType, editingTransaction: Transaction? = nil) {
+        self.type = type
+        self.editingTransaction = editingTransaction
+    }
+
+    var id: String {
+        if let tx = editingTransaction {
+            return "edit-\(tx.id.uuidString)"
+        } else {
+            return "new-\(type.rawValue)"
+        }
+    }
+}
+

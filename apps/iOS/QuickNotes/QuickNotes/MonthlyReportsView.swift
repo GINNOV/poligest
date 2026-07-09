@@ -7,6 +7,7 @@ struct MonthlyReportsView: View {
     
     @State private var selectedMonth = Date()
     @State private var showingPDFError = false
+    @State private var formRoute: TransactionFormRoute?
     
     var body: some View {
         NavigationStack {
@@ -37,6 +38,10 @@ struct MonthlyReportsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Non e stato possibile creare il resoconto mensile. Riprova tra poco.")
+            }
+            .sheet(item: $formRoute) { route in
+                TransactionFormView(store: store, type: route.type, editingTransaction: route.editingTransaction)
+                    .presentationDetents([.medium, .large])
             }
         }
     }
@@ -142,7 +147,12 @@ struct MonthlyReportsView: View {
             } else {
                 LazyVStack(spacing: 10) {
                     ForEach(filteredTxs) { tx in
-                        MonthlyTransactionRow(transaction: tx, showAmounts: showAmounts)
+                        Button(action: {
+                            formRoute = TransactionFormRoute(type: tx.type, editingTransaction: tx)
+                        }) {
+                            MonthlyTransactionRow(transaction: tx, showAmounts: showAmounts)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }

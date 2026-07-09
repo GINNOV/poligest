@@ -3,7 +3,9 @@ import { PatientPaymentKind, PatientPaymentMethod, Prisma } from "@prisma/client
 
 const mocks = vi.hoisted(() => {
   const txPatientPaymentCreate = vi.fn();
+  const txPatientPaymentUpdate = vi.fn();
   const txFinanceEntryCreate = vi.fn();
+  const txFinanceEntryUpdate = vi.fn();
   const txQuickNotesPaymentSyncCreate = vi.fn();
 
   const prisma = {
@@ -24,7 +26,9 @@ const mocks = vi.hoisted(() => {
     revalidatePath: vi.fn(),
     prisma,
     txPatientPaymentCreate,
+    txPatientPaymentUpdate,
     txFinanceEntryCreate,
+    txFinanceEntryUpdate,
     txQuickNotesPaymentSyncCreate,
   };
 });
@@ -77,12 +81,14 @@ describe("POST /api/quicknotes/payments", () => {
     mocks.prisma.financeEntry.findFirst.mockResolvedValue(null);
     mocks.prisma.quickNotesPaymentSync.findUnique.mockResolvedValue(null);
     mocks.txPatientPaymentCreate.mockResolvedValue({ id: "payment-1" });
+    mocks.txPatientPaymentUpdate.mockResolvedValue({ id: "payment-1" });
     mocks.txFinanceEntryCreate.mockResolvedValue({ id: "finance-1" });
+    mocks.txFinanceEntryUpdate.mockResolvedValue({ id: "finance-1" });
     mocks.txQuickNotesPaymentSyncCreate.mockResolvedValue({ id: "sync-1" });
     mocks.prisma.$transaction.mockImplementation(async (callback) =>
       callback({
-        patientPayment: { create: mocks.txPatientPaymentCreate },
-        financeEntry: { create: mocks.txFinanceEntryCreate },
+        patientPayment: { create: mocks.txPatientPaymentCreate, update: mocks.txPatientPaymentUpdate },
+        financeEntry: { create: mocks.txFinanceEntryCreate, update: mocks.txFinanceEntryUpdate },
         quickNotesPaymentSync: { create: mocks.txQuickNotesPaymentSyncCreate },
       }),
     );
@@ -114,7 +120,7 @@ describe("POST /api/quicknotes/payments", () => {
     expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it("returns the existing synced payment before reading patient data", async () => {
+  it("updates the existing synced payment and returns duplicate success", async () => {
     mocks.prisma.quickNotesPaymentSync.findUnique.mockResolvedValue({
       patientPaymentId: "payment-existing",
       financeEntryId: "finance-existing",
@@ -129,9 +135,24 @@ describe("POST /api/quicknotes/payments", () => {
       paymentId: "payment-existing",
       financeEntryId: "finance-existing",
     });
-    expect(mocks.prisma.patient.findUnique).not.toHaveBeenCalled();
+    expect(mocks.prisma.patient.findUnique).toHaveBeenCalledWith({
+      where: { id: "patient-1" },
+      select: { id: true, firstName: true, lastName: true },
+    });
     expect(mocks.prisma.financeEntry.findFirst).not.toHaveBeenCalled();
-    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.txPatientPaymentUpdate).toHaveBeenCalledWith({
+      where: { id: "payment-existing" },
+      data: expect.objectContaining({
+        amount: new Prisma.Decimal(120.5),
+      }),
+    });
+    expect(mocks.txFinanceEntryUpdate).toHaveBeenCalledWith({
+      where: { id: "finance-existing" },
+      data: expect.objectContaining({
+        amount: new Prisma.Decimal(120.5),
+      }),
+    });
   });
 
   it("does not write anything when the patient id is unknown", async () => {
@@ -145,7 +166,7 @@ describe("POST /api/quicknotes/payments", () => {
     expect(mocks.txFinanceEntryCreate).not.toHaveBeenCalled();
   });
 
-  it("returns the existing finance record for duplicate QuickNotes transactions without writing again", async () => {
+  it("updates the existing finance record for duplicate QuickNotes transactions", async () => {
     mocks.prisma.financeEntry.findFirst.mockResolvedValue({
       id: "finance-existing",
       metadata: {
@@ -162,9 +183,19 @@ describe("POST /api/quicknotes/payments", () => {
       paymentId: "payment-existing",
       financeEntryId: "finance-existing",
     });
-    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
-    expect(mocks.txPatientPaymentCreate).not.toHaveBeenCalled();
-    expect(mocks.txFinanceEntryCreate).not.toHaveBeenCalled();
+    expect(mocks.prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(mocks.txPatientPaymentUpdate).toHaveBeenCalledWith({
+      where: { id: "payment-existing" },
+      data: expect.objectContaining({
+        amount: new Prisma.Decimal(120.5),
+      }),
+    });
+    expect(mocks.txFinanceEntryUpdate).toHaveBeenCalledWith({
+      where: { id: "finance-existing" },
+      data: expect.objectContaining({
+        amount: new Prisma.Decimal(120.5),
+      }),
+    });
   });
 
   it("falls back to finance metadata when the QuickNotes sync table is not migrated yet", async () => {

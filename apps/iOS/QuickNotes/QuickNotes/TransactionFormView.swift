@@ -8,6 +8,7 @@ struct TransactionFormView: View {
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
     
     let type: TransactionType
+    let editingTransaction: Transaction?
     
     @State private var clientName = ""
     @State private var note = ""
@@ -19,6 +20,38 @@ struct TransactionFormView: View {
     @State private var activeSheet: TransactionFormSheet?
     @State private var pendingUnlinkedIncome: PendingTransaction?
     @State private var didTrySavingWithMissingClientName = false
+
+    init(store: TransactionStore, type: TransactionType, editingTransaction: Transaction? = nil) {
+        self.store = store
+        self.type = editingTransaction?.type ?? type
+        self.editingTransaction = editingTransaction
+        
+        if let editingTransaction = editingTransaction {
+            _clientName = State(initialValue: editingTransaction.clientName)
+            _note = State(initialValue: editingTransaction.note ?? "")
+            _amountString = State(initialValue: String(format: "%.2f", editingTransaction.amount))
+            _selectedDate = State(initialValue: editingTransaction.date)
+            _selectedMethod = State(initialValue: editingTransaction.paymentMethod)
+            if let patientId = editingTransaction.patientId {
+                let match = PatientMatch(
+                    patientId: patientId,
+                    matchKind: editingTransaction.patientMatchKind,
+                    displayName: editingTransaction.clientName,
+                    detail: nil
+                )
+                _patientLookupState = State(initialValue: .matched(match))
+            } else {
+                _patientLookupState = State(initialValue: .idle)
+            }
+        } else {
+            _clientName = State(initialValue: "")
+            _note = State(initialValue: "")
+            _amountString = State(initialValue: "")
+            _selectedDate = State(initialValue: Date())
+            _selectedMethod = State(initialValue: .cash)
+            _patientLookupState = State(initialValue: .idle)
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -35,7 +68,7 @@ struct TransactionFormView: View {
                 .padding(.bottom, 96)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle(type == .income ? "Nuova entrata" : "Nuova uscita")
+            .navigationTitle(editingTransaction != nil ? "Modifica movimento" : (type == .income ? "Nuova entrata" : "Nuova uscita"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -336,7 +369,7 @@ struct TransactionFormView: View {
                 } else {
                     Image(systemName: "checkmark")
                 }
-                Text(type == .income ? "AGGIUNGI ENTRATA" : "AGGIUNGI USCITA")
+                Text(editingTransaction != nil ? "SALVA MODIFICHE" : (type == .income ? "AGGIUNGI ENTRATA" : "AGGIUNGI USCITA"))
             }
             .frame(maxWidth: .infinity)
         }
@@ -462,24 +495,54 @@ struct TransactionFormView: View {
     }
     
     private func saveTransaction(_ pending: PendingTransaction, patientMatch: PatientMatch?) {
-        let newTx = Transaction(
-            clientName: pending.clientName.isEmpty ? patientMatch?.displayName ?? "" : pending.clientName,
-            patientId: patientMatch?.patientId,
-            patientMatchKind: patientMatch?.matchKind,
-            note: pending.note.isEmpty ? nil : pending.note,
-            amount: pending.amount,
-            paymentMethod: pending.paymentMethod,
-            type: pending.type,
-            date: pending.date
-        )
-        
-        store.add(newTx)
-        QuickNotesSyncCoordinator.syncToFinanceIfNeeded(
-            newTx,
-            store: store,
-            serverURL: serverUrl,
-            apiToken: apiToken
-        )
+        if let editingTransaction = editingTransaction {
+            var updatedTx = editingTransaction
+            updatedTx.clientName = pending.clientName.isEmpty ? patientMatch?.displayName ?? "" : pending.clientName
+            updatedTx.patientId = patientMatch?.patientId
+            updatedTx.patientMatchKind = patientMatch?.matchKind
+            updatedTx.note = pending.note.isEmpty ? nil : pending.note
+            updatedTx.amount = pending.amount
+            updatedTx.paymentMethod = pending.paymentMethod
+            updatedTx.type = pending.type
+            updatedTx.date = pending.date
+            
+            if updatedTx.amount != editingTransaction.amount ||
+                updatedTx.paymentMethod != editingTransaction.paymentMethod ||
+                updatedTx.clientName != editingTransaction.clientName ||
+                updatedTx.note != editingTransaction.note ||
+                updatedTx.date != editingTransaction.date ||
+                updatedTx.patientId != editingTransaction.patientId {
+                updatedTx.financeSyncedAt = nil
+                updatedTx.financeSyncError = nil
+            }
+            
+            store.update(updatedTx)
+            QuickNotesSyncCoordinator.syncToFinanceIfNeeded(
+                updatedTx,
+                store: store,
+                serverURL: serverUrl,
+                apiToken: apiToken
+            )
+        } else {
+            let newTx = Transaction(
+                clientName: pending.clientName.isEmpty ? patientMatch?.displayName ?? "" : pending.clientName,
+                patientId: patientMatch?.patientId,
+                patientMatchKind: patientMatch?.matchKind,
+                note: pending.note.isEmpty ? nil : pending.note,
+                amount: pending.amount,
+                paymentMethod: pending.paymentMethod,
+                type: pending.type,
+                date: pending.date
+            )
+            
+            store.add(newTx)
+            QuickNotesSyncCoordinator.syncToFinanceIfNeeded(
+                newTx,
+                store: store,
+                serverURL: serverUrl,
+                apiToken: apiToken
+            )
+        }
         dismiss()
     }
     

@@ -37,12 +37,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid payment date" }, { status: 400 });
     }
 
-    const existingSync = await findExistingQuickNotesSync(quickNotesTransactionId);
-    const quickNotesSyncTableAvailable = !existingSync.unavailable;
-    if (existingSync.record) {
-      return duplicateResponse(existingSync.record.patientPaymentId, existingSync.record.financeEntryId);
-    }
-
     const patient = await prisma.patient.findUnique({
       where: { id: patientId },
       select: { id: true, firstName: true, lastName: true },
@@ -50,6 +44,78 @@ export async function POST(req: Request) {
 
     if (!patient) {
       return NextResponse.json({ error: "Patient not found" }, { status: 404 });
+    }
+
+    const existingSync = await findExistingQuickNotesSync(quickNotesTransactionId);
+    const quickNotesSyncTableAvailable = !existingSync.unavailable;
+    if (existingSync.record) {
+      const { patientPaymentId, financeEntryId } = existingSync.record;
+
+      const patientName = `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || clientName || "Paziente";
+      const description = [
+        `Pagamento QuickNotes paziente ${patientName}`,
+        clientName && clientName !== patientName ? `Inserito come: ${clientName}` : null,
+        note || null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      await prisma.$transaction(async (tx) => {
+        await tx.patientPayment.update({
+          where: { id: patientPaymentId },
+          data: {
+            patientId,
+            amount: new Prisma.Decimal(amount),
+            paidAt,
+            method,
+            note: note || "Registrato da QuickNotes",
+          },
+        });
+
+        await tx.financeEntry.update({
+          where: { id: financeEntryId },
+          data: {
+            description,
+            amount: new Prisma.Decimal(amount),
+            occurredAt: paidAt,
+            patientId,
+            method,
+            metadata: {
+              source: "quicknotes",
+              quickNotesTransactionId,
+              paymentId: patientPaymentId,
+              clientName,
+            },
+          },
+        });
+      });
+
+      try {
+        await logAudit(null, {
+          action: "finance.quicknotes_payment.updated",
+          entity: "PatientPayment",
+          entityId: patientPaymentId,
+          metadata: {
+            actorLabel: "QuickNotes",
+            source: "quicknotes",
+            patientId,
+            amount,
+            method,
+            quickNotesTransactionId,
+            financeEntryId,
+          },
+        });
+      } catch (auditError) {
+        console.error("QuickNotes payment update audit failed:", auditError);
+      }
+
+      try {
+        revalidatePath("/finanza/pagamenti");
+      } catch (revalidateError) {
+        console.error("QuickNotes payment cache revalidation failed:", revalidateError);
+      }
+
+      return duplicateResponse(patientPaymentId, financeEntryId);
     }
 
     const existingEntry = await prisma.financeEntry.findFirst({
@@ -72,12 +138,55 @@ export async function POST(req: Request) {
         metadata && typeof metadata === "object" && !Array.isArray(metadata) && "paymentId" in metadata
           ? String(metadata.paymentId)
           : null;
-      return NextResponse.json({
-        ok: true,
-        duplicate: true,
-        paymentId,
-        financeEntryId: existingEntry.id,
+
+      const patientName = `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || clientName || "Paziente";
+      const description = [
+        `Pagamento QuickNotes paziente ${patientName}`,
+        clientName && clientName !== patientName ? `Inserito come: ${clientName}` : null,
+        note || null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      await prisma.$transaction(async (tx) => {
+        if (paymentId) {
+          await tx.patientPayment.update({
+            where: { id: paymentId },
+            data: {
+              patientId,
+              amount: new Prisma.Decimal(amount),
+              paidAt,
+              method,
+              note: note || "Registrato da QuickNotes",
+            },
+          });
+        }
+
+        await tx.financeEntry.update({
+          where: { id: existingEntry.id },
+          data: {
+            description,
+            amount: new Prisma.Decimal(amount),
+            occurredAt: paidAt,
+            patientId,
+            method,
+            metadata: {
+              source: "quicknotes",
+              quickNotesTransactionId,
+              paymentId,
+              clientName,
+            },
+          },
+        });
       });
+
+      try {
+        revalidatePath("/finanza/pagamenti");
+      } catch (revalidateError) {
+        console.error("QuickNotes payment cache revalidation failed:", revalidateError);
+      }
+
+      return duplicateResponse(paymentId, existingEntry.id);
     }
 
     const patientName = `${patient.lastName ?? ""} ${patient.firstName ?? ""}`.trim() || clientName || "Paziente";

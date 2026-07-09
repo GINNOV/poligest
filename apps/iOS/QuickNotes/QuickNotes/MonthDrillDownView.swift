@@ -352,6 +352,7 @@ private struct MonthDetailView: View {
     
     @AppStorage("showAmounts") private var showAmounts = true
     @State private var transactionPendingDeletion: Transaction?
+    @State private var formRoute: TransactionFormRoute?
     
     private var monthTransactions: [Transaction] {
         let calendar = Calendar.current
@@ -462,15 +463,28 @@ private struct MonthDetailView: View {
                     
                     Section {
                         ForEach(day.transactions.sorted(by: { $0.date > $1.date })) { transaction in
-                            DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        transactionPendingDeletion = transaction
-                                    } label: {
-                                        Label("Elimina", systemImage: "trash")
-                                    }
+                            Button(action: {
+                                formRoute = TransactionFormRoute(type: transaction.type, editingTransaction: transaction)
+                            }) {
+                                DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    transactionPendingDeletion = transaction
+                                } label: {
+                                    Label("Elimina", systemImage: "trash")
                                 }
-                                .listRowStyle()
+                            }
+                            .swipeActions(edge: .leading) {
+                                Button {
+                                    formRoute = TransactionFormRoute(type: transaction.type, editingTransaction: transaction)
+                                } label: {
+                                    Label("Modifica", systemImage: "pencil")
+                                }
+                                .tint(.blue)
+                            }
+                            .listRowStyle()
                         }
                     } header: {
                         HStack {
@@ -526,6 +540,10 @@ private struct MonthDetailView: View {
             }
         } message: {
             Text("Questa operazione rimuoverà definitivamente il movimento da Sorriso Mobile.")
+        }
+        .sheet(item: $formRoute) { route in
+            TransactionFormView(store: store, type: route.type, editingTransaction: route.editingTransaction)
+                .presentationDetents([.medium, .large])
         }
     }
 }

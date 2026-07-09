@@ -1,0 +1,104 @@
+name: QuickNotes Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "QuickNotes version (e.g. 1.0)"
+        required: true
+        type: string
+      notes:
+        description: "Release notes shown in the web admin download page (optional)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build QuickNotes (Mac Catalyst)
+        working-directory: apps/iOS
+        run: VERSION=${{ inputs.version }} ./build-macos.sh
+
+      - name: Create DMG
+        working-directory: apps/iOS
+        run: ./create-dmg.sh
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: quicknotes-v${{ inputs.version }}
+          name: QuickNotes ${{ inputs.version }}
+          body: ${{ inputs.notes }}
+          files: apps/iOS/QuickNotes-${{ inputs.version }}.dmg
+          generate_release_notes: ${{ inputs.notes == '' }}
+
+  publish-web-meta:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update QuickNotes metadata defaults
+        run: node app/scripts/update-quicknotes-meta.mjs "${{ inputs.version }}" "${{ inputs.notes }}"
+
+      - name: Commit and push metadata
+        run: |
+          if git diff --quiet; then
+            echo "No metadata changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/src/lib/quicknotes-meta.ts apps/iOS/QuickNotes.xcodeproj/project.pbxproj
+          git commit -m "chore(quicknotes): publish ${{ inputs.version }} metadata [skip ci]"
+          git push
+
+  sync-production:
+    needs: publish-web-meta
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Sync to latest metadata commit
+        run: git pull --ff-only origin main
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Sync QUICKNOTES_* env vars to production
+        working-directory: app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_hdJx31hcSazKyledunhWeXfR
+          VERCEL_PROJECT_ID: prj_jcEaR1ip0UKse7TUVhliSjJb5EKq
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::VERCEL_TOKEN secret not configured — /api/quicknotes/meta will not update until env vars are synced manually."
+            exit 0
+          fi
+          chmod +x scripts/sync-quicknotes-vercel-env.sh
+          ./scripts/sync-quicknotes-vercel-env.sh
+
+      - name: Redeploy production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: team_hdJx31hcSazKyledunhWeXfR
+          VERCEL_PROJECT_ID: prj_jcEaR1ip0UKse7TUVhliSjJb5EKq
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "Skipping redeploy because VERCEL_TOKEN is not configured."
+            exit 0
+          fi
+          chmod +x app/scripts/redeploy-vercel-production.sh
+          ./app/scripts/redeploy-vercel-production.sh

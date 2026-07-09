@@ -161,7 +161,7 @@ struct ContentView: View {
             #endif
         }
         .sheet(item: $formRoute) { route in
-            TransactionFormView(store: store, type: route.type)
+            TransactionFormView(store: store, type: route.type, editingTransaction: route.editingTransaction)
                 .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showingMonthlyReports) {
@@ -291,15 +291,28 @@ struct ContentView: View {
                     .listRowStyle()
             } else {
                 ForEach(todayTransactions) { tx in
-                    TransactionRow(transaction: tx, showAmounts: showAmounts)
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                transactionPendingDeletion = tx
-                            } label: {
-                                Label("Elimina", systemImage: "trash")
-                            }
+                    Button(action: {
+                        formRoute = TransactionFormRoute(type: tx.type, editingTransaction: tx)
+                    }) {
+                        TransactionRow(transaction: tx, showAmounts: showAmounts)
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) {
+                            transactionPendingDeletion = tx
+                        } label: {
+                            Label("Elimina", systemImage: "trash")
                         }
-                        .listRowStyle()
+                    }
+                    .swipeActions(edge: .leading) {
+                        Button {
+                            formRoute = TransactionFormRoute(type: tx.type, editingTransaction: tx)
+                        } label: {
+                            Label("Modifica", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
+                    .listRowStyle()
                 }
             }
         }
@@ -444,12 +457,6 @@ private struct QuickActionButton: View {
         }
         .buttonStyle(.plain)
     }
-}
-
-private struct TransactionFormRoute: Identifiable {
-    let type: TransactionType
-
-    var id: TransactionType { type }
 }
 
 private struct TransactionRow: View {
