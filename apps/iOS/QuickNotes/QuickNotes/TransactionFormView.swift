@@ -738,6 +738,12 @@ private struct AmountKeyboardTextField: UIViewRepresentable {
         textField.inputAssistantItem.leadingBarButtonGroups = []
         textField.inputAssistantItem.trailingBarButtonGroups = []
         textField.addTarget(context.coordinator, action: #selector(Coordinator.textDidChange(_:)), for: .editingChanged)
+        
+        // Move focus/cursor to the amount field when the view is created
+        DispatchQueue.main.async {
+            textField.becomeFirstResponder()
+        }
+        
         return textField
     }
 

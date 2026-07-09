@@ -7,7 +7,6 @@ struct ContentView: View {
     @AppStorage("icloudBackupEnabled") private var iCloudBackupEnabled = true
     @AppStorage("showMesiShortcut") private var showMesiShortcut = true
     @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
-    @AppStorage("whatsappDailyReportMessage") private var whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
     
     @State private var formRoute: TransactionFormRoute?
     @State private var showingMonthlyReports = false
@@ -76,6 +75,90 @@ struct ContentView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            #if targetEnvironment(simulator)
+            formRoute = nil
+            if store.transactions.isEmpty {
+                store.transactions = [
+                    Transaction(
+                        id: UUID(),
+                        clientName: "Mario Rossi",
+                        patientId: nil,
+                        patientMatchKind: nil,
+                        financePaymentId: nil,
+                        financeEntryId: nil,
+                        financeSyncedAt: nil,
+                        financeSyncError: nil,
+                        note: "Visita di controllo",
+                        amount: 150.0,
+                        paymentMethod: .cash,
+                        type: .income,
+                        date: Date()
+                    ),
+                    Transaction(
+                        id: UUID(),
+                        clientName: "Forniture Mediche",
+                        patientId: nil,
+                        patientMatchKind: nil,
+                        financePaymentId: nil,
+                        financeEntryId: nil,
+                        financeSyncedAt: nil,
+                        financeSyncError: nil,
+                        note: "Garze e siringhe",
+                        amount: 50.0,
+                        paymentMethod: .wire,
+                        type: .expense,
+                        date: Date()
+                    ),
+                    Transaction(
+                        id: UUID(),
+                        clientName: "Luigi Bianchi",
+                        patientId: nil,
+                        patientMatchKind: nil,
+                        financePaymentId: nil,
+                        financeEntryId: nil,
+                        financeSyncedAt: nil,
+                        financeSyncError: nil,
+                        note: "Seduta terapia",
+                        amount: 200.0,
+                        paymentMethod: .pos,
+                        type: .income,
+                        date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+                    ),
+                    Transaction(
+                        id: UUID(),
+                        clientName: "Spese Postali",
+                        patientId: nil,
+                        patientMatchKind: nil,
+                        financePaymentId: nil,
+                        financeEntryId: nil,
+                        financeSyncedAt: nil,
+                        financeSyncError: nil,
+                        note: "Invio fatture",
+                        amount: 35.0,
+                        paymentMethod: .cash,
+                        type: .expense,
+                        date: Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+                    ),
+                    Transaction(
+                        id: UUID(),
+                        clientName: "Anna Verdi",
+                        patientId: nil,
+                        patientMatchKind: nil,
+                        financePaymentId: nil,
+                        financeEntryId: nil,
+                        financeSyncedAt: nil,
+                        financeSyncError: nil,
+                        note: "Trattamento completo",
+                        amount: 350.0,
+                        paymentMethod: .pos,
+                        type: .income,
+                        date: Calendar.current.date(byAdding: .month, value: -1, to: Date())!
+                    )
+                ]
+            }
+            #endif
         }
         .sheet(item: $formRoute) { route in
             TransactionFormView(store: store, type: route.type)
@@ -167,15 +250,9 @@ struct ContentView: View {
                 }
             }
             
-            HStack(spacing: 12) {
-                ReportActionButton(title: "PDF", symbol: "doc.text", isEnabled: !todayTransactions.isEmpty) {
-                    if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) {
-                        shareFile(url: url)
-                    }
-                }
-
-                ReportActionButton(title: "WhatsApp", symbol: "message", isEnabled: !todayTransactions.isEmpty) {
-                    sendDailyReportViaWhatsApp()
+            ReportActionButton(title: "Genera Resoconto", symbol: "doc.text", isEnabled: !todayTransactions.isEmpty) {
+                if let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) {
+                    shareFile(url: url)
                 }
             }
         }
@@ -259,23 +336,6 @@ struct ContentView: View {
         }
     }
 
-    private func sendDailyReportViaWhatsApp() {
-        let todayTransactions = transactionsForToday
-        let totals = store.totals(for: Date())
-        guard let url = PDFGenerator.generateDailyPDF(date: Date(), transactions: todayTransactions, totals: totals, showAmounts: true) else {
-            reportShareAlert = ReportShareAlert(
-                title: "PDF non generato",
-                message: "Non è stato possibile creare il resoconto giornaliero."
-            )
-            return
-        }
-
-        FileSharePresenter.present(items: [
-            DailyReportWhatsApp.message(template: whatsappDailyReportMessage, date: Date()),
-            url,
-        ])
-    }
-    
     private func shareFile(url: URL) {
         FileSharePresenter.present(url)
     }

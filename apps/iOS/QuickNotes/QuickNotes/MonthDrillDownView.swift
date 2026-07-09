@@ -350,9 +350,25 @@ private struct MonthDetailView: View {
     let summary: MonthSummary
     @AppStorage("showAmounts") private var showAmounts = true
     
+    private var transactionsByDay: [(date: Date, transactions: [Transaction])] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: summary.transactions) { transaction in
+            calendar.startOfDay(for: transaction.date)
+        }
+        return grouped.map { (date: $0.key, transactions: $0.value) }
+            .sorted { $0.date > $1.date }
+    }
+    
+    private func calculateTotals(for txs: [Transaction]) -> (income: Double, expense: Double) {
+        let income = txs.filter { $0.type == .income }.reduce(0.0) { $0 + $1.amount }
+        let expense = txs.filter { $0.type == .expense }.reduce(0.0) { $0 + $1.amount }
+        return (income, expense)
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                // Header Net Balance Card
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Saldo netto")
                         .font(.subheadline)
@@ -371,9 +387,10 @@ private struct MonthDetailView: View {
                 .padding(18)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
-                VStack(alignment: .leading, spacing: 12) {
+                // Grouped Transactions list by Day
+                VStack(alignment: .leading, spacing: 16) {
                     HStack {
-                        Text("Movimenti")
+                        Text("Movimenti Giornalieri")
                             .font(.headline)
                         Spacer()
                         Button(action: { showAmounts.toggle() }) {
@@ -386,8 +403,60 @@ private struct MonthDetailView: View {
                         .accessibilityLabel(showAmounts ? "Nascondi importi movimenti" : "Mostra importi movimenti")
                     }
                     
-                    ForEach(summary.transactions.sorted(by: { $0.date > $1.date })) { transaction in
-                        DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
+                    if transactionsByDay.isEmpty {
+                        Text("Nessun movimento registrato in questo mese.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 32)
+                    } else {
+                        ForEach(transactionsByDay, id: \.date) { day in
+                            let dayTotals = calculateTotals(for: day.transactions)
+                            
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Day Header
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(day.date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(Locale(identifier: "it_IT"))).localizedCapitalized)
+                                            .font(.title3.bold())
+                                        
+                                        HStack(spacing: 8) {
+                                            Text("Entrate: \(EuroAmountFormatter.string(dayTotals.income, showAmounts: showAmounts))")
+                                                .foregroundColor(.green)
+                                            Text("•")
+                                                .foregroundColor(.secondary)
+                                            Text("Uscite: \(EuroAmountFormatter.string(dayTotals.expense, showAmounts: showAmounts))")
+                                                .foregroundColor(.red)
+                                        }
+                                        .font(.caption.bold())
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Generate Daily PDF Button
+                                    Button(action: {
+                                        if let url = PDFGenerator.generateDailyPDF(date: day.date, transactions: day.transactions, totals: dayTotals, showAmounts: showAmounts) {
+                                            FileSharePresenter.present(url)
+                                        }
+                                    }) {
+                                        Label("Genera Resoconto", systemImage: "doc.text")
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.blue)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(.regularMaterial, in: Capsule())
+                                    }
+                                }
+                                .padding(.horizontal, 4)
+                                .padding(.top, 8)
+                                
+                                // Transactions for this Day
+                                ForEach(day.transactions.sorted(by: { $0.date > $1.date })) { transaction in
+                                    DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
+                                }
+                            }
+                            .padding(.bottom, 8)
+                        }
                     }
                 }
             }

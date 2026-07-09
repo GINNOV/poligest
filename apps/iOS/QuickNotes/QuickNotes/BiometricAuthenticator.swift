@@ -20,6 +20,12 @@ class BiometricAuthenticator: ObservableObject {
     }
     
     func authenticate() {
+        #if targetEnvironment(simulator)
+        DispatchQueue.main.async {
+            self.isAuthenticated = true
+            self.errorMessage = nil
+        }
+        #else
         let context = LAContext()
         var error: NSError?
         
@@ -48,6 +54,7 @@ class BiometricAuthenticator: ObservableObject {
                 self.errorMessage = nil
             }
         }
+        #endif
     }
     
     func logOut() {

@@ -10,7 +10,6 @@ struct SettingsView: View {
     @AppStorage("showMonthlyReportShortcut") private var showMonthlyReportShortcut = true
     @AppStorage("serverUrl") private var serverUrl = "https://sorrisosplendente.com"
     @AppStorage("apiToken") private var apiToken = "poligest_macos_secret"
-    @AppStorage("whatsappDailyReportMessage") private var whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
     @State private var showApiToken = false
     @State private var restoreAlertTitle = ""
     @State private var restoreAlertMessage = ""
@@ -72,32 +71,6 @@ struct SettingsView: View {
                     Text("Sorriso")
                 }
 
-                Section {
-                    Label {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Messaggio predefinito")
-                                .font(.subheadline.weight(.semibold))
-
-                            TextEditor(text: $whatsappDailyReportMessage)
-                                .frame(minHeight: 92)
-                                .scrollContentBackground(.hidden)
-                                .padding(8)
-                                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                            Button("Ripristina messaggio standard") {
-                                whatsappDailyReportMessage = DailyReportWhatsApp.defaultMessageTemplate
-                            }
-                            .font(.caption.weight(.semibold))
-                        }
-                    } icon: {
-                        Image(systemName: "message")
-                            .foregroundColor(.green)
-                    }
-                } header: {
-                    Text("WhatsApp")
-                } footer: {
-                    Text("Usa {date} per inserire automaticamente la data del resoconto. L'invio va confermato dentro WhatsApp.")
-                }
 
                 Section {
                     Toggle(isOn: $iCloudBackupEnabled) {
