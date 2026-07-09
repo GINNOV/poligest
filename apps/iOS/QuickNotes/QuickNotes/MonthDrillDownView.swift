@@ -16,7 +16,7 @@ struct MonthDrillDownView: View {
             .navigationTitle("Mesi")
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: MonthSummary.self) { summary in
-                MonthDetailView(summary: summary)
+                MonthDetailView(store: store, monthStart: summary.monthStart)
             }
             .toolbar { toolbarContent }
             .fileExporter(
@@ -347,12 +347,38 @@ private struct MonthPill: View {
 }
 
 private struct MonthDetailView: View {
-    let summary: MonthSummary
+    @ObservedObject var store: TransactionStore
+    let monthStart: Date
+    
     @AppStorage("showAmounts") private var showAmounts = true
+    @State private var transactionPendingDeletion: Transaction?
+    
+    private var monthTransactions: [Transaction] {
+        let calendar = Calendar.current
+        return store.transactions.filter { transaction in
+            calendar.isDate(transaction.date, equalTo: monthStart, toGranularity: .month)
+        }
+    }
+    
+    private var title: String {
+        monthStart.formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "it_IT")))
+    }
+    
+    private var totals: (income: Double, expense: Double) {
+        let txs = monthTransactions
+        let income = txs.filter { $0.type == .income }.reduce(0.0) { $0 + $1.amount }
+        let expense = txs.filter { $0.type == .expense }.reduce(0.0) { $0 + $1.amount }
+        return (income, expense)
+    }
+    
+    private var balance: Double {
+        let t = totals
+        return t.income - t.expense
+    }
     
     private var transactionsByDay: [(date: Date, transactions: [Transaction])] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: summary.transactions) { transaction in
+        let grouped = Dictionary(grouping: monthTransactions) { transaction in
             calendar.startOfDay(for: transaction.date)
         }
         return grouped.map { (date: $0.key, transactions: $0.value) }
@@ -365,6 +391,25 @@ private struct MonthDetailView: View {
         return (income, expense)
     }
     
+    private var deleteConfirmationIsPresented: Binding<Bool> {
+        Binding<Bool>(
+            get: { transactionPendingDeletion != nil },
+            set: { newValue in
+                if !newValue {
+                    transactionPendingDeletion = nil
+                }
+            }
+        )
+    }
+    
+    private func confirmDeleteTransaction() {
+        guard let transactionPendingDeletion else { return }
+        if let storeIndex = store.transactions.firstIndex(where: { $0.id == transactionPendingDeletion.id }) {
+            store.delete(at: IndexSet(integer: storeIndex))
+        }
+        self.transactionPendingDeletion = nil
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
@@ -373,15 +418,15 @@ private struct MonthDetailView: View {
                     Text("Saldo netto")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text(EuroAmountFormatter.string(summary.balance))
+                    Text(EuroAmountFormatter.string(balance))
                         .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                        .foregroundColor(summary.balance >= 0 ? .green : .red)
+                        .foregroundColor(balance >= 0 ? .green : .red)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                     
                     HStack(spacing: 12) {
-                        DetailMetric(title: "Entrate", amount: summary.income, color: .green)
-                        DetailMetric(title: "Uscite", amount: summary.expense, color: .red)
+                        DetailMetric(title: "Entrate", amount: totals.income, color: .green)
+                        DetailMetric(title: "Uscite", amount: totals.expense, color: .red)
                     }
                 }
                 .padding(18)
@@ -452,7 +497,9 @@ private struct MonthDetailView: View {
                                 
                                 // Transactions for this Day
                                 ForEach(day.transactions.sorted(by: { $0.date > $1.date })) { transaction in
-                                    DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts)
+                                    DrillDownTransactionRow(transaction: transaction, showAmounts: showAmounts) {
+                                        transactionPendingDeletion = transaction
+                                    }
                                 }
                             }
                             .padding(.bottom, 8)
@@ -465,8 +512,18 @@ private struct MonthDetailView: View {
             .padding(.bottom, 28)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(summary.title)
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Eliminare questo movimento?", isPresented: deleteConfirmationIsPresented) {
+            Button("Annulla", role: .cancel) {
+                transactionPendingDeletion = nil
+            }
+            Button("Elimina", role: .destructive) {
+                confirmDeleteTransaction()
+            }
+        } message: {
+            Text("Questa operazione rimuoverà definitivamente il movimento da Sorriso Mobile.")
+        }
     }
 }
 
@@ -495,6 +552,7 @@ private struct DetailMetric: View {
 private struct DrillDownTransactionRow: View {
     let transaction: Transaction
     let showAmounts: Bool
+    let onDelete: () -> Void
     
     var body: some View {
         HStack(spacing: 12) {
@@ -534,6 +592,14 @@ private struct DrillDownTransactionRow: View {
                     .foregroundColor(.secondary)
                 PatientLinkStatus(transaction: transaction, font: .caption2)
             }
+            
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+                    .foregroundColor(.red)
+                    .padding(8)
+                    .background(Color.red.opacity(0.08), in: Circle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(14)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
