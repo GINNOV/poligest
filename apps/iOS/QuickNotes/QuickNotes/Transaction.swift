@@ -210,9 +210,15 @@ class TransactionStore: ObservableObject {
         self.fileURL = fileURL
         let resolvedBackupFileURL = backupFileURL ?? TransactionStore.defaultBackupFileURL(for: fileURL)
         self.backupFileURL = resolvedBackupFileURL
+        #if targetEnvironment(macCatalyst)
+        self.cloudBackupService = nil
+        #else
         self.cloudBackupService = cloudBackupService ?? (fileURL == TransactionStore.defaultFileURL ? CloudKitBackupService() : nil)
+        #endif
         load()
+        #if !targetEnvironment(macCatalyst)
         WatchConnectivityManager.shared.sendTransactionsToWatch(transactions)
+        #endif
     }
 
     func add(_ transaction: Transaction) {
@@ -273,7 +279,9 @@ class TransactionStore: ObservableObject {
                 enabled: UserDefaults.standard.object(forKey: "icloudBackupEnabled") as? Bool ?? true,
                 uploadSnapshot: shouldUpdateBackupOnSave
             )
+            #if !targetEnvironment(macCatalyst)
             WatchConnectivityManager.shared.sendTransactionsToWatch(transactions)
+            #endif
         } catch {
             print("Error saving transactions: \(error)")
         }

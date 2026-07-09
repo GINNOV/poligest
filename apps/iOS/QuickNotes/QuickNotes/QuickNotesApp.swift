@@ -16,14 +16,18 @@ struct QuickNotesApp: App {
                 }
             }
             .onChange(of: scenePhase) { newPhase in
-                // Automatically lock the app when it is backgrounded
-                if newPhase == .background {
+                // Lock only after a successful unlock. Avoid racing with the Touch ID / passcode sheet.
+                if newPhase == .background,
+                   authenticator.isAuthenticated,
+                   !authenticator.isAuthenticationInProgress {
                     authenticator.logOut()
                 }
             }
             .onAppear {
                 NotificationManager.shared.requestAuthorizationAndScheduleIfNeeded()
+                #if !targetEnvironment(macCatalyst)
                 _ = WatchConnectivityManager.shared
+                #endif
             }
         }
     }

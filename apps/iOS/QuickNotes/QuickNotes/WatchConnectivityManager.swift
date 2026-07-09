@@ -9,6 +9,9 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate, ObservableObject {
     
     override init() {
         super.init()
+        #if targetEnvironment(macCatalyst)
+        return
+        #endif
         if WCSession.isSupported() {
             let session = WCSession.default
             session.delegate = self
@@ -17,6 +20,9 @@ class WatchConnectivityManager: NSObject, WCSessionDelegate, ObservableObject {
     }
     
     func sendTransactionsToWatch(_ transactions: [Transaction]) {
+        #if targetEnvironment(macCatalyst)
+        return
+        #endif
         guard WCSession.isSupported() else { return }
         
         let calendar = Calendar.current

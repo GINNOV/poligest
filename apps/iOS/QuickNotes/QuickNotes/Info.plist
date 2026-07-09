@@ -15,9 +15,9 @@
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>2158</string>
+	<string>2161</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Usa il Face ID per sbloccare l'applicazione e accedere ai tuoi conti in sicurezza.</string>
+	<string>Usa Touch ID o Face ID per sbloccare l'applicazione e accedere ai tuoi conti in sicurezza.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
