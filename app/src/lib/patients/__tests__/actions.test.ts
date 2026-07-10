@@ -451,6 +451,8 @@ describe("patient actions", () => {
 
     await savePreventivoAction({ savedAt: 0 }, formData);
 
+    expect(mocks.prisma.quote.findFirst).toHaveBeenCalledBefore(mocks.prisma.$transaction);
+    expect(mocks.prisma.patientPayment.findMany).toHaveBeenCalledBefore(mocks.prisma.$transaction);
     expect(mocks.prisma.quoteItem.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "qi-1" },
       data: expect.objectContaining({

@@ -45,6 +45,8 @@ type PersistedQuoteItem = {
   tooth?: number | null;
 };
 
+type QuoteWithItemsForSave = Prisma.QuoteGetPayload<{ include: { items: true } }>;
+
 function quoteItemsMatchPersisted(
   persistedItems: readonly PersistedQuoteItem[],
   normalizedItems: readonly NormalizedQuoteItem[],
@@ -260,6 +262,10 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
 
     const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
     const primaryItem = normalizedItems[0];
+    let existingQuoteForUpdate: QuoteWithItemsForSave | null = null;
+    let existingItemMap = new Map<string, QuoteWithItemsForSave["items"][number]>();
+    let removableItems: QuoteWithItemsForSave["items"] = [];
+    const paidByQuoteItemId = new Map<string, number>();
 
     if (quoteId) {
       const existingQuoteForSignature = await prisma.quote.findFirst({
@@ -305,6 +311,44 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
         revalidatePath("/finanza/pagamenti");
         return { savedAt: Date.now(), error: null };
       }
+
+      existingQuoteForUpdate = existingQuoteForSignature;
+      const existingPayments = patientPaymentClient?.findMany
+        ? await patientPaymentClient.findMany({
+            where: { quoteItemId: { in: existingQuoteForSignature.items.map((item) => item.id) } },
+            select: { quoteItemId: true, amount: true },
+          })
+        : [];
+
+      for (const payment of existingPayments) {
+        if (!payment.quoteItemId) continue;
+        paidByQuoteItemId.set(
+          payment.quoteItemId,
+          (paidByQuoteItemId.get(payment.quoteItemId) ?? 0) + Number(payment.amount.toString())
+        );
+      }
+
+      existingItemMap = new Map(existingQuoteForSignature.items.map((item) => [item.id, item]));
+      const incomingIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
+      removableItems = existingQuoteForSignature.items.filter((item) => !incomingIds.has(item.id));
+      const lockedRemovedItem = removableItems.find((item) => (paidByQuoteItemId.get(item.id) ?? 0) > 0);
+
+      if (lockedRemovedItem) {
+        throw new Error("Non puoi rimuovere una prestazione con pagamenti già registrati");
+      }
+
+      for (const item of normalizedItems) {
+        if (!item.id) continue;
+        const existingItem = existingItemMap.get(item.id);
+        if (!existingItem) {
+          throw new Error("Una riga del preventivo non è valida");
+        }
+
+        const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
+        if (paidAmount - item.total > 0.009) {
+          throw new Error("Impossibile abbassare il totale: sono già presenti pagamenti per " + paidAmount.toFixed(2) + "€");
+        }
+      }
     }
 
     const quote = await prisma.$transaction(
@@ -342,54 +386,12 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
         });
       }
 
-      const existingQuote = await tx.quote.findFirst({
-        where: { id: quoteId, patientId },
-        include: { items: true },
-      });
-
-      if (!existingQuote) {
+      if (!existingQuoteForUpdate) {
         throw new Error("Preventivo non trovato");
       }
 
-      const existingPayments = patientPaymentClient?.findMany
-        ? await patientPaymentClient.findMany({
-            where: { quoteItemId: { in: existingQuote.items.map((item) => item.id) } },
-            select: { quoteItemId: true, amount: true },
-          })
-        : [];
-      const paidByQuoteItemId = new Map<string, number>();
-      for (const payment of existingPayments) {
-        if (!payment.quoteItemId) continue;
-        paidByQuoteItemId.set(
-          payment.quoteItemId,
-          (paidByQuoteItemId.get(payment.quoteItemId) ?? 0) + Number(payment.amount.toString())
-        );
-      }
-
-      const existingItemMap = new Map(existingQuote.items.map((item) => [item.id, item]));
-      const incomingIds = new Set(normalizedItems.map((item) => item.id).filter(Boolean));
-      const removableItems = existingQuote.items.filter((item) => !incomingIds.has(item.id));
-      const lockedRemovedItem = removableItems.find((item) => (paidByQuoteItemId.get(item.id) ?? 0) > 0);
-
-      if (lockedRemovedItem) {
-        throw new Error("Non puoi rimuovere una prestazione con pagamenti già registrati");
-      }
-
-      for (const item of normalizedItems) {
-        if (!item.id) continue;
-        const existingItem = existingItemMap.get(item.id);
-        if (!existingItem) {
-          throw new Error("Una riga del preventivo non è valida");
-        }
-
-        const paidAmount = paidByQuoteItemId.get(existingItem.id) ?? 0;
-        if (paidAmount - item.total > 0.009) {
-          throw new Error("Impossibile abbassare il totale: sono già presenti pagamenti per " + paidAmount.toFixed(2) + "€");
-        }
-      }
-
       await tx.quote.update({
-        where: { id: existingQuote.id },
+        where: { id: existingQuoteForUpdate.id },
         data: {
           serviceId: primaryItem.serviceId,
           serviceName: primaryItem.serviceName,
@@ -410,7 +412,7 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
         if (!item.id) {
           await tx.quoteItem.create({
             data: {
-              quoteId: existingQuote.id,
+              quoteId: existingQuoteForUpdate.id,
               serviceId: item.serviceId,
               serviceName: item.serviceName,
               serviceDate: item.serviceDate,
@@ -445,10 +447,10 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
         });
       }
 
-      await syncAllDentalRecordsIntoQuote(tx, patientId, existingQuote.id);
+      await syncAllDentalRecordsIntoQuote(tx, patientId, existingQuoteForUpdate.id);
 
       return tx.quote.findUniqueOrThrow({
-        where: { id: existingQuote.id },
+        where: { id: existingQuoteForUpdate.id },
       });
     }, { timeout: 15000 });
 
