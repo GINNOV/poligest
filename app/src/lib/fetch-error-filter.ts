@@ -8,6 +8,8 @@ const STACK_OAUTH_TOKEN_PATHS = [
   "/api/stack/v1/auth/oauth/token",
 ];
 
+const HEALTH_CHECK_PATHS = ["/health"];
+
 export function getFetchRequestPath(requestUrl: string) {
   if (!requestUrl) return "";
 
@@ -40,6 +42,10 @@ export function isIgnoredFetchFailure(requestUrl: string, status: number) {
 
   // Stack Auth analytics is best-effort telemetry; never alarm staff on failures.
   if (isStackAnalyticsBatchPath(path)) {
+    return true;
+  }
+
+  if (status === 404 && HEALTH_CHECK_PATHS.includes(path)) {
     return true;
   }
 

@@ -35,6 +35,17 @@ describe("fetch toast policy", () => {
     ).toBe(true);
   });
 
+  it("does not toast health check failures after user interaction", () => {
+    expect(
+      shouldEmitFetchErrorToast({
+        requestUrl: "/health",
+        status: 404,
+        responseOk: false,
+        shouldNotify: true,
+      }),
+    ).toBe(false);
+  });
+
   it("does not toast when there was no recent interaction", () => {
     expect(
       shouldEmitFetchErrorToast({

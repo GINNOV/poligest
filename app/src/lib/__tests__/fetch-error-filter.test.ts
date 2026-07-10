@@ -31,6 +31,12 @@ describe("fetch error filter", () => {
     expect(isIgnoredFetchFailure("/api/stack/v1/auth/oauth/token", 429)).toBe(true);
   });
 
+  it("ignores health check failures", () => {
+    expect(isIgnoredFetchFailure("/health", 404)).toBe(true);
+    expect(isIgnoredFetchFailure("https://sorrisosplendente.com/health", 404)).toBe(true);
+    expect(isIgnoredFetchFailure("https://sorrisosplendente.com/health", 500)).toBe(false);
+  });
+
   it("does not ignore unrelated failures", () => {
     expect(isIgnoredFetchFailure("/api/pazienti", 500)).toBe(false);
     expect(isIgnoredFetchFailure("/api/pazienti", 404)).toBe(false);

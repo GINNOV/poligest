@@ -15,6 +15,7 @@ import { getAllEmailTemplates } from "@/lib/email-templates";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { RecallWhatsappButton } from "@/components/recall-whatsapp-button";
 import { RecallDeliveryFailureAlerts } from "@/components/recall-delivery-failure-alerts";
+import { getFailedDeliveryRecalls, type ScheduledRecallListItem } from "./page-data";
 
 const channelBadgeStyles = {
   whatsapp:
@@ -53,7 +54,8 @@ export default async function RichiamiProgrammatiPage({
   const toParam = params.to as string | undefined;
   const pageParam = params.page as string | undefined;
 
-  const page = pageParam ? Math.max(1, parseInt(pageParam, 10)) : 1;
+  const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
+  const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const limit = 12; // 12 cards per page
 
   const now = new Date();
@@ -123,24 +125,38 @@ export default async function RichiamiProgrammatiPage({
     prisma.recall.findMany({
       where: whereClause,
       orderBy: { dueAt: "asc" },
-      include: { patient: true, rule: true },
+      select: {
+        id: true,
+        dueAt: true,
+        status: true,
+        notes: true,
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
+        rule: {
+          select: {
+            id: true,
+            name: true,
+            serviceType: true,
+            templateName: true,
+            message: true,
+            emailSubject: true,
+            channel: true,
+          },
+        },
+      },
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
     getAllEmailTemplates(),
-    prisma.recall.findMany({
-      where: {
-        status: RecallStatus.SKIPPED,
-        deliveryFailureDismissedAt: null,
-      },
-      orderBy: [{ lastContactAt: "desc" }, { dueAt: "desc" }],
-      include: {
-        patient: { select: { firstName: true, lastName: true } },
-        rule: { select: { name: true, channel: true } },
-      },
-    }),
+    getFailedDeliveryRecalls(),
   ]);
 
   const totalPages = Math.ceil(totalRecalls / limit);
@@ -159,7 +175,7 @@ export default async function RichiamiProgrammatiPage({
   });
 
   // Group the page's recalls by month
-  const groupedRecalls: { month: string; items: typeof recalls }[] = [];
+  const groupedRecalls: { month: string; items: ScheduledRecallListItem[] }[] = [];
   for (const recall of recalls) {
     const monthKey = new Intl.DateTimeFormat("it-IT", { month: "long", year: "numeric" }).format(recall.dueAt);
     const capitalizedMonth = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
