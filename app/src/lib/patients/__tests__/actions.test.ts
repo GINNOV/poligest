@@ -459,4 +459,56 @@ describe("patient actions", () => {
       })
     }));
   });
+
+  it("updates only the quote signature when existing quote rows are unchanged", async () => {
+    const serviceDate = new Date("2026-04-10T12:00:00.000Z");
+    mocks.prisma.service.findMany.mockResolvedValue([{ id: "s-1", name: "S1", costBasis: "100.00" }]);
+    mocks.prisma.quote.findFirst.mockResolvedValue({
+      id: "quote-1",
+      patientId: "patient-1",
+      items: [
+        {
+          id: "qi-1",
+          serviceId: "s-1",
+          serviceDate,
+          quantity: 1,
+          price: "100",
+          total: "100",
+          tooth: null,
+        },
+      ],
+    });
+    mocks.put.mockResolvedValue({ url: "https://blob.test/new-signature.png" });
+    mocks.prisma.quote.update.mockResolvedValue({ id: "quote-1" });
+
+    const formData = new FormData();
+    formData.set("patientId", "patient-1");
+    formData.set("quoteId", "quote-1");
+    formData.set("itemsJson", JSON.stringify([
+      {
+        id: "qi-1",
+        serviceId: "s-1",
+        serviceDate: "2026-04-10",
+        quantity: 1,
+        price: 100,
+        tooth: null,
+      },
+    ]));
+    formData.set("quoteSignatureData", "data:image/png;base64,c2lnbmF0dXJl");
+
+    const result = await savePreventivoAction({ savedAt: 0 }, formData);
+
+    expect(result.error).toBeNull();
+    expect(mocks.prisma.$transaction).not.toHaveBeenCalled();
+    expect(mocks.prisma.quote.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "quote-1" },
+      data: expect.objectContaining({
+        signatureUrl: "https://blob.test/new-signature.png",
+      }),
+      select: { id: true },
+    }));
+    expect(mocks.prisma.quoteItem.update).not.toHaveBeenCalled();
+    expect(mocks.prisma.quoteItem.create).not.toHaveBeenCalled();
+    expect(mocks.prisma.quoteItem.delete).not.toHaveBeenCalled();
+  });
 });

@@ -22,6 +22,53 @@ const buildImplantNote = (product: { name: string; brand: string | null; udiDi: 
     .filter(Boolean)
     .join(" · ") || null;
 
+type NormalizedQuoteItem = {
+  id: string | null;
+  serviceId: string;
+  serviceName: string;
+  serviceDate: Date;
+  quantity: number;
+  price: number;
+  total: number;
+  tooth?: number | null;
+  saldato: boolean;
+  isManualAdjustment: boolean;
+};
+
+type PersistedQuoteItem = {
+  id: string;
+  serviceId: string | null;
+  serviceDate: Date;
+  quantity: number;
+  price: { toString(): string };
+  total: { toString(): string };
+  tooth?: number | null;
+};
+
+function quoteItemsMatchPersisted(
+  persistedItems: readonly PersistedQuoteItem[],
+  normalizedItems: readonly NormalizedQuoteItem[],
+) {
+  if (persistedItems.length !== normalizedItems.length) return false;
+
+  const persistedById = new Map(persistedItems.map((item) => [item.id, item]));
+  return normalizedItems.every((item) => {
+    if (!item.id) return false;
+    const persisted = persistedById.get(item.id);
+    if (!persisted) return false;
+    if (!(persisted.serviceDate instanceof Date)) return false;
+
+    return (
+      persisted.serviceId === item.serviceId &&
+      persisted.serviceDate.getTime() === item.serviceDate.getTime() &&
+      persisted.quantity === item.quantity &&
+      Number(persisted.price.toString()) === item.price &&
+      Number(persisted.total.toString()) === item.total &&
+      (persisted.tooth ?? null) === (item.tooth ?? null)
+    );
+  });
+}
+
 export async function addImplantAssociationAction(formData: FormData) {
   const user = await requireUser([...STAFF_ROLES]);
   const patientId = (formData.get("patientId") as string) || "";
@@ -168,7 +215,7 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
         : [];
     const serviceMap = new Map(services.map((service) => [service.id, service]));
 
-    const normalizedItems = itemsPayload.map((item) => {
+    const normalizedItems: NormalizedQuoteItem[] = itemsPayload.map((item) => {
       const quantityParsed = Number.parseInt(String(item.quantity), 10);
       const quantity = Number.isNaN(quantityParsed) || quantityParsed <= 0 ? 1 : quantityParsed;
       const priceParsed = Number.parseFloat(String(item.price).replace(",", "."));
@@ -213,6 +260,52 @@ export async function savePreventivoAction(_: { savedAt: number; error?: string 
 
     const totalSum = normalizedItems.reduce((sum, item) => sum + item.total, 0);
     const primaryItem = normalizedItems[0];
+
+    if (quoteId) {
+      const existingQuoteForSignature = await prisma.quote.findFirst({
+        where: { id: quoteId, patientId },
+        include: { items: true },
+      });
+
+      if (!existingQuoteForSignature) {
+        throw new Error("Preventivo non trovato");
+      }
+
+      if (quoteItemsMatchPersisted(existingQuoteForSignature.items, normalizedItems)) {
+        const quote = await prisma.quote.update({
+          where: { id: existingQuoteForSignature.id },
+          data: {
+            serviceId: primaryItem.serviceId,
+            serviceName: primaryItem.serviceName,
+            serviceDate: primaryItem.serviceDate,
+            quantity: primaryItem.quantity,
+            price: new Prisma.Decimal(primaryItem.price),
+            total: new Prisma.Decimal(totalSum),
+            signatureUrl: signatureUrl ?? "",
+            signedAt: new Date(),
+          },
+          select: { id: true },
+        });
+
+        await logAudit(user, {
+          action: "patient.quote_saved",
+          entity: "Patient",
+          entityId: patientId,
+          metadata: {
+            quoteId: quote.id,
+            serviceId: primaryItem.serviceId,
+            serviceName: primaryItem.serviceName,
+            quantity: primaryItem.quantity,
+            price: primaryItem.price,
+            total: totalSum,
+          },
+        });
+
+        revalidatePath(`/pazienti/${patientId}`);
+        revalidatePath("/finanza/pagamenti");
+        return { savedAt: Date.now(), error: null };
+      }
+    }
 
     const quote = await prisma.$transaction(
       async (tx) => {
