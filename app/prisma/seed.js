@@ -176,17 +176,28 @@ async function main() {
       },
     }));
 
-  await prisma.consent.upsert({
+  const privacyModule =
+    (await prisma.consentModule.findFirst({ where: { name: "privacy" } })) ||
+    (await prisma.consentModule.create({
+      data: {
+        name: "privacy",
+        content: "Informativa Privacy e Trattamento Dati Personali (GDPR)",
+        active: true,
+        required: true,
+      },
+    }));
+
+  await prisma.patientConsent.upsert({
     where: {
-      patientId_type: {
+      patientId_moduleId: {
         patientId: patient.id,
-        type: "PRIVACY",
+        moduleId: privacyModule.id,
       },
     },
     update: {},
     create: {
       patientId: patient.id,
-      type: "PRIVACY",
+      moduleId: privacyModule.id,
       status: "GRANTED",
       channel: "firmato",
     },
@@ -251,7 +262,7 @@ async function main() {
 
   await prisma.cashAdvance.create({
     data: {
-      doctorId: doctor.id,
+      patientId: patient.id,
       amount: new Prisma.Decimal("300.00"),
       issuedAt: new Date(),
       note: "Anticipo su compensi",
