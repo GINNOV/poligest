@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { SignOutButton } from "./sign-out-button";
+import { FidatiDialog } from "./fidati-dialog";
 import {
   AGENDA_CHRONOLOGICAL_COOKIE,
   AGENDA_CHRONOLOGICAL_STORAGE_KEY,
@@ -113,6 +114,7 @@ export function UserMenu({
       : getBrowserUserDisplayTimeZone(displayTimeZone);
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [fidatiOpen, setFidatiOpen] = useState(false);
   const [homeScreen, setHomeScreen] = useState(initialHomeScreen);
   const [patientPostCreate, setPatientPostCreate] = useState(initialPatientPostCreate);
   const [patientAutoFilter, setPatientAutoFilter] = useState(initialPatientAutoFilter);
@@ -256,6 +258,17 @@ export function UserMenu({
             >
               <span aria-hidden>⚙️</span>
               Personalizza
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-3 text-left hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+              onClick={() => {
+                setOpen(false);
+                setFidatiOpen(true);
+              }}
+            >
+              <span aria-hidden>▶️</span>
+              Fidati.
             </button>
             {adminHref && adminLabel ? (
               <Link
@@ -642,6 +655,7 @@ export function UserMenu({
             document.body
           )
         : null}
+      <FidatiDialog open={fidatiOpen} onClose={() => setFidatiOpen(false)} />
     </div>
   );
 }
