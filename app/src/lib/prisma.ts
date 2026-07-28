@@ -41,6 +41,15 @@ const connectionString = normalizeConnectionString(
     ""
 );
 
+function shouldUseSsl(rawConnectionString: string) {
+  try {
+    const parsed = new URL(rawConnectionString);
+    return parsed.searchParams.get("sslmode") !== "disable";
+  } catch {
+    return true;
+  }
+}
+
 export const isPrismaConfigured = Boolean(connectionString);
 
 if (!connectionString && !isDev) {
@@ -68,7 +77,7 @@ const createPrismaClient = () => {
 
   const pool = new Pool({
     connectionString,
-    ssl: true,
+    ssl: shouldUseSsl(connectionString),
     max: poolMaxConnections,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis,

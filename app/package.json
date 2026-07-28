@@ -11,9 +11,10 @@
     "start": "npm run build && next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:smoke": "playwright test --config=playwright.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
-    "verify": "npm run build && npm test && npm run lint",
+    "verify": "npm run build && npm test && npm run test:smoke && npm run lint",
     "wacom:sync": "node scripts/sync-wacom-sdk.mjs",
     "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
     "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
@@ -51,6 +52,7 @@
     "@wacom/signature-sdk": "^2.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@prisma/dev": "^0.24.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",

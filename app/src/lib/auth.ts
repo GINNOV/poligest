@@ -21,6 +21,46 @@ type AppUser = {
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const getPrisma = async () => (await import("@/lib/prisma")).prisma;
 
+function isSmokeAuthEnabled() {
+  return process.env.NODE_ENV !== "production" && process.env.E2E_SMOKE_AUTH === "1";
+}
+
+async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
+  const prisma = await getPrisma();
+  const email = process.env.E2E_SMOKE_USER_EMAIL;
+  const userSelect = {
+    id: true,
+    email: true,
+    name: true,
+    role: true,
+    locale: true,
+    avatarUrl: true,
+  } as const;
+  const dbUser = email ? await prisma.user.findUnique({
+    where: { email: normalizeEmail(email) },
+    select: userSelect,
+  }) : await prisma.user.findFirst({
+    where: { role: { in: [Role.ADMIN, Role.MANAGER, Role.ASSISTANT, Role.SECRETARY] } },
+    orderBy: { createdAt: "asc" },
+    select: userSelect,
+  });
+
+  if (!dbUser) {
+    return null;
+  }
+
+  return {
+    id: dbUser.id,
+    email: dbUser.email,
+    name: dbUser.name,
+    role: dbUser.role,
+    locale: dbUser.locale ?? "it",
+    avatarUrl: dbUser.avatarUrl,
+    stackUserId: `smoke:${dbUser.id}`,
+    impersonatedFrom: null,
+  };
+}
+
 async function ensurePatientRecord(email: string, fullName?: string | null) {
   const prisma = await getPrisma();
   const existing = await prisma.patient.findFirst({
@@ -87,6 +127,10 @@ async function ensurePatientRecord(email: string, fullName?: string | null) {
 }
 
 const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUser | null> => {
+  if (isSmokeAuthEnabled()) {
+    return getSmokeTestUserFromDatabase();
+  }
+
   const stackServerApp = getOptionalStackServerApp();
   if (!stackServerApp) return null;
 

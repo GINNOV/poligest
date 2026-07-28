@@ -16,12 +16,37 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sorrisosplendente.com"),
   title: {
     template: "%s | SORRIDI",
     default: "SORRIDI",
   },
   description:
     "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
+  openGraph: {
+    title: "SORRIDI",
+    description:
+      "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
+    url: "https://sorrisosplendente.com",
+    siteName: "SORRIDI",
+    locale: "it_IT",
+    type: "website",
+    images: [
+      {
+        url: "/logo/studio_agovinoangrisano_logo.png",
+        width: 2208,
+        height: 1920,
+        alt: "SORRIDI - Studio Agovino & Angrisano",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SORRIDI",
+    description:
+      "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
+    images: ["/logo/studio_agovinoangrisano_logo.png"],
+  },
   manifest: "/favicon/site.webmanifest",
   icons: {
     icon: "/favicon/favicon.ico",

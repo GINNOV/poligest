@@ -17,6 +17,15 @@ function normalizeConnectionString(rawConnectionString) {
   }
 }
 
+function shouldUseSsl(rawConnectionString) {
+  try {
+    const parsed = new URL(rawConnectionString);
+    return parsed.searchParams.get("sslmode") !== "disable";
+  } catch {
+    return true;
+  }
+}
+
 const connectionString = normalizeConnectionString(
   process.env.DATABASE_URL_UNPOOLED ||
     process.env.POSTGRES_PRISMA_URL ||
@@ -31,7 +40,7 @@ if (!connectionString) {
 
 const pool = new Pool({
   connectionString,
-  ssl: true,
+  ssl: shouldUseSsl(connectionString),
 });
 
 const adapter = new PrismaPg(pool);
