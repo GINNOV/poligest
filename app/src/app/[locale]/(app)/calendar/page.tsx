@@ -12,7 +12,7 @@ import {
   resolveCalendarMonthKey,
 } from "@/lib/calendar/domain";
 import { calendarOccupyingAppointmentFilter } from "@/lib/appointments/agenda-domain";
-import { AppointmentStatus, Role } from "@prisma/client";
+import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   addDays,
@@ -213,6 +213,51 @@ export default async function CalendarPage({
   const timeOffRangeStart = closureRangeStart;
   const timeOffRangeEnd = closureRangeEnd;
 
+  const searchTokens = searchQuery ? searchQuery.trim().split(/\s+/).filter(Boolean) : [];
+  const baseWhere: Prisma.AppointmentWhereInput = {
+    ...calendarOccupyingAppointmentFilter(),
+    ...(showAllDoctors ? {} : selectedDoctorId ? { doctorId: selectedDoctorId } : {}),
+  };
+
+  const appointmentWhere: Prisma.AppointmentWhereInput = searchQuery
+    ? {
+        ...baseWhere,
+        OR: [
+          { startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd } },
+          { title: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+          { serviceType: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+          { notes: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+          {
+            patient: {
+              OR: [
+                { firstName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                { lastName: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                { email: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+                { phone: { contains: searchQuery, mode: Prisma.QueryMode.insensitive } },
+              ],
+            },
+          },
+          ...(searchTokens.length > 0
+            ? [
+                {
+                  AND: searchTokens.map((token) => ({
+                    patient: {
+                      OR: [
+                        { firstName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                        { lastName: { contains: token, mode: Prisma.QueryMode.insensitive } },
+                      ],
+                    },
+                  })),
+                },
+              ]
+            : []),
+        ],
+      }
+    : {
+        ...baseWhere,
+        startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
+      };
+
   const [
     appointmentsRaw,
     patientsRaw,
@@ -223,12 +268,9 @@ export default async function CalendarPage({
     doctorTimeOffsRaw,
   ] =
     await Promise.all([
-    showAllDoctors
+    showAllDoctors || selectedDoctorId
       ? prisma.appointment.findMany({
-          where: {
-            ...calendarOccupyingAppointmentFilter(),
-            startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
-          },
+          where: appointmentWhere,
           orderBy: { startsAt: "asc" },
           select: {
             id: true,
@@ -243,28 +285,7 @@ export default async function CalendarPage({
             patient: { select: { firstName: true, lastName: true } },
           },
         })
-      : selectedDoctorId
-        ? prisma.appointment.findMany({
-            where: {
-              ...calendarOccupyingAppointmentFilter(),
-              doctorId: selectedDoctorId,
-              startsAt: { gte: appointmentRangeStart, lte: appointmentRangeEnd },
-            },
-            orderBy: { startsAt: "asc" },
-            select: {
-              id: true,
-              title: true,
-              serviceType: true,
-              startsAt: true,
-              endsAt: true,
-              patientId: true,
-              doctorId: true,
-              status: true,
-              notes: true,
-              patient: { select: { firstName: true, lastName: true } },
-            },
-          })
-        : Promise.resolve([] as CalendarAppointmentRecord[]),
+      : Promise.resolve([] as CalendarAppointmentRecord[]),
     prisma.patient.findMany({
       orderBy: { lastName: "asc" },
       select: { id: true, firstName: true, lastName: true, email: true, phone: true, notes: true },
@@ -305,7 +326,11 @@ export default async function CalendarPage({
   ]);
   const appointments = appointmentsRaw as CalendarAppointmentRecord[];
   const mappedPatients = patientsRaw.map((p) => {
-    const { parsedTaxId } = parsePatientStructuredNotes(p.notes);
+    let parsedTaxId = "";
+    if (p.notes && p.notes.includes("Codice Fiscale:")) {
+      const line = p.notes.split("\n").find((l) => l.startsWith("Codice Fiscale:"));
+      if (line) parsedTaxId = line.replace("Codice Fiscale:", "").trim();
+    }
     return {
       id: p.id,
       firstName: p.firstName,
@@ -416,6 +441,20 @@ export default async function CalendarPage({
     return `/calendar?${returnParams.toString()}`;
   })();
 
+  const closureBounds = closures.map((c) => ({
+    startMs: new Date(c.startsAt).getTime(),
+    endMs: new Date(c.endsAt).getTime(),
+  }));
+  const weeklyClosedSet = new Set(
+    weeklyClosures.filter((r) => r.isActive).map((r) => r.dayOfWeek)
+  );
+
+  const outOfRangeMatches = searchQuery
+    ? appointments.filter(
+        (appt) => appt.startsAt < appointmentRangeStart || appt.startsAt > appointmentRangeEnd
+      )
+    : [];
+
   const calendarDays = days.map((day) => {
     const key = TZ.formatDateInputValueInTimeZone(day, displayTimeZone);
     const dayAppointments = appointmentsByDay.get(key) ?? [];
@@ -427,12 +466,12 @@ export default async function CalendarPage({
         : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
-    const isClosedByRange = closures.some(
-      (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
+    const dayStartMs = dayStart.getTime();
+    const dayEndMs = dayEnd.getTime();
+    const isClosedByRange = closureBounds.some(
+      (closure) => closure.startMs < dayEndMs && closure.endMs > dayStartMs
     );
-    const isClosedWeekly = weeklyClosures.some(
-      (row) => row.isActive && row.dayOfWeek === displayWeekday
-    );
+    const isClosedWeekly = weeklyClosedSet.has(displayWeekday);
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
     const isDoctorOnTimeOff = isDoctorTimeOffActive(
       selectedDoctorId,
@@ -495,12 +534,12 @@ export default async function CalendarPage({
         : [];
     const dayStart = dateStart(day);
     const dayEnd = dateEndExclusive(day);
-    const isClosedByRange = closures.some(
-      (closure) => new Date(closure.startsAt) < dayEnd && new Date(closure.endsAt) > dayStart
+    const dayStartMs = dayStart.getTime();
+    const dayEndMs = dayEnd.getTime();
+    const isClosedByRange = closureBounds.some(
+      (closure) => closure.startMs < dayEndMs && closure.endMs > dayStartMs
     );
-    const isClosedWeekly = weeklyClosures.some(
-      (row) => row.isActive && row.dayOfWeek === displayWeekday
-    );
+    const isClosedWeekly = weeklyClosedSet.has(displayWeekday);
     const isPracticeClosed = isClosedByRange || isClosedWeekly;
     const isDoctorOnTimeOff = isDoctorTimeOffActive(
       selectedDoctorId,
@@ -699,6 +738,38 @@ export default async function CalendarPage({
               </span>
             </div>
           </div>
+
+          {searchQuery && outOfRangeMatches.length > 0 ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+              <div className="font-semibold text-amber-900 dark:text-amber-100">
+                Trovati {outOfRangeMatches.length} appuntamenti in altri periodi per &quot;{searchQuery}&quot;:
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {outOfRangeMatches.map((appt) => {
+                  const apptDateKey = TZ.formatDateInputValueInTimeZone(appt.startsAt, displayTimeZone);
+                  const monthKey = apptDateKey.slice(0, 7);
+                  const targetLink = buildCalendarLink({ view, month: monthKey, week: apptDateKey });
+                  const formattedDate = TZ.formatDateInDisplayTimeZone(
+                    appt.startsAt,
+                    { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" },
+                    displayTimeZone
+                  );
+                  return (
+                    <Link
+                      key={appt.id}
+                      href={targetLink}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-2.5 py-1 font-medium text-zinc-900 shadow-sm hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/50 dark:text-amber-100 dark:hover:bg-amber-900"
+                    >
+                      <span>
+                        {appt.patient.lastName} {appt.patient.firstName} — {formattedDate} ({appt.serviceType})
+                      </span>
+                      <span className="font-bold text-amber-600 dark:text-amber-300">→</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           {view === "month" ? (
             <CalendarMonthView

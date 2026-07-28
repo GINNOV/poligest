@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 export function CalendarSearch() {
   const router = useRouter();
@@ -9,23 +9,45 @@ export function CalendarSearch() {
   const [isPending, startTransition] = useTransition();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [prevSearchParams, setPrevSearchParams] = useState(searchParams);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   if (searchParams !== prevSearchParams) {
     setPrevSearchParams(searchParams);
     setQuery(searchParams.get("q") ?? "");
   }
 
-  const handleSearch = (value: string) => {
-    setQuery(value);
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const pushSearch = (value: string) => {
     startTransition(() => {
       const nextParams = new URLSearchParams(searchParams.toString());
-      if (value) {
-        nextParams.set("q", value);
+      if (value.trim()) {
+        nextParams.set("q", value.trim());
       } else {
         nextParams.delete("q");
       }
       router.push(`/calendar?${nextParams.toString()}`);
     });
+  };
+
+  const handleSearch = (value: string, immediate = false) => {
+    setQuery(value);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (immediate) {
+      pushSearch(value);
+    } else {
+      debounceTimerRef.current = setTimeout(() => {
+        pushSearch(value);
+      }, 300);
+    }
   };
 
   return (
@@ -60,7 +82,7 @@ export function CalendarSearch() {
       {query && (
         <button
           type="button"
-          onClick={() => handleSearch("")}
+          onClick={() => handleSearch("", true)}
           className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

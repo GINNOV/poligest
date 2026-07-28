@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
+import {
+  AppointmentShiftHoverCallout,
+  useAppointmentShiftHover,
+} from "@/components/appointment-shift-hover-callout";
 import { CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY } from "@/lib/app-preferences";
 import {
   buildPositionedAppointments,
@@ -184,6 +188,7 @@ export function CalendarWeekView({
   );
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
   const [showPatientNameWhenCompact, setShowPatientNameWhenCompact] = useState(false);
+  const { isShiftPressed, hoveredAppt, mousePos, getHoverHandlers } = useAppointmentShiftHover();
 
   useEffect(() => {
     const readPreference = () => {
@@ -236,6 +241,12 @@ export function CalendarWeekView({
     }
   }, [initialAppointmentId, weekDays]);
 
+  const patientById = useMemo(() => {
+    const map = new Map<string, (typeof patients)[number]>();
+    patients.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [patients]);
+
   const filteredWeekDays = useMemo(() => {
     if (!searchQuery) return weekDays;
     const tokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
@@ -246,10 +257,26 @@ export function CalendarWeekView({
       appointments: day.appointments.filter((appt) => {
         const name = appt.patientName.toLowerCase();
         const notes = (appt.notes || "").toLowerCase();
-        return tokens.every((token) => name.includes(token) || notes.includes(token));
+        const title = (appt.title || "").toLowerCase();
+        const serviceType = (appt.serviceType || "").toLowerCase();
+        const patient = patientById.get(appt.patientId);
+        const email = (patient?.email || "").toLowerCase();
+        const phone = (patient?.phone || "").toLowerCase();
+        const taxId = (patient?.taxId || "").toLowerCase();
+
+        return tokens.every(
+          (token) =>
+            name.includes(token) ||
+            notes.includes(token) ||
+            title.includes(token) ||
+            serviceType.includes(token) ||
+            email.includes(token) ||
+            phone.includes(token) ||
+            taxId.includes(token)
+        );
       }),
     }));
-  }, [weekDays, searchQuery]);
+  }, [weekDays, searchQuery, patientById]);
 
   const { timeStartMinute, timeEndMinute } = useMemo(() => {
     let minMinute = 8 * 60;
@@ -442,6 +469,7 @@ export function CalendarWeekView({
                           className="absolute z-10 group/appt"
                           data-appt-id={appt.id}
                           style={{ top, height, left, width: `calc(${width} + ${clickGutter}px)` }}
+                          {...getHoverHandlers(appt)}
                         >
                           <div 
                             className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[60%] min-h-[10px] rounded-full bg-emerald-400 opacity-0 group-hover/appt:opacity-100 transition-opacity"
@@ -598,6 +626,14 @@ export function CalendarWeekView({
           </div>
         </div>
       ) : null}
+
+      <AppointmentShiftHoverCallout
+        hoveredAppt={hoveredAppt}
+        isShiftPressed={isShiftPressed}
+        mousePos={mousePos}
+        doctors={doctors}
+        patients={patients}
+      />
     </>
   );
 }

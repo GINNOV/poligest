@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppointmentCreateForm } from "@/components/appointment-create-form";
 import { AppointmentUpdateForm } from "@/components/appointment-update-form";
+import {
+  AppointmentShiftHoverCallout,
+  useAppointmentShiftHover,
+} from "@/components/appointment-shift-hover-callout";
 
 type CalendarAppointment = {
   id: string;
@@ -181,6 +185,7 @@ export function CalendarMonthView({
 }: Props) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<CalendarAppointment | null>(null);
+  const { isShiftPressed, hoveredAppt, mousePos, getHoverHandlers } = useAppointmentShiftHover();
 
   useEffect(() => {
     if (initialAppointmentId === "new") {
@@ -209,6 +214,12 @@ export function CalendarMonthView({
     }
   }, [initialAppointmentId, days]);
 
+  const patientById = useMemo(() => {
+    const map = new Map<string, (typeof patients)[number]>();
+    patients.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [patients]);
+
   const filteredDays = useMemo(() => {
     if (!searchQuery) return days;
     const tokens = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
@@ -219,10 +230,26 @@ export function CalendarMonthView({
       appointments: day.appointments.filter((appt) => {
         const name = appt.patientName.toLowerCase();
         const notes = (appt.notes || "").toLowerCase();
-        return tokens.every((token) => name.includes(token) || notes.includes(token));
+        const title = (appt.title || "").toLowerCase();
+        const serviceType = (appt.serviceType || "").toLowerCase();
+        const patient = patientById.get(appt.patientId);
+        const email = (patient?.email || "").toLowerCase();
+        const phone = (patient?.phone || "").toLowerCase();
+        const taxId = (patient?.taxId || "").toLowerCase();
+
+        return tokens.every(
+          (token) =>
+            name.includes(token) ||
+            notes.includes(token) ||
+            title.includes(token) ||
+            serviceType.includes(token) ||
+            email.includes(token) ||
+            phone.includes(token) ||
+            taxId.includes(token)
+        );
       }),
     }));
-  }, [days, searchQuery]);
+  }, [days, searchQuery, patientById]);
 
   const selectedStartsAt = useMemo(() => {
     if (!selectedDate) return undefined;
@@ -368,7 +395,12 @@ export function CalendarMonthView({
                   const endTime = `${padTime(appt.hEnd)}:${padTime(appt.mEnd)}`;
                   const styles = getServiceStyle(appt.serviceType);
                   return (
-                    <div key={appt.id} data-appt-id={appt.id} className="relative group/appt flex items-center gap-1.5">
+                    <div
+                      key={appt.id}
+                      data-appt-id={appt.id}
+                      className="relative group/appt flex items-center gap-1.5"
+                      {...getHoverHandlers(appt)}
+                    >
                       <div className="w-1.5 h-6 rounded-full bg-emerald-400 opacity-0 group-hover/appt:opacity-100 transition-opacity shrink-0" />
                       <button
                         type="button"
@@ -497,6 +529,14 @@ export function CalendarMonthView({
           </div>
         </div>
       ) : null}
+
+      <AppointmentShiftHoverCallout
+        hoveredAppt={hoveredAppt}
+        isShiftPressed={isShiftPressed}
+        mousePos={mousePos}
+        doctors={doctors}
+        patients={patients}
+      />
     </>
   );
 }
