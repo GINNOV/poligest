@@ -25,7 +25,6 @@ import { CalendarWeekView } from "@/components/calendar-week-view";
 import { CalendarWeekPicker } from "@/components/calendar-week-picker";
 import { CalendarSearch } from "@/components/calendar-search";
 import { CalendarDoctorTimeOffButton } from "@/components/calendar-doctor-time-off-button";
-import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 import { isDoctorTimeOffActive, type DoctorTimeOffRecord } from "@/lib/doctor-time-off";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
 import * as TZ from "@/lib/user-display-time-zone";

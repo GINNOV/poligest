@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
 import { markStepAsDoneAction, resetProgressAction } from "@/lib/instructions/actions";
@@ -49,10 +49,11 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
     return pickBestInstruction(candidates, pathname, userRole);
   }, [instructions, pathname, userRole]);
 
-  // Sync state on path change
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setIsCollapsed(false);
-  }, [pathname]);
+  }
 
   const currentProgress = useMemo(() => {
     return progress.find((p) => p.instructionId === activeInstruction?.id);
