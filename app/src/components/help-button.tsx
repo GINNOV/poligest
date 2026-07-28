@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
@@ -8,6 +8,8 @@ import { markStepAsDoneAction, resetProgressAction } from "@/lib/instructions/ac
 import { pickBestInstruction } from "@/lib/instructions/match";
 import { clsx } from "clsx";
 import { FeatureUpdateMarkdownPreview, renderInline } from "@/components/feature-update-markdown";
+
+const emptySubscribe = () => () => {};
 
 export type Step = {
   id: string;
@@ -38,11 +40,11 @@ export function HelpButton({ instructions, userProgress, userRole }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [progress, setProgress] = useState(userProgress);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   // Match current path with instructions using specificity ranker
   const activeInstruction = useMemo(() => {

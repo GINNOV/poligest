@@ -1,7 +1,9 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
 
 const FIDATI_VIDEO_ID = "ygqGg3F3Yhc";
 const FIDATI_EMBED_SRC = `https://www.youtube-nocookie.com/embed/${FIDATI_VIDEO_ID}?controls=0&modestbranding=1&rel=0&playsinline=1&fs=0&iv_load_policy=3&disablekb=1`;
@@ -12,11 +14,11 @@ type FidatiDialogProps = {
 };
 
 export function FidatiDialog({ open, onClose }: FidatiDialogProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     if (!open) return;
