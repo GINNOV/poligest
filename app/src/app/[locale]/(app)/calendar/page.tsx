@@ -19,6 +19,7 @@ import {
   isToday,
 } from "date-fns";
 import { CalendarDoctorFilter } from "@/components/calendar-doctor-filter";
+import { CalendarDayView } from "@/components/calendar-day-view";
 import { CalendarMonthView } from "@/components/calendar-month-view";
 import { CalendarPreferencesSync } from "@/components/calendar-preferences-sync";
 import { CalendarWeekView } from "@/components/calendar-week-view";
@@ -147,10 +148,6 @@ export default async function CalendarPage({
   const dayBase = (() => {
     if (typeof dayParam === "string") {
       const d = TZ.parseDateAtMidnightInTimeZone(dayParam, displayTimeZone);
-      if (!isNaN(d.getTime())) return d;
-    }
-    if (typeof weekParam === "string") {
-      const d = TZ.parseDateAtMidnightInTimeZone(weekParam, displayTimeZone);
       if (!isNaN(d.getTime())) return d;
     }
     return TZ.getNowInTimeZone(displayTimeZone);
@@ -900,9 +897,36 @@ export default async function CalendarPage({
               searchQuery={searchQuery}
               initialAppointmentId={initialAppointmentId}
             />
+          ) : view === "day" ? (
+            <CalendarDayView
+              dayDateKey={dayKey}
+              dayFormattedTitle={TZ.formatDateInDisplayTimeZone(dayBase, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, displayTimeZone)}
+              columns={dayViewColumns}
+              patients={mappedPatients}
+              doctors={doctors}
+              serviceOptions={serviceOptions}
+              services={serviceOptionObjects}
+              availabilityWindows={windows.map((win) => ({
+                doctorId: win.doctorId,
+                dayOfWeek: win.dayOfWeek,
+                startMinute: win.startMinute,
+                endMinute: win.endMinute,
+              }))}
+              practiceClosures={clientClosures}
+              practiceWeeklyClosures={clientWeeklyClosures}
+              doctorTimeOffs={clientDoctorTimeOffs}
+              action={createAppointment}
+              updateAction={updateAppointment}
+              deleteAction={deleteAppointment}
+              displayTimeZone={displayTimeZone}
+              selectedDoctorId={selectedDoctorId}
+              returnTo={returnTo}
+              searchQuery={searchQuery}
+              initialAppointmentId={initialAppointmentId}
+            />
           ) : (
             <CalendarWeekView
-              weekDays={view === "day" ? dayViewColumns : weekDays}
+              weekDays={weekDays}
               patients={mappedPatients}
               doctors={doctors}
               serviceOptions={serviceOptions}

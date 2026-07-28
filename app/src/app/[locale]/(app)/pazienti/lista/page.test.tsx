@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   const prisma = {
     patient: {
       findMany: vi.fn(),
+      count: vi.fn(),
     },
     user: {
       findMany: vi.fn(),
@@ -47,6 +48,7 @@ describe("PazientiListaPage", () => {
     vi.clearAllMocks();
     mocks.requireUser.mockResolvedValue({ id: "staff-1", role: Role.ADMIN });
     mocks.requireFeatureAccess.mockResolvedValue(undefined);
+    mocks.prisma.patient.count.mockResolvedValue(1);
     mocks.prisma.user.findMany.mockResolvedValue([]);
     mocks.prisma.consentModule.findMany.mockResolvedValue([
       { id: "privacy", name: "Privacy" },

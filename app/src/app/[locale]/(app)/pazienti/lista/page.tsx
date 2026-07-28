@@ -69,7 +69,50 @@ export default async function PazientiListaPage({
         }
       : {};
 
-  const [patients, staffUsers, consentModules] = await Promise.all([
+  const [staffUsers, consentModules] = await Promise.all([
+    prisma.user.findMany({
+      select: { email: true },
+      where: {
+        role: { not: Role.PATIENT },
+      },
+    }),
+    prisma.consentModule.findMany({
+      where: { active: true, required: true },
+      select: { id: true, name: true },
+    }),
+  ]);
+
+  const staffEmails = staffUsers
+    .map((user) => user.email?.trim().toLowerCase())
+    .filter((email): email is string => Boolean(email));
+
+  const baseWhere: Prisma.PatientWhereInput = {
+    ...where,
+    ...(staffEmails.length > 0
+      ? {
+          OR: [
+            { email: null },
+            { email: { notIn: staffEmails } },
+          ],
+        }
+      : {}),
+  };
+
+  const orderBy: Prisma.PatientOrderByWithRelationInput[] =
+    sortOption === "name_desc"
+      ? [{ lastName: "desc" }, { firstName: "desc" }, { createdAt: "desc" }]
+      : sortOption === "date_asc"
+      ? [{ createdAt: "asc" }]
+      : sortOption === "date_desc"
+      ? [{ createdAt: "desc" }]
+      : [{ lastName: "asc" }, { firstName: "asc" }, { createdAt: "asc" }];
+
+  const totalCount = await prisma.patient.count({ where: baseWhere });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const page = Math.min(requestedPage, totalPages);
+  const skip = (page - 1) * PAGE_SIZE;
+
+  const [paginatedPatients, allPatientIndex] = await Promise.all([
     prisma.patient.findMany({
       select: {
         id: true,
@@ -90,68 +133,29 @@ export default async function PazientiListaPage({
         },
         createdAt: true,
       },
-      where,
+      where: baseWhere,
+      orderBy,
+      skip,
+      take: PAGE_SIZE,
     }),
-    prisma.user.findMany({
-      select: { email: true },
-      where: {
-        role: { not: Role.PATIENT },
+    prisma.patient.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
       },
-    }),
-    prisma.consentModule.findMany({
-      where: { active: true, required: true },
-      select: { id: true, name: true },
+      where: baseWhere,
+      orderBy,
     }),
   ]);
 
   const getDisplayName = (p: { firstName?: string | null; lastName?: string | null }) =>
     `${(p.lastName ?? "").trim()} ${(p.firstName ?? "").trim()}`.trim() || "Paziente senza nome";
 
-  const compareNames = (
-    a: { firstName?: string | null; lastName?: string | null; createdAt: Date },
-    b: { firstName?: string | null; lastName?: string | null; createdAt: Date },
-  ) => {
-    const nameA = getDisplayName(a).toLowerCase();
-    const nameB = getDisplayName(b).toLowerCase();
-    if (nameA !== nameB) {
-      return nameA.localeCompare(nameB, "it", { sensitivity: "base" });
-    }
-    return (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0);
-  };
-
-  const staffEmails = new Set(
-    staffUsers
-      .map((user) => user.email?.trim().toLowerCase())
-      .filter((email): email is string => Boolean(email)),
-  );
-  const filteredPatients = staffEmails.size
-    ? patients.filter((patient) => {
-        if (!patient.email) return true;
-        return !staffEmails.has(patient.email.trim().toLowerCase());
-      })
-    : patients;
-
-  const totalCount = filteredPatients.length;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const page = Math.min(requestedPage, totalPages);
-  const skip = (page - 1) * PAGE_SIZE;
-
-  const sortedPatients =
-    sortOption === "name_desc" || sortOption === "name_asc"
-      ? [...filteredPatients].sort((a, b) =>
-          sortOption === "name_desc" ? -compareNames(a, b) : compareNames(a, b),
-        )
-      : [...filteredPatients].sort((a, b) =>
-          sortOption === "date_desc"
-            ? (b.createdAt?.getTime?.() ?? 0) - (a.createdAt?.getTime?.() ?? 0)
-            : (a.createdAt?.getTime?.() ?? 0) - (b.createdAt?.getTime?.() ?? 0),
-        );
-
   const requiredModules = consentModules;
-  const paginatedPatients = sortedPatients.slice(skip, skip + PAGE_SIZE);
   const letterTargets = new Map<string, { page: number; id: string }>();
 
-  sortedPatients.forEach((patient, index) => {
+  allPatientIndex.forEach((patient, index) => {
     const displayName = getDisplayName(patient);
     const initialRaw = displayName.trim().charAt(0);
     if (!initialRaw) return;
@@ -175,7 +179,7 @@ export default async function PazientiListaPage({
       sortOption,
       preview,
       count: paginatedPatients.length,
-      total: sortedPatients.length,
+      total: totalCount,
       page,
     });
   }
