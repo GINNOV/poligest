@@ -37,7 +37,7 @@ type Props = {
   dayDateKey: string;
   dayFormattedTitle: string;
   columns: DayViewColumn[];
-  patients: Array<{ id: string; name: string; taxId?: string; birthDate?: string | null }>;
+  patients: Array<{ id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null; taxId?: string | null }>;
   doctors: Doctor[];
   serviceOptions: string[];
   services?: Array<{ id: string; name: string }>;
@@ -48,25 +48,29 @@ type Props = {
     endMinute: number;
   }>;
   practiceClosures?: Array<{
-    id: string;
+    id?: string;
     startsAt: string;
     endsAt: string;
+    title?: string | null;
+    type?: string;
     reason?: string | null;
   }>;
   practiceWeeklyClosures?: Array<{
     dayOfWeek: number;
-    isActive: boolean;
+    title?: string | null;
+    isActive?: boolean;
   }>;
   doctorTimeOffs?: Array<{
-    id: string;
+    id?: string;
     doctorId: string;
     startsAt: string;
     endsAt: string;
+    title?: string | null;
     reason?: string | null;
   }>;
-  action: (formData: FormData) => Promise<unknown>;
-  updateAction: (formData: FormData) => Promise<unknown>;
-  deleteAction: (formData: FormData) => Promise<unknown>;
+  action: (formData: FormData) => Promise<void>;
+  updateAction: (formData: FormData) => Promise<void>;
+  deleteAction: (formData: FormData) => Promise<void>;
   displayTimeZone: string;
   selectedDoctorId?: string;
   returnTo: string;
@@ -174,8 +178,12 @@ export function CalendarDayView({
   columns,
   patients,
   doctors,
-  serviceOptions,
-  services,
+  serviceOptions = [],
+  services = [],
+  availabilityWindows = [],
+  practiceClosures = [],
+  practiceWeeklyClosures = [],
+  doctorTimeOffs = [],
   action,
   updateAction,
   deleteAction,
@@ -203,7 +211,7 @@ export function CalendarDayView({
 
   const editingAppointment = selectedAppointment ?? initialMatchingAppointment;
 
-  const { hoveredAppointmentId, mousePos, handleMouseEnter, handleMouseLeave } =
+  const { isShiftPressed, hoveredAppt, mousePos, getHoverHandlers } =
     useAppointmentShiftHover();
 
   const doctorMap = useMemo(
@@ -211,7 +219,7 @@ export function CalendarDayView({
     [doctors]
   );
   const patientMap = useMemo(
-    () => new Map(patients.map((p) => [p.id, p])),
+    () => new Map(patients.map((p) => [p.id, { ...p, name: `${p.lastName} ${p.firstName}` }])),
     [patients]
   );
 
@@ -250,14 +258,7 @@ export function CalendarDayView({
     return filteredColumns.flatMap((col) => col.appointments);
   }, [filteredColumns]);
 
-  const hoveredAppointment = useMemo(() => {
-    if (!hoveredAppointmentId) return null;
-    for (const col of columns) {
-      const found = col.appointments.find((a) => a.id === hoveredAppointmentId);
-      if (found) return found;
-    }
-    return null;
-  }, [hoveredAppointmentId, columns]);
+
 
   const confirmedCount = allDayAppointments.filter(
     (a) => a.status === "CONFIRMED" || a.status === "COMPLETED"
@@ -399,15 +400,14 @@ export function CalendarDayView({
                               const styleKey = (appt.serviceType ?? "").toLowerCase();
                               const serviceStyle = SERVICE_STYLES[styleKey] ?? DEFAULT_SERVICE_STYLE;
                               const statusInfo = STATUS_BADGES[appt.status] ?? STATUS_BADGES.CONFIRMED;
-                              const doctor = doctorMap.get(appt.doctorId);
+                              const doctor = appt.doctorId ? doctorMap.get(appt.doctorId) : undefined;
                               const doctorColor = doctor?.color ?? "#10b981";
 
                               return (
                                 <div
                                   key={appt.id}
                                   data-appointment-id={appt.id}
-                                  onMouseEnter={(e) => handleMouseEnter(appt.id, e)}
-                                  onMouseLeave={handleMouseLeave}
+                                  {...getHoverHandlers(appt)}
                                   onClick={() => setSelectedAppointment(appt)}
                                   className={`relative cursor-pointer rounded-xl border p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${serviceStyle.bg} ${serviceStyle.border}`}
                                 >
@@ -474,58 +474,97 @@ export function CalendarDayView({
       </div>
 
       {/* Floating Shift Hover Callout */}
-      {hoveredAppointment && mousePos ? (
-        <AppointmentShiftHoverCallout
-          appointment={hoveredAppointment}
-          patient={patientMap.get(hoveredAppointment.patientId)}
-          doctorName={doctorMap.get(hoveredAppointment.doctorId)?.fullName}
-          x={mousePos.x}
-          y={mousePos.y}
-        />
-      ) : null}
+      <AppointmentShiftHoverCallout
+        hoveredAppt={hoveredAppt}
+        isShiftPressed={isShiftPressed}
+        mousePos={mousePos}
+        doctors={doctors}
+        patients={patients}
+      />
 
       {/* Create Modal */}
       {createSlot ? (
-        <AppointmentCreateForm
-          isOpen={true}
-          onClose={() => setCreateSlot(null)}
-          action={action}
-          patients={patients}
-          doctors={doctors}
-          serviceOptions={serviceOptions}
-          services={services}
-          defaultDoctorId={createSlot.doctorId ?? selectedDoctorId}
-          defaultStartsAt={createSlot.startsAt}
-          displayTimeZone={displayTimeZone}
-          returnTo={returnTo}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+            <button
+              type="button"
+              onClick={() => setCreateSlot(null)}
+              className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              ✕
+            </button>
+            <AppointmentCreateForm
+              patients={patients}
+              doctors={doctors}
+              serviceOptions={serviceOptions}
+              availabilityWindows={availabilityWindows}
+              practiceClosures={practiceClosures ?? []}
+              practiceWeeklyClosures={practiceWeeklyClosures ?? []}
+              doctorTimeOffs={doctorTimeOffs}
+              action={action}
+              displayTimeZone={displayTimeZone}
+              onSuccess={() => setCreateSlot(null)}
+              initialStartsAt={createSlot.startsAt}
+              initialDoctorId={createSlot.doctorId ?? selectedDoctorId}
+              returnTo={returnTo}
+            />
+          </div>
+        </div>
       ) : null}
 
       {/* Edit Modal */}
       {editingAppointment ? (
-        <AppointmentUpdateForm
-          isOpen={true}
-          onClose={() => setSelectedAppointment(null)}
-          action={updateAction}
-          deleteAction={deleteAction}
-          patients={patients}
-          doctors={doctors}
-          serviceOptions={serviceOptions}
-          services={services}
-          appointment={{
-            id: editingAppointment.id,
-            title: editingAppointment.title,
-            startsAt: editingAppointment.startsAt,
-            endsAt: editingAppointment.endsAt,
-            serviceType: editingAppointment.serviceType,
-            patientId: editingAppointment.patientId,
-            doctorId: editingAppointment.doctorId,
-            status: editingAppointment.status,
-            notes: editingAppointment.notes,
-          }}
-          displayTimeZone={displayTimeZone}
-          returnTo={returnTo}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
+            <button
+              type="button"
+              onClick={() => setSelectedAppointment(null)}
+              className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              ✕
+            </button>
+            <div className="space-y-3">
+              <AppointmentUpdateForm
+                appointment={{
+                  id: editingAppointment.id,
+                  title: editingAppointment.title,
+                  serviceType: editingAppointment.serviceType,
+                  startsAt: editingAppointment.startsAt,
+                  endsAt: editingAppointment.endsAt,
+                  patientId: editingAppointment.patientId,
+                  doctorId: editingAppointment.doctorId,
+                  status: editingAppointment.status,
+                  notes: editingAppointment.notes ?? "",
+                }}
+                patients={patients}
+                doctors={doctors}
+                services={services}
+                availabilityWindows={availabilityWindows}
+                practiceClosures={practiceClosures ?? []}
+                practiceWeeklyClosures={practiceWeeklyClosures ?? []}
+                doctorTimeOffs={doctorTimeOffs}
+                action={updateAction}
+                displayTimeZone={displayTimeZone}
+                onSuccess={() => setSelectedAppointment(null)}
+                returnTo={returnTo}
+              />
+              <form
+                action={deleteAction}
+                className="flex justify-end"
+                data-confirm="Eliminare definitivamente questo appuntamento?"
+              >
+                <input type="hidden" name="appointmentId" value={editingAppointment.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <button
+                  type="submit"
+                  className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-rose-950/30"
+                >
+                  Elimina appuntamento
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
