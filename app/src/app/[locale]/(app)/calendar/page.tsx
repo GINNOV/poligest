@@ -112,6 +112,12 @@ export default async function CalendarPage({
       : Array.isArray(params.week)
         ? params.week[0]
         : undefined;
+  const dayParam =
+    typeof params.day === "string"
+      ? params.day
+      : Array.isArray(params.day)
+        ? params.day[0]
+        : undefined;
   const viewParam =
     typeof params.view === "string"
       ? params.view
@@ -135,11 +141,30 @@ export default async function CalendarPage({
   // Clear search if we are targeting a specific appointment to ensure it's visible
   const searchQuery = initialAppointmentId ? undefined : searchQueryRaw;
 
-  const view = viewParam === "week" ? "week" : "month";
+  const view: "month" | "week" | "day" =
+    viewParam === "week" ? "week" : viewParam === "day" ? "day" : "month";
+
+  const dayBase = (() => {
+    if (typeof dayParam === "string") {
+      const d = TZ.parseDateAtMidnightInTimeZone(dayParam, displayTimeZone);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (typeof weekParam === "string") {
+      const d = TZ.parseDateAtMidnightInTimeZone(weekParam, displayTimeZone);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return TZ.getNowInTimeZone(displayTimeZone);
+  })();
+  const dayStart = dateStart(dayBase);
+  const dayEnd = dateEndExclusive(dayBase);
 
   const weekBase = (() => {
     if (typeof weekParam === "string") {
       const d = TZ.parseDateAtMidnightInTimeZone(weekParam, displayTimeZone);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (typeof dayParam === "string") {
+      const d = TZ.parseDateAtMidnightInTimeZone(dayParam, displayTimeZone);
       if (!isNaN(d.getTime())) return d;
     }
     return TZ.getNowInTimeZone(displayTimeZone);
@@ -156,7 +181,7 @@ export default async function CalendarPage({
     timeZone: displayTimeZone,
   });
   const baseMonth =
-    view === "week"
+    view === "week" || view === "day"
       ? weekStart
       : TZ.parseDateAtMidnightInTimeZone(`${selectedMonthKey}-15`, displayTimeZone);
 
@@ -189,10 +214,14 @@ export default async function CalendarPage({
     ? undefined
     : doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
 
-  const appointmentRangeStart = view === "week" ? weekStart : monthStart;
-  const appointmentRangeEnd = view === "week" ? weekEnd : monthEnd;
-  const closureRangeStart = view === "week" ? weekStart : calendarStart;
-  const closureRangeEnd = view === "week" ? weekEnd : calendarEnd;
+  const appointmentRangeStart =
+    view === "day" ? dayStart : view === "week" ? weekStart : monthStart;
+  const appointmentRangeEnd =
+    view === "day" ? dayEnd : view === "week" ? weekEnd : monthEnd;
+  const closureRangeStart =
+    view === "day" ? dayStart : view === "week" ? weekStart : calendarStart;
+  const closureRangeEnd =
+    view === "day" ? dayEnd : view === "week" ? weekEnd : calendarEnd;
 
   const serviceClient = getOptionalPrismaModel<{
     findMany?: (args: { orderBy: { name: "asc" } }) => Promise<ServiceRow[]>;
@@ -401,7 +430,11 @@ export default async function CalendarPage({
   );
   const serviceOptionObjects = serviceOptions.map((name) => ({ id: name, name }));
 
-  const buildCalendarLink = (params: { view?: "month" | "week"; month?: string; week?: string }) => {
+  const dayKey = TZ.formatDateInputValueInTimeZone(dayBase, displayTimeZone);
+  const prevDayKey = TZ.formatDateInputValueInTimeZone(addDays(dayBase, -1), displayTimeZone);
+  const nextDayKey = TZ.formatDateInputValueInTimeZone(addDays(dayBase, 1), displayTimeZone);
+
+  const buildCalendarLink = (params: { view?: "month" | "week" | "day"; month?: string; week?: string; day?: string }) => {
     const nextParams = new URLSearchParams();
     const nextView = params.view ?? view;
     nextParams.set("view", nextView);
@@ -416,6 +449,9 @@ export default async function CalendarPage({
     if (params.week) {
       nextParams.set("week", params.week);
     }
+    if (params.day) {
+      nextParams.set("day", params.day);
+    }
     if (searchQueryRaw) {
       nextParams.set("q", searchQueryRaw);
     }
@@ -429,7 +465,9 @@ export default async function CalendarPage({
       returnParams.set("doctor", selectedDoctorId);
     }
     returnParams.set("view", view);
-    if (view === "week") {
+    if (view === "day") {
+      returnParams.set("day", dayKey);
+    } else if (view === "week") {
       returnParams.set("week", weekKey);
     } else {
       returnParams.set("month", selectedMonthKey);
@@ -590,6 +628,40 @@ export default async function CalendarPage({
     };
   });
 
+  const singleDayRecord = weekDays.find((d) => d.date === dayKey) ?? weekDays[0] ?? {
+    date: dayKey,
+    label: TZ.formatDateInDisplayTimeZone(dayBase, { weekday: "short", day: "numeric" }, displayTimeZone),
+    isToday: isToday(dayBase),
+    isPracticeClosed: false,
+    isDoctorOnTimeOff: false,
+    availabilityWindows: [],
+    appointments: [],
+  };
+
+  const dayViewColumns =
+    showAllDoctors && doctors.length > 0
+      ? doctors.map((doc) => {
+          const docAppts = singleDayRecord.appointments.filter((a) => a.doctorId === doc.id);
+          const displayWeekday = TZ.weekdayIsoInTimeZone(dayBase, displayTimeZone);
+          const docWindows = (windowsByWeekday.get(displayWeekday) ?? [])
+            .filter((win) => win.doctorId === doc.id)
+            .map((win) => ({
+              startMinute: win.startMinute,
+              endMinute: win.endMinute,
+              color: win.color ?? doctorColorById.get(win.doctorId) ?? "#10b981",
+              doctorId: win.doctorId,
+            }));
+
+          return {
+            ...singleDayRecord,
+            date: `${dayKey}-${doc.id}`,
+            label: doc.fullName,
+            availabilityWindows: docWindows,
+            appointments: docAppts,
+          };
+        })
+      : [singleDayRecord];
+
   return (
     <div className="relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen px-6">
       <div className="mx-auto max-w-screen-2xl space-y-6">
@@ -630,6 +702,16 @@ export default async function CalendarPage({
               }`}
             >
               Vista settimana
+            </Link>
+            <Link
+              href={buildCalendarLink({ view: "day", day: dayKey })}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                view === "day"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200"
+                  : "border-zinc-200 text-zinc-600 hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+              }`}
+            >
+              Vista giorno
             </Link>
           </div>
         </div>
@@ -675,11 +757,13 @@ export default async function CalendarPage({
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 capitalize">
                 {view === "month" ? (
                   monthLabel
-                ) : (
+                ) : view === "week" ? (
                   <CalendarWeekPicker
                     label={`${TZ.formatDateInDisplayTimeZone(weekStart, { day: "numeric", month: "short" }, displayTimeZone)} - ${TZ.formatDateInDisplayTimeZone(weekEnd, { day: "numeric", month: "short", year: "numeric" }, displayTimeZone)}`}
                     weekKey={weekKey}
                   />
+                ) : (
+                  TZ.formatDateInDisplayTimeZone(dayBase, { weekday: "long", day: "numeric", month: "long", year: "numeric" }, displayTimeZone)
                 )}
               </h2>
               {view === "week" && showAllDoctors ? (
@@ -710,7 +794,7 @@ export default async function CalendarPage({
                     Mese successivo →
                   </Link>
                 </>
-              ) : (
+              ) : view === "week" ? (
                 <>
                   <Link
                     href={buildCalendarLink({ view: "week", week: prevWeekKey })}
@@ -731,6 +815,27 @@ export default async function CalendarPage({
                     Settimana successiva →
                   </Link>
                 </>
+              ) : (
+                <>
+                  <Link
+                    href={buildCalendarLink({ view: "day", day: prevDayKey })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+                  >
+                    ← Giorno precedente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "day", day: TZ.formatDateInputValueInTimeZone(new Date(), displayTimeZone) })}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200 dark:hover:bg-emerald-950/30"
+                  >
+                    Giorno corrente
+                  </Link>
+                  <Link
+                    href={buildCalendarLink({ view: "day", day: nextDayKey })}
+                    className="rounded-full border border-zinc-200 px-3 py-1 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-800 dark:hover:border-emerald-900/40 dark:hover:text-emerald-300"
+                  >
+                    Giorno successivo →
+                  </Link>
+                </>
               )}
               <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 {appointments.length} appuntamenti
@@ -747,7 +852,7 @@ export default async function CalendarPage({
                 {outOfRangeMatches.map((appt) => {
                   const apptDateKey = TZ.formatDateInputValueInTimeZone(appt.startsAt, displayTimeZone);
                   const monthKey = apptDateKey.slice(0, 7);
-                  const targetLink = buildCalendarLink({ view, month: monthKey, week: apptDateKey });
+                  const targetLink = buildCalendarLink({ view, month: monthKey, week: apptDateKey, day: apptDateKey });
                   const formattedDate = TZ.formatDateInDisplayTimeZone(
                     appt.startsAt,
                     { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" },
@@ -797,7 +902,7 @@ export default async function CalendarPage({
             />
           ) : (
             <CalendarWeekView
-              weekDays={weekDays}
+              weekDays={view === "day" ? dayViewColumns : weekDays}
               patients={mappedPatients}
               doctors={doctors}
               serviceOptions={serviceOptions}

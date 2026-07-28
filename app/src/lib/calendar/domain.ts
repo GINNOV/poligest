@@ -44,12 +44,12 @@ export function resolveCalendarMonthKey({
   timeZone,
 }: {
   monthParam?: string;
-  view: "month" | "week";
+  view: "month" | "week" | "day";
   weekStart: Date;
   now: Date;
   timeZone: string;
 }) {
-  if (view === "week") {
+  if (view === "week" || view === "day") {
     return formatDateInputValueInTimeZone(weekStart, timeZone).slice(0, 7);
   }
 
