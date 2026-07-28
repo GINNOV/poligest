@@ -5,18 +5,19 @@ import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { parseInstructionStepsPayload } from "@/lib/instructions/domain";
+import { parseInstructionStepsPayload, validateInstructionInput } from "@/lib/instructions/domain";
 
 export async function upsertInstructionAction(formData: FormData) {
   const user = await requireUser([Role.ADMIN]);
   
   const id = formData.get("id") as string | null;
-  const pathPattern = formData.get("pathPattern") as string;
+  const rawPathPattern = (formData.get("pathPattern") as string) || "";
   const role = formData.get("role") as Role | null;
-  const title = formData.get("title") as string;
+  const rawTitle = (formData.get("title") as string) || "";
   const description = formData.get("description") as string;
   const isActive = formData.get("isActive") === "on";
   
+  const { title, pathPattern } = validateInstructionInput(rawPathPattern, rawTitle);
   const steps = parseInstructionStepsPayload(formData.get("stepsJson"));
 
   const data = {

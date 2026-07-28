@@ -1,3 +1,5 @@
+import { normalizePathPattern, isValidPathPattern } from "./match";
+
 type InstructionStepInput = {
   id?: string;
   title: string;
@@ -38,4 +40,21 @@ export function parseInstructionStepsPayload(value: FormDataEntryValue | null) {
 
     return { id, title, content, sortOrder };
   });
+}
+
+export function validateInstructionInput(rawPathPattern: string, title: string) {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) {
+    throw new Error("Il titolo dell'istruzione è obbligatorio");
+  }
+
+  const normalizedPattern = normalizePathPattern(rawPathPattern);
+  if (!isValidPathPattern(normalizedPattern)) {
+    throw new Error("Il percorso non è valido. Deve iniziare con '/' ed essere un percorso corretto.");
+  }
+
+  return {
+    title: normalizedTitle,
+    pathPattern: normalizedPattern,
+  };
 }
