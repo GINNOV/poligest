@@ -507,7 +507,7 @@ export function AppointmentCreateForm({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
-            <span className="font-bold">Email (facoltativa, consigliata per l&apos;accesso)</span>
+            <span className="font-bold">Email</span>
             <input
               name="newEmail"
               type="email"
