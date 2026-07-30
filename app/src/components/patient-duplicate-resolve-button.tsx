@@ -81,7 +81,7 @@ export function PatientDuplicateResolveButton({ keepPatientId, duplicatePatientI
         disabled={isSubmitting}
         className="rounded-full border border-rose-200 bg-white/80 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:bg-zinc-950/70 dark:text-rose-300 dark:hover:bg-rose-950/30"
       >
-        Elimina duplicati
+        Mantieni questa, elimina le vuote
       </button>
       {showConfirm ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
