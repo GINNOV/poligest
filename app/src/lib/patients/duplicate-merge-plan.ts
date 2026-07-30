@@ -48,12 +48,41 @@ export type FieldFillPlan = {
   filledFields: string[];
 };
 
-export function hasStrongMatchSignal(signals: DuplicateMatchSignal[]): boolean {
-  const kinds = new Set(signals.map((signal) => signal.kind));
-  if (kinds.has("taxId")) return true;
-  if (kinds.has("nameBirthDate") && (kinds.has("phone") || kinds.has("email"))) {
-    return true;
+function intersectionSize(left: string[], right: string[]): number {
+  const rightSet = new Set(right);
+  let count = 0;
+  for (const id of left) {
+    if (rightSet.has(id)) count += 1;
   }
+  return count;
+}
+
+/**
+ * Strong identity for auto-merge:
+ * - taxId signal covering >= 2 patients, or
+ * - nameBirthDate plus phone/email where the two signals share >= 2 patient ids
+ *   (kind co-presence alone is not enough — avoids chaining unrelated shells).
+ */
+export function hasStrongMatchSignal(signals: DuplicateMatchSignal[]): boolean {
+  for (const signal of signals) {
+    if (signal.kind === "taxId" && signal.patientIds.length >= 2) {
+      return true;
+    }
+  }
+
+  const nameBirthDateSignals = signals.filter((signal) => signal.kind === "nameBirthDate");
+  const contactSignals = signals.filter(
+    (signal) => signal.kind === "phone" || signal.kind === "email",
+  );
+
+  for (const nameSignal of nameBirthDateSignals) {
+    for (const contactSignal of contactSignals) {
+      if (intersectionSize(nameSignal.patientIds, contactSignal.patientIds) >= 2) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -63,11 +92,13 @@ export function classifyDuplicateGroup(
 ): ClassifiedDuplicateGroup {
   const { patientId: keepPatientId, reason } = pickPatientToKeep(group.patients, countsByPatientId);
   const deletePatientIds = group.patients.map((patient) => patient.id).filter((id) => id !== keepPatientId);
+  // Fail closed: missing counts map entry is not treated as an empty shell.
   const safe =
     deletePatientIds.length > 0 &&
     deletePatientIds.every((id) => {
       const counts = countsByPatientId.get(id);
-      return counts ? isPatientEmptyShell(counts) : true;
+      if (!counts) return false;
+      return isPatientEmptyShell(counts);
     });
   const strong = hasStrongMatchSignal(group.matchSignals);
   return {
@@ -203,31 +234,9 @@ export function buildFieldFillPlan(
     keeper.notes,
     orderedLosers.map((loser) => loser.notes),
   );
-  const notesChanged = (nextNotes ?? "") !== (keeper.notes ?? "");
+  let notesChanged = (nextNotes ?? "") !== (keeper.notes ?? "");
   if (notesChanged) {
     data.notes = nextNotes;
-    if (!filledFields.includes("codiceFiscale") && data.taxId) {
-      // already tracked
-    } else if (notesChanged && !filledFields.includes("notes")) {
-      // only add notes if structured content changed beyond CF already counted
-      const keeperParsed = parsePatientStructuredNotes(keeper.notes);
-      const nextParsed = parsePatientStructuredNotes(nextNotes);
-      if (
-        keeperParsed.parsedAddress !== nextParsed.parsedAddress ||
-        keeperParsed.parsedCity !== nextParsed.parsedCity ||
-        keeperParsed.parsedMedications !== nextParsed.parsedMedications ||
-        keeperParsed.parsedExtra !== nextParsed.parsedExtra ||
-        keeperParsed.parsedConditions.join(",") !== nextParsed.parsedConditions.join(",")
-      ) {
-        filledFields.push("notes");
-      } else if (data.taxId && !filledFields.includes("codiceFiscale")) {
-        filledFields.push("codiceFiscale");
-      } else if (data.taxId || notesChanged) {
-        if (!filledFields.includes("codiceFiscale") && !filledFields.includes("notes")) {
-          filledFields.push("notes");
-        }
-      }
-    }
   }
 
   // Ensure CF is written into notes when we only set taxId column
@@ -238,6 +247,25 @@ export function buildFieldFillPlan(
     ]);
     if ((withCf ?? "") !== (keeper.notes ?? "")) {
       data.notes = withCf;
+      notesChanged = true;
+    }
+  }
+
+  // Always surface note rewrites in the preview/audit field list.
+  if (notesChanged && !filledFields.includes("notes") && !filledFields.includes("codiceFiscale")) {
+    filledFields.push("notes");
+  } else if (notesChanged && !filledFields.includes("notes") && filledFields.includes("codiceFiscale")) {
+    const keeperParsed = parsePatientStructuredNotes(keeper.notes);
+    const nextParsed = parsePatientStructuredNotes(data.notes ?? nextNotes);
+    if (
+      keeperParsed.parsedAddress !== nextParsed.parsedAddress ||
+      keeperParsed.parsedCity !== nextParsed.parsedCity ||
+      keeperParsed.parsedMedications !== nextParsed.parsedMedications ||
+      keeperParsed.parsedExtra !== nextParsed.parsedExtra ||
+      keeperParsed.parsedConditions.join(",") !== nextParsed.parsedConditions.join(",") ||
+      (data.notes ?? nextNotes ?? "").split("\n").length !== (keeper.notes ?? "").split("\n").length
+    ) {
+      filledFields.push("notes");
     }
   }
 

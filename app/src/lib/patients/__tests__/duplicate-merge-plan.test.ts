@@ -46,6 +46,15 @@ describe("hasStrongMatchSignal", () => {
       hasStrongMatchSignal([{ kind: "nameBirthDate", label: "N", value: "v", patientIds: ["a", "b"] }]),
     ).toBe(false);
   });
+
+  it("is false when nameBirthDate and phone cover disjoint patient sets", () => {
+    expect(
+      hasStrongMatchSignal([
+        { kind: "nameBirthDate", label: "N", value: "v", patientIds: ["a", "b"] },
+        { kind: "phone", label: "T", value: "v", patientIds: ["c", "d"] },
+      ]),
+    ).toBe(false);
+  });
 });
 
 describe("classifyDuplicateGroup", () => {
@@ -100,6 +109,37 @@ describe("classifyDuplicateGroup", () => {
       ["a", { ...EMPTY_ATTACHMENT_COUNTS, appointmentCount: 1 }],
       ["b", { ...EMPTY_ATTACHMENT_COUNTS, dentalRecordCount: 1 }],
     ]);
+    expect(classifyDuplicateGroup(group, counts).safe).toBe(false);
+  });
+
+  it("is not safe when delete-target counts are missing (fail closed)", () => {
+    const group: PotentialDuplicateGroup = {
+      id: "g3",
+      matchSignals: [{ kind: "taxId", label: "CF", value: "X", patientIds: ["keep", "shell"] }],
+      patients: [
+        {
+          id: "keep",
+          firstName: "Mario",
+          lastName: "Rossi",
+          email: null,
+          phone: null,
+          birthDate: null,
+          taxId: "X",
+          createdAt: new Date("2026-01-01"),
+        },
+        {
+          id: "shell",
+          firstName: "Mario",
+          lastName: "Rossi",
+          email: null,
+          phone: null,
+          birthDate: null,
+          taxId: "X",
+          createdAt: new Date("2026-01-02"),
+        },
+      ],
+    };
+    const counts = new Map([["keep", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 1 }]]);
     expect(classifyDuplicateGroup(group, counts).safe).toBe(false);
   });
 });

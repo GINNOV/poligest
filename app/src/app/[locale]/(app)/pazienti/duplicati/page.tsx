@@ -214,6 +214,10 @@ export default async function PazientiDuplicatiPage({
   const patientById = new Map(patients.map((patient) => [patient.id, patient]));
   const allGroups = findPotentialPatientDuplicates(patients);
   const groups = filterPotentialDuplicateGroups(allGroups, searchQuery);
+  // Counts/classifications for *all* groups so bulk merge (practice-wide API) matches the banner count.
+  const allDuplicatePatientIds = Array.from(
+    new Set(allGroups.flatMap((group) => group.patients.map((patient) => patient.id))),
+  );
   const duplicatePatientIds = Array.from(
     new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))),
   );
@@ -223,11 +227,11 @@ export default async function PazientiDuplicatiPage({
   const attachmentFlagsByPatientId = new Map<string, PatientAttachmentFlags>();
   const createdInfoByPatientId = new Map<string, PatientCreationInfo>();
   let displayTimeZone = "Europe/Rome";
-  const fullCounts = await loadFullAttachmentCounts(duplicatePatientIds);
-  const classifications = groups.map((group) => classifyDuplicateGroup(group, fullCounts));
-  const classificationByGroupId = new Map(classifications.map((item) => [item.groupId, item]));
-  const safeGroupCount = classifications.filter((item) => item.safe).length;
-  const autoEligibleCount = classifications.filter((item) => item.autoEligible).length;
+  const fullCounts = await loadFullAttachmentCounts(allDuplicatePatientIds);
+  const allClassifications = allGroups.map((group) => classifyDuplicateGroup(group, fullCounts));
+  const classificationByGroupId = new Map(allClassifications.map((item) => [item.groupId, item]));
+  const safeGroupCount = allClassifications.filter((item) => item.safe).length;
+  const autoEligibleCount = allClassifications.filter((item) => item.autoEligible).length;
   const autoMergeEnabled = user.role === Role.ADMIN ? await getAutoMergeEmptyDuplicates() : false;
 
   if (duplicatePatientIds.length > 0) {
@@ -256,7 +260,7 @@ export default async function PazientiDuplicatiPage({
       attachmentFlagsByPatientId.set(patientId, {
         hasPayments: Boolean(counts && counts.paymentCount > 0),
         hasDentalRecords: Boolean(counts && counts.dentalRecordCount > 0),
-        isEmptyShell: counts ? isPatientEmptyShell(counts) : true,
+        isEmptyShell: counts ? isPatientEmptyShell(counts) : false,
       });
     }
 
