@@ -432,10 +432,11 @@ model RecurringMessageConfig {
 }
 
 model PracticeSetting {
-  id        String   @id @default("default")
-  timeZone  String   @default("Europe/Rome")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String   @id @default("default")
+  timeZone                 String   @default("Europe/Rome")
+  autoMergeEmptyDuplicates Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 }
 
 model RecurringMessageLog {
