@@ -37,11 +37,12 @@ export function PatientSearchCombobox({
   const [selectedId, setSelectedId] = useState(defaultValue);
   const [prevDefaultValue, setPrevDefaultValue] = useState(defaultValue);
 
+  // Keep in sync when parent forces a selection (e.g. reuse existing scheda while booking).
   if (defaultValue !== prevDefaultValue) {
     setPrevDefaultValue(defaultValue);
     setSelectedId(defaultValue);
     const p = patients.find((patient) => patient.id === defaultValue);
-    setQuery(p ? p.fullName : "");
+    setQuery(p ? p.fullName : defaultValue === "new" ? "+ Nuovo cliente" : "");
   }
 
   const listId = `${name}-options`;

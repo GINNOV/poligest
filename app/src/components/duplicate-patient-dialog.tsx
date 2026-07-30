@@ -12,11 +12,20 @@ type DuplicatePatient = {
 type Props = {
   patient: DuplicatePatient;
   onClose: () => void;
-  /** @deprecated Kept for call-site compatibility; proceed is no longer offered. */
-  onProceed?: () => void;
+  /**
+   * When set (e.g. appointment booking), staff can attach the existing scheda
+   * and continue the current flow without creating a second record.
+   */
+  onUseExisting?: () => void;
+  useExistingLabel?: string;
 };
 
-export function DuplicatePatientDialog({ patient, onClose }: Props) {
+export function DuplicatePatientDialog({
+  patient,
+  onClose,
+  onUseExisting,
+  useExistingLabel = "Usa scheda e continua",
+}: Props) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
@@ -36,12 +45,28 @@ export function DuplicatePatientDialog({ patient, onClose }: Props) {
             {patient.lastName} {patient.firstName}
             {patient.phone ? ` (${patient.phone})` : ""}
           </span>
-          . Non è possibile creare un duplicato: apri la scheda esistente o correggi i dati inseriti.
+          .
+          {onUseExisting
+            ? " Puoi usare la scheda esistente e continuare, oppure aprirla per verificare."
+            : " Non è possibile crearne una seconda: apri la scheda esistente o correggi i dati inseriti."}
         </p>
         <div className="grid grid-cols-1 gap-3">
+          {onUseExisting ? (
+            <button
+              type="button"
+              onClick={onUseExisting}
+              className="flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            >
+              {useExistingLabel}
+            </button>
+          ) : null}
           <Link
             href={`/pazienti/${patient.id}`}
-            className="flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
+            className={`flex h-10 items-center justify-center rounded-full px-4 text-sm font-semibold transition ${
+              onUseExisting
+                ? "border border-zinc-200 text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                : "bg-emerald-700 text-white shadow-sm hover:bg-emerald-600"
+            }`}
           >
             Vai alla scheda
           </Link>

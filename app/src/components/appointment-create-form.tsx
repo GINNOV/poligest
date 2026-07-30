@@ -425,6 +425,7 @@ export function AppointmentCreateForm({
         </span>
         <PatientSearchCombobox
           name="patientId"
+          defaultValue={selectedPatientId}
           patients={patients.map((p) => ({
             id: p.id,
             fullName: `${p.lastName} ${p.firstName}`,
@@ -613,13 +614,34 @@ export function AppointmentCreateForm({
         <DuplicatePatientDialog
           patient={duplicatePatient}
           onClose={() => setDuplicatePatient(null)}
-          onProceed={() => {
+          useExistingLabel="Usa scheda e prenota"
+          onUseExisting={() => {
+            // Attach the existing patient file and finish the appointment without a second scheda.
+            const existingId = duplicatePatient.id;
+            setSelectedPatientId(existingId);
+            setIsNewPatient(false);
             setDuplicatePatient(null);
-            const form = document.getElementById(appointmentFormId) as HTMLFormElement;
-            if (form) {
-              form.dataset.confirmedDuplicate = "true";
+
+            // Defer so React drops the "nuovo paziente" fields and we only post the existing patientId.
+            window.setTimeout(() => {
+              const form = document.getElementById(appointmentFormId) as HTMLFormElement | null;
+              if (!form) return;
+
+              const patientInputs = form.querySelectorAll<HTMLInputElement>('input[name="patientId"]');
+              if (patientInputs.length > 0) {
+                patientInputs.forEach((input) => {
+                  input.value = existingId;
+                });
+              } else {
+                const hidden = document.createElement("input");
+                hidden.type = "hidden";
+                hidden.name = "patientId";
+                hidden.value = existingId;
+                form.appendChild(hidden);
+              }
+
               form.requestSubmit();
-            }
+            }, 0);
           }}
         />
       )}

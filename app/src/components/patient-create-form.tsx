@@ -286,13 +286,6 @@ export function PatientCreateForm({
         <DuplicatePatientDialog
           patient={duplicatePatient}
           onClose={() => setDuplicatePatient(null)}
-          onProceed={() => {
-            setDuplicatePatient(null);
-            const form = document.getElementById(formId) as HTMLFormElement;
-            if (form) {
-              submitFormData(new FormData(form));
-            }
-          }}
         />
       )}
     </>
