@@ -517,30 +517,6 @@ export default async function PazientiDuplicatiPage({
                       {signal.label}: {formatSignalValue(signal.kind, signal.value)}
                     </span>
                   ))}
-                  <div className="flex flex-wrap gap-1.5">
-                    {group.patients.map((patient, patientIndex) => {
-                      const birthLabel = formatBirthDate(patient.birthDate);
-                      const disambiguator =
-                        birthLabel !== "—"
-                          ? birthLabel
-                          : patient.taxId?.trim()
-                            ? patient.taxId.trim().slice(-4)
-                            : patient.id.slice(-4);
-                      return (
-                        <Link
-                          key={`open-${patient.id}`}
-                          href={`/pazienti/${patient.id}`}
-                          title={`Apri scheda ${patientIndex + 1}`}
-                          className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                        >
-                          Apri scheda {patientIndex + 1}
-                          <span className="ml-1 font-normal text-zinc-500 dark:text-zinc-400">
-                            ({disambiguator})
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
                 </div>
               </div>
 
