@@ -11,8 +11,22 @@ import {
   findPotentialPatientDuplicates,
   formatDuplicateSignalValue,
 } from "@/lib/patients/duplicate-detection";
+import {
+  isPatientEmptyShell,
+  loadFullAttachmentCounts,
+} from "@/lib/patients/duplicate-attachments";
+import {
+  buildFieldFillPlan,
+  classifyDuplicateGroup,
+  type MergePatientSnapshot,
+} from "@/lib/patients/duplicate-merge-plan";
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { getAutoMergeEmptyDuplicates } from "@/lib/practice-settings";
 import { DuplicateLegendHelpTooltip } from "@/components/duplicate-legend-help-tooltip";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
+import { PatientDuplicateMergeButton } from "@/components/patient-duplicate-merge-button";
+import { PatientDuplicateBulkMergeButton } from "@/components/patient-duplicate-bulk-merge-button";
+import { AutoMergeDuplicatesSetting } from "@/components/auto-merge-duplicates-setting";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { isValidDate } from "@/lib/date";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
@@ -153,6 +167,36 @@ function getSingleSearchParam(
   return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
 }
 
+function toMergeSnapshot(patient: {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  birthDate: Date | null;
+  gender: string;
+  notes: string | null;
+  photoUrl: string | null;
+  hasPaperConsentForRequired: boolean;
+  createdAt: Date;
+  taxId: string | null;
+}): MergePatientSnapshot {
+  return {
+    id: patient.id,
+    firstName: patient.firstName,
+    lastName: patient.lastName,
+    email: patient.email,
+    phone: patient.phone,
+    birthDate: patient.birthDate,
+    gender: patient.gender,
+    notes: patient.notes,
+    photoUrl: patient.photoUrl,
+    hasPaperConsentForRequired: patient.hasPaperConsentForRequired,
+    taxId: patient.taxId,
+    createdAt: patient.createdAt,
+  };
+}
+
 export default async function PazientiDuplicatiPage({
   searchParams,
 }: {
@@ -163,20 +207,36 @@ export default async function PazientiDuplicatiPage({
   const user = await requireUser([Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY]);
   await requireFeatureAccess(user.role, "patients");
 
-  const patients = await prisma.patient.findMany({
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      birthDate: true,
-      notes: true,
-      createdAt: true,
-    },
+  const isAdmin = user.role === Role.ADMIN;
+
+  const [patients, autoMergeEnabled] = await Promise.all([
+    prisma.patient.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        birthDate: true,
+        notes: true,
+        createdAt: true,
+        photoUrl: true,
+        hasPaperConsentForRequired: true,
+        gender: true,
+      },
+    }),
+    isAdmin ? getAutoMergeEmptyDuplicates() : Promise.resolve(false),
+  ]);
+
+  const patientsWithTaxId = patients.map((patient) => {
+    const parsed = parsePatientStructuredNotes(patient.notes);
+    return {
+      ...patient,
+      taxId: parsed.parsedTaxId || null,
+    };
   });
 
-  const allGroups = findPotentialPatientDuplicates(patients);
+  const allGroups = findPotentialPatientDuplicates(patientsWithTaxId);
   const groups = filterPotentialDuplicateGroups(allGroups, searchQuery);
   const duplicatePatientIds = Array.from(
     new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))),
@@ -184,22 +244,14 @@ export default async function PazientiDuplicatiPage({
   const totalPatients = duplicatePatientIds.length;
   const hasSearch = searchQuery.length > 0;
 
-  const attachmentFlagsByPatientId = new Map<string, PatientAttachmentFlags>();
+  const patientById = new Map(patientsWithTaxId.map((patient) => [patient.id, patient]));
   const createdInfoByPatientId = new Map<string, PatientCreationInfo>();
   let displayTimeZone = "Europe/Rome";
+  let countsByPatientId = await loadFullAttachmentCounts([]);
 
   if (duplicatePatientIds.length > 0) {
-    const [paymentGroups, dentalRecordGroups, createdLogs, resolvedDisplayTimeZone] = await Promise.all([
-      prisma.patientPayment.groupBy({
-        by: ["patientId"],
-        where: { patientId: { in: duplicatePatientIds } },
-        _count: { _all: true },
-      }),
-      prisma.dentalRecord.groupBy({
-        by: ["patientId"],
-        where: { patientId: { in: duplicatePatientIds } },
-        _count: { _all: true },
-      }),
+    const [fullCounts, createdLogs, resolvedDisplayTimeZone] = await Promise.all([
+      loadFullAttachmentCounts(duplicatePatientIds),
       prisma.auditLog.findMany({
         where: {
           action: "patient.created",
@@ -217,28 +269,8 @@ export default async function PazientiDuplicatiPage({
       }),
       getUserDisplayTimeZone(),
     ]);
+    countsByPatientId = fullCounts;
     displayTimeZone = resolvedDisplayTimeZone;
-
-    for (const patientId of duplicatePatientIds) {
-      attachmentFlagsByPatientId.set(patientId, {
-        hasPayments: false,
-        hasDentalRecords: false,
-      });
-    }
-
-    for (const group of paymentGroups) {
-      const flags = attachmentFlagsByPatientId.get(group.patientId);
-      if (flags) {
-        flags.hasPayments = group._count._all > 0;
-      }
-    }
-
-    for (const group of dentalRecordGroups) {
-      const flags = attachmentFlagsByPatientId.get(group.patientId);
-      if (flags) {
-        flags.hasDentalRecords = group._count._all > 0;
-      }
-    }
 
     for (const log of createdLogs) {
       if (!log.entityId || createdInfoByPatientId.has(log.entityId)) continue;
@@ -248,6 +280,16 @@ export default async function PazientiDuplicatiPage({
       });
     }
   }
+
+  const classifiedGroups = groups.map((group) => ({
+    group,
+    classification: classifyDuplicateGroup(group, countsByPatientId),
+  }));
+
+  const safeGroupCount = classifiedGroups.filter(({ classification }) => classification.safe).length;
+  const autoEligibleGroupCount = classifiedGroups.filter(
+    ({ classification }) => classification.autoEligible,
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -264,8 +306,29 @@ export default async function PazientiDuplicatiPage({
             {groups.length} {hasSearch ? `di ${allGroups.length}` : ""} gruppi trovati
           </div>
           <div>{totalPatients} pazienti coinvolti</div>
+          {safeGroupCount > 0 ? (
+            <div className="mt-1 text-xs">
+              {safeGroupCount} unione sicura
+              {autoEligibleGroupCount > 0 ? ` · ${autoEligibleGroupCount} auto-unibili` : ""}
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {isAdmin ? (
+        <section className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="flex flex-wrap items-center gap-2">
+            <PatientDuplicateBulkMergeButton safeGroupCount={safeGroupCount} />
+          </div>
+          <AutoMergeDuplicatesSetting enabled={autoMergeEnabled} />
+          {autoMergeEnabled && autoEligibleGroupCount > 0 ? (
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              Con l&apos;unione automatica attiva, {autoEligibleGroupCount} gruppi auto-unibili
+              potranno essere uniti dal job programmato.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
         <form action="/pazienti/duplicati" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -331,6 +394,18 @@ export default async function PazientiDuplicatiPage({
             Cartella clinica
           </span>
         ))}
+        <span aria-hidden className="text-zinc-300 dark:text-zinc-600">
+          |
+        </span>
+        <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+          Vuota
+        </span>
+        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 font-semibold text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
+          Ha dati
+        </span>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+          Unione sicura
+        </span>
       </div>
 
       {groups.length === 0 ? (
@@ -341,64 +416,119 @@ export default async function PazientiDuplicatiPage({
         </section>
       ) : (
         <div className="space-y-4">
-          {groups.map((group, index) => (
-            <section
-              key={group.id}
-              className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                    Gruppo {index + 1}
-                  </p>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    {group.patients.length} schede da verificare
-                  </h2>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {group.matchSignals.map((signal) => (
-                    <span
-                      key={`${signal.kind}:${signal.value}`}
-                      className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
-                    >
-                      {signal.label}: {formatSignalValue(signal.kind, signal.value)}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          {classifiedGroups.map(({ group, classification }, index) => {
+            const filledFieldsPreview =
+              classification.safe && classification.deletePatientIds.length > 0
+                ? (() => {
+                    const keeperRow = patientById.get(classification.keepPatientId);
+                    if (!keeperRow) return [] as string[];
+                    const keeper = toMergeSnapshot(keeperRow);
+                    const losers = classification.deletePatientIds
+                      .map((id) => patientById.get(id))
+                      .filter((row): row is NonNullable<typeof row> => Boolean(row))
+                      .map(toMergeSnapshot);
+                    return buildFieldFillPlan(keeper, losers).filledFields;
+                  })()
+                : [];
 
-              <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-                {group.patients.map((patient) => {
-                  const displayName =
-                    `${(patient.lastName ?? "").trim()} ${(patient.firstName ?? "").trim()}`.trim() || "Paziente senza nome";
-                  const missingFields = getPatientMissingFields(patient);
-                  const status = getPatientStatus(missingFields.length);
-                  const attachmentFlags =
-                    attachmentFlagsByPatientId.get(patient.id) ?? {
-                      hasPayments: false,
-                      hasDentalRecords: false,
+            return (
+              <section
+                key={group.id}
+                className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                      Gruppo {index + 1}
+                    </p>
+                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                      {group.patients.length} schede da verificare
+                    </h2>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {classification.safe ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+                          Unione sicura
+                        </span>
+                      ) : null}
+                      {classification.autoEligible ? (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
+                          Auto-unibile
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {group.matchSignals.map((signal) => (
+                      <span
+                        key={`${signal.kind}:${signal.value}`}
+                        className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
+                      >
+                        {signal.label}: {formatSignalValue(signal.kind, signal.value)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {group.patients.map((patient) => {
+                    const displayName =
+                      `${(patient.lastName ?? "").trim()} ${(patient.firstName ?? "").trim()}`.trim() || "Paziente senza nome";
+                    const missingFields = getPatientMissingFields(patient);
+                    const status = getPatientStatus(missingFields.length);
+                    const counts = countsByPatientId.get(patient.id);
+                    const isEmptyShell = counts ? isPatientEmptyShell(counts) : false;
+                    const attachmentFlags: PatientAttachmentFlags = {
+                      hasPayments: (counts?.paymentCount ?? 0) > 0,
+                      hasDentalRecords: (counts?.dentalRecordCount ?? 0) > 0,
                     };
-                  const attachmentBadges = getAttachmentBadges(attachmentFlags);
-                  const createdInfo = createdInfoByPatientId.get(patient.id);
-                  const createdAtLabel = formatCreatedAt(
-                    createdInfo?.createdAt ?? patient.createdAt,
-                    displayTimeZone,
-                  );
-                  const createdByLabel = createdInfo?.createdBy ?? "Origine non tracciata";
+                    const attachmentBadges = getAttachmentBadges(attachmentFlags);
+                    const createdInfo = createdInfoByPatientId.get(patient.id);
+                    const createdAtLabel = formatCreatedAt(
+                      createdInfo?.createdAt ?? patient.createdAt,
+                      displayTimeZone,
+                    );
+                    const createdByLabel = createdInfo?.createdBy ?? "Origine non tracciata";
+                    const isKeeper = patient.id === classification.keepPatientId;
+                    const showMerge =
+                      isAdmin &&
+                      classification.safe &&
+                      isKeeper &&
+                      classification.deletePatientIds.length > 0;
+                    const showResolve =
+                      isAdmin &&
+                      !classification.safe &&
+                      status === "complete";
+                    const showDelete =
+                      isAdmin &&
+                      !classification.safe &&
+                      status !== "complete";
 
-                  return (
-                    <div
-                      key={patient.id}
-                      className={`rounded-lg border p-4 transition ${getCardClassName(status)}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{displayName}</h3>
-                          <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                            ID {patient.id}
-                          </p>
-                          {attachmentBadges.length > 0 ? (
+                    return (
+                      <div
+                        key={patient.id}
+                        className={`rounded-lg border p-4 transition ${getCardClassName(status)}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">{displayName}</h3>
+                            <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                              ID {patient.id}
+                            </p>
                             <div className="mt-2 flex flex-wrap gap-2">
+                              {isKeeper ? (
+                                <span className="rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                                  Consigliata da mantenere
+                                </span>
+                              ) : null}
+                              <span
+                                className={
+                                  isEmptyShell
+                                    ? "rounded-full border border-zinc-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200"
+                                    : "rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200"
+                                }
+                              >
+                                {isEmptyShell ? "Vuota" : "Ha dati"}
+                              </span>
                               {attachmentBadges.map((badge) => (
                                 <span
                                   key={`${patient.id}-${badge.key}`}
@@ -408,83 +538,90 @@ export default async function PazientiDuplicatiPage({
                                 </span>
                               ))}
                             </div>
-                          ) : null}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            {showMerge ? (
+                              <PatientDuplicateMergeButton
+                                keepPatientId={classification.keepPatientId}
+                                deletePatientIds={classification.deletePatientIds}
+                                filledFieldsPreview={filledFieldsPreview}
+                              />
+                            ) : null}
+                            {showResolve ? (
+                              <PatientDuplicateResolveButton
+                                keepPatientId={patient.id}
+                                duplicatePatientIds={group.patients
+                                  .map((groupPatient) => groupPatient.id)
+                                  .filter((groupPatientId) => groupPatientId !== patient.id)}
+                              />
+                            ) : null}
+                            {showDelete ? (
+                              <PatientDeleteButton patientId={patient.id} role={user.role} redirectTo={null} />
+                            ) : null}
+                            <Link
+                              href={`/pazienti/${patient.id}`}
+                              className="rounded-full bg-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                            >
+                              Apri scheda
+                            </Link>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          {status === "complete" && user.role === Role.ADMIN ? (
-                            <PatientDuplicateResolveButton
-                              keepPatientId={patient.id}
-                              duplicatePatientIds={group.patients
-                                .map((groupPatient) => groupPatient.id)
-                                .filter((groupPatientId) => groupPatientId !== patient.id)}
-                            />
-                          ) : null}
-                          {status !== "complete" && user.role === Role.ADMIN ? (
-                            <PatientDeleteButton patientId={patient.id} role={user.role} redirectTo={null} />
-                          ) : null}
-                          <Link
-                            href={`/pazienti/${patient.id}`}
-                            className="rounded-full bg-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                          >
-                            Apri scheda
-                          </Link>
-                        </div>
-                      </div>
 
-                      <dl className="mt-3 grid grid-cols-1 gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Email</dt>
-                          <dd className="mt-1 break-all">{patient.email ?? "—"}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Telefono</dt>
-                          <dd className="mt-1">{formatPhone(patient.phone)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Data di nascita</dt>
-                          <dd className="mt-1">{formatBirthDate(patient.birthDate)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Codice fiscale</dt>
-                          <dd className="mt-1 break-all">{patient.taxId ?? "—"}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata il</dt>
-                          <dd className="mt-1">{createdAtLabel}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata da</dt>
-                          <dd className="mt-1">{createdByLabel}</dd>
-                        </div>
-                      </dl>
+                        <dl className="mt-3 grid grid-cols-1 gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Email</dt>
+                            <dd className="mt-1 break-all">{patient.email ?? "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Telefono</dt>
+                            <dd className="mt-1">{formatPhone(patient.phone)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Data di nascita</dt>
+                            <dd className="mt-1">{formatBirthDate(patient.birthDate)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Codice fiscale</dt>
+                            <dd className="mt-1 break-all">{patient.taxId ?? "—"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata il</dt>
+                            <dd className="mt-1">{createdAtLabel}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Creata da</dt>
+                            <dd className="mt-1">{createdByLabel}</dd>
+                          </div>
+                        </dl>
 
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                          Campi mancanti
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {missingFields.length > 0 ? (
-                            missingFields.map((field) => (
-                              <span
-                                key={field}
-                                className="rounded-full border border-zinc-300 bg-white/70 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200"
-                              >
-                                {field}
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                            Campi mancanti
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {missingFields.length > 0 ? (
+                              missingFields.map((field) => (
+                                <span
+                                  key={field}
+                                  className="rounded-full border border-zinc-300 bg-white/70 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200"
+                                >
+                                  {field}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="rounded-full border border-emerald-200 bg-white/70 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900/40 dark:bg-zinc-900/60 dark:text-emerald-200">
+                                Nessun dato chiave mancante
                               </span>
-                            ))
-                          ) : (
-                            <span className="rounded-full border border-emerald-200 bg-white/70 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900/40 dark:bg-zinc-900/60 dark:text-emerald-200">
-                              Nessun dato chiave mancante
-                            </span>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>
