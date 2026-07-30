@@ -75,6 +75,23 @@ describe("pickPatientToKeep", () => {
 
     expect(pickPatientToKeep(patients, new Map()).patientId).toBe("rich");
   });
+
+  it("keeps the patient with the higher total attachment score", () => {
+    const patients = [
+      basePatient("few-appointments", {
+        createdAt: new Date("2026-01-01T10:00:00.000Z"),
+      }),
+      basePatient("many-payments", {
+        createdAt: new Date("2026-01-02T10:00:00.000Z"),
+      }),
+    ];
+    const counts = new Map<string, PatientAttachmentCounts>([
+      ["few-appointments", { ...EMPTY_ATTACHMENT_COUNTS, appointmentCount: 1 }],
+      ["many-payments", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 5 }],
+    ]);
+
+    expect(pickPatientToKeep(patients, counts).patientId).toBe("many-payments");
+  });
 });
 
 describe("buildDuplicateCleanupPlan", () => {

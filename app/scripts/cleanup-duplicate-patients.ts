@@ -1,54 +1,11 @@
 import { prisma } from "../src/lib/prisma";
 import { logAudit } from "../src/lib/audit";
 import { findPotentialPatientDuplicates } from "../src/lib/patients/duplicate-detection";
-import {
-  buildDuplicateCleanupPlan,
-  type PatientAttachmentCounts,
-} from "../src/lib/patients/duplicate-cleanup";
+import { buildDuplicateCleanupPlan } from "../src/lib/patients/duplicate-cleanup";
+import { loadFullAttachmentCounts } from "../src/lib/patients/duplicate-attachments";
 import { deletePatientWithRelations } from "../src/lib/patients/delete-patient";
 
 const execute = process.argv.includes("--execute");
-
-async function loadAttachmentCounts(patientIds: string[]) {
-  const counts = new Map<string, PatientAttachmentCounts>();
-
-  for (const patientId of patientIds) {
-    counts.set(patientId, { paymentCount: 0, dentalRecordCount: 0 });
-  }
-
-  if (patientIds.length === 0) {
-    return counts;
-  }
-
-  const [paymentGroups, dentalRecordGroups] = await Promise.all([
-    prisma.patientPayment.groupBy({
-      by: ["patientId"],
-      where: { patientId: { in: patientIds } },
-      _count: { _all: true },
-    }),
-    prisma.dentalRecord.groupBy({
-      by: ["patientId"],
-      where: { patientId: { in: patientIds } },
-      _count: { _all: true },
-    }),
-  ]);
-
-  for (const group of paymentGroups) {
-    const entry = counts.get(group.patientId);
-    if (entry) {
-      entry.paymentCount = group._count._all;
-    }
-  }
-
-  for (const group of dentalRecordGroups) {
-    const entry = counts.get(group.patientId);
-    if (entry) {
-      entry.dentalRecordCount = group._count._all;
-    }
-  }
-
-  return counts;
-}
 
 async function main() {
   const patients = await prisma.patient.findMany({
@@ -68,7 +25,7 @@ async function main() {
   const duplicatePatientIds = Array.from(
     new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))),
   );
-  const attachmentCountsByPatientId = await loadAttachmentCounts(duplicatePatientIds);
+  const attachmentCountsByPatientId = await loadFullAttachmentCounts(duplicatePatientIds);
   const plan = buildDuplicateCleanupPlan(groups, attachmentCountsByPatientId);
 
   if (plan.length === 0) {
