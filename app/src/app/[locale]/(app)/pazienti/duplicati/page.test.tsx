@@ -142,13 +142,16 @@ describe("PazientiDuplicatiPage", () => {
     });
     const text = collectText(ui);
 
-    expect(text).toContain("Da rivedere — entrambe con dati");
     expect(text).toContain("Entrambe le schede hanno dati collegati");
-    expect(text).toContain("Codice fiscale");
+    expect(text).toContain("non eliminare da qui");
+    expect(text).toContain("Stesso");
     expect(text).toContain("CRRMRS65M53F912U");
     expect(text).toContain("PPPMHL62C01I438S");
-    expect(text).toContain("Riferimento (solo ranking)");
-    expect(text).toContain("Da confrontare");
+    expect(text).toContain("Apri scheda");
+    expect(text).not.toContain("Riferimento (solo ranking)");
+    expect(text).not.toContain("Da confrontare");
+    expect(text).not.toContain("Da rivedere — entrambe con dati");
+    expect(text).not.toContain("Telefono:");
     expect(text).not.toContain("Elimina duplicati");
     expect(text).not.toContain("Mantieni questa, elimina le vuote");
   });

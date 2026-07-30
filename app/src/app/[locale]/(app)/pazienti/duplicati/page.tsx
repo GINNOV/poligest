@@ -9,7 +9,7 @@ import { formatAuditActor } from "@/lib/audit";
 import {
   filterPotentialDuplicateGroups,
   findPotentialPatientDuplicates,
-  formatDuplicateSignalValue,
+  type DuplicateMatchKind,
 } from "@/lib/patients/duplicate-detection";
 import {
   isPatientEmptyShell,
@@ -24,8 +24,8 @@ import {
   canHardDeleteOthers,
   countNonEmptyPatients,
   getDuplicateFieldConflicts,
-  getReviewGroupBadge,
   getReviewGroupKind,
+  type ReviewGroupKind,
 } from "@/lib/patients/duplicate-ui";
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
 import { getAutoMergeEmptyDuplicates } from "@/lib/practice-settings";
@@ -69,14 +69,6 @@ function formatBirthDate(value: Date | null) {
     year: "numeric",
     timeZone: "UTC",
   }).format(value);
-}
-
-function formatSignalValue(kind: "taxId" | "email" | "phone" | "nameBirthDate", value: string) {
-  const normalizedValue = formatDuplicateSignalValue(kind, value);
-  if (kind === "phone") {
-    return formatPhone(normalizedValue);
-  }
-  return normalizedValue;
 }
 
 function getPatientMissingFields(patient: {
@@ -168,31 +160,49 @@ function getAttachmentBadges(flags: PatientAttachmentFlags) {
   return badges;
 }
 
-function getCardClassName(
-  status: PatientDuplicateStatus,
-  options: { safeGroup: boolean; isSuggestedKeeper: boolean },
-) {
-  if (!options.safeGroup) {
-    // Unsafe groups: avoid “all green = ready to clean” look.
-    const base =
-      "border-amber-200 bg-amber-50/40 hover:border-amber-300 hover:bg-amber-50/70 dark:border-amber-900/40 dark:bg-amber-950/15 dark:hover:border-amber-800 dark:hover:bg-amber-950/25";
-    if (options.isSuggestedKeeper) {
-      return `${base} ring-2 ring-amber-300/80 dark:ring-amber-700/60`;
-    }
-    return base;
+function getCardClassName(status: PatientDuplicateStatus, safeGroup: boolean) {
+  if (!safeGroup) {
+    return "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-950 dark:hover:border-zinc-600";
   }
-
-  const ring = options.isSuggestedKeeper
-    ? " ring-2 ring-emerald-400/70 dark:ring-emerald-600/50"
-    : "";
-
   switch (status) {
     case "complete":
-      return `border-emerald-200 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30${ring}`;
+      return "border-emerald-200 bg-emerald-50/70 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:hover:border-emerald-800 dark:hover:bg-emerald-950/30";
     case "partial":
-      return `border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20 dark:hover:border-amber-800 dark:hover:bg-amber-950/30${ring}`;
+      return "border-amber-200 bg-amber-50/70 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20 dark:hover:border-amber-800 dark:hover:bg-amber-950/30";
     case "critical":
-      return `border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20 dark:hover:border-rose-800 dark:hover:bg-rose-950/30${ring}`;
+      return "border-rose-200 bg-rose-50/70 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20 dark:hover:border-rose-800 dark:hover:bg-rose-950/30";
+  }
+}
+
+function matchReasonSummary(kinds: DuplicateMatchKind[]): string {
+  const labels = Array.from(new Set(kinds)).map((kind) => {
+    switch (kind) {
+      case "taxId":
+        return "codice fiscale";
+      case "email":
+        return "email";
+      case "phone":
+        return "telefono";
+      case "nameBirthDate":
+        return "nome e data di nascita";
+    }
+  });
+  if (labels.length === 0) return "";
+  if (labels.length === 1) return `Stesso ${labels[0]}`;
+  const last = labels[labels.length - 1];
+  return `Stesso ${labels.slice(0, -1).join(", ")} e ${last}`;
+}
+
+function groupGuidance(kind: ReviewGroupKind): string | null {
+  switch (kind) {
+    case "safe":
+      return null;
+    case "multi_data":
+      return "Entrambe le schede hanno dati collegati. Confrontale aprendo le schede; non eliminare da qui.";
+    case "identity_conflict":
+      return "Codice fiscale o data di nascita diversi. Controlla prima di unire o eliminare.";
+    case "review":
+      return "Confronta le schede prima di agire.";
   }
 }
 
@@ -462,10 +472,8 @@ export default async function PazientiDuplicatiPage({
               nonEmptyCount,
               conflicts,
             });
-            const reviewBadge = getReviewGroupBadge(reviewKind);
-            const identityConflicts = conflicts.filter(
-              (c) => c.field === "taxId" || c.field === "birthDate",
-            );
+            const guidance = groupGuidance(reviewKind);
+            const matchSummary = matchReasonSummary(group.matchSignals.map((s) => s.kind));
             const filledPreview =
               isSafe && keepPatientId
                 ? (() => {
@@ -481,123 +489,26 @@ export default async function PazientiDuplicatiPage({
             return (
             <section
               key={group.id}
-              className={`rounded-xl border p-5 shadow-sm ${
-                isSafe
-                  ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-                  : "border-amber-200 bg-amber-50/20 dark:border-amber-900/40 dark:bg-amber-950/10"
-              }`}
+              className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                    Gruppo {index + 1}
+              <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Gruppo {index + 1}
+                </p>
+                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  {group.patients.length} schede
+                </h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {[matchSummary, isSafe ? "Puoi unire le schede vuote" : null]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+                {guidance ? (
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                    {guidance}
                   </p>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                    {group.patients.length} schede da verificare
-                  </h2>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${reviewBadge.className}`}
-                    >
-                      {reviewBadge.label}
-                    </span>
-                    {classification?.autoEligible ? (
-                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
-                        Auto-unibile
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {group.matchSignals.map((signal) => (
-                    <span
-                      key={`${signal.kind}:${signal.value}`}
-                      className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
-                    >
-                      {signal.label}: {formatSignalValue(signal.kind, signal.value)}
-                    </span>
-                  ))}
-                </div>
+                ) : null}
               </div>
-
-              {!isSafe ? (
-                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-                  {reviewKind === "multi_data" ? (
-                    <p>
-                      <span className="font-semibold">Entrambe le schede hanno dati collegati</span>
-                      {" "}
-                      (pagamenti, cartella, appuntamenti, …). Non eliminare una scheda da qui:
-                      cancelleresti anche i dati clinici o economici collegati. Apri le schede e
-                      confrontale manualmente.
-                    </p>
-                  ) : reviewKind === "identity_conflict" ? (
-                    <p>
-                      <span className="font-semibold">Codice fiscale e/o data di nascita non coincidono.</span>
-                      {" "}
-                      Potrebbero essere persone diverse o dati errati. Controlla prima di unire o
-                      eliminare.
-                    </p>
-                  ) : (
-                    <p>
-                      Questo gruppo non è un&apos;unione automatica sicura. Confronta le schede
-                      prima di agire.
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {conflicts.length > 0 ? (
-                <div className="mt-3 overflow-x-auto rounded-lg border border-rose-200 bg-white dark:border-rose-900/40 dark:bg-zinc-950">
-                  <table className="min-w-full text-left text-sm">
-                    <caption className="sr-only">Campi in conflitto tra le schede del gruppo</caption>
-                    <thead className="border-b border-rose-100 bg-rose-50/80 text-xs font-semibold uppercase tracking-wide text-rose-900 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200">
-                      <tr>
-                        <th className="px-3 py-2">Campo</th>
-                        {group.patients.map((patient, patientIndex) => (
-                          <th key={patient.id} className="px-3 py-2">
-                            Scheda {patientIndex + 1}
-                            {keepPatientId === patient.id ? " (riferimento)" : ""}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-rose-50 dark:divide-rose-950/40">
-                      {conflicts.map((conflict) => (
-                        <tr key={conflict.field}>
-                          <th
-                            scope="row"
-                            className="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400"
-                          >
-                            {conflict.label}
-                          </th>
-                          {group.patients.map((patient) => {
-                            const isIdentity =
-                              conflict.field === "taxId" || conflict.field === "birthDate";
-                            return (
-                              <td
-                                key={`${conflict.field}-${patient.id}`}
-                                className={`px-3 py-2 break-all ${
-                                  isIdentity
-                                    ? "font-semibold text-rose-800 dark:text-rose-300"
-                                    : "text-zinc-800 dark:text-zinc-200"
-                                }`}
-                              >
-                                {fieldDisplayValue(conflict.field, patient)}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {identityConflicts.length > 0 ? (
-                    <p className="border-t border-rose-100 px-3 py-2 text-xs text-rose-800 dark:border-rose-900/40 dark:text-rose-300">
-                      I campi evidenziati in rosso sono quelli più importanti per l&apos;identità
-                      del paziente.
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
 
               <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
                 {group.patients.map((patient) => {
@@ -630,10 +541,7 @@ export default async function PazientiDuplicatiPage({
                   return (
                     <div
                       key={patient.id}
-                      className={`rounded-lg border p-4 transition ${getCardClassName(status, {
-                        safeGroup: isSafe,
-                        isSuggestedKeeper,
-                      })}`}
+                      className={`rounded-lg border p-4 transition ${getCardClassName(status, isSafe)}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -641,21 +549,9 @@ export default async function PazientiDuplicatiPage({
                           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                             ID {patient.id}
                           </p>
-                          {isSuggestedKeeper ? (
-                            <span
-                              className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                                isSafe
-                                  ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                                  : "border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
-                              }`}
-                            >
-                              {isSafe
-                                ? "Consigliata da mantenere"
-                                : "Riferimento (solo ranking)"}
-                            </span>
-                          ) : !isSafe && !isEmptyShell ? (
-                            <span className="mt-2 inline-flex rounded-full border border-zinc-300 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 dark:border-zinc-600 dark:bg-zinc-900/60 dark:text-zinc-200">
-                              Da confrontare
+                          {isSafe && isSuggestedKeeper ? (
+                            <span className="mt-2 inline-flex rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                              Consigliata da mantenere
                             </span>
                           ) : null}
                           {attachmentBadges.length > 0 ? (
@@ -682,7 +578,6 @@ export default async function PazientiDuplicatiPage({
                               filledFieldsPreview={filledPreview}
                             />
                           ) : null}
-                          {/* Hard-delete only when every other card is an empty shell — never when both have data. */}
                           {!isSafe &&
                           isSuggestedKeeper &&
                           allowHardDeleteOthers &&
@@ -720,11 +615,6 @@ export default async function PazientiDuplicatiPage({
                             <div key={field}>
                               <dt className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                                 {label}
-                                {isConflict ? (
-                                  <span className="ml-1 font-bold text-rose-600 dark:text-rose-400">
-                                    ≠
-                                  </span>
-                                ) : null}
                               </dt>
                               <dd
                                 className={`mt-1 ${field === "email" || field === "taxId" ? "break-all" : ""} ${
@@ -748,27 +638,23 @@ export default async function PazientiDuplicatiPage({
                         </div>
                       </dl>
 
-                      <div className="mt-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                          Campi mancanti
-                        </p>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {missingFields.length > 0 ? (
-                            missingFields.map((field) => (
+                      {missingFields.length > 0 ? (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                            Campi mancanti
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {missingFields.map((field) => (
                               <span
                                 key={field}
                                 className="rounded-full border border-zinc-300 bg-white/70 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200"
                               >
                                 {field}
                               </span>
-                            ))
-                          ) : (
-                            <span className="rounded-full border border-zinc-300 bg-white/70 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-200">
-                              Anagrafica completa (non implica unione sicura)
-                            </span>
-                          )}
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
                     </div>
                   );
                 })}
