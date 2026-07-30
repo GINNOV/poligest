@@ -393,13 +393,6 @@ export default async function PatientDetailPage({
                     <path d="M2 15h4" />
                   </svg>
                 </PrintLinkButton>
-                {isAdmin ? (
-                  <PatientDeleteButton
-                    patientId={patient.id}
-                    role={user.role}
-                    label="Elimina paziente"
-                  />
-                ) : null}
                 <svg
                   className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
                   viewBox="0 0 24 24"
@@ -1092,6 +1085,26 @@ export default async function PatientDetailPage({
         )}
       </div>
     </div>
+
+    {isAdmin ? (
+      <section className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/40 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-rose-900 dark:text-rose-100">
+              Elimina paziente
+            </p>
+            <p className="mt-1 text-sm text-rose-800/90 dark:text-rose-200/90">
+              Cancella definitivamente questa scheda e tutti i dati collegati.
+            </p>
+          </div>
+          <PatientDeleteButton
+            patientId={patient.id}
+            role={user.role}
+            label="Elimina paziente"
+          />
+        </div>
+      </section>
+    ) : null}
 
     <section className="mt-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center gap-3">
