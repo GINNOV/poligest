@@ -1,5 +1,4 @@
 import {
-  EMPTY_ATTACHMENT_COUNTS,
   isPatientEmptyShell,
   type FullPatientAttachmentCounts,
 } from "@/lib/patients/duplicate-attachments";
@@ -52,12 +51,45 @@ function isBlank(value: string | null | undefined): boolean {
   return value == null || value.trim() === "";
 }
 
-export function hasStrongMatchSignal(signals: DuplicateMatchSignal[]): boolean {
-  const kinds = new Set(signals.map((signal) => signal.kind));
-  if (kinds.has("taxId")) return true;
-  if (kinds.has("nameBirthDate") && (kinds.has("phone") || kinds.has("email"))) {
-    return true;
+function patientIdSet(ids: string[]): Set<string> {
+  return new Set(ids);
+}
+
+function intersectionSize(left: string[], right: string[]): number {
+  const rightSet = patientIdSet(right);
+  let count = 0;
+  for (const id of left) {
+    if (rightSet.has(id)) count += 1;
   }
+  return count;
+}
+
+/**
+ * Strong identity for auto-merge:
+ * - taxId signal covering >= 2 patients, or
+ * - nameBirthDate plus phone/email where the two signals share >= 2 patient ids
+ *   (kind co-presence alone is not enough — avoids chaining unrelated shells).
+ */
+export function hasStrongMatchSignal(signals: DuplicateMatchSignal[]): boolean {
+  for (const signal of signals) {
+    if (signal.kind === "taxId" && signal.patientIds.length >= 2) {
+      return true;
+    }
+  }
+
+  const nameBirthDateSignals = signals.filter((signal) => signal.kind === "nameBirthDate");
+  const contactSignals = signals.filter(
+    (signal) => signal.kind === "phone" || signal.kind === "email",
+  );
+
+  for (const nameSignal of nameBirthDateSignals) {
+    for (const contactSignal of contactSignals) {
+      if (intersectionSize(nameSignal.patientIds, contactSignal.patientIds) >= 2) {
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
@@ -73,9 +105,12 @@ export function classifyDuplicateGroup(
     .map((patient) => patient.id)
     .filter((id) => id !== keepPatientId);
 
-  const safe = deletePatientIds.every((id) =>
-    isPatientEmptyShell(countsByPatientId.get(id) ?? EMPTY_ATTACHMENT_COUNTS),
-  );
+  // Fail closed: missing counts map entry is not an empty shell.
+  const safe = deletePatientIds.every((id) => {
+    const counts = countsByPatientId.get(id);
+    if (!counts) return false;
+    return isPatientEmptyShell(counts);
+  });
   const strong = hasStrongMatchSignal(group.matchSignals);
 
   return {
@@ -98,6 +133,27 @@ type StructuredNoteParts = {
   extra: string;
 };
 
+const STRUCTURED_NOTE_PREFIXES = [
+  "Indirizzo:",
+  "Codice Fiscale:",
+  "Anamnesi:",
+  "Farmaci:",
+  "Note aggiuntive:",
+  "Note:",
+] as const;
+
+function isStructuredNoteLine(line: string): boolean {
+  return STRUCTURED_NOTE_PREFIXES.some((prefix) => line.startsWith(prefix));
+}
+
+function extractFreeformLines(notes: string | null | undefined): string[] {
+  return (notes ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !isStructuredNoteLine(line));
+}
+
 function extractStructuredParts(
   notes: string | null | undefined,
   taxIdFallback: string | null = null,
@@ -113,21 +169,7 @@ function extractStructuredParts(
   };
 }
 
-function rebuildNotes(baseNotes: string | null, parts: StructuredNoteParts): string | null {
-  const existingLines = (baseNotes ?? "")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const preservedLines = existingLines.filter(
-    (line) =>
-      !line.startsWith("Indirizzo:") &&
-      !line.startsWith("Codice Fiscale:") &&
-      !line.startsWith("Anamnesi:") &&
-      !line.startsWith("Farmaci:") &&
-      !line.startsWith("Note aggiuntive:") &&
-      !line.startsWith("Note:"),
-  );
-
+function rebuildNotes(freeformLines: string[], parts: StructuredNoteParts): string | null {
   const structuredLines = [
     parts.address || parts.city
       ? `Indirizzo: ${parts.address || "—"}${parts.city ? `, ${parts.city}` : ""}`
@@ -138,7 +180,7 @@ function rebuildNotes(baseNotes: string | null, parts: StructuredNoteParts): str
     parts.extra ? `Note aggiuntive: ${parts.extra}` : null,
   ].filter(Boolean) as string[];
 
-  return [...preservedLines, ...structuredLines].join("\n") || null;
+  return [...freeformLines, ...structuredLines].join("\n") || null;
 }
 
 /**
@@ -199,6 +241,19 @@ export function buildFieldFillPlan(
   const mergedParts = extractStructuredParts(keeper.notes, keeper.taxId);
   let notesChanged = false;
 
+  // Preserve keeper freeform; if keeper freeform is empty, take first loser's freeform lines.
+  let freeformLines = extractFreeformLines(keeper.notes);
+  if (freeformLines.length === 0) {
+    for (const loser of orderedLosers) {
+      const loserFreeform = extractFreeformLines(loser.notes);
+      if (loserFreeform.length > 0) {
+        freeformLines = loserFreeform;
+        notesChanged = true;
+        break;
+      }
+    }
+  }
+
   for (const loser of orderedLosers) {
     const loserParts = extractStructuredParts(loser.notes, loser.taxId);
 
@@ -242,7 +297,7 @@ export function buildFieldFillPlan(
   }
 
   if (notesChanged) {
-    data.notes = rebuildNotes(keeper.notes, mergedParts);
+    data.notes = rebuildNotes(freeformLines, mergedParts);
   }
 
   return { data, filledFields };
