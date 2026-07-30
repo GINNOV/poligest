@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   patient: {
-    findFirst: vi.fn(),
+    findMany: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
   },
@@ -34,10 +34,19 @@ describe("parseItalianSlashBirthDate", () => {
 describe("findPatientForMacosScan", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.patient.findMany.mockResolvedValue([]);
   });
 
   it("matches by codice fiscale in notes first", async () => {
-    mocks.patient.findFirst.mockResolvedValueOnce({ id: "patient-tax" });
+    mocks.patient.findMany.mockResolvedValueOnce([
+      {
+        id: "patient-tax",
+        firstName: "Mario",
+        lastName: "Rossi",
+        phone: null,
+        notes: "Codice Fiscale: RSSMRA90A15H501Y",
+      },
+    ]);
 
     const match = await findPatientForMacosScan({
       firstName: "Mario",
@@ -47,11 +56,20 @@ describe("findPatientForMacosScan", () => {
     });
 
     expect(match).toEqual({ patientId: "patient-tax", matchKind: "taxId" });
-    expect(mocks.patient.findFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.patient.findMany).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to name and birth date when tax id is missing", async () => {
-    mocks.patient.findFirst.mockResolvedValueOnce({ id: "patient-name" });
+    mocks.patient.findMany.mockResolvedValueOnce([
+      {
+        id: "patient-name",
+        firstName: "Mario",
+        lastName: "Rossi",
+        email: null,
+        phone: null,
+        birthDate: new Date(1990, 7, 15),
+      },
+    ]);
 
     const match = await findPatientForMacosScan({
       firstName: "mario",
@@ -80,11 +98,15 @@ describe("buildMacosPatientMergeUpdate", () => {
       birthDate: "15/08/1990",
       gender: "M",
       codiceFiscale: "RSSMRA90A15H501Y",
+      email: "mario@example.com",
+      phone: "3331234567",
     });
 
-    expect(updatedFields).toEqual(["birthDate", "gender", "codiceFiscale"]);
+    expect(updatedFields).toEqual(["birthDate", "gender", "codiceFiscale", "email", "phone"]);
     expect(data.birthDate).toBeInstanceOf(Date);
     expect(data.gender).toBe(Gender.MALE);
+    expect(data.email).toBe("mario@example.com");
+    expect(data.phone).toBe("+393331234567");
     expect(data.notes).toContain("Codice Fiscale: RSSMRA90A15H501Y");
     expect(data.notes).toContain("Anamnesi esistente");
   });

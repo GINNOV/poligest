@@ -2,15 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   const requireUser = vi.fn();
-  const prisma = {
-    patient: {
-      findFirst: vi.fn(),
-    },
-  };
+  const findExistingPatientForCreate = vi.fn();
 
   return {
     requireUser,
-    prisma,
+    findExistingPatientForCreate,
   };
 });
 
@@ -18,8 +14,8 @@ vi.mock("@/lib/auth", () => ({
   requireUser: mocks.requireUser,
 }));
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: mocks.prisma,
+vi.mock("@/lib/patients/find-existing-patient", () => ({
+  findExistingPatientForCreate: mocks.findExistingPatientForCreate,
 }));
 
 import { GET } from "@/app/api/patients/check-duplicate/route";
@@ -29,16 +25,16 @@ describe("GET /api/patients/check-duplicate", () => {
     vi.clearAllMocks();
 
     mocks.requireUser.mockResolvedValue({ id: "staff-1", role: "ADMIN" });
-    mocks.prisma.patient.findFirst.mockResolvedValue(null);
+    mocks.findExistingPatientForCreate.mockResolvedValue(null);
   });
 
   it("checks duplicate patients by normalized phone when birth date is missing", async () => {
-    mocks.prisma.patient.findFirst.mockResolvedValue({
-      id: "patient-1",
+    mocks.findExistingPatientForCreate.mockResolvedValue({
+      patientId: "patient-1",
+      matchKind: "phone",
       firstName: "Mario",
       lastName: "Rossi",
       phone: "+393331234567",
-      birthDate: null,
     });
 
     const response = await GET(
@@ -48,6 +44,7 @@ describe("GET /api/patients/check-duplicate", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       exists: true,
+      matchKind: "phone",
       patient: {
         id: "patient-1",
         firstName: "Mario",
@@ -56,25 +53,38 @@ describe("GET /api/patients/check-duplicate", () => {
         birthDate: null,
       },
     });
-    expect(mocks.prisma.patient.findFirst).toHaveBeenCalledWith({
-      where: {
-        AND: [
-          { firstName: { equals: "Mario", mode: "insensitive" } },
-          { lastName: { equals: "Rossi", mode: "insensitive" } },
-          {
-            OR: [
-              { phone: { equals: "+393331234567" } },
-            ],
-          },
-        ],
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        birthDate: true,
-      },
+    expect(mocks.findExistingPatientForCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        firstName: "mario",
+        lastName: "rossi",
+        phone: "3331234567",
+      }),
+    );
+  });
+
+  it("checks duplicate patients by tax id", async () => {
+    mocks.findExistingPatientForCreate.mockResolvedValue({
+      patientId: "patient-cf",
+      matchKind: "taxId",
+      firstName: "Mario",
+      lastName: "Rossi",
+      phone: null,
     });
+
+    const response = await GET(
+      new Request(
+        "http://localhost/api/patients/check-duplicate?firstName=Mario&lastName=Rossi&taxId=RSSMRA90A15H501Y",
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.exists).toBe(true);
+    expect(json.matchKind).toBe("taxId");
+    expect(mocks.findExistingPatientForCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taxId: "RSSMRA90A15H501Y",
+      }),
+    );
   });
 });

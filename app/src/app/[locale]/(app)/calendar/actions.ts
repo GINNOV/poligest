@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
+import { findExistingPatientForCreate } from "@/lib/patients/find-existing-patient";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
 import { resolveUserDisplayTimeZone } from "@/lib/user-display-time-zone";
@@ -54,21 +55,25 @@ async function resolvePatientIdForAppointment(params: {
   const normalizedEmail = newEmail?.trim().toLowerCase() || null;
   const normalizedFirstName = normalizePersonName(newFirstName ?? "");
   const normalizedLastName = normalizePersonName(newLastName ?? "");
+  const normalizedPhone = normalizeItalianPhone(newPhone);
 
   if (selectedPatientId === "new") {
-    if (normalizedEmail) {
-      const existing = await prisma.patient.findFirst({
-        where: { email: { equals: normalizedEmail, mode: "insensitive" } },
-        select: { id: true },
-      });
-      if (existing) return existing.id;
+    // Reuse an existing scheda when strong identity signals match (email/phone/name).
+    const existingMatch = await findExistingPatientForCreate({
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+      email: normalizedEmail,
+      phone: normalizedPhone,
+    });
+    if (existingMatch) {
+      return existingMatch.patientId;
     }
 
     const patient = await prisma.patient.create({
       data: {
         firstName: normalizedFirstName,
         lastName: normalizedLastName,
-        phone: newPhone ?? null,
+        phone: normalizedPhone,
         email: normalizedEmail,
       },
     });

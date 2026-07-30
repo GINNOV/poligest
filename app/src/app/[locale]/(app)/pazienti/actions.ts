@@ -16,6 +16,10 @@ import { sendPatientWelcomeEmail } from "@/lib/welcome-email";
 import { getStackSignInUrl } from "@/lib/stack-app";
 import sharp from "sharp";
 import { resolveStoredPatientPhotoUrl } from "@/lib/patient-avatars";
+import {
+  findExistingPatientForCreate,
+  formatExistingPatientBlockMessage,
+} from "@/lib/patients/find-existing-patient";
 
 function withParam(url: string, key: string, value: string) {
   const hasQuery = url.includes("?");
@@ -90,6 +94,19 @@ export async function createPatient(formData: FormData) {
   if (!firstName || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
   }
+
+  const existingMatch = await findExistingPatientForCreate({
+    firstName,
+    lastName,
+    email,
+    phone,
+    birthDate,
+    taxId,
+  });
+  if (existingMatch) {
+    throw new Error(formatExistingPatientBlockMessage(existingMatch));
+  }
+
   const buildSignatureParts = (rawValue: string | null | undefined) => {
     const trimmed = rawValue?.trim() ?? "";
     if (!trimmed) {

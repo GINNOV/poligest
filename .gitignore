@@ -61,3 +61,6 @@ exports
 apps/iOS/build
 UserInterfaceState.xcuserstate
 quicknotes/build
+
+# Git worktrees
+.worktrees/

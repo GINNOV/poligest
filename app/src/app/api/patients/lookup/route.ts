@@ -91,6 +91,8 @@ export async function POST(req: Request) {
       lastName,
       birthDate: body.birthDate ?? null,
       codiceFiscale: body.codiceFiscale ?? null,
+      email: body.email ?? null,
+      phone: body.phone ?? null,
     });
 
     if (!match) {

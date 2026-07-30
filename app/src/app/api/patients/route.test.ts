@@ -9,10 +9,14 @@ const mocks = vi.hoisted(() => {
     },
   };
   const logMacosScanAudit = vi.fn();
+  const findExistingPatientForCreate = vi.fn();
+  const mergeMissingPatientFieldsFromMacosScan = vi.fn();
 
   return {
     prisma,
     logMacosScanAudit,
+    findExistingPatientForCreate,
+    mergeMissingPatientFieldsFromMacosScan,
   };
 });
 
@@ -24,11 +28,30 @@ vi.mock("@/lib/audit", () => ({
   logMacosScanAudit: mocks.logMacosScanAudit,
 }));
 
+vi.mock("@/lib/patients/find-existing-patient", () => ({
+  findExistingPatientForCreate: mocks.findExistingPatientForCreate,
+}));
+
+vi.mock("@/lib/patients/macos-patient-sync", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/patients/macos-patient-sync")>(
+    "@/lib/patients/macos-patient-sync",
+  );
+  return {
+    ...actual,
+    mergeMissingPatientFieldsFromMacosScan: mocks.mergeMissingPatientFieldsFromMacosScan,
+  };
+});
+
 describe("POST /api/patients", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.logMacosScanAudit.mockResolvedValue(undefined);
     mocks.prisma.patient.update.mockResolvedValue(undefined);
+    mocks.findExistingPatientForCreate.mockResolvedValue(null);
+    mocks.mergeMissingPatientFieldsFromMacosScan.mockResolvedValue({
+      patientId: "existing-patient-id",
+      updatedFields: [],
+    });
     process.env.MACOS_APP_API_KEY = "test_secret_token";
   });
 
@@ -78,7 +101,7 @@ describe("POST /api/patients", () => {
     const req = new Request("http://localhost/api/patients", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer test_secret_token",
+        Authorization: "Bearer test_secret_token",
       },
       body: JSON.stringify({
         firstName: "Mario",
@@ -160,5 +183,57 @@ describe("POST /api/patients", () => {
         photoUrl: expect.stringMatching(/^\/avatars\//),
       },
     });
+  });
+
+  it("merges into existing patient instead of creating a duplicate (ScanID-safe)", async () => {
+    mocks.findExistingPatientForCreate.mockResolvedValue({
+      patientId: "existing-patient-id",
+      matchKind: "taxId",
+      firstName: "Mario",
+      lastName: "Rossi",
+      phone: null,
+    });
+    mocks.mergeMissingPatientFieldsFromMacosScan.mockResolvedValue({
+      patientId: "existing-patient-id",
+      updatedFields: ["birthDate", "codiceFiscale"],
+    });
+
+    const req = new Request("http://localhost/api/patients", {
+      method: "POST",
+      headers: {
+        "x-api-key": "test_secret_token",
+      },
+      body: JSON.stringify({
+        firstName: "Mario",
+        lastName: "Rossi",
+        birthDate: "15/08/1990",
+        gender: "M",
+        notes: "Codice Fiscale: RSSMRA90A15H501Y\nAcquisito automaticamente da ID Scanner macOS",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+
+    // ScanID only requires patientId on success; action may be "updated".
+    expect(json.ok).toBe(true);
+    expect(json.patientId).toBe("existing-patient-id");
+    expect(json.action).toBe("updated");
+    expect(json.matchKind).toBe("taxId");
+    expect(mocks.prisma.patient.create).not.toHaveBeenCalled();
+    expect(mocks.mergeMissingPatientFieldsFromMacosScan).toHaveBeenCalledWith(
+      "existing-patient-id",
+      expect.objectContaining({
+        codiceFiscale: "RSSMRA90A15H501Y",
+        birthDate: "15/08/1990",
+      }),
+    );
+    expect(mocks.logMacosScanAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "patient.updated",
+        patientId: "existing-patient-id",
+      }),
+    );
   });
 });

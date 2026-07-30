@@ -1,7 +1,11 @@
 import { Gender, Prisma } from "@prisma/client";
 import { isValidDate } from "@/lib/date";
-import { normalizePersonName } from "@/lib/name";
+import {
+  findExistingPatientForCreate,
+  type ExistingPatientMatchKind,
+} from "@/lib/patients/find-existing-patient";
 import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { normalizeItalianPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 
 export type MacosPatientLookupInput = {
@@ -9,17 +13,21 @@ export type MacosPatientLookupInput = {
   lastName: string;
   birthDate?: string | null;
   codiceFiscale?: string | null;
+  email?: string | null;
+  phone?: string | null;
 };
 
 export type MacosPatientLookupMatch = {
   patientId: string;
-  matchKind: "taxId" | "nameBirthDate";
+  matchKind: ExistingPatientMatchKind;
 };
 
 export type MacosPatientMergeInput = {
   birthDate?: string | null;
   gender?: string | null;
   codiceFiscale?: string | null;
+  email?: string | null;
+  phone?: string | null;
 };
 
 export type MacosPatientRecord = {
@@ -72,45 +80,17 @@ function taxIdNotesMarker(taxId: string) {
 export async function findPatientForMacosScan(
   input: MacosPatientLookupInput,
 ): Promise<MacosPatientLookupMatch | null> {
-  const firstName = normalizePersonName(input.firstName);
-  const lastName = normalizePersonName(input.lastName);
-  const taxId = normalizeTaxId(input.codiceFiscale);
-  const birthDate = parseItalianSlashBirthDate(input.birthDate);
+  const match = await findExistingPatientForCreate({
+    firstName: input.firstName,
+    lastName: input.lastName,
+    birthDate: parseItalianSlashBirthDate(input.birthDate),
+    taxId: input.codiceFiscale,
+    email: input.email,
+    phone: input.phone,
+  });
 
-  if (taxId) {
-    const byTaxId = await prisma.patient.findFirst({
-      where: {
-        notes: {
-          contains: taxIdNotesMarker(taxId),
-          mode: "insensitive",
-        },
-      },
-      select: { id: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (byTaxId) {
-      return { patientId: byTaxId.id, matchKind: "taxId" };
-    }
-  }
-
-  if (firstName && lastName && birthDate) {
-    const byNameBirthDate = await prisma.patient.findFirst({
-      where: {
-        firstName: { equals: firstName, mode: "insensitive" },
-        lastName: { equals: lastName, mode: "insensitive" },
-        birthDate: { equals: birthDate },
-      },
-      select: { id: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (byNameBirthDate) {
-      return { patientId: byNameBirthDate.id, matchKind: "nameBirthDate" };
-    }
-  }
-
-  return null;
+  if (!match) return null;
+  return { patientId: match.patientId, matchKind: match.matchKind };
 }
 
 function buildMergedNotes(existingNotes: string | null | undefined, codiceFiscale: string | null) {
@@ -171,6 +151,18 @@ export function buildMacosPatientMergeUpdate(
   if (shouldUpdateNotes) {
     data.notes = buildMergedNotes(existing.notes, scannedTaxId);
     updatedFields.push("codiceFiscale");
+  }
+
+  const scannedEmail = (scanned.email ?? "").trim().toLocaleLowerCase("it") || null;
+  if (!existing.email && scannedEmail) {
+    data.email = scannedEmail;
+    updatedFields.push("email");
+  }
+
+  const scannedPhone = normalizeItalianPhone(scanned.phone);
+  if (!existing.phone && scannedPhone) {
+    data.phone = scannedPhone;
+    updatedFields.push("phone");
   }
 
   return { data, updatedFields };

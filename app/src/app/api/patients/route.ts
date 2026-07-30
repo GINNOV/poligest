@@ -3,8 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { Gender } from "@prisma/client";
 import { logMacosScanAudit } from "@/lib/audit";
 import { isAuthorizedMacosAppRequest } from "@/lib/patients/macos-api-auth";
+import { findExistingPatientForCreate } from "@/lib/patients/find-existing-patient";
+import {
+  mergeMissingPatientFieldsFromMacosScan,
+  parseItalianSlashBirthDate,
+} from "@/lib/patients/macos-patient-sync";
 import { withPaperConsentNote } from "@/lib/patients/paper-consent";
 import { resolveStoredPatientPhotoUrl } from "@/lib/patient-avatars";
+import { normalizePersonName } from "@/lib/name";
+import { normalizeItalianPhone } from "@/lib/phone";
 
 export async function POST(req: Request) {
   if (!isAuthorizedMacosAppRequest(req)) {
@@ -13,34 +20,25 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { firstName, lastName, email, phone, birthDate, gender, notes } = body;
+    const firstName = normalizePersonName(body.firstName ?? "");
+    const lastName = normalizePersonName(body.lastName ?? "");
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() || null : null;
+    const phone = normalizeItalianPhone(body.phone);
+    const notes = typeof body.notes === "string" ? body.notes : null;
+    const gender = body.gender;
     const hasPaperConsentForRequired = body.hasPaperConsentForRequired ?? true;
 
     if (!firstName || !lastName) {
       return NextResponse.json({ error: "First name and last name are required" }, { status: 400 });
     }
 
-    // Convert birthDate string to Date object
-    let parsedBirthDate: Date | null = null;
-    if (birthDate) {
-      // Expecting birthDate in DD/MM/YYYY format or ISO format
-      if (birthDate.includes("/")) {
-        const parts = birthDate.split("/");
-        if (parts.length === 3) {
-          const day = parseInt(parts[0], 10);
-          const month = parseInt(parts[1], 10) - 1; // 0-indexed month
-          const year = parseInt(parts[2], 10);
-          parsedBirthDate = new Date(year, month, day);
-        }
-      } else {
-        parsedBirthDate = new Date(birthDate);
-      }
-      
-      // Check if invalid date
-      if (parsedBirthDate && isNaN(parsedBirthDate.getTime())) {
-        parsedBirthDate = null;
-      }
-    }
+    // Prefer explicit codiceFiscale field; fall back to structured notes from ScanID.
+    const taxIdFromBody =
+      typeof body.codiceFiscale === "string" ? body.codiceFiscale.trim().toUpperCase() : "";
+    const taxIdMatch = notes?.match(/Codice Fiscale:\s*([A-Z0-9]{16})/i);
+    const taxId = taxIdFromBody || taxIdMatch?.[1]?.toUpperCase() || null;
+
+    const parsedBirthDate = parseItalianSlashBirthDate(body.birthDate ?? null);
 
     // Map gender string to Gender enum
     let mappedGender: Gender = Gender.NOT_SPECIFIED;
@@ -50,15 +48,54 @@ export async function POST(req: Request) {
       mappedGender = Gender.FEMALE;
     }
 
-    const taxIdMatch = typeof notes === "string" ? notes.match(/Codice Fiscale:\s*([A-Z0-9]{16})/i) : null;
-    const taxId = taxIdMatch?.[1]?.toUpperCase() ?? null;
+    // Server-side re-check so skipped/stale client lookup cannot create a second row.
+    // Token apps (ScanID) only require patientId + 2xx — action may be "created" or "updated".
+    const existing = await findExistingPatientForCreate({
+      firstName,
+      lastName,
+      email,
+      phone,
+      birthDate: parsedBirthDate,
+      taxId,
+    });
+
+    if (existing) {
+      const mergeResult = await mergeMissingPatientFieldsFromMacosScan(existing.patientId, {
+        birthDate: body.birthDate ?? null,
+        gender: body.gender ?? null,
+        codiceFiscale: taxId,
+        email,
+        phone,
+      });
+
+      if (mergeResult.updatedFields.length > 0) {
+        await logMacosScanAudit({
+          action: "patient.updated",
+          patientId: mergeResult.patientId,
+          metadata: {
+            patientName: `${lastName} ${firstName}`,
+            matchKind: existing.matchKind,
+            updatedFields: mergeResult.updatedFields,
+            source: "create_dedup",
+          },
+        });
+      }
+
+      return NextResponse.json({
+        ok: true,
+        action: "updated",
+        patientId: mergeResult.patientId,
+        matchKind: existing.matchKind,
+        updatedFields: mergeResult.updatedFields,
+      });
+    }
 
     const patient = await prisma.patient.create({
       data: {
         firstName,
         lastName,
-        email: email || null,
-        phone: phone || null,
+        email,
+        phone,
         birthDate: parsedBirthDate,
         gender: mappedGender,
         notes: withPaperConsentNote(notes, hasPaperConsentForRequired),

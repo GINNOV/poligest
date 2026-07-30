@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => {
   const sharp = vi.fn();
   const sendPatientWelcomeEmail = vi.fn();
   const resolveStoredPatientPhotoUrl = vi.fn();
+  const findExistingPatientForCreate = vi.fn();
 
   return {
     requireUser,
@@ -43,6 +44,7 @@ const mocks = vi.hoisted(() => {
     sharp,
     sendPatientWelcomeEmail,
     resolveStoredPatientPhotoUrl,
+    findExistingPatientForCreate,
   };
 });
 
@@ -91,6 +93,12 @@ vi.mock("@/lib/patient-avatars", () => ({
   resolveStoredPatientPhotoUrl: mocks.resolveStoredPatientPhotoUrl,
 }));
 
+vi.mock("@/lib/patients/find-existing-patient", () => ({
+  findExistingPatientForCreate: mocks.findExistingPatientForCreate,
+  formatExistingPatientBlockMessage: (match: { matchKind: string; firstName?: string | null; lastName?: string | null }) =>
+    `Esiste già un paziente (${match.matchKind}): ${match.lastName ?? ""} ${match.firstName ?? ""}`.trim(),
+}));
+
 import { createPatient } from "@/app/[locale]/(app)/pazienti/actions";
 import { addImplantAssociationAction, updateImplantAssociationAction } from "@/lib/patients/actions";
 
@@ -100,6 +108,7 @@ describe("createPatient", () => {
 
     mocks.requireUser.mockResolvedValue({ id: "staff-1", role: Role.ADMIN });
     mocks.logAudit.mockResolvedValue(undefined);
+    mocks.findExistingPatientForCreate.mockResolvedValue(null);
     mocks.prisma.patient.create.mockResolvedValue({
       id: "patient-1",
       firstName: "Maria",
@@ -283,6 +292,26 @@ describe("createPatient", () => {
     await expect(createPatient(formData)).rejects.toThrow(
       "NEXT_REDIRECT:/pazienti?patientCreated=Paziente%20Maria%20Rossi%3A%20cartella%20e'%20stata%20creata.",
     );
+  });
+
+  it("blocks create when a matching patient already exists", async () => {
+    mocks.prisma.consentModule.findMany.mockResolvedValue([]);
+    mocks.findExistingPatientForCreate.mockResolvedValue({
+      patientId: "existing-1",
+      matchKind: "phone",
+      firstName: "Mario",
+      lastName: "Rossi",
+      phone: "+393331234567",
+    });
+
+    const formData = new FormData();
+    formData.set("firstName", "Mario");
+    formData.set("lastName", "Rossi");
+    formData.set("phone", "3331234567");
+    formData.set("hasPaperConsentForRequired", "on");
+
+    await expect(createPatient(formData)).rejects.toThrow(/Esiste già un paziente/);
+    expect(mocks.prisma.patient.create).not.toHaveBeenCalled();
   });
 });
 

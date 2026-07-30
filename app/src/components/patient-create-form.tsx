@@ -55,6 +55,7 @@ export function PatientCreateForm({
       const birthDate = formData.get("birthDate") as string;
       const phone = formData.get("phone") as string;
       const email = formData.get("email") as string;
+      const taxId = formData.get("taxId") as string;
 
       if (!firstName || !lastName) {
         return null;
@@ -66,6 +67,7 @@ export function PatientCreateForm({
       if (birthDate) params.set("birthDate", birthDate);
       if (phone) params.set("phone", phone);
       if (email) params.set("email", email);
+      if (taxId) params.set("taxId", taxId);
 
       const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
       const data = await res.json();

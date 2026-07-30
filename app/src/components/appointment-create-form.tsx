@@ -183,8 +183,9 @@ export function AppointmentCreateForm({
       const birthDate = formData.get("newBirthDate") as string;
       const phone = formData.get("newPhone") as string;
       const email = formData.get("newEmail") as string;
+      const taxId = formData.get("newTaxId") as string;
 
-      if (firstName && lastName && (birthDate || phone || email)) {
+      if (firstName && lastName && (birthDate || phone || email || taxId)) {
         try {
           const params = new URLSearchParams();
           params.set("firstName", firstName);
@@ -192,6 +193,7 @@ export function AppointmentCreateForm({
           if (birthDate) params.set("birthDate", birthDate);
           if (phone) params.set("phone", phone);
           if (email) params.set("email", email);
+          if (taxId) params.set("taxId", taxId);
 
           const res = await fetch(`/api/patients/check-duplicate?${params.toString()}`);
           const data = await res.json();
