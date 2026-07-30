@@ -4,6 +4,7 @@ import {
   pickPatientToKeep,
   type PatientAttachmentCounts,
 } from "@/lib/patients/duplicate-cleanup";
+import { EMPTY_ATTACHMENT_COUNTS } from "@/lib/patients/duplicate-attachments";
 import type { DuplicatePatientRecord } from "@/lib/patients/duplicate-detection";
 
 const basePatient = (
@@ -37,11 +38,28 @@ describe("pickPatientToKeep", () => {
       }),
     ];
     const counts = new Map<string, PatientAttachmentCounts>([
-      ["complete", { paymentCount: 0, dentalRecordCount: 0 }],
-      ["with-data", { paymentCount: 2, dentalRecordCount: 1 }],
+      ["complete", { ...EMPTY_ATTACHMENT_COUNTS }],
+      ["with-data", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 2, dentalRecordCount: 1 }],
     ]);
 
     expect(pickPatientToKeep(patients, counts).patientId).toBe("with-data");
+  });
+
+  it("keeps the patient with any full attachment score", () => {
+    const patients = [
+      basePatient("shell"),
+      basePatient("with-appointments", {
+        createdAt: new Date("2026-01-02T10:00:00.000Z"),
+      }),
+    ];
+    const counts = new Map<string, PatientAttachmentCounts>([
+      ["shell", { ...EMPTY_ATTACHMENT_COUNTS }],
+      ["with-appointments", { ...EMPTY_ATTACHMENT_COUNTS, appointmentCount: 3 }],
+    ]);
+
+    const result = pickPatientToKeep(patients, counts);
+    expect(result.patientId).toBe("with-appointments");
+    expect(result.reason).toContain("appuntamenti");
   });
 
   it("keeps the most complete record when none have linked data", () => {
@@ -73,8 +91,8 @@ describe("buildDuplicateCleanupPlan", () => {
         },
       ],
       new Map([
-        ["keep", { paymentCount: 1, dentalRecordCount: 0 }],
-        ["delete", { paymentCount: 0, dentalRecordCount: 0 }],
+        ["keep", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 1 }],
+        ["delete", { ...EMPTY_ATTACHMENT_COUNTS }],
       ]),
     );
 
