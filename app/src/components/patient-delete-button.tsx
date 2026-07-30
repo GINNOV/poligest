@@ -10,10 +10,12 @@ export function PatientDeleteButton({
   patientId,
   role,
   redirectTo = "/pazienti",
+  label = "Elimina",
 }: {
   patientId: string;
   role?: string;
   redirectTo?: string | null;
+  label?: string;
 }) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,11 +88,15 @@ export function PatientDeleteButton({
     <>
       <button
         type="button"
-        onClick={() => setShowConfirm(true)}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setShowConfirm(true);
+        }}
         disabled={isSubmitting}
-        className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+        className="rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-800 disabled:pointer-events-none disabled:opacity-70 dark:border-rose-900/50 dark:bg-zinc-950 dark:text-rose-400 dark:hover:bg-rose-950/30"
       >
-        Elimina
+        {label}
       </button>
       {showConfirm ? (
       <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">

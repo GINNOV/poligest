@@ -393,6 +393,13 @@ export default async function PatientDetailPage({
                     <path d="M2 15h4" />
                   </svg>
                 </PrintLinkButton>
+                {isAdmin ? (
+                  <PatientDeleteButton
+                    patientId={patient.id}
+                    role={user.role}
+                    label="Elimina paziente"
+                  />
+                ) : null}
                 <svg
                   className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180"
                   viewBox="0 0 24 24"
