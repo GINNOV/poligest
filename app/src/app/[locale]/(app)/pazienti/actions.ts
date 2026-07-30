@@ -55,7 +55,8 @@ export async function createPatient(formData: FormData) {
   const phone = normalizeItalianPhone((formData.get("phone") as string) ?? null);
   const address = (formData.get("address") as string)?.trim() || null;
   const city = (formData.get("city") as string)?.trim() || null;
-  const taxId = (formData.get("taxId") as string)?.trim() || null;
+  const taxIdRaw = (formData.get("taxId") as string)?.trim() || null;
+  const taxId = taxIdRaw ? taxIdRaw.toLocaleUpperCase("it") : null;
   const genderRaw = (formData.get("gender") as string) || Gender.NOT_SPECIFIED;
   const gender = Object.values(Gender).includes(genderRaw as Gender)
     ? (genderRaw as Gender)
@@ -222,6 +223,7 @@ export async function createPatient(formData: FormData) {
       phone,
       birthDate,
       gender,
+      taxId,
       notes: structuredNotesText || null,
       hasPaperConsentForRequired,
     },

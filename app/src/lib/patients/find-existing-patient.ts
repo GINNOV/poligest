@@ -77,6 +77,28 @@ export async function findExistingPatientForCreate(
   const birthDate = isValidDate(input.birthDate) ? input.birthDate : null;
 
   if (taxId) {
+    // Prefer first-class column (unique when set).
+    const byColumn = await prisma.patient.findFirst({
+      where: { taxId: { equals: taxId, mode: "insensitive" } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (byColumn) {
+      return {
+        patientId: byColumn.id,
+        matchKind: "taxId",
+        firstName: byColumn.firstName,
+        lastName: byColumn.lastName,
+        phone: byColumn.phone,
+      };
+    }
+
+    // Fallback: CF still only in notes for unmigrated rows.
     const candidates = await prisma.patient.findMany({
       where: {
         notes: {

@@ -306,12 +306,27 @@ export async function importStockFromCSV(formData: FormData) {
             { firstName: { equals: lastName, mode: "insensitive" }, lastName: { equals: firstName, mode: "insensitive" } },
           ],
         },
+        orderBy: { createdAt: "asc" },
       });
+      // Prefer existing scheda; never create a second row for the same exact name in import.
       if (!patient) {
         patient = await prisma.patient.create({ data: { firstName, lastName } });
       }
     } else {
-      patient = await prisma.patient.create({ data: { firstName: normalizedFullName, lastName: "" } });
+      // Single-token names: reuse oldest match if any, otherwise create once.
+      patient = await prisma.patient.findFirst({
+        where: {
+          OR: [
+            { firstName: { equals: normalizedFullName, mode: "insensitive" }, lastName: "" },
+            { firstName: { equals: normalizedFullName, mode: "insensitive" }, lastName: { equals: "", mode: "insensitive" } },
+            { lastName: { equals: normalizedFullName, mode: "insensitive" }, firstName: "" },
+          ],
+        },
+        orderBy: { createdAt: "asc" },
+      });
+      if (!patient) {
+        patient = await prisma.patient.create({ data: { firstName: normalizedFullName, lastName: "" } });
+      }
     }
 
     let supplier = null;

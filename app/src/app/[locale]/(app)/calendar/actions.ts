@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { normalizePersonName } from "@/lib/name";
+import { parseOptionalBirthDate } from "@/lib/date";
 import { findExistingPatientForCreate } from "@/lib/patients/find-existing-patient";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { parseDateTimeLocalInTimeZone } from "@/lib/time-zone";
@@ -49,32 +50,50 @@ async function resolvePatientIdForAppointment(params: {
   newFirstName?: string | null;
   newLastName?: string | null;
   newPhone?: string | null;
+  newBirthDate?: Date | null;
+  newTaxId?: string | null;
   actor: { id: string; role: Role };
 }) {
-  const { selectedPatientId, newEmail, newFirstName, newLastName, newPhone, actor } = params;
+  const {
+    selectedPatientId,
+    newEmail,
+    newFirstName,
+    newLastName,
+    newPhone,
+    newBirthDate,
+    newTaxId,
+    actor,
+  } = params;
   const normalizedEmail = newEmail?.trim().toLowerCase() || null;
   const normalizedFirstName = normalizePersonName(newFirstName ?? "");
   const normalizedLastName = normalizePersonName(newLastName ?? "");
   const normalizedPhone = normalizeItalianPhone(newPhone);
+  const normalizedTaxId = newTaxId?.trim().toLocaleUpperCase("it") || null;
 
   if (selectedPatientId === "new") {
-    // Reuse an existing scheda when strong identity signals match (email/phone/name).
+    // Reuse an existing scheda when strong identity signals match (CF/email/phone/name+DOB).
     const existingMatch = await findExistingPatientForCreate({
       firstName: normalizedFirstName,
       lastName: normalizedLastName,
       email: normalizedEmail,
       phone: normalizedPhone,
+      birthDate: newBirthDate ?? null,
+      taxId: normalizedTaxId,
     });
     if (existingMatch) {
       return existingMatch.patientId;
     }
 
+    const notes = normalizedTaxId ? `Codice Fiscale: ${normalizedTaxId}` : null;
     const patient = await prisma.patient.create({
       data: {
         firstName: normalizedFirstName,
         lastName: normalizedLastName,
         phone: normalizedPhone,
         email: normalizedEmail,
+        birthDate: newBirthDate ?? null,
+        taxId: normalizedTaxId,
+        notes,
       },
     });
 
@@ -146,6 +165,13 @@ export async function createAppointment(formData: FormData) {
     const newFirstName = (formData.get("newFirstName") as string | null)?.trim() || null;
     const newLastName = (formData.get("newLastName") as string | null)?.trim() || null;
     const newPhone = normalizeItalianPhone((formData.get("newPhone") as string | null) ?? null);
+    const newTaxId = (formData.get("newTaxId") as string | null)?.trim().toLocaleUpperCase("it") || null;
+    let newBirthDate: Date | null = null;
+    try {
+      newBirthDate = parseOptionalBirthDate(formData.get("newBirthDate"));
+    } catch {
+      newBirthDate = null;
+    }
 
     if (!title || !serviceType || !startsAt || !endsAtDate || !patientIdRaw) {
       throw new Error("Compila titolo, servizio, orari e paziente.");
@@ -177,6 +203,8 @@ export async function createAppointment(formData: FormData) {
       newFirstName,
       newLastName,
       newPhone,
+      newBirthDate,
+      newTaxId,
       actor: user,
     });
 

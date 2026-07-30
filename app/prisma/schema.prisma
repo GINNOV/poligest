@@ -432,10 +432,11 @@ model RecurringMessageConfig {
 }
 
 model PracticeSetting {
-  id        String   @id @default("default")
-  timeZone  String   @default("Europe/Rome")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String   @id @default("default")
+  timeZone                 String   @default("Europe/Rome")
+  autoMergeEmptyDuplicates Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 }
 
 model RecurringMessageLog {
@@ -464,6 +465,8 @@ model Patient {
   phone     String?
   gender    Gender    @default(NOT_SPECIFIED)
   birthDate DateTime?
+  /// Codice fiscale normalizzato (uppercase). Unique when set; also mirrored into notes for display.
+  taxId     String?
   notes     String?
   photoUrl  String?
   hasPaperConsentForRequired Boolean @default(false)
@@ -483,6 +486,9 @@ model Patient {
   quotes         Quote[]
   patientPayments PatientPayment[]
   financeEntries  FinanceEntry[]
+
+  @@unique([taxId])
+  @@index([taxId])
 }
 
 model ConsentModule {

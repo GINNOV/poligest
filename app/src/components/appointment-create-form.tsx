@@ -487,6 +487,16 @@ export function AppointmentCreateForm({
               required
             />
           </label>
+          <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+            <span className="font-bold">Codice fiscale (consigliato)</span>
+            <input
+              name="newTaxId"
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+              placeholder="RSSMRA80A01H501U"
+              maxLength={16}
+              autoComplete="off"
+            />
+          </label>
           <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200 sm:col-span-2">
             <span className="font-bold">Email (facoltativa, consigliata per l&apos;accesso)</span>
             <input

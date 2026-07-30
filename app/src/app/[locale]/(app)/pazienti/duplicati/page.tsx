@@ -11,8 +11,22 @@ import {
   findPotentialPatientDuplicates,
   formatDuplicateSignalValue,
 } from "@/lib/patients/duplicate-detection";
+import {
+  isPatientEmptyShell,
+  loadFullAttachmentCounts,
+} from "@/lib/patients/duplicate-attachments";
+import {
+  buildFieldFillPlan,
+  classifyDuplicateGroup,
+  type MergePatientSnapshot,
+} from "@/lib/patients/duplicate-merge-plan";
+import { parsePatientStructuredNotes } from "@/lib/patients/page-data-domain";
+import { getAutoMergeEmptyDuplicates } from "@/lib/practice-settings";
 import { DuplicateLegendHelpTooltip } from "@/components/duplicate-legend-help-tooltip";
 import { PatientDuplicateResolveButton } from "@/components/patient-duplicate-resolve-button";
+import { PatientDuplicateMergeButton } from "@/components/patient-duplicate-merge-button";
+import { PatientDuplicateBulkMergeButton } from "@/components/patient-duplicate-bulk-merge-button";
+import { AutoMergeDuplicatesSetting } from "@/components/auto-merge-duplicates-setting";
 import { PatientDeleteButton } from "@/components/patient-delete-button";
 import { isValidDate } from "@/lib/date";
 import { formatDateInDisplayTimeZone } from "@/lib/user-display-time-zone";
@@ -104,10 +118,27 @@ function getStatusBadge(status: PatientDuplicateStatus) {
 type PatientAttachmentFlags = {
   hasPayments: boolean;
   hasDentalRecords: boolean;
+  isEmptyShell: boolean;
 };
 
 function getAttachmentBadges(flags: PatientAttachmentFlags) {
   const badges: Array<{ key: string; label: string; className: string }> = [];
+
+  if (flags.isEmptyShell) {
+    badges.push({
+      key: "empty",
+      label: "Vuota",
+      className:
+        "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300",
+    });
+  } else {
+    badges.push({
+      key: "has-data",
+      label: "Ha dati",
+      className:
+        "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200",
+    });
+  }
 
   if (flags.hasPayments) {
     badges.push({
@@ -171,11 +202,16 @@ export default async function PazientiDuplicatiPage({
       email: true,
       phone: true,
       birthDate: true,
+      gender: true,
       notes: true,
+      taxId: true,
+      photoUrl: true,
+      hasPaperConsentForRequired: true,
       createdAt: true,
     },
   });
 
+  const patientById = new Map(patients.map((patient) => [patient.id, patient]));
   const allGroups = findPotentialPatientDuplicates(patients);
   const groups = filterPotentialDuplicateGroups(allGroups, searchQuery);
   const duplicatePatientIds = Array.from(
@@ -187,19 +223,15 @@ export default async function PazientiDuplicatiPage({
   const attachmentFlagsByPatientId = new Map<string, PatientAttachmentFlags>();
   const createdInfoByPatientId = new Map<string, PatientCreationInfo>();
   let displayTimeZone = "Europe/Rome";
+  const fullCounts = await loadFullAttachmentCounts(duplicatePatientIds);
+  const classifications = groups.map((group) => classifyDuplicateGroup(group, fullCounts));
+  const classificationByGroupId = new Map(classifications.map((item) => [item.groupId, item]));
+  const safeGroupCount = classifications.filter((item) => item.safe).length;
+  const autoEligibleCount = classifications.filter((item) => item.autoEligible).length;
+  const autoMergeEnabled = user.role === Role.ADMIN ? await getAutoMergeEmptyDuplicates() : false;
 
   if (duplicatePatientIds.length > 0) {
-    const [paymentGroups, dentalRecordGroups, createdLogs, resolvedDisplayTimeZone] = await Promise.all([
-      prisma.patientPayment.groupBy({
-        by: ["patientId"],
-        where: { patientId: { in: duplicatePatientIds } },
-        _count: { _all: true },
-      }),
-      prisma.dentalRecord.groupBy({
-        by: ["patientId"],
-        where: { patientId: { in: duplicatePatientIds } },
-        _count: { _all: true },
-      }),
+    const [createdLogs, resolvedDisplayTimeZone] = await Promise.all([
       prisma.auditLog.findMany({
         where: {
           action: "patient.created",
@@ -220,24 +252,12 @@ export default async function PazientiDuplicatiPage({
     displayTimeZone = resolvedDisplayTimeZone;
 
     for (const patientId of duplicatePatientIds) {
+      const counts = fullCounts.get(patientId);
       attachmentFlagsByPatientId.set(patientId, {
-        hasPayments: false,
-        hasDentalRecords: false,
+        hasPayments: Boolean(counts && counts.paymentCount > 0),
+        hasDentalRecords: Boolean(counts && counts.dentalRecordCount > 0),
+        isEmptyShell: counts ? isPatientEmptyShell(counts) : true,
       });
-    }
-
-    for (const group of paymentGroups) {
-      const flags = attachmentFlagsByPatientId.get(group.patientId);
-      if (flags) {
-        flags.hasPayments = group._count._all > 0;
-      }
-    }
-
-    for (const group of dentalRecordGroups) {
-      const flags = attachmentFlagsByPatientId.get(group.patientId);
-      if (flags) {
-        flags.hasDentalRecords = group._count._all > 0;
-      }
     }
 
     for (const log of createdLogs) {
@@ -247,6 +267,26 @@ export default async function PazientiDuplicatiPage({
         createdBy: formatAuditActor(log),
       });
     }
+  }
+
+  function toMergeSnapshot(patientId: string): MergePatientSnapshot | null {
+    const patient = patientById.get(patientId);
+    if (!patient) return null;
+    const parsedTaxId = parsePatientStructuredNotes(patient.notes).parsedTaxId;
+    return {
+      id: patient.id,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      email: patient.email,
+      phone: patient.phone,
+      birthDate: patient.birthDate,
+      gender: patient.gender,
+      notes: patient.notes,
+      photoUrl: patient.photoUrl,
+      hasPaperConsentForRequired: patient.hasPaperConsentForRequired,
+      taxId: patient.taxId || parsedTaxId || null,
+      createdAt: patient.createdAt,
+    };
   }
 
   return (
@@ -264,8 +304,24 @@ export default async function PazientiDuplicatiPage({
             {groups.length} {hasSearch ? `di ${allGroups.length}` : ""} gruppi trovati
           </div>
           <div>{totalPatients} pazienti coinvolti</div>
+          <div className="mt-1 text-xs">
+            {safeGroupCount} unioni sicure · {autoEligibleCount} auto-unibili
+          </div>
         </div>
       </div>
+
+      {user.role === Role.ADMIN ? (
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="flex flex-col gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+            <p className="text-sm text-emerald-950 dark:text-emerald-100">
+              Unisci in un colpo solo i gruppi in cui solo una scheda ha dati collegati e le altre
+              sono vuote.
+            </p>
+            <PatientDuplicateBulkMergeButton safeGroupCount={safeGroupCount} />
+          </div>
+          <AutoMergeDuplicatesSetting enabled={autoMergeEnabled} />
+        </div>
+      ) : null}
 
       <section className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 sm:p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
         <form action="/pazienti/duplicati" method="get" className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -315,22 +371,26 @@ export default async function PazientiDuplicatiPage({
         <span aria-hidden className="text-zinc-300 dark:text-zinc-600">
           |
         </span>
-        {getAttachmentBadges({ hasPayments: true, hasDentalRecords: false }).map((badge) => (
-          <span
-            key={badge.key}
-            className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
-          >
-            Pagamenti
-          </span>
-        ))}
-        {getAttachmentBadges({ hasPayments: false, hasDentalRecords: true }).map((badge) => (
-          <span
-            key={badge.key}
-            className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
-          >
-            Cartella clinica
-          </span>
-        ))}
+        {getAttachmentBadges({ hasPayments: false, hasDentalRecords: false, isEmptyShell: true })
+          .filter((badge) => badge.key === "empty")
+          .map((badge) => (
+            <span
+              key={badge.key}
+              className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
+            >
+              Vuota
+            </span>
+          ))}
+        {getAttachmentBadges({ hasPayments: true, hasDentalRecords: false, isEmptyShell: false })
+          .filter((badge) => badge.key !== "empty")
+          .map((badge) => (
+            <span
+              key={badge.key}
+              className={`rounded-full border px-2.5 py-1 font-semibold ${badge.className}`}
+            >
+              {badge.label}
+            </span>
+          ))}
       </div>
 
       {groups.length === 0 ? (
@@ -341,7 +401,22 @@ export default async function PazientiDuplicatiPage({
         </section>
       ) : (
         <div className="space-y-4">
-          {groups.map((group, index) => (
+          {groups.map((group, index) => {
+            const classification = classificationByGroupId.get(group.id);
+            const keepPatientId = classification?.keepPatientId;
+            const filledPreview =
+              classification?.safe && keepPatientId
+                ? (() => {
+                    const keeper = toMergeSnapshot(keepPatientId);
+                    const losers = classification.deletePatientIds
+                      .map((id) => toMergeSnapshot(id))
+                      .filter((item): item is MergePatientSnapshot => Boolean(item));
+                    if (!keeper) return [] as string[];
+                    return buildFieldFillPlan(keeper, losers).filledFields;
+                  })()
+                : [];
+
+            return (
             <section
               key={group.id}
               className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
@@ -354,6 +429,22 @@ export default async function PazientiDuplicatiPage({
                   <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
                     {group.patients.length} schede da verificare
                   </h2>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {classification?.safe ? (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+                        Unione sicura
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
+                        Da rivedere
+                      </span>
+                    )}
+                    {classification?.autoEligible ? (
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/30 dark:text-sky-200">
+                        Auto-unibile
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {group.matchSignals.map((signal) => (
@@ -377,6 +468,7 @@ export default async function PazientiDuplicatiPage({
                     attachmentFlagsByPatientId.get(patient.id) ?? {
                       hasPayments: false,
                       hasDentalRecords: false,
+                      isEmptyShell: true,
                     };
                   const attachmentBadges = getAttachmentBadges(attachmentFlags);
                   const createdInfo = createdInfoByPatientId.get(patient.id);
@@ -385,6 +477,7 @@ export default async function PazientiDuplicatiPage({
                     displayTimeZone,
                   );
                   const createdByLabel = createdInfo?.createdBy ?? "Origine non tracciata";
+                  const isSuggestedKeeper = keepPatientId === patient.id;
 
                   return (
                     <div
@@ -397,6 +490,11 @@ export default async function PazientiDuplicatiPage({
                           <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                             ID {patient.id}
                           </p>
+                          {isSuggestedKeeper ? (
+                            <span className="mt-2 inline-flex rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+                              Consigliata da mantenere
+                            </span>
+                          ) : null}
                           {attachmentBadges.length > 0 ? (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {attachmentBadges.map((badge) => (
@@ -411,7 +509,18 @@ export default async function PazientiDuplicatiPage({
                           ) : null}
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          {status === "complete" && user.role === Role.ADMIN ? (
+                          {classification?.safe &&
+                          isSuggestedKeeper &&
+                          user.role === Role.ADMIN ? (
+                            <PatientDuplicateMergeButton
+                              keepPatientId={patient.id}
+                              deletePatientIds={classification.deletePatientIds}
+                              filledFieldsPreview={filledPreview}
+                            />
+                          ) : null}
+                          {!classification?.safe &&
+                          status === "complete" &&
+                          user.role === Role.ADMIN ? (
                             <PatientDuplicateResolveButton
                               keepPatientId={patient.id}
                               duplicatePatientIds={group.patients
@@ -419,7 +528,9 @@ export default async function PazientiDuplicatiPage({
                                 .filter((groupPatientId) => groupPatientId !== patient.id)}
                             />
                           ) : null}
-                          {status !== "complete" && user.role === Role.ADMIN ? (
+                          {status !== "complete" &&
+                          !classification?.safe &&
+                          user.role === Role.ADMIN ? (
                             <PatientDeleteButton patientId={patient.id} role={user.role} redirectTo={null} />
                           ) : null}
                           <Link
@@ -484,7 +595,8 @@ export default async function PazientiDuplicatiPage({
                 })}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

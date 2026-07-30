@@ -98,6 +98,7 @@ export async function POST(req: Request) {
         phone,
         birthDate: parsedBirthDate,
         gender: mappedGender,
+        taxId,
         notes: withPaperConsentNote(notes, hasPaperConsentForRequired),
         hasPaperConsentForRequired,
       },

@@ -67,3 +67,58 @@ export async function savePracticeTimeZone(timeZone: string) {
 
   return normalized;
 }
+
+export async function getAutoMergeEmptyDuplicates(): Promise<boolean> {
+  const practiceSettingClient = getOptionalPrismaModel<{
+    findUnique?: (args: {
+      where: { id: string };
+      select: { autoMergeEmptyDuplicates: true };
+    }) => Promise<{ autoMergeEmptyDuplicates: boolean } | null>;
+  }>("practiceSetting");
+
+  const result = await runOptionalPrismaQuery(
+    practiceSettingClient?.findUnique
+      ? () =>
+          practiceSettingClient.findUnique!({
+            where: { id: PRACTICE_SETTINGS_ID },
+            select: { autoMergeEmptyDuplicates: true },
+          })
+      : undefined,
+    null,
+  );
+
+  return Boolean(result.value?.autoMergeEmptyDuplicates);
+}
+
+export async function saveAutoMergeEmptyDuplicates(enabled: boolean): Promise<boolean> {
+  const practiceSettingClient = getOptionalPrismaModel<{
+    upsert?: (args: {
+      where: { id: string };
+      create: { id: string; autoMergeEmptyDuplicates: boolean };
+      update: { autoMergeEmptyDuplicates: boolean };
+    }) => Promise<unknown>;
+  }>("practiceSetting");
+
+  if (!practiceSettingClient?.upsert) {
+    return enabled;
+  }
+
+  try {
+    await practiceSettingClient.upsert({
+      where: { id: PRACTICE_SETTINGS_ID },
+      create: {
+        id: PRACTICE_SETTINGS_ID,
+        autoMergeEmptyDuplicates: enabled,
+      },
+      update: {
+        autoMergeEmptyDuplicates: enabled,
+      },
+    });
+  } catch (error) {
+    if (!isMissingPrismaModelError(error)) {
+      throw error;
+    }
+  }
+
+  return enabled;
+}

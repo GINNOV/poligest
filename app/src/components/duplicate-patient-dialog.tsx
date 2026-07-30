@@ -12,14 +12,11 @@ type DuplicatePatient = {
 type Props = {
   patient: DuplicatePatient;
   onClose: () => void;
-  onProceed: () => void;
+  /** @deprecated Kept for call-site compatibility; proceed is no longer offered. */
+  onProceed?: () => void;
 };
 
-export function DuplicatePatientDialog({
-  patient,
-  onClose,
-  onProceed,
-}: Props) {
+export function DuplicatePatientDialog({ patient, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
@@ -34,21 +31,14 @@ export function DuplicatePatientDialog({
           <h3 className="text-lg font-bold">Paziente già esistente</h3>
         </div>
         <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
-          Esiste già un paziente con questo nome o numero di telefono:{" "}
+          Esiste già una scheda con questi dati:{" "}
           <span className="font-bold text-zinc-900 dark:text-zinc-50">
             {patient.lastName} {patient.firstName}
             {patient.phone ? ` (${patient.phone})` : ""}
           </span>
-          . Vuoi procedere comunque o visualizzare la sua scheda?
+          . Non è possibile creare un duplicato: apri la scheda esistente o correggi i dati inseriti.
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={onProceed}
-            className="h-10 rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
-          >
-            Procedi comunque
-          </button>
+        <div className="grid grid-cols-1 gap-3">
           <Link
             href={`/pazienti/${patient.id}`}
             className="flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-600"
@@ -58,7 +48,7 @@ export function DuplicatePatientDialog({
           <button
             type="button"
             onClick={onClose}
-            className="sm:col-span-2 text-center text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            className="h-10 rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           >
             Annulla e correggi
           </button>

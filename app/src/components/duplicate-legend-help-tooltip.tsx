@@ -4,7 +4,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const HELP_TEXT = [
   "La ricerca segnala gruppi che condividono codice fiscale, nome con data di nascita, oppure la stessa email o telefono solo se anche nome e cognome coincidono.",
-  "Apri le schede del gruppo, scegli quella piu completa come riferimento, trasferisci eventuali dati mancanti e poi valuta se tenere una sola scheda operativa per evitare errori su agenda, richiami e consensi.",
+  "Per i gruppi sicuri (solo una scheda ha dati collegati, le altre sono vuote) l'admin puo unire con un click: i campi mancanti vengono copiati sulla scheda consigliata e le schede vuote eliminate.",
+  "L'auto-unione notturna (se attivata) unisce solo i gruppi sicuri con segnale forte, ad esempio stesso codice fiscale.",
 ] as const;
 
 export function DuplicateLegendHelpTooltip() {

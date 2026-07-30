@@ -1,54 +1,10 @@
 import { prisma } from "../src/lib/prisma";
-import { logAudit } from "../src/lib/audit";
 import { findPotentialPatientDuplicates } from "../src/lib/patients/duplicate-detection";
-import {
-  buildDuplicateCleanupPlan,
-  type PatientAttachmentCounts,
-} from "../src/lib/patients/duplicate-cleanup";
-import { deletePatientWithRelations } from "../src/lib/patients/delete-patient";
+import { loadFullAttachmentCounts } from "../src/lib/patients/duplicate-attachments";
+import { classifyDuplicateGroup } from "../src/lib/patients/duplicate-merge-plan";
+import { mergeEmptyDuplicateShells } from "../src/lib/patients/duplicate-merge";
 
 const execute = process.argv.includes("--execute");
-
-async function loadAttachmentCounts(patientIds: string[]) {
-  const counts = new Map<string, PatientAttachmentCounts>();
-
-  for (const patientId of patientIds) {
-    counts.set(patientId, { paymentCount: 0, dentalRecordCount: 0 });
-  }
-
-  if (patientIds.length === 0) {
-    return counts;
-  }
-
-  const [paymentGroups, dentalRecordGroups] = await Promise.all([
-    prisma.patientPayment.groupBy({
-      by: ["patientId"],
-      where: { patientId: { in: patientIds } },
-      _count: { _all: true },
-    }),
-    prisma.dentalRecord.groupBy({
-      by: ["patientId"],
-      where: { patientId: { in: patientIds } },
-      _count: { _all: true },
-    }),
-  ]);
-
-  for (const group of paymentGroups) {
-    const entry = counts.get(group.patientId);
-    if (entry) {
-      entry.paymentCount = group._count._all;
-    }
-  }
-
-  for (const group of dentalRecordGroups) {
-    const entry = counts.get(group.patientId);
-    if (entry) {
-      entry.dentalRecordCount = group._count._all;
-    }
-  }
-
-  return counts;
-}
 
 async function main() {
   const patients = await prisma.patient.findMany({
@@ -60,6 +16,7 @@ async function main() {
       phone: true,
       birthDate: true,
       notes: true,
+      taxId: true,
       createdAt: true,
     },
   });
@@ -68,75 +25,60 @@ async function main() {
   const duplicatePatientIds = Array.from(
     new Set(groups.flatMap((group) => group.patients.map((patient) => patient.id))),
   );
-  const attachmentCountsByPatientId = await loadAttachmentCounts(duplicatePatientIds);
-  const plan = buildDuplicateCleanupPlan(groups, attachmentCountsByPatientId);
+  const counts = await loadFullAttachmentCounts(duplicatePatientIds);
 
-  if (plan.length === 0) {
-    console.log("No duplicate groups found. Nothing to clean up.");
+  const safeActions = groups
+    .map((group) => classifyDuplicateGroup(group, counts))
+    .filter((classification) => classification.safe);
+
+  const skipped = groups.length - safeActions.length;
+
+  if (safeActions.length === 0) {
+    console.log(
+      skipped > 0
+        ? `No safe empty-shell merge groups (${skipped} unsafe groups require manual review).`
+        : "No duplicate groups found. Nothing to clean up.",
+    );
     return;
   }
 
-  const totalDeletes = plan.reduce((sum, action) => sum + action.deletePatientIds.length, 0);
+  const totalDeletes = safeActions.reduce((sum, action) => sum + action.deletePatientIds.length, 0);
 
   console.log(
     execute
-      ? `Executing duplicate cleanup for ${plan.length} groups (${totalDeletes} deletions)...`
-      : `Dry run: ${plan.length} duplicate groups, ${totalDeletes} records would be deleted.`,
+      ? `Merging ${safeActions.length} safe groups (${totalDeletes} empty shells)...`
+      : `Dry run: ${safeActions.length} safe groups, ${totalDeletes} empty shells would be merged/deleted (${skipped} unsafe skipped).`,
   );
 
-  for (const action of plan) {
+  for (const action of safeActions) {
     console.log(
-      `- Group ${action.groupId}: keep ${action.keepPatientId}, delete [${action.deletePatientIds.join(", ")}] (${action.reason})`,
+      `- Group ${action.groupId}: keep ${action.keepPatientId}, delete empty [${action.deletePatientIds.join(", ")}] (${action.reason})${action.autoEligible ? " [auto-eligible]" : ""}`,
     );
   }
 
   if (!execute) {
-    console.log("Re-run with --execute to apply these deletions.");
+    console.log("Re-run with --execute to apply empty-shell merges only.");
     return;
   }
 
-  for (const action of plan) {
-    await prisma.$transaction(async (tx) => {
-      for (const patientId of action.deletePatientIds) {
-        await deletePatientWithRelations(patientId, tx);
-      }
+  let merged = 0;
+  let deleted = 0;
+  for (const action of safeActions) {
+    const result = await mergeEmptyDuplicateShells({
+      keepPatientId: action.keepPatientId,
+      deletePatientIds: action.deletePatientIds,
+      actor: null,
+      trigger: "bulk",
     });
-
-    await logAudit(null, {
-      action: "patient.duplicates_resolved",
-      entity: "Patient",
-      entityId: action.keepPatientId,
-      metadata: {
-        keptPatientId: action.keepPatientId,
-        deletedPatientIds: action.deletePatientIds,
-        reason: "duplicate_cleanup_script",
-        selectionReason: action.reason,
-      },
-    });
-
-    for (const patientId of action.deletePatientIds) {
-      await logAudit(null, {
-        action: "patient.deleted",
-        entity: "Patient",
-        entityId: patientId,
-        metadata: {
-          keptPatientId: action.keepPatientId,
-          reason: "duplicate_cleanup_script",
-        },
-      });
-      await logAudit(null, {
-        action: "gdpr.erased",
-        entity: "Patient",
-        entityId: patientId,
-        metadata: {
-          keptPatientId: action.keepPatientId,
-          reason: "duplicate_cleanup_script",
-        },
-      });
+    if (result.ok) {
+      merged += 1;
+      deleted += result.deletedPatientIds.length;
+    } else {
+      console.warn(`Skipped ${action.groupId}: ${result.error}`);
     }
   }
 
-  console.log(`Deleted ${totalDeletes} duplicate patient records across ${plan.length} groups.`);
+  console.log(`Merged ${merged} groups, deleted ${deleted} empty shells.`);
 }
 
 main()

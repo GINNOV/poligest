@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   patient: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
   },
 }));
@@ -30,19 +31,17 @@ describe("sameCalendarDate", () => {
 describe("findExistingPatientForCreate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.patient.findFirst.mockResolvedValue(null);
     mocks.patient.findMany.mockResolvedValue([]);
   });
 
-  it("matches by codice fiscale in notes without requiring name", async () => {
-    mocks.patient.findMany.mockResolvedValueOnce([
-      {
-        id: "patient-cf",
-        firstName: "Mario",
-        lastName: "Rossi",
-        phone: "+393331234567",
-        notes: "Codice Fiscale: RSSMRA90A15H501Y\nAltro",
-      },
-    ]);
+  it("matches by codice fiscale column first", async () => {
+    mocks.patient.findFirst.mockResolvedValueOnce({
+      id: "patient-cf",
+      firstName: "Mario",
+      lastName: "Rossi",
+      phone: "+393331234567",
+    });
 
     const match = await findExistingPatientForCreate({
       firstName: "",
@@ -133,15 +132,12 @@ describe("findExistingPatientForCreate", () => {
   });
 
   it("prefers taxId over weaker signals", async () => {
-    mocks.patient.findMany.mockResolvedValueOnce([
-      {
-        id: "patient-cf",
-        firstName: "Other",
-        lastName: "Person",
-        phone: null,
-        notes: "Codice Fiscale: RSSMRA90A15H501Y",
-      },
-    ]);
+    mocks.patient.findFirst.mockResolvedValueOnce({
+      id: "patient-cf",
+      firstName: "Other",
+      lastName: "Person",
+      phone: null,
+    });
 
     const match = await findExistingPatientForCreate({
       firstName: "Mario",
@@ -152,7 +148,8 @@ describe("findExistingPatientForCreate", () => {
 
     expect(match?.matchKind).toBe("taxId");
     expect(match?.patientId).toBe("patient-cf");
-    expect(mocks.patient.findMany).toHaveBeenCalledTimes(1);
+    expect(mocks.patient.findFirst).toHaveBeenCalledTimes(1);
+    expect(mocks.patient.findMany).not.toHaveBeenCalled();
   });
 });
 

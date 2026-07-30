@@ -11,6 +11,7 @@ const EXPECTED_CRONS = [
   { path: "/api/notifications/recurring", schedule: "0 8 * * *" },
   { path: "/api/reports/weekly", schedule: "0 12 * * 6" },
   { path: "/api/notifications/daily-reminder", schedule: "0,30 18,19 * * *" },
+  { path: "/api/patients/duplicates/auto-merge", schedule: "15 6 * * *" },
 ] as const;
 
 const CRON_ROUTE_FILES: Record<(typeof EXPECTED_CRONS)[number]["path"], string> = {
@@ -18,6 +19,7 @@ const CRON_ROUTE_FILES: Record<(typeof EXPECTED_CRONS)[number]["path"], string> 
   "/api/notifications/recurring": "src/app/api/notifications/recurring/route.ts",
   "/api/reports/weekly": "src/app/api/reports/weekly/route.ts",
   "/api/notifications/daily-reminder": "src/app/api/notifications/daily-reminder/route.ts",
+  "/api/patients/duplicates/auto-merge": "src/app/api/patients/duplicates/auto-merge/route.ts",
 };
 
 const CRON_FIELD_PATTERN = /^(\*|[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*)$/;

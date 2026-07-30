@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { EMPTY_ATTACHMENT_COUNTS } from "@/lib/patients/duplicate-attachments";
 import {
   buildDuplicateCleanupPlan,
   pickPatientToKeep,
@@ -37,8 +38,8 @@ describe("pickPatientToKeep", () => {
       }),
     ];
     const counts = new Map<string, PatientAttachmentCounts>([
-      ["complete", { paymentCount: 0, dentalRecordCount: 0 }],
-      ["with-data", { paymentCount: 2, dentalRecordCount: 1 }],
+      ["complete", { ...EMPTY_ATTACHMENT_COUNTS }],
+      ["with-data", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 2, dentalRecordCount: 1 }],
     ]);
 
     expect(pickPatientToKeep(patients, counts).patientId).toBe("with-data");
@@ -73,8 +74,8 @@ describe("buildDuplicateCleanupPlan", () => {
         },
       ],
       new Map([
-        ["keep", { paymentCount: 1, dentalRecordCount: 0 }],
-        ["delete", { paymentCount: 0, dentalRecordCount: 0 }],
+        ["keep", { ...EMPTY_ATTACHMENT_COUNTS, paymentCount: 1 }],
+        ["delete", { ...EMPTY_ATTACHMENT_COUNTS }],
       ]),
     );
 

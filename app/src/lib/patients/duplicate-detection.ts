@@ -11,6 +11,8 @@ export type DuplicatePatientInput = {
   birthDate: Date | null;
   notes: string | null;
   createdAt: Date;
+  /** Preferred over notes when set (first-class column). */
+  taxId?: string | null;
 };
 
 export type DuplicateMatchKind = "taxId" | "email" | "phone" | "nameBirthDate";
@@ -104,7 +106,7 @@ export function findPotentialPatientDuplicates(patients: DuplicatePatientInput[]
     const parsed = parsePatientStructuredNotes(patient.notes);
     return {
       ...patient,
-      taxId: normalizeTaxId(parsed.parsedTaxId) || null,
+      taxId: normalizeTaxId(patient.taxId) || normalizeTaxId(parsed.parsedTaxId) || null,
     };
   });
 

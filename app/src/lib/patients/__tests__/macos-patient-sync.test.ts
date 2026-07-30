@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   patient: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
@@ -34,19 +35,17 @@ describe("parseItalianSlashBirthDate", () => {
 describe("findPatientForMacosScan", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.patient.findFirst.mockResolvedValue(null);
     mocks.patient.findMany.mockResolvedValue([]);
   });
 
-  it("matches by codice fiscale in notes first", async () => {
-    mocks.patient.findMany.mockResolvedValueOnce([
-      {
-        id: "patient-tax",
-        firstName: "Mario",
-        lastName: "Rossi",
-        phone: null,
-        notes: "Codice Fiscale: RSSMRA90A15H501Y",
-      },
-    ]);
+  it("matches by codice fiscale column first", async () => {
+    mocks.patient.findFirst.mockResolvedValueOnce({
+      id: "patient-tax",
+      firstName: "Mario",
+      lastName: "Rossi",
+      phone: null,
+    });
 
     const match = await findPatientForMacosScan({
       firstName: "Mario",
@@ -56,7 +55,7 @@ describe("findPatientForMacosScan", () => {
     });
 
     expect(match).toEqual({ patientId: "patient-tax", matchKind: "taxId" });
-    expect(mocks.patient.findMany).toHaveBeenCalledTimes(1);
+    expect(mocks.patient.findFirst).toHaveBeenCalledTimes(1);
   });
 
   it("falls back to name and birth date when tax id is missing", async () => {

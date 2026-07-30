@@ -39,6 +39,7 @@ export type MacosPatientRecord = {
   birthDate: Date | null;
   gender: Gender;
   notes: string | null;
+  taxId?: string | null;
 };
 
 const SCANNER_NOTE = "Acquisito automaticamente da ID Scanner macOS";
@@ -147,9 +148,13 @@ export function buildMacosPatientMergeUpdate(
 
   const existingParsed = parsePatientStructuredNotes(existing.notes);
   const scannedTaxId = normalizeTaxId(scanned.codiceFiscale);
-  const shouldUpdateNotes = Boolean(scannedTaxId && !existingParsed.parsedTaxId);
-  if (shouldUpdateNotes) {
+  const existingTaxId = normalizeTaxId(existingParsed.parsedTaxId);
+  // existing.taxId may be set after schema migration
+  const existingColumnTaxId =
+    "taxId" in existing ? normalizeTaxId((existing as { taxId?: string | null }).taxId) : "";
+  if (scannedTaxId && !existingTaxId && !existingColumnTaxId) {
     data.notes = buildMergedNotes(existing.notes, scannedTaxId);
+    data.taxId = scannedTaxId;
     updatedFields.push("codiceFiscale");
   }
 
@@ -183,6 +188,7 @@ export async function mergeMissingPatientFieldsFromMacosScan(
       birthDate: true,
       gender: true,
       notes: true,
+      taxId: true,
     },
   });
 
