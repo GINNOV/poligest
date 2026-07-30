@@ -51,7 +51,7 @@ export function CalendarDoctorTimeOffButton({
         onClick={() => setOpen(true)}
         className="inline-flex h-8 items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-3 text-xs font-semibold text-amber-900 transition hover:border-amber-300 hover:bg-amber-100 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:border-amber-800 dark:hover:bg-amber-950/50"
       >
-        FERIE
+        + FERIE STAFF
       </button>
 
       {open ? (

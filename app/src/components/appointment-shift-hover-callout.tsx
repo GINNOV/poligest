@@ -203,13 +203,6 @@ export function AppointmentShiftHoverCallout({
           &quot;{hoveredAppt.notes}&quot;
         </div>
       ) : null}
-
-      <div className="mt-2 flex items-center justify-between text-[9px] text-zinc-400">
-        <span>Dettaglio Shift + Hover</span>
-        <span className="rounded bg-zinc-200/60 px-1 py-0.5 font-mono text-[8px] dark:bg-zinc-800">
-          SHIFT ACTIVE
-        </span>
-      </div>
     </div>
   );
 }
