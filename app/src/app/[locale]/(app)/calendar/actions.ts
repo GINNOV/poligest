@@ -194,7 +194,7 @@ export async function createAppointment(formData: FormData) {
     }
 
     if (patientIdRaw === "new" && (!newFirstName || !newLastName || !newPhone)) {
-      throw new Error("Inserisci nome, cognome e telefono per il nuovo cliente.");
+      throw new Error("Inserisci nome, cognome e telefono per il nuovo paziente.");
     }
 
     const patientId = await resolvePatientIdForAppointment({

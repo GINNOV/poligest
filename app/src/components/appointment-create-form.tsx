@@ -153,7 +153,12 @@ export function AppointmentCreateForm({
     // Validation
     if (!handleValidate(form)) return;
 
-    const patientId = formData.get("patientId") as string;
+    // Prefer React state: combobox internal value can lag behind "+ Nuovo Paziente".
+    const patientIdFromForm = (formData.get("patientId") as string) || "";
+    const patientId =
+      selectedPatientId ||
+      (isNewPatient ? "new" : "") ||
+      patientIdFromForm;
     const title = formData.get("title") as string;
     const startsAt = formData.get("startsAt") as string;
     const endsAt = formData.get("endsAt") as string;
@@ -166,11 +171,14 @@ export function AppointmentCreateForm({
     if (!patientId || !title || !startsAt || !endsAt) {
       setError(
         !patientId
-          ? "Seleziona un paziente nella scheda Dettagli prima di salvare."
+          ? "Seleziona un paziente o Nuovo Paziente nella scheda Dettagli prima di salvare."
           : "Dati mancanti: compila i campi obbligatori."
       );
       return;
     }
+
+    // Ensure FormData carries the resolved patient id for the server action.
+    formData.set("patientId", patientId);
 
     setChecking(true);
     setError(null);
@@ -489,7 +497,7 @@ export function AppointmentCreateForm({
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-            <span className="font-bold">Codice fiscale (consigliato)</span>
+            <span className="font-bold">Codice fiscale</span>
             <input
               name="newTaxId"
               className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base uppercase text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
@@ -577,7 +585,8 @@ export function AppointmentCreateForm({
       </label>
       </div>
 
-      {activeTab === "schedule" && selectedPatientId ? (
+      {/* Always submit the selected patient from React state (including "new"). */}
+      {selectedPatientId ? (
         <input type="hidden" name="patientId" value={selectedPatientId} />
       ) : null}
       {activeTab === "schedule" ? (

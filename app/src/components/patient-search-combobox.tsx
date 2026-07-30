@@ -42,7 +42,7 @@ export function PatientSearchCombobox({
     setPrevDefaultValue(defaultValue);
     setSelectedId(defaultValue);
     const p = patients.find((patient) => patient.id === defaultValue);
-    setQuery(p ? p.fullName : defaultValue === "new" ? "+ Nuovo cliente" : "");
+    setQuery(p ? p.fullName : defaultValue === "new" ? "+ Nuovo Paziente" : "");
   }
 
   const listId = `${name}-options`;
@@ -60,8 +60,15 @@ export function PatientSearchCombobox({
           onChange={(event) => {
             const nextQuery = event.target.value;
             
-            if (allowNew && nextQuery.trim().toLowerCase() === "+ nuovo cliente") {
-              setQuery(nextQuery);
+            const normalizedQuery = nextQuery.trim().toLowerCase();
+            if (
+              allowNew &&
+              (normalizedQuery === "+ nuovo paziente" ||
+                normalizedQuery === "+ nuovo cliente" ||
+                normalizedQuery === "nuovo paziente" ||
+                normalizedQuery === "nuovo cliente")
+            ) {
+              setQuery("+ Nuovo Paziente");
               setSelectedId("new");
               onSelect?.("new");
               return;
@@ -113,7 +120,7 @@ export function PatientSearchCombobox({
         ) : null}
       </div>
       <datalist id={listId}>
-        {allowNew && <option value="+ Nuovo cliente" />}
+        {allowNew && <option value="+ Nuovo Paziente" />}
         {patients.map((patient) => {
           const optionValue = getPatientOptionValue(patient);
           return <option key={patient.id} value={optionValue} />;
