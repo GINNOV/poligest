@@ -316,6 +316,7 @@ model Doctor {
   availabilityWindows DoctorAvailabilityWindow[]
   timeOffs            DoctorTimeOff[]
   assignedAwards      UserAward[]                @relation("UserAwardDoctor")
+  certificates        MedicalCertificate[]
 }
 
 model DoctorTimeOff {
@@ -486,6 +487,7 @@ model Patient {
   quotes         Quote[]
   patientPayments PatientPayment[]
   financeEntries  FinanceEntry[]
+  certificates    MedicalCertificate[]
 
   @@unique([taxId])
   @@index([taxId])
@@ -878,4 +880,37 @@ model PatientPayment {
   @@index([quoteId])
   @@index([quoteItemId])
   @@index([userId])
+}
+
+model MedicalCertificate {
+  id                String    @id @default(cuid())
+  certificateNumber String
+  version           Int       @default(1)
+  rootCertificateId String?
+  patientId         String
+  doctorId          String?
+  doctorName        String
+  type              String    // WORK_INCAPACITY, ATTENDANCE, INSURANCE, CUSTOM
+  title             String
+  content           String    @db.Text
+  diagnosis         String?
+  prognosisDays     Int?
+  startDate         DateTime?
+  endDate           DateTime?
+  place             String    @default("San Valentino Torio (SA)")
+  issuedAt          DateTime  @default(now())
+  signatureUrl      String?   @db.Text
+  signedAt          DateTime?
+  status            String    @default("ISSUED") // ISSUED, SUPERSEDED, REVOKED, DRAFT
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  patient           Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor            Doctor?   @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([certificateNumber])
+  @@index([rootCertificateId])
+  @@index([issuedAt])
 }

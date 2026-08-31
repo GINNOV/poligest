@@ -160,6 +160,7 @@ export default async function PatientDetailPage({
     lastWhatsappLog,
     createdLog,
     updatedLog,
+    certificates,
   } = await getPatientDetailPageData(patientId);
 
   if (!patient) {
@@ -776,6 +777,122 @@ export default async function PatientDetailPage({
                         ) : null}
                       </div>
                     </div>
+          </details>
+
+          <details className="group rounded-2xl border border-zinc-200 bg-zinc-50 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 [&_summary::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer items-center justify-between gap-3 border-b border-zinc-200 px-6 py-4 text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              <span className="flex items-center gap-3">
+                <svg
+                  className="h-8 w-8 text-emerald-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <path d="M9 15h6" />
+                  <path d="M9 11h6" />
+                </svg>
+                <span className="uppercase tracking-wide">Certificati Medici</span>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  {(certificates ?? []).length}
+                </span>
+              </span>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/pazienti/certificati/nuovo?patientId=${patient.id}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                >
+                  + Nuovo certificato
+                </Link>
+                <svg
+                  className="h-5 w-5 text-zinc-600 transition-transform duration-200 group-open:rotate-180 dark:text-zinc-300"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+            </summary>
+            <div className="space-y-3 p-6">
+              {(certificates ?? []).length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Nessun certificato medico emesso per questo paziente.
+                  </p>
+                  <Link
+                    href={`/pazienti/certificati/nuovo?patientId=${patient.id}`}
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 underline hover:text-emerald-800 dark:text-emerald-400"
+                  >
+                    Emetti il primo certificato
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {(certificates ?? []).map((cert) => (
+                    <div
+                      key={cert.id}
+                      className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-4 text-xs shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100">
+                            {cert.certificateNumber}
+                          </span>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            v{cert.version}
+                          </span>
+                          {cert.signatureUrl ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              Firmato digitalmente
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="font-semibold text-zinc-800 dark:text-zinc-200">
+                          {cert.title}
+                        </p>
+                        <div className="flex flex-wrap gap-3 text-[11px] text-zinc-500 dark:text-zinc-400">
+                          <span>
+                            Emesso il {new Date(cert.issuedAt).toLocaleDateString("it-IT")}
+                          </span>
+                          <span>Da: {cert.doctorName}</span>
+                          {cert.prognosisDays ? (
+                            <span>Prognosi: {cert.prognosisDays} gg</span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2 sm:pt-0">
+                        <Link
+                          href={`/pazienti/${patient.id}/certificati/${cert.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
+                        >
+                          Stampa / PDF
+                        </Link>
+                        <Link
+                          href={`/pazienti/certificati/nuovo?rootId=${cert.id}&patientId=${patient.id}`}
+                          className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                        >
+                          + Versione
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </details>
 
           {canViewClinicalRecords ? (

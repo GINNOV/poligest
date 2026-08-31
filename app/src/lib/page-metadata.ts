@@ -73,6 +73,9 @@ export const PAGE_TITLES = {
   stampaDiario: "Stampa diario",
   stampaScheda: "Stampa scheda",
   consenso: "Consenso",
+  certificati: "Certificati",
+  nuovoCertificato: "Nuovo certificato",
+  stampaCertificato: "Stampa certificato",
   pazienteNonTrovato: "Paziente non trovato",
   home: "SORRIDI",
 } as const;

@@ -98,6 +98,29 @@ export default async function PazientiPage({
             </div>
           </div>
         </Link>
+
+        <Link
+          href="/pazienti/certificati"
+          className="group flex flex-col justify-between rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:hover:border-emerald-800"
+        >
+          <div className="space-y-3">
+            <div className="relative aspect-[2066/1446] overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-900">
+              <Image
+                src={`/tiles/certificates.png?v=${TILE_IMAGE_VERSION}`}
+                alt="Certificati"
+                fill
+                sizes="(min-width: 1024px) 320px, 100vw"
+                className="object-contain"
+              />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Certificati</h2>
+              <p className="text-sm text-emerald-800 dark:text-emerald-400">
+                Emetti e gestisci certificati di malattia, riposo lavorativo o per assicurazioni con firma digitale.
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

@@ -46,6 +46,7 @@ const tableQueries = {
   recalls: () => prisma.recall.findMany(),
   quotes: () => prisma.quote.findMany(),
   quoteItems: () => prisma.quoteItem.findMany(),
+  medicalCertificates: () => prisma.medicalCertificate.findMany(),
   anamnesisConditions: () => prisma.anamnesisCondition.findMany(),
   featureUpdates: () => prisma.featureUpdate.findMany(),
   featureUpdateDismissals: () => prisma.featureUpdateDismissal.findMany(),

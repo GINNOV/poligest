@@ -39,6 +39,7 @@ export const exportTables = [
   { key: "recalls", label: "Richiami", category: "Agenda" },
   { key: "quotes", label: "Preventivi", category: "Amministrazione" },
   { key: "quoteItems", label: "Righe preventivo", category: "Amministrazione" },
+  { key: "medicalCertificates", label: "Certificati Medici", category: "Clinica" },
   { key: "anamnesisConditions", label: "Condizioni anamnesi", category: "Clinica" },
   { key: "featureUpdates", label: "Aggiornamenti sistema", category: "Sistema" },
   { key: "featureUpdateDismissals", label: "Dismissal aggiornamenti", category: "Sistema" },

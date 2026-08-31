@@ -76,6 +76,7 @@ async function resetSystem(formData: FormData) {
     prisma.patientPayment.deleteMany(),
     prisma.quoteItem.deleteMany(),
     prisma.quote.deleteMany(),
+    prisma.medicalCertificate.deleteMany(),
     prisma.stockMovement.deleteMany(),
     prisma.service.deleteMany(),
     prisma.financeEntry.deleteMany(),

@@ -95,7 +95,7 @@ export async function getPatientDetailPageData(patientId: string) {
   const serviceClient = getOptionalPrismaModel<{
     findMany?: (args?: { orderBy?: { createdAt?: "asc" | "desc" } }) => Promise<ServiceOptionRecord[]>;
   }>("service");
-  const [products, implants, dentalRecords, services, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs, createdLog, updatedLog] =
+  const [products, implants, dentalRecords, services, lastAccessEmailLog, lastWhatsappLog, smsTemplates, smsLogs, createdLog, updatedLog, certificates] =
     await Promise.all([
       prisma.product.findMany({
         orderBy: { name: "asc" },
@@ -158,6 +158,12 @@ export async function getPatientDetailPageData(patientId: string) {
           user: { select: { name: true, email: true } },
         },
       }),
+      prisma.medicalCertificate?.findMany
+        ? prisma.medicalCertificate.findMany({
+            where: { patientId },
+            orderBy: [{ issuedAt: "desc" }, { version: "desc" }],
+          })
+        : Promise.resolve([]),
     ]);
 
   const pastAppointments = patient.appointments
@@ -205,5 +211,6 @@ export async function getPatientDetailPageData(patientId: string) {
     lastWhatsappLog,
     createdLog,
     updatedLog,
+    certificates,
   };
 }
