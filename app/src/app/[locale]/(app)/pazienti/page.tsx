@@ -9,7 +9,7 @@ import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const metadata = createPageMetadata(PAGE_TITLES.pazienti);
 
-const TILE_IMAGE_VERSION = "1";
+const TILE_IMAGE_VERSION = "2";
 
 export default async function PazientiPage({
   searchParams,
