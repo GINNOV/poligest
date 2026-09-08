@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button";
 import { getRandomAvatarUrl } from "@/lib/avatars";
 import { sendStaffWelcomeEmail } from "@/lib/welcome-email";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import {
+  ensureStackUserCanReceivePasswordReset,
+  resolvePasswordResetCallbackUrl,
+} from "@/lib/admin/stack-password-reset";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
@@ -363,7 +367,7 @@ async function sendPasswordResetLink(formData: FormData) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true },
+    select: { id: true, email: true, name: true },
   });
 
   if (!user?.email) {
@@ -372,10 +376,8 @@ async function sendPasswordResetLink(formData: FormData) {
 
   try {
     const stackServerApp = getStackServerApp();
-    const callbackUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL;
-    if (!callbackUrl) {
-      throw new Error("Callback URL mancante per il reset password.");
-    }
+    const callbackUrl = resolvePasswordResetCallbackUrl(stackServerApp);
+    await ensureStackUserCanReceivePasswordReset(stackServerApp, user.email, user.name);
     const result = await stackServerApp.sendForgotPasswordEmail(user.email, { callbackUrl });
     if (result && typeof result === "object" && "status" in result && result.status === "error") {
       const message =
