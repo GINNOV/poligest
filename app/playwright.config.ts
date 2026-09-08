@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const smokePort = Number.parseInt(process.env.E2E_SMOKE_PORT ?? "3100", 10);
-const baseURL = `http://127.0.0.1:${smokePort}`;
+const baseURL = `http://localhost:${smokePort}`;
 
 export default defineConfig({
   testDir: "./tests/smoke",
@@ -18,7 +18,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `E2E_SMOKE_AUTH=1 npm run dev -- --hostname 127.0.0.1 --port ${smokePort}`,
+    command: `E2E_SMOKE_AUTH=1 npm run dev -- --hostname localhost --port ${smokePort}`,
     url: `${baseURL}/health`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

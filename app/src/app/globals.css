@@ -135,11 +135,45 @@ body {
   }
 
   .stack-auth-surface--staff .stack-scope a {
-    @apply text-cyan-400 hover:text-cyan-300;
+    color: rgb(34 211 238) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope a:hover {
+    color: rgb(103 232 249) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope label,
+  .stack-auth-surface--staff label.stack-scope {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope input,
+  .stack-auth-surface--staff input.stack-scope {
+    background-color: hsl(var(--secondary)) !important;
+    border-color: hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+    caret-color: hsl(var(--ring)) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope input::placeholder,
+  .stack-auth-surface--staff input.stack-scope::placeholder {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope button[aria-label*="password" i],
+  .stack-auth-surface--staff button.stack-scope[aria-label*="password" i] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  .stack-auth-surface--staff .stack-scope button[aria-label*="password" i]:hover,
+  .stack-auth-surface--staff button.stack-scope[aria-label*="password" i]:hover {
+    color: hsl(var(--foreground)) !important;
   }
 
   .stack-auth-surface .stack-scope input,
+  .stack-auth-surface input.stack-scope,
   .stack-auth-surface .stack-scope button,
+  .stack-auth-surface button.stack-scope,
   .stack-auth-surface .stack-scope a[role="button"] {
     @apply rounded-xl font-semibold transition;
   }
