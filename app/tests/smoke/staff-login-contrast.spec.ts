@@ -66,12 +66,31 @@ async function sampleInputContrast(input: Locator): Promise<ContrastSample> {
 }
 
 test("keeps staff credential fields readable on the dark sign-in form", async ({ page }) => {
-  await page.goto("/handler/sign-in?audience=staff&method=password", { waitUntil: "networkidle" });
+  await page.route("**/api/stack/**/projects/current", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "11111111-1111-4111-8111-111111111111",
+        display_name: "Smoke test",
+        config: {
+          sign_up_enabled: true,
+          credential_enabled: true,
+          magic_link_enabled: true,
+          passkey_enabled: false,
+          client_team_creation_enabled: false,
+          client_user_deletion_enabled: false,
+          allow_team_api_keys: false,
+          allow_user_api_keys: false,
+          enabled_oauth_providers: [{ id: "google" }],
+        },
+      },
+    });
+  });
+  await page.goto("/handler/sign-in?audience=staff&method=password");
 
   const emailInput = page.getByLabel("Email");
   const passwordInput = page.locator('input[name="password"]');
 
-  await emailInput.fill("me@iamcloudia.com");
+  await emailInput.fill("staff@example.com");
   await passwordInput.fill("secret");
 
   await expect(emailInput).toBeVisible();
