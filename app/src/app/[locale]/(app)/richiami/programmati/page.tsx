@@ -15,6 +15,7 @@ import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { RecallWhatsappButton } from "@/components/recall-whatsapp-button";
 import { RecallDeliveryFailureSummary } from "@/components/recall-delivery-failure-alerts";
 import { countFailedDeliveryRecalls, type ScheduledRecallListItem } from "./page-data";
+import { visiblePageNumbers } from "./pagination";
 
 const channelBadgeStyles = {
   whatsapp:
@@ -477,7 +478,7 @@ export default async function RichiamiProgrammatiPage({
                 Successivo
               </Link>
             </div>
-            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div className="hidden sm:flex sm:flex-1 sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
               <div>
                 <p className="text-sm text-zinc-700 dark:text-zinc-400">
                   Mostrando da <span className="font-medium">{(page - 1) * limit + 1}</span> a{" "}
@@ -485,44 +486,42 @@ export default async function RichiamiProgrammatiPage({
                   <span className="font-medium">{totalRecalls}</span> risultati
                 </p>
               </div>
-              <div>
-                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                  <Link
-                    href={buildPageUrl(page - 1)}
-                    className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-zinc-400 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 ${page <= 1 ? "pointer-events-none opacity-50" : ""}`}
-                  >
-                    <span className="sr-only">Precedente</span>
-                    &larr;
-                  </Link>
-
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const pageNum = i + 1;
-                    const isCurrent = pageNum === page;
-                    return (
-                      <Link
-                        key={pageNum}
-                        href={buildPageUrl(pageNum)}
-                        aria-current={isCurrent ? "page" : undefined}
-                        className={`relative z-10 inline-flex items-center px-4 py-2 text-sm font-semibold focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                          isCurrent
-                            ? "bg-emerald-700 text-white focus-visible:outline-emerald-600"
-                            : "text-zinc-900 dark:text-zinc-100 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-                        }`}
-                      >
-                        {pageNum}
-                      </Link>
-                    );
-                  })}
-
-                  <Link
-                    href={buildPageUrl(page + 1)}
-                    className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-zinc-400 ring-1 ring-inset ring-zinc-300 dark:ring-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800 focus:z-20 focus:outline-offset-0 ${page >= totalPages ? "pointer-events-none opacity-50" : ""}`}
-                  >
-                    <span className="sr-only">Successivo</span>
-                    &rarr;
-                  </Link>
-                </nav>
-              </div>
+              <nav className="flex max-w-full flex-wrap items-center gap-1" aria-label="Pagination">
+                <Link
+                  href={buildPageUrl(page - 1)}
+                  className={`inline-flex items-center rounded-md px-2 py-2 text-zinc-400 ring-1 ring-inset ring-zinc-300 hover:bg-zinc-50 focus:outline-offset-0 dark:ring-zinc-700 dark:hover:bg-zinc-800 ${page <= 1 ? "pointer-events-none opacity-50" : ""}`}
+                >
+                  <span className="sr-only">Precedente</span>
+                  &larr;
+                </Link>
+                {visiblePageNumbers(page, totalPages).map((item, index) =>
+                  item === "gap" ? (
+                    <span key={`gap-${index}`} className="px-1 text-sm text-zinc-400">
+                      …
+                    </span>
+                  ) : (
+                    <Link
+                      key={item}
+                      href={buildPageUrl(item)}
+                      aria-current={item === page ? "page" : undefined}
+                      className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                        item === page
+                          ? "bg-emerald-700 text-white focus-visible:outline-emerald-600"
+                          : "text-zinc-900 ring-1 ring-inset ring-zinc-300 hover:bg-zinc-50 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {item}
+                    </Link>
+                  ),
+                )}
+                <Link
+                  href={buildPageUrl(page + 1)}
+                  className={`inline-flex items-center rounded-md px-2 py-2 text-zinc-400 ring-1 ring-inset ring-zinc-300 hover:bg-zinc-50 focus:outline-offset-0 dark:ring-zinc-700 dark:hover:bg-zinc-800 ${page >= totalPages ? "pointer-events-none opacity-50" : ""}`}
+                >
+                  <span className="sr-only">Successivo</span>
+                  &rarr;
+                </Link>
+              </nav>
             </div>
           </div>
         ) : null}
