@@ -9,7 +9,7 @@ import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 
 export const metadata = createPageMetadata(PAGE_TITLES.richiami);
 
-const TILE_IMAGE_VERSION = "3";
+const TILE_IMAGE_VERSION = "4";
 
 const TILES = [
   {
