@@ -24,6 +24,25 @@ export type PositionedAppointment = CalendarAppointment & {
   columnCount: number;
 };
 
+/** Empty strip on the left of a day column. Wide enough to hit one timeslot beside a full stack of appointments. */
+export const DAY_SLOT_RAIL_PX = 36;
+
+export function dayAppointmentFramePx(
+  columnWidthPx: number,
+  columnIndex: number,
+  columnCount: number,
+  gapPx = 6,
+) {
+  const count = Math.max(1, columnCount);
+  const index = Math.min(Math.max(0, columnIndex), count - 1);
+  const content = Math.max(0, columnWidthPx - DAY_SLOT_RAIL_PX);
+  const slice = content / count;
+  return {
+    left: DAY_SLOT_RAIL_PX + slice * index + gapPx / 2,
+    width: Math.max(0, slice - gapPx),
+  };
+}
+
 export const overlaps = (a: { startMinute: number; endMinute: number }, b: { startMinute: number; endMinute: number }) =>
   a.startMinute < b.endMinute && b.startMinute < a.endMinute;
 

@@ -10,6 +10,7 @@ import {
 import { CALENDAR_COMPACT_PATIENT_NAME_STORAGE_KEY } from "@/lib/app-preferences";
 import {
   buildPositionedAppointments,
+  DAY_SLOT_RAIL_PX,
   type CalendarAppointment,
 } from "@/lib/calendar/layout-engine";
 
@@ -133,6 +134,8 @@ function getServiceStyle(serviceType: string) {
 }
 
 const HOUR_HEIGHT = 72;
+const SLOT_MINUTES = 15;
+const SLOT_HEIGHT = (SLOT_MINUTES / 60) * HOUR_HEIGHT;
 const DEFAULT_DURATION_MINUTES = 60;
 const CALENDAR_COMPACT_PATIENT_NAME_EVENT = "calendar-compact-patient-name-changed";
 
@@ -302,6 +305,21 @@ export function CalendarWeekView({
   const totalMinutes = timeEndMinute - timeStartMinute;
   const gridHeight = (totalMinutes / 60) * HOUR_HEIGHT;
 
+  const openSlotFromOffset = (date: string, offsetY: number, height: number) => {
+    const minutesFromStart = Math.min(
+      totalMinutes,
+      Math.max(0, (offsetY / Math.max(height, 1)) * totalMinutes),
+    );
+    const rounded = Math.round(minutesFromStart / SLOT_MINUTES) * SLOT_MINUTES;
+    const startsAtMinute = Math.min(timeEndMinute - SLOT_MINUTES, timeStartMinute + rounded);
+    const endsAtMinute = Math.min(timeEndMinute, startsAtMinute + DEFAULT_DURATION_MINUTES);
+    setSelectedAppointment(null);
+    setSelectedSlot({
+      startsAt: toLocalInput(date, startsAtMinute),
+      endsAt: toLocalInput(date, endsAtMinute),
+    });
+  };
+
   const hourMarks = useMemo(() => {
     const startHour = Math.floor(timeStartMinute / 60);
     const endHour = Math.ceil(timeEndMinute / 60);
@@ -385,16 +403,7 @@ export function CalendarWeekView({
                   onClick={(event) => {
                     if (day.isPracticeClosed) return;
                     const bounds = event.currentTarget.getBoundingClientRect();
-                    const offsetY = Math.max(0, event.clientY - bounds.top);
-                    const minutesFromStart = Math.min(totalMinutes, (offsetY / bounds.height) * totalMinutes);
-                    const rounded = Math.round(minutesFromStart / 15) * 15;
-                    const startsAtMinute = Math.min(timeEndMinute - 15, timeStartMinute + rounded);
-                    const endsAtMinute = Math.min(timeEndMinute, startsAtMinute + DEFAULT_DURATION_MINUTES);
-                    setSelectedAppointment(null);
-                    setSelectedSlot({
-                      startsAt: toLocalInput(day.date, startsAtMinute),
-                      endsAt: toLocalInput(day.date, endsAtMinute),
-                    });
+                    openSlotFromOffset(day.date, event.clientY - bounds.top, bounds.height);
                   }}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") return;
@@ -458,17 +467,15 @@ export function CalendarWeekView({
                       const compactPrimaryLabel =
                         isCompact && showPatientNameWhenCompact ? appt.patientName : appt.serviceType;
                       const columnGap = 6;
-                      const clickGutter = 8;
-                      const columnWidth = 100 / appt.columnCount;
-                      const left = `calc(${columnWidth * appt.columnIndex}% + ${columnGap / 2}px)`;
-                      const width = `calc(${columnWidth}% - ${columnGap}px - ${clickGutter}px)`;
-                      const gutterWidth = 4;
+                      const columnCount = Math.max(1, appt.columnCount);
+                      const left = `calc(${DAY_SLOT_RAIL_PX}px + (100% - ${DAY_SLOT_RAIL_PX}px) * ${appt.columnIndex} / ${columnCount} + ${columnGap / 2}px)`;
+                      const width = `calc((100% - ${DAY_SLOT_RAIL_PX}px) / ${columnCount} - ${columnGap}px)`;
                       return (
                         <div
                           key={appt.id}
                           className="absolute z-10 group/appt"
                           data-appt-id={appt.id}
-                          style={{ top, height, left, width: `calc(${width} + ${clickGutter}px)` }}
+                          style={{ top, height, left, width }}
                           {...getHoverHandlers(appt)}
                         >
                           <div 
@@ -481,10 +488,9 @@ export function CalendarWeekView({
                               setSelectedSlot(null);
                               setSelectedAppointment(appt);
                             }}
-                            className={`absolute right-0 top-0 bottom-0 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 dark:hover:border-emerald-500 ${styles.bg} ${styles.border} ${styles.text} ${
+                            className={`absolute inset-0 overflow-hidden rounded-lg border text-left text-[9px] shadow-sm transition hover:border-emerald-200 dark:hover:border-emerald-500 ${styles.bg} ${styles.border} ${styles.text} ${
                               isCompact ? "px-1.5 py-0.5" : "px-2 py-1"
                             }`}
-                            style={{ left: gutterWidth, width: `calc(100% - ${gutterWidth}px)` }}
                           >
                             <div className="flex w-full items-center justify-between gap-2">
                               <span
@@ -506,6 +512,38 @@ export function CalendarWeekView({
                       );
                     })}
                   </div>
+
+                  {day.isPracticeClosed ? null : (
+                    <div
+                      className="group/rail absolute inset-y-0 left-0 z-20 cursor-pointer border-r border-zinc-200/80 dark:border-zinc-700"
+                      style={{ width: DAY_SLOT_RAIL_PX }}
+                      onMouseMove={(event) => {
+                        const bounds = event.currentTarget.getBoundingClientRect();
+                        const maxTop = Math.max(0, bounds.height - SLOT_HEIGHT);
+                        const snapped = Math.min(
+                          maxTop,
+                          Math.floor((event.clientY - bounds.top) / SLOT_HEIGHT) * SLOT_HEIGHT,
+                        );
+                        const rail = event.currentTarget;
+                        rail.style.setProperty("--slot-top", `${snapped}px`);
+                        const minute = Math.min(
+                          timeEndMinute - SLOT_MINUTES,
+                          timeStartMinute + Math.round(snapped / SLOT_HEIGHT) * SLOT_MINUTES,
+                        );
+                        rail.title = `${padTime(Math.floor(minute / 60))}:${padTime(minute % 60)}`;
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const bounds = event.currentTarget.getBoundingClientRect();
+                        openSlotFromOffset(day.date, event.clientY - bounds.top, bounds.height);
+                      }}
+                    >
+                      <div
+                        className="pointer-events-none absolute inset-x-0 bg-emerald-500/15 opacity-0 group-hover/rail:opacity-100"
+                        style={{ top: "var(--slot-top, 0px)", height: SLOT_HEIGHT }}
+                      />
+                    </div>
+                  )}
 
                   {day.isDoctorOnTimeOff ? (
                     <div className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-amber-50/75 ring-1 ring-inset ring-amber-200/80 dark:bg-amber-950/30 dark:ring-amber-900/60">

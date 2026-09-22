@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPositionedAppointments, CalendarAppointment } from "../layout-engine";
+import { buildPositionedAppointments, CalendarAppointment, DAY_SLOT_RAIL_PX, dayAppointmentFramePx } from "../layout-engine";
 
 const mockAppt = (id: string, start: string, end: string): CalendarAppointment => {
   const [, t1] = start.split("T");
@@ -88,5 +88,17 @@ describe("Calendar Layout Engine", () => {
     const positioned = buildPositionedAppointments(appts);
     expect(positioned[0].columnCount).toBe(3);
     expect(new Set(positioned.map(p => p.columnIndex)).size).toBe(3);
+  });
+
+  it("leaves a clickable rail to the left of every appointment column", () => {
+    expect(DAY_SLOT_RAIL_PX).toBeGreaterThanOrEqual(24);
+    const dayWidth = 140;
+    for (const count of [1, 2, 3]) {
+      for (let index = 0; index < count; index += 1) {
+        const frame = dayAppointmentFramePx(dayWidth, index, count);
+        expect(frame.left).toBeGreaterThanOrEqual(DAY_SLOT_RAIL_PX);
+        expect(frame.left + frame.width).toBeLessThanOrEqual(dayWidth + 0.01);
+      }
+    }
   });
 });
