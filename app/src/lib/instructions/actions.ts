@@ -7,74 +7,76 @@ import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { parseInstructionStepsPayload, validateInstructionInput } from "@/lib/instructions/domain";
 
-export async function upsertInstructionAction(formData: FormData) {
-  const user = await requireUser([Role.ADMIN]);
-  
-  const id = formData.get("id") as string | null;
-  const rawPathPattern = (formData.get("pathPattern") as string) || "";
-  const role = formData.get("role") as Role | null;
-  const rawTitle = (formData.get("title") as string) || "";
-  const description = formData.get("description") as string;
-  const isActive = formData.get("isActive") === "on";
-  
-  const { title, pathPattern } = validateInstructionInput(rawPathPattern, rawTitle);
-  const steps = parseInstructionStepsPayload(formData.get("stepsJson"));
+const EDITORS = [Role.ADMIN, Role.MANAGER];
 
-  const data = {
-    pathPattern,
-    role: role || null,
-    title,
+export async function upsertInstructionAction(formData: FormData) {
+  const user = await requireUser(EDITORS);
+
+  const id = (formData.get("id") as string | null)?.trim() || null;
+  const rawPathPattern = (formData.get("pathPattern") as string) || "";
+  const role = (formData.get("role") as string | null) || null;
+  const rawTitle = (formData.get("title") as string) || "";
+  const description = (formData.get("description") as string | null) || "";
+  const category = (formData.get("category") as string | null) || null;
+  const isActive = formData.get("isActive") === "on" || formData.get("isActive") === "true";
+
+  const steps = parseInstructionStepsPayload(formData.get("stepsJson"));
+  const validated = validateInstructionInput({
+    rawPathPattern,
+    title: rawTitle,
     description,
+    category,
+    role,
     isActive,
-  };
+    steps,
+  });
 
   const result = await prisma.$transaction(async (tx) => {
     let instructionId = id;
-    
+
     if (id) {
       await tx.featureInstruction.update({
         where: { id },
-        data,
+        data: {
+          pathPattern: validated.pathPattern,
+          role: validated.role,
+          title: validated.title,
+          description: validated.description,
+          category: validated.category,
+          isActive: validated.isActive,
+        },
       });
-      
-      // Delete steps not in the new list
-      const incomingStepIds = steps.map(s => s.id).filter(Boolean) as string[];
       await tx.featureInstructionStep.deleteMany({
-        where: {
-          instructionId: id,
-          id: { notIn: incomingStepIds }
-        }
+        where: { instructionId: id },
       });
     } else {
       const created = await tx.featureInstruction.create({
-        data,
+        data: {
+          pathPattern: validated.pathPattern,
+          role: validated.role,
+          title: validated.title,
+          description: validated.description,
+          category: validated.category,
+          isActive: validated.isActive,
+          sortOrder: 0,
+        },
       });
       instructionId = created.id;
     }
 
-    // Upsert steps
-    for (const step of steps) {
-      if (step.id) {
-        await tx.featureInstructionStep.update({
-          where: { id: step.id },
-          data: {
-            title: step.title,
-            content: step.content,
-            sortOrder: step.sortOrder,
-          }
-        });
-      } else {
-        await tx.featureInstructionStep.create({
-          data: {
-            instructionId: instructionId!,
-            title: step.title,
-            content: step.content,
-            sortOrder: step.sortOrder,
-          }
-        });
-      }
+    if (validated.steps.length > 0) {
+      await tx.featureInstructionStep.createMany({
+        data: validated.steps.map((step) => ({
+          ...(step.id ? { id: step.id } : {}),
+          instructionId: instructionId!,
+          title: step.title,
+          content: step.content,
+          youtubeUrl: step.youtubeUrl,
+          sortOrder: step.sortOrder,
+        })),
+      });
     }
-    
+
     return instructionId;
   });
 
@@ -82,7 +84,7 @@ export async function upsertInstructionAction(formData: FormData) {
     action: id ? "instruction.updated" : "instruction.created",
     entity: "FeatureInstruction",
     entityId: result!,
-    metadata: { title, pathPattern },
+    metadata: { title: validated.title, pathPattern: validated.pathPattern },
   });
 
   revalidatePath("/admin/istruzioni");
@@ -90,7 +92,7 @@ export async function upsertInstructionAction(formData: FormData) {
 }
 
 export async function deleteInstructionAction(formData: FormData) {
-  const user = await requireUser([Role.ADMIN]);
+  const user = await requireUser(EDITORS);
   const id = formData.get("id") as string;
 
   await prisma.featureInstruction.delete({
@@ -104,59 +106,5 @@ export async function deleteInstructionAction(formData: FormData) {
   });
 
   revalidatePath("/admin/istruzioni");
-  return { success: true };
-}
-
-export async function markStepAsDoneAction(instructionId: string, stepId: string) {
-  const user = await requireUser();
-  
-  const step = await prisma.featureInstructionStep.findUniqueOrThrow({
-    where: { id: stepId },
-    include: { instruction: { include: { steps: { orderBy: { sortOrder: 'asc' } } } } }
-  });
-
-  if (step.instructionId !== instructionId) {
-    throw new Error("Passaggio istruzione non valido");
-  }
-
-  const lastStepId = step.instruction.steps.at(-1)?.id;
-  if (!lastStepId) {
-    throw new Error("Istruzione senza passaggi");
-  }
-
-  const isLastStep = lastStepId === stepId;
-
-  await prisma.userInstructionProgress.upsert({
-    where: {
-      user_instruction_unique: {
-        userId: user.id,
-        instructionId,
-      }
-    },
-    create: {
-      userId: user.id,
-      instructionId,
-      lastStepId: stepId,
-      completedAt: isLastStep ? new Date() : null,
-    },
-    update: {
-      lastStepId: stepId,
-      completedAt: isLastStep ? new Date() : null,
-    }
-  });
-
-  return { success: true };
-}
-
-export async function resetProgressAction(instructionId: string) {
-  const user = await requireUser();
-
-  await prisma.userInstructionProgress.deleteMany({
-    where: {
-      userId: user.id,
-      instructionId,
-    }
-  });
-
   return { success: true };
 }

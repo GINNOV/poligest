@@ -104,22 +104,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const instructionClient = getOptionalPrismaModel<{
     findMany: (args: unknown) => Promise<Instruction[]>;
   }>("featureInstruction");
-  const progressClient = getOptionalPrismaModel<{
-    findMany: (args: unknown) => Promise<Array<{ instructionId: string; lastStepId: string | null; completedAt: Date | null }>>;
-  }>("userInstructionProgress");
 
-  const [instructions, userProgress] =
-    isStaff && user && instructionClient && progressClient
-      ? await Promise.all([
-          instructionClient.findMany({
-            where: { isActive: true },
-            include: { steps: { orderBy: { sortOrder: "asc" } } },
-          }),
-          progressClient.findMany({
-            where: { userId: user.id },
-          }),
-        ])
-      : [[], []];
+  const instructions =
+    isStaff && user && instructionClient
+      ? await instructionClient.findMany({
+          where: { isActive: true },
+          include: { steps: { orderBy: { sortOrder: "asc" } } },
+        })
+      : [];
 
   const allowedHomeScreens = [
     "/dashboard",
@@ -220,12 +212,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             {isStaff && user && (
               <HelpButton
                 instructions={instructions}
-                userProgress={userProgress.map((p) => ({
-                  instructionId: p.instructionId,
-                  lastStepId: p.lastStepId,
-                  completedAt: p.completedAt,
-                }))}
                 userRole={user.role}
+                userId={user.id}
               />
             )}
             <MobileNav links={navLinks} />
@@ -239,6 +227,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 allowedHomeScreens={allowedHomeScreens}
                 adminHref={isAdmin ? "/admin" : undefined}
                 adminLabel={isAdmin ? t("admin") : undefined}
+                instructionsHref={user.role === Role.MANAGER ? "/admin/istruzioni" : undefined}
+                instructionsLabel={user.role === Role.MANAGER ? "Istruzioni funzionalità" : undefined}
                 signOutUrl={signOutUrl}
                 practiceTimeZone={practiceTimeZone}
                 displayTimeZone={displayTimeZone}

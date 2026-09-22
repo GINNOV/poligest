@@ -198,10 +198,13 @@ model KapsoWhatsAppConfig {
 
 model FeatureInstruction {
   id           String   @id @default(cuid())
-  pathPattern  String   // regex or prefix to match current path, e.g. "/pazienti/[id]"
+  pathPattern  String   // prefix or * pattern, e.g. "/pazienti/*"
   role         Role?    // optional: only show for this role
   title        String
   description  String?
+  /// Admin list area. See lib/instructions/categories.ts.
+  category     String   @default("GENERALE")
+  sortOrder    Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -217,6 +220,7 @@ model FeatureInstructionStep {
   instructionId String
   title         String
   content       String   @db.Text
+  youtubeUrl    String?
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -225,6 +229,7 @@ model FeatureInstructionStep {
   userProgress UserInstructionProgress[]
 
   @@index([instructionId])
+  @@index([instructionId, sortOrder])
 }
 
 model UserInstructionProgress {

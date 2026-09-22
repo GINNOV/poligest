@@ -18,6 +18,11 @@ describe("instructions / match", () => {
       expect(normalizePathname("")).toBe("/");
     });
 
+    it("strips the locale prefix added by the rewrite", () => {
+      expect(normalizePathname("/it/pazienti/")).toBe("/pazienti");
+      expect(normalizePathname("/it")).toBe("/");
+    });
+
     it("strips query string and hash", () => {
       expect(normalizePathname("/pazienti?tab=active#details")).toBe("/pazienti");
       expect(normalizePathname("/agenda/day/2026-07-28?filter=all")).toBe(
@@ -27,8 +32,7 @@ describe("instructions / match", () => {
   });
 
   describe("normalizePathPattern", () => {
-    it("converts dynamic bracket syntax and regex wildcards", () => {
-      expect(normalizePathPattern("/pazienti/[id]")).toBe("/pazienti/*");
+    it("converts regex wildcards and tidies slashes", () => {
       expect(normalizePathPattern("/pazienti/.*")).toBe("/pazienti/*");
       expect(normalizePathPattern(" /agenda//day/ ")).toBe("/agenda/day");
     });
@@ -60,8 +64,12 @@ describe("instructions / match", () => {
       expect(pathMatchesPattern("/pazienti/123/edit", "/pazienti/*")).toBe(true);
     });
 
-    it("handles bracket pattern via normalization", () => {
-      expect(pathMatchesPattern("/pazienti/123", "/pazienti/[id]")).toBe(true);
+    it("does not treat bracket segments as wildcards", () => {
+      expect(pathMatchesPattern("/pazienti/123", "/pazienti/[id]")).toBe(false);
+    });
+
+    it("matches a locale-prefixed pathname against a stored pattern", () => {
+      expect(pathMatchesPattern("/it/pazienti/123", "/pazienti/*")).toBe(true);
     });
   });
 
@@ -121,9 +129,34 @@ describe("instructions / match", () => {
       expect(result?.id).toBe("2");
     });
 
-    it("prefers role-matched candidate when role matches", () => {
+    it("does not prefer a role-specific guide when rank is otherwise equal", () => {
       const result = pickBestInstruction(candidates, "/pazienti/123", Role.SECRETARY);
-      expect(result?.id).toBe("3");
+      expect(result?.id).toBe("2");
+    });
+
+    it("uses sortOrder as the tie-break after path specificity", () => {
+      const ranked: InstructionMatchInput[] = [
+        {
+          id: "tutti",
+          pathPattern: "/pazienti/123",
+          role: null,
+          isActive: true,
+          updatedAt: mockDate,
+          sortOrder: 0,
+        },
+        {
+          id: "segreteria",
+          pathPattern: "/pazienti/123",
+          role: Role.SECRETARY,
+          isActive: true,
+          updatedAt: mockDate,
+          sortOrder: 5,
+        },
+      ];
+      expect(pickBestInstruction(ranked, "/pazienti/123", Role.SECRETARY)?.id).toBe(
+        "segreteria",
+      );
+      expect(pickBestInstruction(ranked, "/pazienti/123", Role.ADMIN)?.id).toBe("tutti");
     });
 
     it("ignores inactive instructions", () => {

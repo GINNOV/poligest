@@ -42,6 +42,8 @@ type Props = {
   profileHref?: string;
   adminHref?: string;
   adminLabel?: string;
+  instructionsHref?: string;
+  instructionsLabel?: string;
   signOutUrl?: string;
   allowedHomeScreens?: string[];
   practiceTimeZone?: PracticeTimeZone;
@@ -58,6 +60,8 @@ export function UserMenu({
   profileHref = "/profilo",
   adminHref,
   adminLabel,
+  instructionsHref,
+  instructionsLabel,
   signOutUrl = "/handler/sign-out",
   allowedHomeScreens,
   practiceTimeZone = DEFAULT_PRACTICE_TIME_ZONE,
@@ -278,6 +282,16 @@ export function UserMenu({
               >
                 <span aria-hidden>🛠️</span>
                 {adminLabel}
+              </Link>
+            ) : null}
+            {instructionsHref && instructionsLabel ? (
+              <Link
+                href={instructionsHref}
+                className="flex items-center gap-2 px-4 py-3 hover:bg-emerald-50 hover:text-emerald-800 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+                onClick={() => setOpen(false)}
+              >
+                <span aria-hidden>❓</span>
+                {instructionsLabel}
               </Link>
             ) : null}
             <div className="px-3 py-2">

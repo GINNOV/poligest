@@ -1,20 +1,25 @@
 "use client";
 
-import { useState, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { Role } from "@prisma/client";
-import { markStepAsDoneAction, resetProgressAction } from "@/lib/instructions/actions";
 import { pickBestInstruction } from "@/lib/instructions/match";
-import { clsx } from "clsx";
-import { FeatureUpdateMarkdownPreview, renderInline } from "@/components/feature-update-markdown";
-
-const emptySubscribe = () => () => {};
+import { StepMarkdown } from "@/lib/instructions/markdown";
+import {
+  clearProgress,
+  currentStepIndex,
+  loadProgress,
+  reconcileProgress,
+  saveProgress,
+} from "@/lib/instructions/progress";
+import { extractYoutubeVideoId, youtubeEmbedUrl } from "@/lib/instructions/youtube";
 
 export type Step = {
   id: string;
   title: string;
   content: string;
+  youtubeUrl?: string | null;
   sortOrder: number;
 };
 
@@ -25,328 +30,326 @@ export type Instruction = {
   pathPattern: string;
   role: Role | null;
   isActive: boolean;
-  updatedAt?: Date;
+  sortOrder?: number;
+  updatedAt?: Date | string;
+  category?: string | null;
   steps: Step[];
 };
 
 type Props = {
   instructions: Instruction[];
-  userProgress: Array<{ instructionId: string; lastStepId: string | null; completedAt: Date | null }>;
   userRole: Role;
+  userId: string;
 };
 
-export function HelpButton({ instructions, userProgress, userRole }: Props) {
-  const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [progress, setProgress] = useState(userProgress);
-  const mounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+function StepYoutubeEmbed({ url }: { readonly url?: string | null }) {
+  const videoId = url ? extractYoutubeVideoId(url) : null;
+  if (!videoId) return null;
 
-  // Match current path with instructions using specificity ranker
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="relative h-36 w-full sm:h-40">
+        <iframe
+          title="Video di supporto YouTube"
+          src={youtubeEmbedUrl(videoId)}
+          className="absolute inset-0 h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+    </div>
+  );
+}
+
+function InstructionPanel({
+  instruction,
+  userId,
+  onClose,
+}: {
+  instruction: Instruction;
+  userId: string;
+  onClose: () => void;
+}) {
+  const orderedIds = useMemo(() => instruction.steps.map((s) => s.id), [instruction.steps]);
+  const [completedIds, setCompletedIds] = useState<string[]>(() =>
+    reconcileProgress(loadProgress(userId, instruction.id).completedStepIds, orderedIds),
+  );
+  const [collapsed, setCollapsed] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const currentStepRef = useRef<HTMLLIElement>(null);
+  const syncKey = `${userId}:${instruction.id}:${orderedIds.join(",")}`;
+  const [seenKey, setSeenKey] = useState(syncKey);
+  if (seenKey !== syncKey) {
+    setSeenKey(syncKey);
+    setCompletedIds(
+      reconcileProgress(loadProgress(userId, instruction.id).completedStepIds, orderedIds),
+    );
+    setCollapsed(false);
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const stepIndex = currentStepIndex(orderedIds, completedIds);
+  const total = instruction.steps.length;
+  const allDone = total > 0 && stepIndex >= total;
+  const current = !allDone ? instruction.steps[stepIndex] : null;
+
+  useEffect(() => {
+    if (collapsed) return;
+    const frame = window.requestAnimationFrame(() => {
+      currentStepRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [stepIndex, collapsed, instruction.id]);
+
+  function persist(ids: string[]) {
+    setCompletedIds(ids);
+    saveProgress(userId, instruction.id, ids);
+  }
+
+  function markComplete() {
+    if (!current || completedIds.includes(current.id)) return;
+    persist([...completedIds, current.id]);
+  }
+
+  function restart() {
+    clearProgress(userId, instruction.id);
+    setCompletedIds([]);
+    setCollapsed(false);
+    scrollRef.current?.scrollTo({ top: 0 });
+  }
+
+  if (typeof document === "undefined") return null;
+
+  if (collapsed) {
+    return createPortal(
+      <div
+        className="fixed bottom-4 right-4 z-50 max-w-[min(100vw-2rem,22rem)] text-zinc-800 dark:text-zinc-100"
+        role="dialog"
+        aria-modal="false"
+        aria-label={instruction.title}
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-lg ring-1 ring-black/5 transition hover:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-950 dark:ring-white/10"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-sm text-zinc-900 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:ring-zinc-800">
+            ?
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+              {instruction.title}
+            </span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {allDone ? "Completata" : `Passaggio ${Math.min(stepIndex + 1, total)}/${total}`}
+            </span>
+          </span>
+          <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Espandi</span>
+        </button>
+      </div>,
+      document.body,
+    );
+  }
+
+  return createPortal(
+    <div
+      className="fixed bottom-4 right-4 z-50 flex w-[min(100vw-2rem,24rem)] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white text-zinc-800 shadow-xl ring-1 ring-black/5 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:ring-white/10"
+      style={{ maxHeight: "calc(100dvh - 2rem)" }}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="instruction-panel-title"
+    >
+      <div className="flex shrink-0 items-start gap-3 border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-zinc-50 text-lg ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800">
+          🧭
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 id="instruction-panel-title" className="text-lg leading-tight font-semibold text-zinc-900 dark:text-zinc-50">
+            {instruction.title}
+          </h2>
+          {instruction.description ? (
+            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-zinc-500 dark:text-zinc-400">
+              {instruction.description}
+            </p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          aria-label="Chiudi"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <ol className="relative">
+          {instruction.steps.map((step, index) => {
+            const done = completedIds.includes(step.id);
+            const isCurrent = !allDone && index === stepIndex;
+            const isFuture = !done && !isCurrent;
+            return (
+              <li
+                key={step.id}
+                ref={isCurrent ? currentStepRef : undefined}
+                className={`relative flex gap-3 pb-5 transition-[filter,opacity] duration-200 last:pb-0 ${
+                  isFuture ? "pointer-events-none select-none opacity-40 blur-[1.5px]" : ""
+                }`}
+                aria-current={isCurrent ? "step" : undefined}
+              >
+                {index < instruction.steps.length - 1 ? (
+                  <span
+                    className={`absolute top-8 bottom-0 left-[15px] w-0.5 ${
+                      done ? "bg-emerald-600" : "bg-zinc-200 dark:bg-zinc-800"
+                    }`}
+                    aria-hidden
+                  />
+                ) : null}
+                <span
+                  className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    done
+                      ? "bg-emerald-600 text-white"
+                      : isCurrent
+                        ? "bg-white text-zinc-900 ring-2 ring-emerald-600 dark:bg-zinc-950 dark:text-zinc-50"
+                        : "bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800"
+                  }`}
+                >
+                  {done ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M5 12l5 5L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    index + 1
+                  )}
+                </span>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div
+                    className={`text-[11px] font-semibold tracking-wider ${
+                      done
+                        ? "text-emerald-700 line-through dark:text-emerald-300"
+                        : isCurrent
+                          ? "text-zinc-900 dark:text-zinc-50"
+                          : "text-zinc-500 dark:text-zinc-400"
+                    }`}
+                  >
+                    PASSAGGIO {index + 1}
+                  </div>
+                  <div
+                    className={`mt-0.5 text-sm font-medium ${
+                      done
+                        ? "text-zinc-500 line-through dark:text-zinc-400"
+                        : isFuture
+                          ? "text-zinc-500 dark:text-zinc-400"
+                          : "text-zinc-800 dark:text-zinc-100"
+                    }`}
+                  >
+                    {step.title}
+                  </div>
+                  {isCurrent ? (
+                    <div className="mt-2">
+                      <StepMarkdown content={step.content} />
+                      <StepYoutubeEmbed url={step.youtubeUrl} />
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={markComplete}
+                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/40"
+                        >
+                          Segna come completato
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        {allDone ? (
+          <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+            Guida completata. Puoi chiudere o ricominciare quando vuoi.
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+        <button
+          type="button"
+          onClick={restart}
+          className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+        >
+          Ricomincia
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            Riduci
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
+          >
+            Chiudi
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+export function HelpButton({ instructions, userRole, userId }: Props) {
+  const pathname = usePathname() ?? "";
+  const [open, setOpen] = useState(false);
+
   const activeInstruction = useMemo(() => {
     const candidates = instructions.map((ins) => ({
       ...ins,
       isActive: ins.isActive ?? true,
       updatedAt: ins.updatedAt ? new Date(ins.updatedAt) : new Date(0),
     }));
-
     return pickBestInstruction(candidates, pathname, userRole);
   }, [instructions, pathname, userRole]);
 
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  if (pathname !== prevPathname) {
-    setPrevPathname(pathname);
-    setIsCollapsed(false);
-  }
-
-  const currentProgress = useMemo(() => {
-    return progress.find((p) => p.instructionId === activeInstruction?.id);
-  }, [progress, activeInstruction]);
-
-  const currentStepIndex = useMemo(() => {
-    if (!activeInstruction || activeInstruction.steps.length === 0) return -1;
-    if (!currentProgress || !currentProgress.lastStepId) return 0;
-
-    const lastIdx = activeInstruction.steps.findIndex((s) => s.id === currentProgress.lastStepId);
-    if (lastIdx === -1) return 0;
-    return currentProgress.completedAt ? activeInstruction.steps.length : lastIdx + 1;
-  }, [activeInstruction, currentProgress]);
-
-  const handleMarkDone = async (stepId: string) => {
-    if (!activeInstruction) return;
-
-    const res = await markStepAsDoneAction(activeInstruction.id, stepId);
-    if (res.success) {
-      const isLast = activeInstruction.steps.at(-1)?.id === stepId;
-      setProgress((prev) => {
-        const others = prev.filter((p) => p.instructionId !== activeInstruction.id);
-        return [
-          ...others,
-          {
-            instructionId: activeInstruction.id,
-            lastStepId: stepId,
-            completedAt: isLast ? new Date() : null,
-          },
-        ];
-      });
-    }
-  };
-
-  const handleReset = async () => {
-    if (!activeInstruction) return;
-    const res = await resetProgressAction(activeInstruction.id);
-    if (res.success) {
-      setProgress((prev) => prev.filter((p) => p.instructionId !== activeInstruction.id));
-    }
-  };
-
   if (!activeInstruction || activeInstruction.steps.length === 0) return null;
-
-  const totalSteps = activeInstruction.steps.length;
-  const isCompleted = currentStepIndex >= totalSteps;
-  const displayStepNumber = Math.min(Math.max(currentStepIndex + 1, 1), totalSteps);
-
-  const panel =
-    isOpen && mounted
-      ? createPortal(
-          <div
-            role="dialog"
-            aria-modal="false"
-            aria-label={activeInstruction.title}
-            className="fixed bottom-4 right-4 z-[100000] max-w-sm w-[90vw] sm:w-[380px] pointer-events-auto transition-all duration-300 ease-out"
-            style={{ maxHeight: "calc(100vh - 2rem)" }}
-          >
-            {isCollapsed ? (
-              /* Collapsed compact bar */
-              <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-zinc-900 text-white dark:bg-zinc-900 border border-zinc-800 shadow-2xl animate-in slide-in-from-bottom-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white shrink-0">
-                    ?
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-zinc-100 truncate">
-                      {renderInline(activeInstruction.title)}
-                    </p>
-                    <p className="text-[11px] text-zinc-400">
-                      {isCompleted ? "Guida completata" : `Passaggio ${displayStepNumber} di ${totalSteps}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setIsCollapsed(false)}
-                    className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition"
-                    title="Espandi guida"
-                  >
-                    Espandi
-                  </button>
-                  <button
-                    onClick={() => setIsOpen(false)}
-                    className="p-1 text-zinc-400 hover:text-zinc-200 transition"
-                    title="Chiudi"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Expanded floating card */
-              <div className="flex flex-col max-h-[calc(100vh-2rem)] rounded-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200 text-zinc-900 dark:text-zinc-50">
-                {/* Header */}
-                <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex items-start justify-between shrink-0">
-                  <div className="min-w-0 pr-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">
-                        ISTRUZIONI
-                      </span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {isCompleted ? "Completato" : `Passaggio ${displayStepNumber}/${totalSteps}`}
-                      </span>
-                    </div>
-                    <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-50 mt-1 truncate">
-                      {renderInline(activeInstruction.title)}
-                    </h2>
-                    {activeInstruction.description && (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
-                        {activeInstruction.description}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => setIsCollapsed(true)}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                      title="Riduci a barra compatta"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M19 12H5" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                      title="Chiudi guida"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Steps timeline content */}
-                <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-5">
-                  {activeInstruction.steps.map((step, idx) => {
-                    const isLocked = idx > currentStepIndex;
-                    const isDone = idx < currentStepIndex;
-                    const isCurrent = idx === currentStepIndex;
-
-                    return (
-                      <div
-                        key={step.id}
-                        className={clsx(
-                          "relative pl-8 transition-opacity duration-200",
-                          isLocked ? "opacity-35 pointer-events-none" : "opacity-100"
-                        )}
-                      >
-                        {/* Timeline line */}
-                        {idx < activeInstruction.steps.length - 1 && (
-                          <div
-                            className={clsx(
-                              "absolute left-[13px] top-6 bottom-[-20px] w-0.5",
-                              isDone ? "bg-emerald-500" : "bg-zinc-200 dark:bg-zinc-800"
-                            )}
-                          />
-                        )}
-
-                        {/* Step circle */}
-                        <div
-                          className={clsx(
-                            "absolute left-0 top-0.5 flex h-7 w-7 items-center justify-center rounded-full border-2 text-[11px] font-bold transition-all",
-                            isDone
-                              ? "bg-emerald-500 border-emerald-500 text-white"
-                              : isCurrent
-                              ? "border-emerald-600 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 ring-4 ring-emerald-500/10"
-                              : "border-zinc-200 text-zinc-400 dark:border-zinc-800 bg-white dark:bg-zinc-900"
-                          )}
-                        >
-                          {isDone ? (
-                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          ) : (
-                            idx + 1
-                          )}
-                        </div>
-
-                        {/* Step details */}
-                        <div className="space-y-1.5">
-                          <h3
-                            className={clsx(
-                              "font-semibold text-sm",
-                              isDone ? "text-zinc-500 line-through" : "text-zinc-900 dark:text-zinc-50"
-                            )}
-                          >
-                            {renderInline(step.title)}
-                          </h3>
-                          {!isLocked && (
-                            <div className="text-xs text-zinc-600 dark:text-zinc-300 prose dark:prose-invert max-w-none">
-                              <FeatureUpdateMarkdownPreview markdown={step.content} />
-                            </div>
-                          )}
-                          {isCurrent && (
-                            <button
-                              onClick={() => handleMarkDone(step.id)}
-                              className="mt-3 inline-flex h-8 items-center justify-center rounded-lg bg-emerald-600 px-3.5 text-xs font-bold text-white transition hover:bg-emerald-500 shadow-sm"
-                            >
-                              Segna come completato
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {isCompleted && (
-                    <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-center animate-in zoom-in-95 duration-200">
-                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-                        Complimenti! Hai completato tutti i passaggi.
-                      </p>
-                      <button
-                        onClick={handleReset}
-                        className="mt-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 underline underline-offset-4 hover:text-emerald-600"
-                      >
-                        Ricomincia guida
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer */}
-                <div className="p-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex justify-between items-center shrink-0 text-xs">
-                  {currentStepIndex > 0 ? (
-                    <button
-                      onClick={handleReset}
-                      className="text-zinc-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400 font-medium transition flex items-center gap-1"
-                    >
-                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                      Ricomincia
-                    </button>
-                  ) : (
-                    <span />
-                  )}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsCollapsed(true)}
-                      className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                    >
-                      Riduci
-                    </button>
-                    <button
-                      onClick={() => setIsOpen(false)}
-                      className="px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200 transition"
-                    >
-                      Chiudi
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>,
-          document.body
-        )
-      : null;
 
   return (
     <>
-      {/* Header ? trigger button */}
       <button
-        onClick={() => {
-          setIsOpen(true);
-          setIsCollapsed(false);
-        }}
-        className={clsx(
-          "flex h-8 w-8 items-center justify-center rounded-full border transition-all duration-200 shadow-sm",
-          isCompleted
-            ? "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-400 hover:scale-105"
-            : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 hover:scale-105"
-        )}
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-sm font-bold text-zinc-700 shadow-sm transition hover:border-emerald-500 hover:text-emerald-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
         title="Istruzioni per questa pagina"
         aria-label="Istruzioni per questa pagina"
       >
-        <span className="text-sm font-bold">?</span>
+        ?
       </button>
-
-      {panel}
+      {open ? (
+        <InstructionPanel
+          instruction={activeInstruction}
+          userId={userId}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

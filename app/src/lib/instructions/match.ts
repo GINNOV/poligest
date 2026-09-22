@@ -20,7 +20,10 @@ const STAFF_ROLES: ReadonlySet<string> = new Set([
 export function normalizePathname(pathname: string): string {
   const raw = pathname.split("?")[0]?.split("#")[0] ?? "";
   if (!raw || raw === "/") return "/";
-  return raw.length > 1 && raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  const stripped = raw.length > 1 && raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  if (stripped === "/it") return "/";
+  if (stripped.startsWith("/it/")) return stripped.slice(3);
+  return stripped;
 }
 
 /**
@@ -29,8 +32,6 @@ export function normalizePathname(pathname: string): string {
  */
 export function normalizePathPattern(pattern: string): string {
   let p = pattern.trim();
-  // Map dynamic brackets like [id] or [param] -> *
-  p = p.replace(/\[[^\]]+\]/g, "*");
   // Common paste from regex habits: .* -> *
   p = p.replace(/\.\*/g, "*");
   // Collapse duplicate slashes (keep leading)
@@ -115,7 +116,7 @@ function fixedLength(pattern: string): number {
 }
 
 /**
- * Rank candidates: fewer wildcards, longer fixed path, specific role over general, higher sortOrder, newer updatedAt.
+ * Rank candidates: fewer wildcards, longer fixed path, higher sortOrder, newer updatedAt.
  * Returns the best match or null.
  */
 export function pickBestInstruction<T extends InstructionMatchInput>(
@@ -139,9 +140,6 @@ export function pickBestInstruction<T extends InstructionMatchInput>(
     const fa = fixedLength(a.pathPattern);
     const fb = fixedLength(b.pathPattern);
     if (fa !== fb) return fb - fa;
-    const ra = a.role != null ? 1 : 0;
-    const rb = b.role != null ? 1 : 0;
-    if (ra !== rb) return rb - ra;
     const sa = a.sortOrder ?? 0;
     const sb = b.sortOrder ?? 0;
     if (sa !== sb) return sb - sa;
