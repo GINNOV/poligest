@@ -758,7 +758,6 @@ export default async function DashboardPage({
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Filtra per...</h2>
             <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
               <Link
                 href={buildDashboardHref({ view: "week", doctor: selectedDoctor, layout })}
