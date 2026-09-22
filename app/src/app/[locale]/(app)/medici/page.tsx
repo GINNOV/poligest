@@ -4,8 +4,20 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { Role } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 export const metadata = createPageMetadata(PAGE_TITLES.medici);
+
+async function rejectIfUserAlreadyLinked(userId: string | null, exceptDoctorId?: string) {
+  if (!userId) return;
+  const taken = await prisma.doctor.findFirst({
+    where: { userId, ...(exceptDoctorId ? { id: { not: exceptDoctorId } } : {}) },
+    select: { fullName: true },
+  });
+  if (taken) {
+    redirect(`/medici?error=${encodeURIComponent(`Questo utente è già collegato a ${taken.fullName}.`)}`);
+  }
+}
 
 async function createDoctor(formData: FormData) {
   "use server";
@@ -22,6 +34,8 @@ async function createDoctor(formData: FormData) {
   if (!name || !lastName) {
     throw new Error("Nome e cognome sono obbligatori");
   }
+
+  await rejectIfUserAlreadyLinked(userId);
 
   await prisma.doctor.create({
     data: {
@@ -50,6 +64,8 @@ async function updateDoctor(formData: FormData) {
   if (!id || !fullName) {
     throw new Error("Dati medico non validi");
   }
+
+  await rejectIfUserAlreadyLinked(userId, id);
 
   await prisma.doctor.update({
     where: { id },
@@ -80,9 +96,17 @@ async function deleteDoctor(formData: FormData) {
   revalidatePath("/medici");
 }
 
-export default async function MediciPage() {
+export default async function MediciPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireUser([Role.ADMIN, Role.MANAGER]);
   const t = await getTranslations("doctors");
+  const params = searchParams ? await searchParams : {};
+  const errorParam = params.error;
+  const formError =
+    typeof errorParam === "string" ? errorParam : Array.isArray(errorParam) ? errorParam[0] : undefined;
 
   const [doctors, users] = await Promise.all([
     prisma.doctor.findMany({
@@ -105,6 +129,11 @@ export default async function MediciPage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{t("title")}</h1>
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t("subtitle")}</p>
+          {formError ? (
+            <p className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-200">
+              {formError}
+            </p>
+          ) : null}
 
           <form action={createDoctor} className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">

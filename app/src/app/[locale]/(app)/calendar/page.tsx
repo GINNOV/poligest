@@ -12,6 +12,7 @@ import {
   resolveCalendarMonthKey,
 } from "@/lib/calendar/domain";
 import { calendarOccupyingAppointmentFilter } from "@/lib/appointments/agenda-domain";
+import { resolveSelectedDoctorId } from "@/lib/calendar/resolve-selected-doctor";
 import { AppointmentStatus, Prisma, Role } from "@prisma/client";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
@@ -195,10 +196,16 @@ export default async function CalendarPage({
   const calendarStart = days[0];
   const calendarEnd = new Date(days[days.length - 1].getTime() + 24 * 60 * 60 * 1000 - 1);
 
-  const doctors = await prisma.doctor.findMany({
-    orderBy: { fullName: "asc" },
-    select: { id: true, fullName: true, specialty: true, color: true },
-  });
+  const [doctors, linkedDoctor] = await Promise.all([
+    prisma.doctor.findMany({
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, specialty: true, color: true },
+    }),
+    prisma.doctor.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    }),
+  ]);
 
   const doctorParam =
     typeof params.doctor === "string"
@@ -207,10 +214,13 @@ export default async function CalendarPage({
         ? params.doctor[0]
         : undefined;
 
-  const showAllDoctors = doctorParam === "all";
-  const selectedDoctorId = showAllDoctors
-    ? undefined
-    : doctors.find((doc) => doc.id === doctorParam)?.id ?? doctors[0]?.id;
+  const preferLinkedDoctor = user.role !== Role.ADMIN;
+  const { showAllDoctors, selectedDoctorId } = resolveSelectedDoctorId({
+    doctorParam,
+    doctorIds: doctors.map((doctor) => doctor.id),
+    linkedDoctorId: linkedDoctor?.id,
+    preferLinkedDoctor,
+  });
 
   const appointmentRangeStart =
     view === "day" ? dayStart : view === "week" ? weekStart : monthStart;
@@ -715,7 +725,11 @@ export default async function CalendarPage({
           </div>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
-          <CalendarPreferencesSync doctorIds={doctors.map((doctor) => doctor.id)} />
+          <CalendarPreferencesSync
+            doctorIds={doctors.map((doctor) => doctor.id)}
+            userId={user.id}
+            linkedDoctorId={preferLinkedDoctor ? linkedDoctor?.id : null}
+          />
           <CalendarDoctorFilter
             doctors={doctorOptionList}
             selectedDoctorId={selectedDoctorId}

@@ -3,14 +3,19 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-const STORAGE_DOCTOR = "calendarDoctor";
 const STORAGE_VIEW = "calendarView";
+
+export function calendarDoctorStorageKey(userId: string) {
+  return `calendarDoctor:${userId}`;
+}
 
 type Props = {
   doctorIds: string[];
+  userId: string;
+  linkedDoctorId?: string | null;
 };
 
-export function CalendarPreferencesSync({ doctorIds }: Props) {
+export function CalendarPreferencesSync({ doctorIds, userId, linkedDoctorId }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamString = searchParams.toString();
@@ -22,12 +27,13 @@ export function CalendarPreferencesSync({ doctorIds }: Props) {
     const doctorParam = params.get("doctor");
     const viewParam = params.get("view");
 
-    const storedDoctor = window.localStorage.getItem(STORAGE_DOCTOR);
-    if (!doctorParam && storedDoctor) {
-      if (storedDoctor === "all" || doctorIds.includes(storedDoctor)) {
-        params.set("doctor", storedDoctor);
-        shouldReplace = true;
-      }
+    const storedDoctor = window.localStorage.getItem(calendarDoctorStorageKey(userId));
+    if (!doctorParam && storedDoctor && (storedDoctor === "all" || doctorIds.includes(storedDoctor))) {
+      params.set("doctor", storedDoctor);
+      shouldReplace = true;
+    } else if (!doctorParam && linkedDoctorId && doctorIds.includes(linkedDoctorId)) {
+      params.set("doctor", linkedDoctorId);
+      shouldReplace = true;
     }
 
     const storedView = window.localStorage.getItem(STORAGE_VIEW);
@@ -40,7 +46,7 @@ export function CalendarPreferencesSync({ doctorIds }: Props) {
     if (shouldReplace && nextQuery !== searchParamString) {
       router.replace(`/calendar?${nextQuery}`);
     }
-  }, [doctorIds, router, searchParamString]);
+  }, [doctorIds, linkedDoctorId, router, searchParamString, userId]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParamString);
@@ -48,13 +54,13 @@ export function CalendarPreferencesSync({ doctorIds }: Props) {
     const viewParam = params.get("view");
 
     if (doctorParam) {
-      window.localStorage.setItem(STORAGE_DOCTOR, doctorParam);
+      window.localStorage.setItem(calendarDoctorStorageKey(userId), doctorParam);
     }
 
     if (viewParam === "week" || viewParam === "month") {
       window.localStorage.setItem(STORAGE_VIEW, viewParam);
     }
-  }, [searchParamString]);
+  }, [searchParamString, userId]);
 
   return null;
 }
