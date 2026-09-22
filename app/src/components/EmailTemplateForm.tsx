@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { placeholderCatalog, previewData } from "@/lib/placeholder-data";
 import {
   buildTransactionalButton,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/email-template-utils";
 import { sendTestEmail, updateEmailTemplate } from "@/actions/adminActions";
 import { PlaceholderGuide } from "@/components/PlaceholderGuide";
+import { PlaceholderSelect } from "@/components/placeholder-select";
 
 export type EmailTemplateFormProps = {
   template: {
@@ -28,8 +29,6 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
   const [status, setStatus] = useState<string | null>(null);
   const [isSaving, startSaving] = useTransition();
   const [isSending, startSending] = useTransition();
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
-
   const previewHtml = useMemo(() => {
     const websiteUrl = previewData.websiteUrl || resolveTransactionalSiteOrigin();
     const data: Record<string, string> = {
@@ -47,21 +46,6 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
       templateName: template.name,
     }).html;
   }, [body, buttonColor, subject, template.name]);
-
-  const handleInsert = (key: string) => {
-    const token = `{{${key}}}`;
-    const textarea = bodyRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart ?? body.length;
-    const end = textarea.selectionEnd ?? body.length;
-    const next = body.slice(0, start) + token + body.slice(end);
-    setBody(next);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const pos = start + token.length;
-      textarea.setSelectionRange(pos, pos);
-    });
-  };
 
   const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -125,16 +109,19 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Oggetto
           <input
+            data-placeholder-target=""
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
             className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
           />
         </label>
 
+        <PlaceholderSelect placeholders={placeholderCatalog} />
+
         <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
           Corpo (Markdown semplice)
           <textarea
-            ref={bodyRef}
+            data-placeholder-target=""
             value={body}
             onChange={(event) => setBody(event.target.value)}
             rows={12}
@@ -142,28 +129,14 @@ export function EmailTemplateForm({ template }: EmailTemplateFormProps) {
           />
         </label>
 
-        <div className="grid gap-3 md:grid-cols-[1fr,1fr]">
-          <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
-            Colore bottone
-            <input
-              value={buttonColor}
-              onChange={(event) => setButtonColor(event.target.value)}
-              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
-            />
-          </label>
-          <div className="flex flex-wrap items-end gap-2">
-            {placeholderCatalog.map((placeholder) => (
-              <button
-                key={placeholder.key}
-                type="button"
-                onClick={() => handleInsert(placeholder.key)}
-                className="inline-flex h-9 items-center justify-center rounded-full border border-zinc-200 px-3 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
-              >
-                {`{{${placeholder.key}}}`}
-              </button>
-            ))}
-          </div>
-        </div>
+        <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
+          Colore bottone
+          <input
+            value={buttonColor}
+            onChange={(event) => setButtonColor(event.target.value)}
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+          />
+        </label>
 
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/80">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Test invio</p>

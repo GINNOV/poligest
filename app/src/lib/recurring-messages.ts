@@ -1,3 +1,5 @@
+import { RECURRING_PLACEHOLDER_KEYS } from "@/lib/placeholder-data";
+
 export type HolidayDefinition = {
   key: string;
   name: string;
@@ -75,14 +77,7 @@ export const RECURRING_MESSAGE_DEFAULTS: RecurringMessageDefaults[] = [
 ];
 
 export const TEMPLATE_TOKENS = [
-  "firstName",
-  "lastName",
-  "holidayName",
-  "holidayDate",
-  "closureTitle",
-  "closureStart",
-  "closureEnd",
-  "birthdayDate",
+  ...new Set(Object.values(RECURRING_PLACEHOLDER_KEYS).flat()),
 ] as const;
 
 export function applyTemplate(template: string, values: Record<string, string>) {

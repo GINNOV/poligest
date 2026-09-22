@@ -11,6 +11,8 @@ import {
 } from "@/lib/recalls/channels";
 import { formatNotificationChannel } from "@/lib/recalls/delivery";
 import { getAllEmailTemplates } from "@/lib/email-templates";
+import { recallPlaceholders } from "@/lib/placeholder-data";
+import { PlaceholderSelect } from "@/components/placeholder-select";
 import { createRecallRule, deleteRecallRule, updateAppointmentReminderRule, updateRecallRule } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
@@ -263,9 +265,13 @@ export default async function RichiamiRegolePage() {
                             ))}
                           </select>
                         </label>
+                        <div className="sm:col-span-2">
+                          <PlaceholderSelect placeholders={recallPlaceholders} />
+                        </div>
                         <label className="flex flex-col gap-2">
                           <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Oggetto email</span>
                           <input
+                            data-placeholder-target=""
                             name="emailSubject"
                             defaultValue={emailSubject ?? ""}
                             className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
@@ -274,6 +280,7 @@ export default async function RichiamiRegolePage() {
                         <label className="flex flex-col gap-2 sm:col-span-2">
                           <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Messaggio</span>
                           <textarea
+                            data-placeholder-target=""
                             name="message"
                             defaultValue={rule.message ?? ""}
                             className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"

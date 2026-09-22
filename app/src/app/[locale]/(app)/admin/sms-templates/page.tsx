@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { SmsTemplateForm } from "@/components/sms-template-form";
 import { DEFAULT_WHATSAPP_TEMPLATE, WHATSAPP_TEMPLATE_NAME } from "@/lib/whatsapp-template";
+import { messagePlaceholders } from "@/lib/placeholder-data";
+import { PlaceholderSelect } from "@/components/placeholder-select";
 
 const textareaClassName =
   "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-50 dark:focus:ring-emerald-500/20";
@@ -106,9 +108,11 @@ export default async function SmsTemplatesPage() {
             </p>
           </div>
           <form action={upsertWhatsappTemplate} className="space-y-3">
+            <PlaceholderSelect placeholders={messagePlaceholders} />
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-800 dark:text-zinc-200">
               Testo messaggio
               <textarea
+                data-placeholder-target=""
                 name="body"
                 rows={5}
                 defaultValue={whatsappTemplate?.body ?? DEFAULT_WHATSAPP_TEMPLATE}
@@ -116,9 +120,6 @@ export default async function SmsTemplatesPage() {
                 required
               />
             </label>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Segnaposto supportati: {"{{nome}}, {{cognome}}, {{dottore}}, {{data_appuntamento}}, {{motivo_visita}}, {{note}}"}.
-            </p>
             <FormSubmitButton className="inline-flex h-10 items-center justify-center rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-600">
               Salva messaggio WhatsApp
             </FormSubmitButton>

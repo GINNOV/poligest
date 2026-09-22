@@ -1,4 +1,5 @@
 import { RecurringMessageKind, RecurringMessageStatus } from "@prisma/client";
+import { RECURRING_PLACEHOLDER_KEYS } from "@/lib/placeholder-data";
 import { describe, expect, it } from "vitest";
 import {
   buildAdminBackupReminderBody,
@@ -45,6 +46,9 @@ describe("recurring messages domain", () => {
 
     expect(candidates).toHaveLength(1);
     expect(candidates[0]?.dedupeKey).toBe("holiday:capodanno:2026:patient-1");
+    expect(Object.keys(candidates[0]?.templateVars ?? {}).sort()).toEqual(
+      [...RECURRING_PLACEHOLDER_KEYS.HOLIDAY].sort(),
+    );
   });
 
   it("builds closure and leap-year birthday candidates", () => {
@@ -86,8 +90,10 @@ describe("recurring messages domain", () => {
       holidays: [],
     });
 
-    expect(candidates.some((candidate) => candidate.kind === RecurringMessageKind.CLOSURE)).toBe(
-      true,
+    const closureCandidate = candidates.find((candidate) => candidate.kind === RecurringMessageKind.CLOSURE);
+    expect(closureCandidate).toBeTruthy();
+    expect(Object.keys(closureCandidate?.templateVars ?? {}).sort()).toEqual(
+      [...RECURRING_PLACEHOLDER_KEYS.CLOSURE].sort(),
     );
     const birthdayCandidate = buildRecurringCandidates({
       now: new Date("2025-02-28T10:00:00.000Z"),
@@ -113,9 +119,11 @@ describe("recurring messages domain", () => {
       holidays: [],
     });
 
-    expect(
-      birthdayCandidate.find((candidate) => candidate.kind === RecurringMessageKind.BIRTHDAY)?.eventDate?.toISOString(),
-    ).toBe("2025-02-28T00:00:00.000Z");
+    const birthday = birthdayCandidate.find((candidate) => candidate.kind === RecurringMessageKind.BIRTHDAY);
+    expect(birthday?.eventDate?.toISOString()).toBe("2025-02-28T00:00:00.000Z");
+    expect(Object.keys(birthday?.templateVars ?? {}).sort()).toEqual(
+      [...RECURRING_PLACEHOLDER_KEYS.BIRTHDAY].sort(),
+    );
   });
 
   it("skips disabled configs and candidates outside the due window", () => {
