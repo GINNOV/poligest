@@ -69,7 +69,7 @@ export function EuropeanDateField({ value, onChange, name, className, required }
 }
 
 export function EuropeanTimeField({ value = "", onChange, className, required }: FieldProps) {
-  const field = useDraft(value, formatEuropeanTime, parseEuropeanTime, onChange);
+  const field = useDraft(value, formatEuropeanTime, parseEuropeanTime, onChange ?? (() => {}));
 
   return (
     <input

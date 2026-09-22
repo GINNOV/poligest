@@ -385,7 +385,7 @@ export function InstructionManager({
       {modalMode != null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div
-            className="flex max-h-[min(90dvh,48rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+            className="flex h-[min(90dvh,48rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
             role="dialog"
             aria-label={modalMode === "edit" ? "Modifica istruzione" : "Nuova istruzione"}
           >
@@ -484,7 +484,7 @@ export function InstructionManager({
                     rows={2}
                     value={form.description}
                     onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-                    className="rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
+                    className="resize-y rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900"
                   />
                 </label>
                 <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800">
@@ -551,7 +551,7 @@ export function InstructionManager({
                             rows={3}
                             value={step.content}
                             onChange={(event) => updateStep(index, { content: event.target.value })}
-                            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
+                            className="resize-y rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950"
                           />
                         </label>
                         <label className="mt-2 flex flex-col gap-1 text-sm font-medium">
