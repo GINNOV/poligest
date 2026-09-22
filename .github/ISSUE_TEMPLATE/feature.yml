@@ -1,0 +1,39 @@
+name: Change
+description: A change to how the clinic uses the app.
+title: ""
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Giornata
+        - Agenda
+        - Pazienti
+        - Richiami
+        - Magazzino
+        - Finanza
+        - Medici
+        - Admin
+        - ScanID
+        - QuickNotes
+        - Deploy
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What should change
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Now
+        - Next
+        - Later
+    validations:
+      required: true
