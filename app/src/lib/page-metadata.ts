@@ -18,6 +18,7 @@ export const PAGE_TITLES = {
 
   comunicazioniRicorrenti: "Comunicazioni ricorrenti",
   richiamiProgrammati: "Richiami programmati",
+  inviiNonRiusciti: "Invii non riusciti",
   magazzino: "Magazzino",
   fornitori: "Fornitori",
   prodotti: "Prodotti",

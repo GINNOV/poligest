@@ -5,17 +5,16 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess, getRoleFeatureAccess } from "@/lib/feature-access";
 import { Prisma, RecallStatus, Role } from "@prisma/client";
-import { deleteScheduledRecall, dismissRecallDeliveryFailure, scheduleRecall, markRecallAsContacted } from "@/app/[locale]/(app)/richiami/actions";
+import { deleteScheduledRecall, scheduleRecall, markRecallAsContacted } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { getNotificationChannelLabels } from "@/lib/recalls/delivery";
 import { normalizeItalianPhone } from "@/lib/phone";
 import { buildRecallDeliveryPlan } from "@/lib/recalls/send-domain";
-import { buildRecallDeliveryFailureAlert } from "@/lib/recalls/delivery-alerts";
 import { getAllEmailTemplates } from "@/lib/email-templates";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 import { RecallWhatsappButton } from "@/components/recall-whatsapp-button";
-import { RecallDeliveryFailureAlerts } from "@/components/recall-delivery-failure-alerts";
-import { getFailedDeliveryRecalls, type ScheduledRecallListItem } from "./page-data";
+import { RecallDeliveryFailureSummary } from "@/components/recall-delivery-failure-alerts";
+import { countFailedDeliveryRecalls, type ScheduledRecallListItem } from "./page-data";
 
 const channelBadgeStyles = {
   whatsapp:
@@ -120,7 +119,7 @@ export default async function RichiamiProgrammatiPage({
     AND: andConditions,
   };
 
-  const [totalRecalls, recalls, rules, patients, emailTemplates, failedDeliveryRecalls] = await Promise.all([
+  const [totalRecalls, recalls, rules, patients, emailTemplates, failedDeliveryCount] = await Promise.all([
     prisma.recall.count({ where: whereClause }),
     prisma.recall.findMany({
       where: whereClause,
@@ -156,11 +155,10 @@ export default async function RichiamiProgrammatiPage({
     prisma.recallRule.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.patient.findMany({ orderBy: { lastName: "asc" } }),
     getAllEmailTemplates(),
-    getFailedDeliveryRecalls(),
+    countFailedDeliveryRecalls(),
   ]);
 
   const totalPages = Math.ceil(totalRecalls / limit);
-  const failedDeliveryAlerts = failedDeliveryRecalls.map(buildRecallDeliveryFailureAlert);
 
   const patientSearchOptions = patients.map((p) => {
     const notesLines = (p.notes ?? "").split("\n");
@@ -216,7 +214,7 @@ export default async function RichiamiProgrammatiPage({
         </Link>
       </div>
 
-      <RecallDeliveryFailureAlerts alerts={failedDeliveryAlerts} dismissAction={dismissRecallDeliveryFailure} />
+      <RecallDeliveryFailureSummary count={failedDeliveryCount} />
 
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 shadow-sm space-y-6">
         {/* Filters Form */}
