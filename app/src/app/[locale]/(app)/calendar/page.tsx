@@ -429,6 +429,7 @@ export default async function CalendarPage({
   const doctorOptionList = doctors.map((doc) => ({
     id: doc.id,
     label: doc.fullName,
+    color: doc.color,
   }));
   const serviceOptions = Array.from(
     new Set([
