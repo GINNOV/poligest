@@ -19,7 +19,7 @@ jobs:
   release:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build QuickNotes (Mac Catalyst)
         working-directory: apps/iOS
@@ -44,7 +44,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -67,7 +67,7 @@ jobs:
     needs: publish-web-meta
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
