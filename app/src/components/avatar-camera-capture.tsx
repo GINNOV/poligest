@@ -21,6 +21,7 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const playBeep = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -163,6 +164,17 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
     setPreviewBlob(null);
   }, [previewUrl]);
 
+  const closePanel = useCallback(() => {
+    stopCamera();
+    if (countdownRef.current) {
+      window.clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setCountdown(null);
+    handleResetPreview();
+    setIsOpen(false);
+  }, [handleResetPreview, stopCamera]);
+
   useEffect(() => {
     return () => {
       stopCamera();
@@ -175,9 +187,30 @@ export function AvatarCameraCapture({ uploadAvatar, maxBytes }: AvatarCameraCapt
     };
   }, [previewUrl, stopCamera]);
 
+  if (!isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="mt-4 inline-flex h-9 items-center justify-center rounded-full border border-emerald-200 bg-white px-4 text-xs font-semibold text-emerald-700 transition hover:border-emerald-300 dark:border-emerald-900/40 dark:bg-zinc-950 dark:text-emerald-200"
+      >
+        Scatta con la webcam
+      </button>
+    );
+  }
+
   return (
     <div className="mt-4 space-y-3 rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/25">
-      <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Scatta un avatar con la webcam</div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Scatta un avatar con la webcam</div>
+        <button
+          type="button"
+          onClick={closePanel}
+          className="text-xs font-semibold text-emerald-700 transition hover:text-emerald-600 dark:text-emerald-300 dark:hover:text-emerald-200"
+        >
+          Chiudi
+        </button>
+      </div>
       <div className="relative overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-950">
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element

@@ -230,6 +230,26 @@ export default async function ProfilePage() {
         </p>
       </div>
 
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PIN personale</h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+          Ogni paziente ha un codice un&apos;univoco (PIN) che e&apos; utilizzato per verificare l&apos;identita&apos;. Il PIN è generato dal sistema, unico e non può essere cambiato.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {pinDigits.map((digit, idx) => (
+            <div
+              key={`${digit}-${idx}`}
+              className="grid h-12 w-12 place-items-center rounded-2xl border border-zinc-200 bg-white text-xl font-semibold text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+            >
+              <span className="font-mono">{digit}</span>
+            </div>
+          ))}
+          {!user.personalPin ? (
+            <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">In generazione...</span>
+          ) : null}
+        </div>
+      </section>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.9fr,1.1fr]">
         <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Avatar</h2>
@@ -337,26 +357,6 @@ export default async function ProfilePage() {
               updateProfilePassword={updateProfilePassword}
             />
           ) : null}
-
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">PIN personale</h2>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-              Ogni paziente ha un codice un&apos;univoco (PIN) che e&apos; utilizzato per verificare l&apos;identita&apos;. Il PIN è generato dal sistema, unico e non può essere cambiato.
-            </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {pinDigits.map((digit, idx) => (
-                <div
-                  key={`${digit}-${idx}`}
-                  className="grid h-12 w-12 place-items-center rounded-2xl border border-zinc-200 bg-white text-xl font-semibold text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                >
-                  <span className="font-mono">{digit}</span>
-                </div>
-              ))}
-              {!user.personalPin ? (
-                <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">In generazione...</span>
-              ) : null}
-            </div>
-          </div>
 
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Premi</h2>
