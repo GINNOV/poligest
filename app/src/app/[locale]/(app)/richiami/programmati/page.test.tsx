@@ -45,7 +45,7 @@ vi.mock("@/lib/email-templates", () => ({
 }));
 
 vi.mock("@/lib/recalls/delivery", () => ({
-  getNotificationChannelLabels: () => ["Email"],
+  getNotificationChannelLabels: () => [{ key: "email", label: "Email" }],
 }));
 
 vi.mock("@/app/[locale]/(app)/richiami/actions", () => ({
@@ -63,10 +63,7 @@ vi.mock("@/components/recall-whatsapp-button", () => ({
   RecallWhatsappButton: () => null,
 }));
 
-vi.mock("@/components/recall-delivery-failure-alerts", () => ({
-  RecallDeliveryFailureAlerts: () => null,
-}));
-
+import { renderToStaticMarkup } from "react-dom/server";
 import RichiamiProgrammatiPage from "./page";
 
 function collectText(node: React.ReactNode): string {
@@ -83,6 +80,10 @@ function collectText(node: React.ReactNode): string {
   }
 
   return "";
+}
+
+function isFailedDeliveryQuery(args: { where?: object } | undefined) {
+  return Boolean(args?.where && Object.prototype.hasOwnProperty.call(args.where, "deliveryFailureDismissedAt"));
 }
 
 function missingDeliveryDismissalColumnError() {
@@ -109,9 +110,11 @@ describe("RichiamiProgrammatiPage", () => {
     mocks.getRoleFeatureAccess.mockResolvedValue({
       isAllowed: vi.fn().mockReturnValue(true),
     });
-    mocks.prisma.recall.count.mockResolvedValue(1);
-    mocks.recallFindMany
-      .mockResolvedValueOnce([
+    mocks.prisma.recall.count.mockImplementation(async (args: { where?: object } | undefined) => {
+      if (isFailedDeliveryQuery(args)) return 0;
+      return 1;
+    });
+    mocks.recallFindMany.mockResolvedValue([
         {
           id: "recall-1",
           dueAt: new Date("2026-07-12T00:00:00.000Z"),
@@ -133,8 +136,7 @@ describe("RichiamiProgrammatiPage", () => {
             channel: "email",
           },
         },
-      ])
-      .mockRejectedValueOnce(missingDeliveryDismissalColumnError());
+      ]);
     mocks.prisma.recallRule.findMany.mockResolvedValue([
       {
         id: "rule-1",
@@ -158,6 +160,11 @@ describe("RichiamiProgrammatiPage", () => {
   });
 
   it("renders scheduled recalls when the delivery dismissal column migration is missing", async () => {
+    mocks.prisma.recall.count.mockImplementation(async (args: { where?: object } | undefined) => {
+      if (isFailedDeliveryQuery(args)) throw missingDeliveryDismissalColumnError();
+      return 1;
+    });
+
     const page = await RichiamiProgrammatiPage({
       searchParams: Promise.resolve({}),
     });
@@ -168,11 +175,31 @@ describe("RichiamiProgrammatiPage", () => {
     expect(text).toMatch(/1\s+richiami trovati/);
     expect(text).toContain("Esposito");
     expect(text).toContain("Annamaria");
+    expect(text).not.toContain("Apri elenco");
+  });
+
+  it("shows one summary card instead of a banner per failed invite", async () => {
+    mocks.prisma.recall.count.mockImplementation(async (args: { where?: object } | undefined) => {
+      if (isFailedDeliveryQuery(args)) return 12;
+      return 1;
+    });
+
+    const page = await RichiamiProgrammatiPage({
+      searchParams: Promise.resolve({}),
+    });
+    const html = renderToStaticMarkup(page);
+
+    expect(html).toContain("12 invii non riusciti");
+    expect(html).toContain('href="/richiami/programmati/non-inviati"');
+    expect(html.match(/Apri elenco/g)).toHaveLength(1);
+    expect(html).not.toContain("Invio automatico non riuscito");
   });
 
   it("rethrows unrelated missing-column errors from the delivery alert query", async () => {
-    mocks.recallFindMany.mockReset();
-    mocks.recallFindMany.mockResolvedValueOnce([]).mockRejectedValueOnce(unrelatedMissingColumnError());
+    mocks.prisma.recall.count.mockImplementation(async (args: { where?: object } | undefined) => {
+      if (isFailedDeliveryQuery(args)) throw unrelatedMissingColumnError();
+      return 1;
+    });
 
     await expect(
       RichiamiProgrammatiPage({

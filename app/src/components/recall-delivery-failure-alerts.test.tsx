@@ -1,39 +1,19 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { RecallDeliveryFailureAlerts } from "@/components/recall-delivery-failure-alerts";
+import { RecallDeliveryFailureSummary } from "@/components/recall-delivery-failure-alerts";
 
-async function dismissAction() {}
+describe("RecallDeliveryFailureSummary", () => {
+  it("renders one card with the failure count and a link to the list", () => {
+    const html = renderToStaticMarkup(<RecallDeliveryFailureSummary count={12} />);
 
-describe("RecallDeliveryFailureAlerts", () => {
-  it("renders stacked persistent alerts with dismiss controls", () => {
-    const html = renderToStaticMarkup(
-      <RecallDeliveryFailureAlerts
-        dismissAction={dismissAction}
-        alerts={[
-          {
-            id: "recall-1",
-            patientName: "Rossi Mario",
-            ruleName: "Igiene",
-            channelLabel: "WhatsApp",
-            dueAt: new Date("2026-07-06T08:00:00.000Z"),
-            lastContactAt: null,
-          },
-          {
-            id: "recall-2",
-            patientName: "Bianchi Anna",
-            ruleName: "Controllo",
-            channelLabel: "Email",
-            dueAt: new Date("2026-07-07T08:00:00.000Z"),
-            lastContactAt: null,
-          },
-        ]}
-      />,
-    );
+    expect(html).toContain("12 invii non riusciti");
+    expect(html).toContain('href="/richiami/programmati/non-inviati"');
+    expect(html).toContain("Apri elenco");
+    expect(html).not.toContain("Chiudi");
+    expect(html.match(/<a /g)).toHaveLength(1);
+  });
 
-    expect(html.match(/role="alert"/g)).toHaveLength(2);
-    expect(html).toContain("Invio automatico non riuscito per Rossi Mario");
-    expect(html).toContain("Invio automatico non riuscito per Bianchi Anna");
-    expect(html.match(/name="recallId"/g)).toHaveLength(2);
-    expect(html.match(/Chiudi/g)).toHaveLength(2);
+  it("stays off the page when nothing failed", () => {
+    expect(renderToStaticMarkup(<RecallDeliveryFailureSummary count={0} />)).toBe("");
   });
 });

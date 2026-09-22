@@ -38,28 +38,78 @@ function isMissingDeliveryDismissalColumn(error: unknown) {
   return details.includes("deliveryFailureDismissedAt");
 }
 
-export async function getFailedDeliveryRecalls() {
+export const FAILED_DELIVERY_PAGE_SIZE = 20;
+
+const failedDeliverySelect = {
+  id: true,
+  dueAt: true,
+  lastContactAt: true,
+  patient: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      email: true,
+    },
+  },
+  rule: { select: { name: true, channel: true } },
+} as const;
+
+export type FailedDeliveryRecallRecord = Prisma.RecallGetPayload<{
+  select: typeof failedDeliverySelect;
+}>;
+
+export function failedDeliveryRecallWhere(query: string): Prisma.RecallWhereInput {
+  const q = query.trim();
+  const base: Prisma.RecallWhereInput = {
+    status: RecallStatus.SKIPPED,
+    deliveryFailureDismissedAt: null,
+  };
+  if (!q) return base;
+
+  return {
+    ...base,
+    OR: [
+      { patient: { firstName: { contains: q, mode: "insensitive" } } },
+      { patient: { lastName: { contains: q, mode: "insensitive" } } },
+      { patient: { phone: { contains: q, mode: "insensitive" } } },
+      { patient: { email: { contains: q, mode: "insensitive" } } },
+      { rule: { name: { contains: q, mode: "insensitive" } } },
+    ],
+  };
+}
+
+function unavailableFailedDeliveries(error: unknown) {
+  if (!isMissingDeliveryDismissalColumn(error)) return false;
+  console.warn("[richiami/programmati] failed delivery alerts unavailable until recall migration is applied");
+  return true;
+}
+
+export async function countFailedDeliveryRecalls(query = "") {
+  try {
+    return await prisma.recall.count({ where: failedDeliveryRecallWhere(query) });
+  } catch (error) {
+    if (unavailableFailedDeliveries(error)) return 0;
+    throw error;
+  }
+}
+
+export async function listFailedDeliveryRecalls(input: {
+  readonly query: string;
+  readonly skip: number;
+  readonly take: number;
+}) {
   try {
     return await prisma.recall.findMany({
-      where: {
-        status: RecallStatus.SKIPPED,
-        deliveryFailureDismissedAt: null,
-      },
+      where: failedDeliveryRecallWhere(input.query),
       orderBy: [{ lastContactAt: "desc" }, { dueAt: "desc" }],
-      select: {
-        id: true,
-        dueAt: true,
-        lastContactAt: true,
-        patient: { select: { firstName: true, lastName: true } },
-        rule: { select: { name: true, channel: true } },
-      },
+      select: failedDeliverySelect,
+      skip: input.skip,
+      take: input.take,
     });
   } catch (error) {
-    if (isMissingDeliveryDismissalColumn(error)) {
-      console.warn("[richiami/programmati] failed delivery alerts unavailable until recall migration is applied");
-      return [];
-    }
-
+    if (unavailableFailedDeliveries(error)) return [];
     throw error;
   }
 }
