@@ -20,7 +20,7 @@ describe("daily reminder helpers", () => {
   test("shouldSendDailyReminderNow waits until configured evening time", () => {
     expect(
       shouldSendDailyReminderNow({
-        now: new Date("2026-06-29T17:30:00.000Z"),
+        now: new Date("2026-06-29T16:30:00.000Z"),
         timeZone: "Europe/Rome",
         sendTimeMinutes: DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES,
       }),
@@ -28,7 +28,7 @@ describe("daily reminder helpers", () => {
 
     expect(
       shouldSendDailyReminderNow({
-        now: new Date("2026-06-29T18:00:00.000Z"),
+        now: new Date("2026-06-29T17:00:00.000Z"),
         timeZone: "Europe/Rome",
         sendTimeMinutes: DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES,
       }),

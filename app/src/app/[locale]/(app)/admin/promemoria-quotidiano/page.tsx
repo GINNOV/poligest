@@ -58,7 +58,7 @@ async function saveDailyReminderConfig(formData: FormData) {
   }>("dailyReminderConfig");
   
   const enabled = formData.get("enabled") === "on";
-  const timeStr = (formData.get("sendTime") as string) || "20:00";
+  const timeStr = (formData.get("sendTime") as string) || "19:00";
   const [hours, minutes] = timeStr.split(":").map(Number);
   const sendTimeMinutes = hours * 60 + minutes;
   const bccEmailRaw = ((formData.get("bccEmail") as string) || "").trim();
@@ -211,7 +211,7 @@ export default async function AdminDailyReminderPage() {
           </p>
           <h1 className="mt-2 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">Promemoria quotidiano staff</h1>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-            Invia automaticamente ogni sera (dopo le 20:00 ora italiana) un riepilogo degli appuntamenti del giorno successivo ai medici con profilo associato.
+            Invia automaticamente ogni sera (dopo le 19:00 ora italiana) un riepilogo degli appuntamenti del giorno successivo ai medici con profilo associato.
             Ogni destinatario riceve esclusivamente la propria agenda, solo se ha almeno un appuntamento.
           </p>
         </div>
@@ -293,7 +293,7 @@ export default async function AdminDailyReminderPage() {
                 <p className="font-semibold text-zinc-900 dark:text-zinc-200">Dettagli invio</p>
                 <p className="mt-1">
                   Il sistema scansiona l&apos;agenda del giorno successivo e invia una mail personalizzata a ogni medico dei ruoli selezionati che ha almeno un appuntamento programmato.
-                  L&apos;invio automatico parte dopo l&apos;orario configurato (default 20:00, fuso Europe/Rome) e include la BCC configurata.
+                  L&apos;invio automatico parte dopo l&apos;orario configurato (default 19:00, fuso Europe/Rome) e include la BCC configurata.
                 </p>
               </div>
 

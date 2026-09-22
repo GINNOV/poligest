@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/notifications/daily-reminder",
-      "schedule": "0,30 18,19 * * *"
+      "schedule": "0,30 17,18 * * *"
     },
     {
       "path": "/api/patients/duplicates/auto-merge",

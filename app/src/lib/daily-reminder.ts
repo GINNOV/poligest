@@ -19,7 +19,7 @@ import {
 } from "@/lib/user-display-time-zone";
 
 export const DAILY_REMINDER_CONFIG_ID = "default";
-export const DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES = 20 * 60; // 20:00 Italy time
+export const DEFAULT_DAILY_REMINDER_SEND_TIME_MINUTES = 19 * 60; // 19:00 Italy time
 export const DEFAULT_DAILY_REMINDER_TARGET_ROLES: Role[] = [Role.MANAGER, Role.ADMIN];
 export const DEFAULT_DAILY_REMINDER_BCC_EMAIL = "studio.agovino.angrisano@gmail.com";
 export const DAILY_REMINDER_SEND_WINDOW_MINUTES = 120;
