@@ -79,15 +79,17 @@ const statusCardBackgrounds: Record<AppointmentStatus, string> = {
   NO_SHOW: "border-violet-200 bg-gradient-to-r from-violet-50 via-white to-violet-50 dark:border-violet-800/60 dark:from-violet-900/20 dark:via-zinc-950 dark:to-violet-900/20",
 };
 
-const statusRowAccents: Record<AppointmentStatus, string> = {
-  TO_CONFIRM: "border-l-amber-400 bg-amber-50/40 dark:border-l-amber-500 dark:bg-amber-950/20",
-  CONFIRMED: "border-l-emerald-400 bg-white dark:border-l-emerald-500 dark:bg-zinc-950",
-  IN_WAITING: "border-l-zinc-300 bg-white dark:border-l-zinc-600 dark:bg-zinc-950",
-  IN_PROGRESS: "border-l-sky-400 bg-sky-50/30 dark:border-l-sky-500 dark:bg-sky-950/20",
-  COMPLETED: "border-l-teal-400 bg-teal-50/30 dark:border-l-teal-500 dark:bg-teal-950/20",
-  CANCELLED: "border-l-rose-400 bg-rose-50/30 dark:border-l-rose-500 dark:bg-rose-950/20",
-  NO_SHOW: "border-l-violet-400 bg-violet-50/30 dark:border-l-violet-500 dark:bg-violet-950/20",
+const statusRowClasses: Record<AppointmentStatus, string> = {
+  TO_CONFIRM: "bg-amber-50 text-amber-950 dark:bg-amber-900/30 dark:text-amber-100",
+  CONFIRMED: "bg-emerald-50 text-emerald-950 dark:bg-emerald-900/30 dark:text-emerald-100",
+  IN_WAITING: "bg-zinc-50 text-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-100",
+  IN_PROGRESS: "bg-sky-50 text-sky-950 dark:bg-sky-900/30 dark:text-sky-100",
+  COMPLETED: "bg-teal-50 text-teal-950 dark:bg-teal-900/30 dark:text-teal-100",
+  CANCELLED: "bg-rose-50 text-rose-950 dark:bg-rose-900/30 dark:text-rose-100",
+  NO_SHOW: "bg-violet-50 text-violet-950 dark:bg-violet-900/30 dark:text-violet-100",
 };
+
+const pastRowClass = "bg-amber-50 text-amber-950 dark:bg-amber-900/30 dark:text-amber-100";
 
 const getServiceIcon = (serviceType?: string | null, title?: string | null) => {
   const label = `${serviceType ?? ""} ${title ?? ""}`.toLowerCase();
@@ -363,9 +365,7 @@ export function DashboardAppointmentsList({
   const getRowClass = (appt: ParsedAppointment, mode: LayoutMode = layout) => {
     const isPast = appt.endsAtDate < now;
     if (mode === "rows") {
-      return isPast
-        ? "border-l-amber-300 bg-amber-50/50 dark:border-l-amber-500 dark:bg-amber-950/25"
-        : statusRowAccents[appt.status];
+      return isPast ? pastRowClass : statusRowClasses[appt.status];
     }
     return isPast
       ? "border-amber-200 bg-amber-50 dark:border-amber-800/60 dark:bg-amber-900/20"
@@ -393,7 +393,7 @@ export function DashboardAppointmentsList({
                 <th className={`${rowHeaderClass} w-[1%] text-right`}>Azioni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {paginatedAppointments.map((appt, index) => {
                 const { patientPhone, whatsappHref, startsAtLocal, serviceLabel } = buildAppointmentContext({
                   appt,
@@ -412,8 +412,8 @@ export function DashboardAppointmentsList({
                 return (
                   <Fragment key={appt.id}>
                     {showDivider && isMounted ? <DayDivider dayLabel={dayLabel} colSpan={5} /> : null}
-                    <tr className={`border-l-[3px] transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/50 ${rowClass}`}>
-                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                    <tr>
+                      <td className={`whitespace-nowrap border-l-4 border-l-current px-4 py-3 align-middle ${rowClass}`}>
                         <span className="text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">
                           {isMounted
                             ? formatDateInDisplayTimeZone(appt.startsAtDate, { timeStyle: "short" }, displayTimeZone)
@@ -425,7 +425,7 @@ export function DashboardAppointmentsList({
                           </span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 align-middle">
+                      <td className={`px-4 py-3 align-middle ${rowClass}`}>
                         <Link
                           href={`/pazienti/${appt.patient.id}`}
                           className="text-sm font-medium text-zinc-900 hover:text-emerald-700 dark:text-zinc-50 dark:hover:text-emerald-300"
@@ -434,18 +434,18 @@ export function DashboardAppointmentsList({
                           {patientName}
                         </Link>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 align-middle">
+                      <td className={`whitespace-nowrap px-4 py-3 align-middle ${rowClass}`}>
                         <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400" title={patientPhone ?? undefined}>
                           {patientPhone ?? "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 align-middle">
+                      <td className={`px-4 py-3 align-middle ${rowClass}`}>
                         <span className="inline-flex max-w-full items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300" title={serviceLabel}>
                           <span className="shrink-0 text-sm leading-none opacity-80">{getServiceIcon(appt.serviceType, appt.title)}</span>
                           <span className="truncate">{serviceLabel}</span>
                         </span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-2.5 align-middle">
+                      <td className={`whitespace-nowrap px-4 py-2.5 align-middle ${rowClass}`}>
                         <AppointmentActions
                           appt={appt}
                           whatsappHref={whatsappHref}
