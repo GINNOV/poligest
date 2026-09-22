@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
-import { getRandomAvatarUrl } from "@/lib/avatars";
+import { getRandomAvatarUrl, resolveProfileAvatarUrl } from "@/lib/avatars";
 import { normalizePersonName } from "@/lib/name";
 import { Prisma, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -35,6 +35,7 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     role: true,
     locale: true,
     avatarUrl: true,
+    gender: true,
   } as const;
   const dbUser = email ? await prisma.user.findUnique({
     where: { email: normalizeEmail(email) },
@@ -55,7 +56,7 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     name: dbUser.name,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
-    avatarUrl: dbUser.avatarUrl,
+    avatarUrl: resolveProfileAvatarUrl({ avatarUrl: dbUser.avatarUrl, gender: dbUser.gender }),
     stackUserId: `smoke:${dbUser.id}`,
     impersonatedFrom: null,
   };
@@ -200,7 +201,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     name: dbUser.name ?? stackUser.displayName ?? dbUser.email,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
-    avatarUrl: dbUser.avatarUrl ?? null,
+    avatarUrl: resolveProfileAvatarUrl({ avatarUrl: dbUser.avatarUrl, gender: dbUser.gender }),
     stackUserId: stackUser.id,
     impersonatedFrom: null,
   };
@@ -228,6 +229,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
         role: true,
         locale: true,
         avatarUrl: true,
+        gender: true,
       },
     });
     if (target) {
@@ -238,7 +240,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
         name: target.name ?? target.email,
         role: target.role,
         locale: target.locale ?? baseUser.locale,
-        avatarUrl: target.avatarUrl ?? null,
+        avatarUrl: resolveProfileAvatarUrl({ avatarUrl: target.avatarUrl, gender: target.gender }),
         impersonatedFrom: baseUser.id,
       };
     }

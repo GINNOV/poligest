@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { UNKNOWN_GENDER_AVATAR } from "@/lib/avatars";
 import { SignOutButton } from "./sign-out-button";
 import { FidatiDialog } from "./fidati-dialog";
 import {
@@ -218,7 +219,7 @@ export function UserMenu({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
-            alt="Avatar"
+            alt={avatarUrl === UNKNOWN_GENDER_AVATAR ? "Genere non indicato" : "Avatar"}
             className="h-9 w-9 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
           />
         ) : (
