@@ -103,3 +103,53 @@ test("keeps staff credential fields readable on the dark sign-in form", async ({
   );
   await expect(page.getByText("Password dimenticata?")).toHaveCSS("color", "rgb(34, 211, 238)");
 });
+
+test("keeps a pasted staff login code in separate characters", async ({ page }) => {
+  await page.route("**/api/stack/**/projects/current", async (route) => {
+    await route.fulfill({
+      json: {
+        id: "11111111-1111-4111-8111-111111111111",
+        display_name: "Smoke test",
+        config: {
+          sign_up_enabled: false,
+          credential_enabled: false,
+          magic_link_enabled: true,
+          passkey_enabled: false,
+          client_team_creation_enabled: false,
+          client_user_deletion_enabled: false,
+          allow_team_api_keys: false,
+          allow_user_api_keys: false,
+          enabled_oauth_providers: [],
+        },
+      },
+    });
+  });
+  await page.route("**/auth/otp/send-sign-in-code", async (route) => {
+    await route.fulfill({ json: { nonce: "smoke-nonce" } });
+  });
+
+  await page.goto("/handler/sign-in?audience=staff&method=email");
+  await page.getByLabel("Email").fill("staff@example.com");
+  await page.getByRole("button", { name: /invia email|send email/i }).click();
+
+  const codeInput = page.locator("[data-input-otp]");
+  await expect(codeInput).toBeVisible();
+  await codeInput.fill("ABC12");
+
+  const styles = await codeInput.evaluate((element) => {
+    const computed = window.getComputedStyle(element);
+    return {
+      color: computed.color,
+      backgroundColor: computed.backgroundColor,
+      letterSpacing: computed.letterSpacing,
+    };
+  });
+  const letterSpacing = Number.parseFloat(styles.letterSpacing);
+
+  expect(styles.color).toBe("rgba(0, 0, 0, 0)");
+  expect(styles.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  expect(letterSpacing).toBeLessThan(0);
+
+  const slots = page.locator("[data-input-otp-container] > div").first().locator(":scope > div");
+  await expect(slots).toHaveText(["A", "B", "C", "1", "2", ""]);
+});

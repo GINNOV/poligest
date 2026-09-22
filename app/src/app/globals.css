@@ -147,8 +147,11 @@ body {
     color: hsl(var(--muted-foreground)) !important;
   }
 
-  .stack-auth-surface--staff .stack-scope input,
-  .stack-auth-surface--staff input.stack-scope {
+  /* The one-time-code field must stay invisible. input-otp draws each
+     character in its own box and squeezes the real text with negative
+     letter-spacing; a forced color stacks a pasted code on the first box. */
+  .stack-auth-surface--staff .stack-scope input:not([data-input-otp]),
+  .stack-auth-surface--staff input.stack-scope:not([data-input-otp]) {
     background-color: hsl(var(--secondary)) !important;
     border-color: hsl(var(--border)) !important;
     color: hsl(var(--foreground)) !important;
@@ -170,8 +173,8 @@ body {
     color: hsl(var(--foreground)) !important;
   }
 
-  .stack-auth-surface .stack-scope input,
-  .stack-auth-surface input.stack-scope,
+  .stack-auth-surface .stack-scope input:not([data-input-otp]),
+  .stack-auth-surface input.stack-scope:not([data-input-otp]),
   .stack-auth-surface .stack-scope button,
   .stack-auth-surface button.stack-scope,
   .stack-auth-surface .stack-scope a[role="button"] {
