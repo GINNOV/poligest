@@ -14,6 +14,7 @@ import {
   composeDateTimeLocal,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
+import { EuropeanDateField, EuropeanTimeField } from "@/components/european-datetime-field";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -282,10 +283,9 @@ export function AppointmentUpdateForm({
 
           <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
-            <input
-              type="date"
+            <EuropeanDateField
               value={visitDate}
-              onChange={(event) => updateVisitDate(event.target.value)}
+              onChange={updateVisitDate}
               className={fieldClassName}
               required
             />
@@ -303,10 +303,9 @@ export function AppointmentUpdateForm({
         <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-            <input
-              type="time"
+            <EuropeanTimeField
               value={startTime}
-              onChange={(event) => updateStartTime(event.target.value)}
+              onChange={updateStartTime}
               className={fieldClassName}
               required
             />
@@ -314,10 +313,9 @@ export function AppointmentUpdateForm({
 
           <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
-            <input
-              type="time"
+            <EuropeanTimeField
               value={endTime}
-              onChange={(event) => updateEndTime(event.target.value)}
+              onChange={updateEndTime}
               className={fieldClassName}
               required
             />

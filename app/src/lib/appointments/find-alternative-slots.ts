@@ -69,6 +69,7 @@ function formatSlotLabel(start: Date, end: Date, timeZone: string) {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
   return `${formatter.format(start)} – ${formatter.format(end)}`;
 }

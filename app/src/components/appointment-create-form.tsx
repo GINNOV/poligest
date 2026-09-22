@@ -17,6 +17,7 @@ import {
   composeDateTimeLocal,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
+import { EuropeanDateField, EuropeanTimeField } from "@/components/european-datetime-field";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -314,10 +315,9 @@ export function AppointmentCreateForm({
 
         <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
-          <input
-            type="date"
+          <EuropeanDateField
             value={visitDate}
-            onChange={(event) => updateVisitDate(event.target.value)}
+            onChange={updateVisitDate}
             className={fieldClassName}
           />
         </label>
@@ -334,20 +334,18 @@ export function AppointmentCreateForm({
       <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
         <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-          <input
-            type="time"
+          <EuropeanTimeField
             value={startTime}
-            onChange={(event) => updateStartTime(event.target.value)}
+            onChange={updateStartTime}
             className={fieldClassName}
           />
         </label>
 
         <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
-          <input
-            type="time"
+          <EuropeanTimeField
             value={endTime}
-            onChange={(event) => updateEndTime(event.target.value)}
+            onChange={updateEndTime}
             className={fieldClassName}
           />
         </label>
@@ -489,11 +487,10 @@ export function AppointmentCreateForm({
           </label>
           <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Data di Nascita</span>
-            <input
+            <EuropeanDateField
               name="newBirthDate"
-              type="date"
-              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
               required
+              className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm font-normal text-zinc-800 dark:text-zinc-200">
