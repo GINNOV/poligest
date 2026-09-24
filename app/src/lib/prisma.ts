@@ -1,109 +1,53 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import { demoPrisma, isPrismaConfigured, livePrisma } from "@/lib/prisma-client";
+
+export { demoPrisma, isPrismaConfigured, livePrisma };
 
 type PrismaClientWithLogs = PrismaClient<
   Prisma.PrismaClientOptions,
   "query" | "info" | "warn" | "error"
 >;
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClientWithLogs };
-const isDev = process.env.NODE_ENV !== "production";
-const poolMaxConnections = isDev ? 10 : 1;
-const connectionTimeoutMillis = isDev ? 10000 : 30000;
+async function resolveClient() {
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  return (await isDemoRealm()) ? demoPrisma : livePrisma;
+}
 
-const devLogLevels: Prisma.LogDefinition[] = [
-  { level: "warn", emit: "event" },
-  { level: "error", emit: "event" },
-];
+function forward(target: object, prop: PropertyKey) {
+  return (...args: unknown[]) =>
+    resolveClient().then((client) => {
+      const value = (client as unknown as Record<PropertyKey, unknown>)[prop];
+      if (typeof value === "function") {
+        return (value as (...params: unknown[]) => unknown).apply(client, args);
+      }
+      return value;
+    });
+}
 
-const prodLogLevels: Prisma.LogDefinition[] = [
-  { level: "warn", emit: "stdout" },
-  { level: "error", emit: "stdout" },
-];
-
-function normalizeConnectionString(rawConnectionString: string) {
-  try {
-    const parsed = new URL(rawConnectionString);
-    if (parsed.searchParams.get("sslmode") === "require" && !parsed.searchParams.has("uselibpqcompat")) {
-      parsed.searchParams.set("uselibpqcompat", "true");
+export const prisma: PrismaClientWithLogs = new Proxy(livePrisma, {
+  get(target, prop, receiver) {
+    if (typeof prop !== "string") {
+      return Reflect.get(target, prop, receiver);
     }
-    return parsed.toString();
-  } catch {
-    return rawConnectionString;
-  }
-}
-
-const connectionString = normalizeConnectionString(
-  process.env.POSTGRES_PRISMA_URL ??
-    process.env.DATABASE_URL_UNPOOLED ??
-    process.env.DATABASE_URL ??
-    ""
-);
-
-function shouldUseSsl(rawConnectionString: string) {
-  try {
-    const parsed = new URL(rawConnectionString);
-    return parsed.searchParams.get("sslmode") !== "disable";
-  } catch {
-    return true;
-  }
-}
-
-export const isPrismaConfigured = Boolean(connectionString);
-
-if (!connectionString && !isDev) {
-  throw new Error(
-    "❌ src/lib/prisma.ts: Database URL missing. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env."
-  );
-}
-
-const createMissingDatabaseProxy = () =>
-  new Proxy(
-    {},
-    {
-      get() {
-        throw new Error(
-          "❌ src/lib/prisma.ts: Database URL missing. Set POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED, or DATABASE_URL in your env.",
-        );
+    if (prop === "then") return undefined;
+    if (prop.startsWith("$")) {
+      return forward(target, prop);
+    }
+    if (!(prop in livePrisma)) return undefined;
+    return new Proxy(
+      {},
+      {
+        get(_modelTarget, operation) {
+          if (operation === "then") return undefined;
+          return (...args: unknown[]) =>
+            resolveClient().then((client) => {
+              const delegate = (client as unknown as Record<string, Record<PropertyKey, unknown>>)[prop];
+              const fn = delegate?.[operation];
+              if (typeof fn === "function") return fn.apply(delegate, args);
+              return fn;
+            });
+        },
       },
-    },
-  ) as PrismaClientWithLogs;
-
-const createPrismaClient = () => {
-  if (!connectionString) {
-    return createMissingDatabaseProxy();
-  }
-
-  const pool = new Pool({
-    connectionString,
-    ssl: shouldUseSsl(connectionString),
-    max: poolMaxConnections,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis,
-  });
-
-  // Test the pool connection immediately to fail fast if there's an issue
-  pool.on("error", (err) => {
-    console.error("❌ src/lib/prisma.ts: Unexpected error on idle client", err);
-  });
-
-  const adapter = new PrismaPg(pool);
-
-  return new PrismaClient<
-    Prisma.PrismaClientOptions,
-    "query" | "info" | "warn" | "error"
-  >({
-    adapter,
-    log: isDev ? devLogLevels : prodLogLevels,
-    errorFormat: "pretty",
-  });
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  createPrismaClient();
-
-if (isDev && connectionString) {
-  globalForPrisma.prisma = prisma;
-}
+    );
+  },
+}) as PrismaClientWithLogs;

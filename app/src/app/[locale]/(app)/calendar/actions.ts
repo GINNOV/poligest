@@ -353,10 +353,10 @@ export async function deleteAppointment(formData: FormData) {
     throw new Error("Appuntamento mancante");
   }
 
-  await prisma.$transaction([
-    prisma.appointmentReminder.deleteMany({ where: { appointmentId } }),
-    prisma.appointment.delete({ where: { id: appointmentId } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.appointmentReminder.deleteMany({ where: { appointmentId } });
+    await tx.appointment.delete({ where: { id: appointmentId } });
+  });
 
   await logAudit(user, {
     action: "appointment.deleted",

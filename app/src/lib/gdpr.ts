@@ -113,12 +113,13 @@ export async function applyRetentionCleanup() {
   const recurringCutoff = buildRetentionCutoff(GDPR_RETENTION_DAYS.recurringMessageLogs);
   const reminderCutoff = buildRetentionCutoff(GDPR_RETENTION_DAYS.appointmentReminders);
 
-  const [auditLogs, smsLogs, recurringLogs, appointmentReminders] = await prisma.$transaction([
-    prisma.auditLog.deleteMany({ where: { createdAt: { lt: auditCutoff } } }),
-    prisma.smsLog.deleteMany({ where: { createdAt: { lt: smsCutoff } } }),
-    prisma.recurringMessageLog.deleteMany({ where: { createdAt: { lt: recurringCutoff } } }),
-    prisma.appointmentReminder.deleteMany({ where: { createdAt: { lt: reminderCutoff } } }),
-  ]);
+  const [auditLogs, smsLogs, recurringLogs, appointmentReminders] = await prisma.$transaction(async (tx) => {
+    const removedAuditLogs = await tx.auditLog.deleteMany({ where: { createdAt: { lt: auditCutoff } } });
+    const removedSmsLogs = await tx.smsLog.deleteMany({ where: { createdAt: { lt: smsCutoff } } });
+    const removedRecurringLogs = await tx.recurringMessageLog.deleteMany({ where: { createdAt: { lt: recurringCutoff } } });
+    const removedAppointmentReminders = await tx.appointmentReminder.deleteMany({ where: { createdAt: { lt: reminderCutoff } } });
+    return [removedAuditLogs, removedSmsLogs, removedRecurringLogs, removedAppointmentReminders] as const;
+  });
 
   return {
     auditLogs: auditLogs.count,

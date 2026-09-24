@@ -2,8 +2,10 @@ import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { Prisma, Role } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { livePrisma, prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { assertLiveClinicMutation } from "@/lib/demo/guard";
+import { isDemoRealm } from "@/lib/demo/realm";
 import { logAudit } from "@/lib/audit";
 import { DatabaseImportPanel } from "@/components/admin/database-import-panel";
 import {
@@ -41,6 +43,7 @@ async function resetSystem(formData: FormData) {
   "use server";
 
   const adminUser = await requireUser([Role.ADMIN]);
+  assertLiveClinicMutation({ isDemo: adminUser.isDemo, realmIsDemo: await isDemoRealm() });
   const confirmation = (formData.get("confirm") as string)?.trim();
   const seedDemo = (formData.get("seedDemo") as string) === "on";
 
@@ -51,57 +54,57 @@ async function resetSystem(formData: FormData) {
   }
 
   // Wipe data respecting FK order
-  await prisma.$transaction([
-    prisma.userInstructionProgress.deleteMany(),
-    prisma.featureInstructionStep.deleteMany(),
-    prisma.featureInstruction.deleteMany(),
-    prisma.featureUpdateDismissal.deleteMany(),
-    prisma.featureUpdate.deleteMany(),
-    prisma.roleFeatureAccess.deleteMany(),
-    prisma.userAward.deleteMany(),
-    prisma.smsLog.deleteMany(),
-    prisma.smsTemplate.deleteMany(),
-    prisma.smsProviderConfig.deleteMany(),
-    prisma.wacomConfig.deleteMany(),
-    prisma.kapsoWhatsAppConfig.deleteMany(),
-    prisma.emailTemplate.deleteMany(),
-    prisma.dailyReminderLog.deleteMany(),
-    prisma.dailyReminderConfig.deleteMany(),
-    prisma.practiceWeeklyReportLog.deleteMany(),
-    prisma.practiceWeeklyReportConfig.deleteMany(),
-    prisma.recurringMessageLog.deleteMany(),
-    prisma.recurringMessageConfig.deleteMany(),
-    prisma.auditLog.deleteMany(),
-    prisma.quickNotesPaymentSync.deleteMany(),
-    prisma.patientPayment.deleteMany(),
-    prisma.quoteItem.deleteMany(),
-    prisma.quote.deleteMany(),
-    prisma.medicalCertificate.deleteMany(),
-    prisma.stockMovement.deleteMany(),
-    prisma.service.deleteMany(),
-    prisma.financeEntry.deleteMany(),
-    prisma.cashAdvance.deleteMany(),
-    prisma.appointmentReminder.deleteMany(),
-    prisma.appointmentReminderRule.deleteMany(),
-    prisma.appointment.deleteMany(),
-    prisma.clinicalNote.deleteMany(),
-    prisma.dentalRecord.deleteMany(),
-    prisma.recall.deleteMany(),
-    prisma.recallRule.deleteMany(),
-    prisma.patientConsent.deleteMany(),
-    prisma.consentModule.deleteMany(),
-    prisma.doctorTimeOff.deleteMany(),
-    prisma.doctorAvailabilityWindow.deleteMany(),
-    prisma.doctor.deleteMany(),
-    prisma.patient.deleteMany(),
-    prisma.product.deleteMany(),
-    prisma.supplier.deleteMany(),
-    prisma.practiceClosure.deleteMany(),
-    prisma.practiceWeeklyClosure.deleteMany(),
-    prisma.practiceSetting.deleteMany(),
-    prisma.anamnesisCondition.deleteMany(),
-    prisma.user.deleteMany(),
-  ]);
+  await livePrisma.$transaction(async (tx) => {
+    await tx.userInstructionProgress.deleteMany();
+    await tx.featureInstructionStep.deleteMany();
+    await tx.featureInstruction.deleteMany();
+    await tx.featureUpdateDismissal.deleteMany();
+    await tx.featureUpdate.deleteMany();
+    await tx.roleFeatureAccess.deleteMany();
+    await tx.userAward.deleteMany();
+    await tx.smsLog.deleteMany();
+    await tx.smsTemplate.deleteMany();
+    await tx.smsProviderConfig.deleteMany();
+    await tx.wacomConfig.deleteMany();
+    await tx.kapsoWhatsAppConfig.deleteMany();
+    await tx.emailTemplate.deleteMany();
+    await tx.dailyReminderLog.deleteMany();
+    await tx.dailyReminderConfig.deleteMany();
+    await tx.practiceWeeklyReportLog.deleteMany();
+    await tx.practiceWeeklyReportConfig.deleteMany();
+    await tx.recurringMessageLog.deleteMany();
+    await tx.recurringMessageConfig.deleteMany();
+    await tx.auditLog.deleteMany();
+    await tx.quickNotesPaymentSync.deleteMany();
+    await tx.patientPayment.deleteMany();
+    await tx.quoteItem.deleteMany();
+    await tx.quote.deleteMany();
+    await tx.medicalCertificate.deleteMany();
+    await tx.stockMovement.deleteMany();
+    await tx.service.deleteMany();
+    await tx.financeEntry.deleteMany();
+    await tx.cashAdvance.deleteMany();
+    await tx.appointmentReminder.deleteMany();
+    await tx.appointmentReminderRule.deleteMany();
+    await tx.appointment.deleteMany();
+    await tx.clinicalNote.deleteMany();
+    await tx.dentalRecord.deleteMany();
+    await tx.recall.deleteMany();
+    await tx.recallRule.deleteMany();
+    await tx.patientConsent.deleteMany();
+    await tx.consentModule.deleteMany();
+    await tx.doctorTimeOff.deleteMany();
+    await tx.doctorAvailabilityWindow.deleteMany();
+    await tx.doctor.deleteMany();
+    await tx.patient.deleteMany();
+    await tx.product.deleteMany();
+    await tx.supplier.deleteMany();
+    await tx.practiceClosure.deleteMany();
+    await tx.practiceWeeklyClosure.deleteMany();
+    await tx.practiceSetting.deleteMany();
+    await tx.anamnesisCondition.deleteMany();
+    await tx.user.deleteMany();
+  });
 
   if (seedDemo) {
     const seedPath = path.join(process.cwd(), "AI", "CONTENT", "poligest-export-generated.json");
@@ -387,6 +390,7 @@ async function importData(formData: FormData) {
   "use server";
 
   const admin = await requireUser([Role.ADMIN]);
+  assertLiveClinicMutation({ isDemo: admin.isDemo, realmIsDemo: await isDemoRealm() });
   const file = formData.get("file");
   const confirmation = (formData.get("confirmImport") as string)?.trim();
 

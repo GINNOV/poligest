@@ -257,6 +257,10 @@ model User {
   role           Role      @default(PATIENT)
   locale         String    @default("it")
   isActive       Boolean   @default(true)
+  /// Demo accounts only see the fictional clinic in the demo schema.
+  isDemo         Boolean   @default(false)
+  /// Password hint for a demo login. Never set on a live account.
+  demoPassword   String?
   lastLoginAt    DateTime?
   avatarUrl      String?
   personalPin    String?   @unique

@@ -1,11 +1,12 @@
 import { cache } from "react";
-import { getOptionalStackServerApp, getStackSignInUrl } from "@/lib/stack-app";
+import { getStackSignInUrl } from "@/lib/stack-app";
 import { getRandomAvatarUrl } from "@/lib/avatars";
 import { normalizePersonName } from "@/lib/name";
 import { Prisma, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ensureUserPersonalPin } from "@/lib/personal-pin";
-import { cookies } from "next/headers";
+import { demoPrisma, livePrisma } from "@/lib/prisma-client";
+import { resolveRequestAccount } from "@/lib/demo/realm";
 
 type AppUser = {
   id: string;
@@ -15,18 +16,19 @@ type AppUser = {
   locale: string;
   avatarUrl?: string | null;
   stackUserId: string;
+  isDemo: boolean;
   impersonatedFrom?: string | null;
 };
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
-const getPrisma = async () => (await import("@/lib/prisma")).prisma;
+const getLivePrisma = async () => livePrisma;
 
 function isSmokeAuthEnabled() {
   return process.env.NODE_ENV !== "production" && process.env.E2E_SMOKE_AUTH === "1";
 }
 
 async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
-  const prisma = await getPrisma();
+  const prisma = await getLivePrisma();
   const email = process.env.E2E_SMOKE_USER_EMAIL;
   const userSelect = {
     id: true,
@@ -35,6 +37,7 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     role: true,
     locale: true,
     avatarUrl: true,
+    isDemo: true,
   } as const;
   const dbUser = email ? await prisma.user.findUnique({
     where: { email: normalizeEmail(email) },
@@ -57,12 +60,12 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     locale: dbUser.locale ?? "it",
     avatarUrl: dbUser.avatarUrl,
     stackUserId: `smoke:${dbUser.id}`,
+    isDemo: dbUser.isDemo,
     impersonatedFrom: null,
   };
 }
 
-async function ensurePatientRecord(email: string, fullName?: string | null) {
-  const prisma = await getPrisma();
+async function ensurePatientRecord(prisma: typeof livePrisma, email: string, fullName?: string | null) {
   const existing = await prisma.patient.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
   });
@@ -131,39 +134,46 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     return getSmokeTestUserFromDatabase();
   }
 
-  const stackServerApp = getOptionalStackServerApp();
-  if (!stackServerApp) return null;
+  const resolved = await resolveRequestAccount(allowImpersonation);
+  if (!resolved) return null;
 
-  const stackUser = await stackServerApp.getUser();
-  if (!stackUser) return null;
-
-  const email = stackUser.primaryEmail
-    ? normalizeEmail(stackUser.primaryEmail)
-    : null;
-  if (!email) return null;
-
-  const prisma = await getPrisma();
-  let dbUser = await prisma.user.findUnique({ where: { email } });
-
+  let dbUser = resolved.account;
   if (!dbUser) {
     try {
-      dbUser = await prisma.user.create({
+      dbUser = await livePrisma.user.create({
         data: {
-          email,
-          name: stackUser.displayName ?? email.split("@")[0],
-          // Stack-managed users authenticate via Stack tokens; keep password placeholder for NOT NULL column
+          email: resolved.email,
+          name: resolved.displayName ?? resolved.email.split("@")[0],
           hashedPassword: "",
           role: "PATIENT",
           avatarUrl: getRandomAvatarUrl(),
-          // hashedPassword is optional now
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          locale: true,
+          avatarUrl: true,
+          isDemo: true,
+          personalPin: true,
         },
       });
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
-        dbUser = await prisma.user.findUnique({ where: { email } });
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        dbUser = await livePrisma.user.findUnique({
+          where: { email: resolved.email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            locale: true,
+            avatarUrl: true,
+            isDemo: true,
+            personalPin: true,
+          },
+        });
       }
       if (!dbUser) {
         console.error("Failed to create user in local DB:", error);
@@ -178,9 +188,10 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     }
   }
 
+  const clinical = dbUser.isDemo ? demoPrisma : livePrisma;
   if (dbUser.role === Role.PATIENT) {
     try {
-      await ensurePatientRecord(email, dbUser.name ?? stackUser.displayName);
+      await ensurePatientRecord(clinical, dbUser.email, dbUser.name ?? resolved.displayName);
     } catch (error) {
       console.error("Failed to ensure patient record:", error);
     }
@@ -194,64 +205,25 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     }
   }
 
-  const baseUser: AppUser = {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  livePrisma.user
+    .updateMany({
+      where: { id: dbUser.id, OR: [{ lastLoginAt: null }, { lastLoginAt: { lt: oneHourAgo } }] },
+      data: { lastLoginAt: new Date() },
+    })
+    .catch((err) => console.error("Failed to update lastLoginAt:", err));
+
+  return {
     id: dbUser.id,
     email: dbUser.email,
-    name: dbUser.name ?? stackUser.displayName ?? dbUser.email,
+    name: dbUser.name ?? resolved.displayName ?? dbUser.email,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
     avatarUrl: dbUser.avatarUrl ?? null,
-    stackUserId: stackUser.id,
-    impersonatedFrom: null,
+    stackUserId: resolved.stackUserId,
+    isDemo: dbUser.isDemo,
+    impersonatedFrom: resolved.impersonatedFrom,
   };
-
-  // Update lastLoginAt if null or older than 1 hour
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-  if (!dbUser.lastLoginAt || dbUser.lastLoginAt < oneHourAgo) {
-    // Fire and forget update to not block request
-    prisma.user.update({
-      where: { id: dbUser.id },
-      data: { lastLoginAt: new Date() },
-    }).catch(err => console.error("Failed to update lastLoginAt:", err));
-  }
-
-  const cookieStore = await cookies();
-  const impersonateUserId = allowImpersonation ? cookieStore.get("impersonateUserId")?.value : undefined;
-  const impersonateAdminId = allowImpersonation ? cookieStore.get("impersonateAdminId")?.value : undefined;
-  if (allowImpersonation && impersonateUserId && dbUser.role === Role.ADMIN && impersonateUserId !== dbUser.id) {
-    const target = await prisma.user.findUnique({
-      where: { id: impersonateUserId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        locale: true,
-        avatarUrl: true,
-      },
-    });
-    if (target) {
-      return {
-        ...baseUser,
-        id: target.id,
-        email: target.email,
-        name: target.name ?? target.email,
-        role: target.role,
-        locale: target.locale ?? baseUser.locale,
-        avatarUrl: target.avatarUrl ?? null,
-        impersonatedFrom: baseUser.id,
-      };
-    }
-  }
-
-  if (allowImpersonation && impersonateUserId && impersonateUserId === dbUser.id) {
-    return {
-      ...baseUser,
-      impersonatedFrom: impersonateAdminId ?? "impersonation",
-    };
-  }
-
-  return baseUser;
 });
 
 export async function getCurrentUser(): Promise<AppUser | null> {

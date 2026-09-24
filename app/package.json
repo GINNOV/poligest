@@ -16,7 +16,7 @@
     "test:watch": "vitest",
     "verify": "npm run build && npm test && npm run test:smoke && npm run lint",
     "wacom:sync": "node scripts/sync-wacom-sdk.mjs",
-    "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate deploy && dotenv -e .env.local -- node prisma/sync-demo-schema.js",
     "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
     "db:seed": "dotenv -e .env.local -- prisma db seed",
     "db:normalize-patient-names": "dotenv -e .env.local -- tsx scripts/normalize-patient-names.ts",

@@ -100,6 +100,8 @@ describe("daily reminder helpers", () => {
       role: Role.ADMIN,
       locale: "it",
       isActive: true,
+      isDemo: false,
+      demoPassword: null,
       lastLoginAt: null,
       avatarUrl: null,
       personalPin: null,

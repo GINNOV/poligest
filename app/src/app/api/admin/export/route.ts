@@ -6,7 +6,10 @@ import { Role } from "@prisma/client";
 import { errorResponse } from "@/lib/error-response";
 
 const tableQueries = {
-  users: () => prisma.user.findMany(),
+  users: async () => {
+    const rows = await prisma.user.findMany();
+    return rows.map(({ demoPassword: _demoPassword, ...row }) => row);
+  },
   doctors: () => prisma.doctor.findMany(),
   doctorAvailabilityWindows: () => prisma.doctorAvailabilityWindow.findMany(),
   doctorTimeOffs: () => prisma.doctorTimeOff.findMany(),

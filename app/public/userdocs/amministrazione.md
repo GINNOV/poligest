@@ -23,7 +23,14 @@ Le voci piu importanti sono:
 - audit
 - errori
 - reset ed esportazioni
+- studio dimostrativo
 - annunci nuove funzioni
+
+## Studio dimostrativo
+
+Da **Amministrazione > Studio dimostrativo** prepari gli accessi finti e, se serve, rimetti i dati di partenza.
+
+La guida passo passo è in [**Studio dimostrativo**](/docs/studio-dimostrativo).
 
 ## Utenti
 

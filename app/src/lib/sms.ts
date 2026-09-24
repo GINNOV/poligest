@@ -25,6 +25,9 @@ let cachedConfig: { value: ClickSendConfig | null; fetchedAt: number } = {
 };
 
 async function getClickSendConfig(): Promise<ClickSendConfig | null> {
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  if (await isDemoRealm()) return null;
+
   const now = Date.now();
   if (cachedConfig.value && now - cachedConfig.fetchedAt < 5 * 60 * 1000) {
     return cachedConfig.value;
@@ -100,6 +103,22 @@ export async function sendSms({
   userId,
 }: SendSmsOptions) {
   if (!to) throw new Error("Numero destinatario mancante");
+
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  if (await isDemoRealm()) {
+    await prisma.smsLog.create({
+      data: {
+        to,
+        body,
+        status: "SENT",
+        templateId: templateId ?? undefined,
+        patientId: patientId ?? undefined,
+        userId: userId ?? undefined,
+        provider: "demo",
+      },
+    });
+    return { status: "SENT" as const };
+  }
 
   let status: "SENT" | "SIMULATED" | "FAILED" = "SENT";
   let error: string | undefined;

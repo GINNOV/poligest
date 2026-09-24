@@ -16,14 +16,14 @@ export async function syncServiceCatalogFormatting() {
     return { updatedCount: 0 };
   }
 
-  await prisma.$transaction(
-    updates.map((entry) =>
-      prisma.service.update({
+  await prisma.$transaction(async (tx) => {
+    for (const entry of updates) {
+      await tx.service.update({
         where: { id: entry.id },
         data: { name: entry.formattedName },
-      }),
-    ),
-  );
+      });
+    }
+  });
 
   return { updatedCount: updates.length };
 }
