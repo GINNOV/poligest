@@ -2,7 +2,8 @@ import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { prisma } from "@/lib/prisma";
+import { demoPrisma, livePrisma, prisma } from "@/lib/prisma";
+import { mirrorDemoAccount } from "@/lib/demo/seed";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { reportError } from "@/lib/error-reporting";
@@ -70,13 +71,21 @@ async function upsertUser(formData: FormData) {
   const role = formData.get("role") as Role;
   const locale = (formData.get("locale") as string) || "it";
   const isActive = formData.get("active") === "on";
+  const requestedDemo = admin.isDemo || formData.get("demo") === "on";
 
   if (!email || !role || !roles.includes(role)) {
     throw new Error("Dati utente non validi");
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  const user = await prisma.user.upsert({
+  const existingUser = await livePrisma.user.findUnique({ where: { email } });
+  if (existingUser && existingUser.isDemo !== requestedDemo) {
+    throw new Error("Non si può cambiare il tipo di account.");
+  }
+  if (requestedDemo && existingUser && !existingUser.isDemo) {
+    throw new Error("Non si può trasformare un account dello studio in account dimostrativo.");
+  }
+
+  const user = await livePrisma.user.upsert({
     where: { email },
     update: { name, role, locale, isActive },
     create: {
@@ -85,12 +94,17 @@ async function upsertUser(formData: FormData) {
       role,
       locale,
       isActive,
+      isDemo: requestedDemo,
       hashedPassword: "",
       avatarUrl: getRandomAvatarUrl(),
     },
   });
 
-  if (!existingUser && isActive) {
+  if (user.isDemo) {
+    await mirrorDemoAccount(user.id);
+  }
+
+  if (!existingUser && isActive && !user.isDemo) {
     try {
       const stackServerApp = getStackServerApp();
       const sender = stackServerApp as unknown as {
@@ -139,10 +153,20 @@ async function setUserStatus(formData: FormData) {
   const active = formData.get("active") === "true";
   if (!userId) throw new Error("Utente non valido");
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { isActive: active },
-  });
+  const existing = await livePrisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
+  if (admin.isDemo && !existing?.isDemo) {
+    throw new Error("Lo studio dimostrativo non può modificare gli account dello studio.");
+  }
+  const user = existing?.isDemo
+    ? await livePrisma.user.update({
+        where: { id: userId },
+        data: { isActive: active },
+      })
+    : await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: active },
+      });
+  if (user.isDemo) await mirrorDemoAccount(user.id);
 
   await logAudit(admin, {
     action: active ? "admin.user.activate" : "admin.user.deactivate",
@@ -163,10 +187,14 @@ async function setUserRole(formData: FormData) {
     throw new Error("Ruolo non valido");
   }
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { role },
-  });
+  const existing = await livePrisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
+  if (admin.isDemo && !existing?.isDemo) {
+    throw new Error("Lo studio dimostrativo non può modificare gli account dello studio.");
+  }
+  const user = existing?.isDemo
+    ? await livePrisma.user.update({ where: { id: userId }, data: { role } })
+    : await prisma.user.update({ where: { id: userId }, data: { role } });
+  if (user.isDemo) await mirrorDemoAccount(user.id);
 
   await logAudit(admin, {
     action: "admin.user.role_change",
@@ -181,11 +209,18 @@ async function setUserRole(formData: FormData) {
 async function deleteUser(formData: FormData) {
   "use server";
 
-  await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const userId = formData.get("userId") as string;
   if (!userId) throw new Error("Utente non valido");
 
-  await prisma.user.delete({ where: { id: userId } });
+  const target = await livePrisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
+  if (admin.isDemo && !target?.isDemo) {
+    throw new Error("Lo studio dimostrativo non può modificare gli account dello studio.");
+  }
+  if (target?.isDemo) {
+    await demoPrisma.user.delete({ where: { id: userId } }).catch(() => undefined);
+  }
+  await livePrisma.user.delete({ where: { id: userId } });
   revalidatePath("/admin/utenti");
 }
 
@@ -202,7 +237,11 @@ async function updateUserDetails(formData: FormData) {
     throw new Error("Dati utente non validi");
   }
 
-  const existing = await prisma.user.findFirst({
+  const current = await livePrisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
+  if (admin.isDemo && !current?.isDemo) {
+    throw new Error("Lo studio dimostrativo non può modificare gli account dello studio.");
+  }
+  const existing = await livePrisma.user.findFirst({
     where: { email, id: { not: userId } },
     select: { id: true },
   });
@@ -210,10 +249,16 @@ async function updateUserDetails(formData: FormData) {
     throw new Error("Email già in uso");
   }
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { name, email, locale },
-  });
+  const user = current?.isDemo
+    ? await livePrisma.user.update({
+        where: { id: userId },
+        data: { name, email, locale },
+      })
+    : await prisma.user.update({
+        where: { id: userId },
+        data: { name, email, locale },
+      });
+  if (user.isDemo) await mirrorDemoAccount(user.id);
 
   await logAudit(admin, {
     action: "admin.user.update_details",
@@ -233,6 +278,10 @@ async function linkUserToDoctor(formData: FormData) {
   const doctorId = formData.get("doctorId") as string;
 
   if (!userId) throw new Error("Utente non valido");
+  const target = await livePrisma.user.findUnique({ where: { id: userId }, select: { isDemo: true } });
+  if (target?.isDemo || admin.isDemo) {
+    throw new Error("I medici dello studio non si collegano agli account dimostrativi.");
+  }
 
   // 1. Remove any existing links for this user
   await prisma.doctor.updateMany({
@@ -264,11 +313,15 @@ async function startImpersonation(formData: FormData) {
   const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
   const targetUserId = (formData.get("userId") as string)?.trim();
   if (!targetUserId) throw new Error("Utente non valido");
-  const target = await prisma.user.findUnique({
+  const target = await livePrisma.user.findUnique({
     where: { id: targetUserId },
-    select: { id: true, isActive: true, email: true, name: true },
+    select: { id: true, isActive: true, email: true, name: true, isDemo: true, role: true },
   });
   if (!target) throw new Error("Utente non trovato");
+  if (admin.isDemo && !target.isDemo) {
+    throw new Error("Lo studio dimostrativo non può aprire gli account dello studio.");
+  }
+  if (target.isDemo) await mirrorDemoAccount(target.id);
   if (!target.isActive) throw new Error("Non è possibile impersonare un utente disattivato.");
   if (!target.email) throw new Error("L'utente non ha un'email valida per l'impersonificazione.");
 
@@ -372,6 +425,10 @@ async function sendPasswordResetLink(formData: FormData) {
 
   if (!user?.email) {
     throw new Error("Email utente non valida");
+  }
+  const target = await livePrisma.user.findUnique({ where: { id: user.id }, select: { isDemo: true } });
+  if (admin.isDemo && !target?.isDemo) {
+    throw new Error("Lo studio dimostrativo non può reimpostare gli account dello studio.");
   }
 
   try {
@@ -553,6 +610,7 @@ export default async function AdminUsersPage({
         createdAt: true,
         lastLoginAt: true,
         avatarUrl: true,
+        isDemo: true,
         doctor: { select: { id: true } },
       },
     }),
@@ -748,6 +806,11 @@ export default async function AdminUsersPage({
                           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${roleBadgeStyles[user.role as Role] || roleBadgeStyles[Role.PATIENT]}`}>
                             {roleLabels[user.role as Role] || user.role}
                           </span>
+                          {user.isDemo ? (
+                            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                              Demo
+                            </span>
+                          ) : null}
                         </div>
                         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           {user.email}
@@ -1004,6 +1067,18 @@ export default async function AdminUsersPage({
                     <option value="en">English</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+                <input
+                  type="checkbox"
+                  id="demo-check"
+                  name="demo"
+                  className="h-5 w-5 rounded-lg border-zinc-300 text-amber-600 focus:ring-amber-500"
+                />
+                <label htmlFor="demo-check" className="text-xs font-bold text-amber-900 dark:text-amber-100 cursor-pointer">
+                  Account dimostrativo
+                </label>
               </div>
 
               <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50/50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">

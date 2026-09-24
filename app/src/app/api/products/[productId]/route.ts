@@ -48,10 +48,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ produ
       });
     }
 
-    await prisma.$transaction([
-      prisma.stockMovement.deleteMany({ where: { productId } }),
-      prisma.product.delete({ where: { id: productId } }),
-    ]);
+    await prisma.$transaction(async (tx) => {
+      await tx.stockMovement.deleteMany({ where: { productId } });
+      await tx.product.delete({ where: { id: productId } });
+    });
     await logAudit(user, {
       action: "product.deleted",
       entity: "Product",

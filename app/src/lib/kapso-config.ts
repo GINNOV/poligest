@@ -36,6 +36,20 @@ export function clearKapsoWhatsAppConfigCache() {
 }
 
 export async function getKapsoWhatsAppConfig(): Promise<KapsoWhatsAppConfig | null> {
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  if (await isDemoRealm()) {
+    const dbConfig = await prisma.kapsoWhatsAppConfig.findUnique({
+      where: { id: KAPSO_WHATSAPP_CONFIG_ID },
+    });
+    if (!dbConfig?.apiKey || !dbConfig.phoneNumberId) return null;
+    return {
+      apiKey: dbConfig.apiKey,
+      phoneNumberId: dbConfig.phoneNumberId,
+      displayPhoneNumber: dbConfig.displayPhoneNumber,
+      source: "db",
+    };
+  }
+
   const now = Date.now();
   if (cachedConfig.value && now - cachedConfig.fetchedAt < 5 * 60 * 1000) {
     return cachedConfig.value;

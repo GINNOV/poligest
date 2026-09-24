@@ -12,6 +12,7 @@ import { StackConsoleNoiseFilter } from "@/components/stack-console-noise-filter
 import { CrashContextTracker } from "@/components/crash-context-tracker";
 import { ThemePreferenceSync } from "@/components/theme-preference-sync";
 import { headers } from "next/headers";
+import { DemoRealmBanner } from "@/components/demo-realm-banner";
 
 export default async function RootLayout({
   children,
@@ -27,6 +28,7 @@ export default async function RootLayout({
   const stackServerApp = getOptionalStackServerApp(origin);
   const content = (
     <>
+      <DemoRealmBanner />
       {children}
       <GlobalToasts />
       <GlobalLoadingOverlay />

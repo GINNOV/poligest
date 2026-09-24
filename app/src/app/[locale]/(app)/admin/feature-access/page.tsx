@@ -23,10 +23,10 @@ async function saveAccess(formData: FormData) {
     }),
   );
 
-  await prisma.$transaction([
-    prisma.roleFeatureAccess.deleteMany({ where: { role: { in: roles } } }),
-    prisma.roleFeatureAccess.createMany({ data: entries }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.roleFeatureAccess.deleteMany({ where: { role: { in: roles } } });
+    await tx.roleFeatureAccess.createMany({ data: entries });
+  });
 
   await logAudit(admin, {
     action: "admin.feature_access.save",

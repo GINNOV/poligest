@@ -16,7 +16,7 @@ describe("Admin Export Sync", () => {
 
     // Extract keys from tableQueries in export route
     // Matches "key: () => prisma.model.findMany()"
-    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+\(\)\s+=>\s+prisma\.\w+\.findMany\(\),/gm)].map(m => m[1]);
+    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+(?:async\s+)?\(\)\s+=>/gm)].map(m => m[1]);
 
     // Check if each model has a corresponding entry in tableQueries
     // Note: Some models might be excluded intentionally, but for full backup they should be there.
@@ -86,7 +86,7 @@ describe("Admin Export Sync", () => {
     const exportTablesPath = path.join(process.cwd(), "src/lib/admin/export-tables.ts");
     const exportTablesContent = fs.readFileSync(exportTablesPath, "utf-8");
 
-    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+\(\)\s+=>\s+prisma\.\w+\.findMany\(\),/gm)].map(m => m[1]);
+    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+(?:async\s+)?\(\)\s+=>/gm)].map(m => m[1]);
     
     // Extract keys from exportTables in lib
     const exportTableKeys = [...exportTablesContent.matchAll(/key:\s+"(\w+)"/gm)].map(m => m[1]);
@@ -100,7 +100,7 @@ describe("Admin Export Sync", () => {
     const resetPageContent = fs.readFileSync(resetPagePath, "utf-8");
     const exportContent = fs.readFileSync(exportRoutePath, "utf-8");
     
-    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+\(\)\s+=>\s+prisma\.\w+\.findMany\(\),/gm)].map(m => m[1]);
+    const tableQueryKeys = [...exportContent.matchAll(/^\s+(\w+):\s+(?:async\s+)?\(\)\s+=>/gm)].map(m => m[1]);
 
     // Mapping table key to prisma model name for deletion
     const keyToModel: Record<string, string> = {
@@ -157,7 +157,7 @@ describe("Admin Export Sync", () => {
 
     for (const key of tableQueryKeys) {
         const model = keyToModel[key];
-        const deleteRegex = new RegExp(`prisma\\.${model}\\.deleteMany\\(\\)`, "g");
+        const deleteRegex = new RegExp(`(?:prisma|tx)\\.${model}\\.deleteMany\\(\\)`, "g");
         expect(resetPageContent, `Model ${model} (from key ${key}) is missing from resetSystem deleteMany transaction in ${resetPagePath}`).toMatch(deleteRegex);
     }
   });

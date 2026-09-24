@@ -27,6 +27,11 @@ async function deliverEmail(
   html: string,
   options?: EmailDeliveryOptions,
 ) {
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  if (await isDemoRealm()) {
+    return { data: { id: "demo" }, error: null };
+  }
+
   if (!resend) {
     throw new Error("Provider email non configurato (RESEND_API_KEY/RESEND_TOKEN).");
   }

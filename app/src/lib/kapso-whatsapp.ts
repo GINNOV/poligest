@@ -18,6 +18,9 @@ async function getKapsoRuntimeConfig() {
 }
 
 export async function sendKapsoWhatsAppText(params: { to: string; body: string }) {
+  const { isDemoRealm } = await import("@/lib/demo/realm");
+  if (await isDemoRealm()) return;
+
   const phone = normalizeItalianPhone(params.to);
   if (!phone) {
     throw new Error("Numero WhatsApp non valido.");

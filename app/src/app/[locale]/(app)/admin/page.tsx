@@ -268,6 +268,15 @@ export default async function AdminPage() {
       icon: "✍️",
     },
     {
+      key: "demo",
+      title: "Studio dimostrativo",
+      description: "Accessi e dati inventati, separati dallo studio vero.",
+      href: "/admin/demo",
+      badge: "Demo",
+      tone: "warning",
+      icon: "🎭",
+    },
+    {
       key: "reset",
       title: t("reset"),
       description: "Ripristino del sistema ai dati di esempio ed esportazione dati.",

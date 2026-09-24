@@ -21,10 +21,8 @@ import { syncServiceCatalogFormatting } from "@/lib/admin/service-catalog-sync";
 describe("syncServiceCatalogFormatting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.prisma.$transaction.mockImplementation(async (operations: unknown[]) => {
-      for (const operation of operations) {
-        await operation;
-      }
+    mocks.prisma.$transaction.mockImplementation(async (run: (tx: typeof mocks.prisma) => Promise<void>) => {
+      await run(mocks.prisma);
     });
     mocks.prisma.service.update.mockResolvedValue(undefined);
   });

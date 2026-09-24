@@ -31,6 +31,7 @@ Se ti occupi anche di gestione, ti servono anche:
 - [**Finanza**](/docs/finanza)
 - [**Magazzino**](/docs/magazzino)
 - [**Amministrazione**](/docs/amministrazione)
+- [**Studio dimostrativo**](/docs/studio-dimostrativo)
 
 Per le impostazioni personali:
 

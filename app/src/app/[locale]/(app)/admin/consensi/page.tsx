@@ -56,10 +56,10 @@ async function deleteConsentModule(formData: FormData) {
     throw new Error("Modulo non valido.");
   }
 
-  await prisma.$transaction([
-    prisma.patientConsent.deleteMany({ where: { moduleId } }),
-    prisma.consentModule.delete({ where: { id: moduleId } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.patientConsent.deleteMany({ where: { moduleId } });
+    await tx.consentModule.delete({ where: { id: moduleId } });
+  });
 
   await logAudit(admin, {
     action: "consentModule.deleted",

@@ -121,10 +121,10 @@ export async function createScheduledRecallRecord(payload: ScheduledRecallPayloa
 }
 
 export async function deleteRecallRuleRecord(ruleId: string) {
-  await prisma.$transaction([
-    prisma.recall.deleteMany({ where: { ruleId } }),
-    prisma.recallRule.delete({ where: { id: ruleId } }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    await tx.recall.deleteMany({ where: { ruleId } });
+    await tx.recallRule.delete({ where: { id: ruleId } });
+  });
 }
 
 export async function deleteScheduledRecallRecord(recallId: string) {

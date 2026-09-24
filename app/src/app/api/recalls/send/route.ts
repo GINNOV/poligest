@@ -33,7 +33,7 @@ async function enqueueRecurringRecalls(now: Date) {
 
   for (const rule of rules) {
     const ruleServiceType = rule.serviceType === "ANY" ? null : rule.serviceType;
-    const [lastAppointments, lastRecalls, pendingRecalls] = await prisma.$transaction([
+    const [lastAppointments, lastRecalls, pendingRecalls] = await Promise.all([
       prisma.appointment.groupBy({
         by: ["patientId"],
         where: {
