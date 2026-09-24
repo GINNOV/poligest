@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { demoPrisma, livePrisma, prisma } from "@/lib/prisma";
-import { mirrorDemoAccount } from "@/lib/demo/seed";
+import { generateDemoPassword, mirrorDemoAccount } from "@/lib/demo/seed";
+import { setDemoStackPassword } from "@/lib/demo/provision";
 import { logAudit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth";
 import { reportError } from "@/lib/error-reporting";
@@ -101,7 +102,19 @@ async function upsertUser(formData: FormData) {
   });
 
   if (user.isDemo) {
+    let demoPassword = user.demoPassword;
+    if (!demoPassword) {
+      const shared = await livePrisma.user.findFirst({
+        where: { isDemo: true, demoPassword: { not: null }, id: { not: user.id } },
+        select: { demoPassword: true },
+      });
+      demoPassword = shared?.demoPassword || generateDemoPassword();
+      await livePrisma.user.update({ where: { id: user.id }, data: { demoPassword } });
+    }
     await mirrorDemoAccount(user.id);
+    if (!existingUser) {
+      await setDemoStackPassword(user.email, user.name, demoPassword);
+    }
   }
 
   if (!existingUser && isActive && !user.isDemo) {
