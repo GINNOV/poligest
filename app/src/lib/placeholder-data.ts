@@ -138,6 +138,26 @@ const definitions = {
     description: "Note dell'appuntamento, se presenti.",
     example: "Portare gli esami",
   },
+  invoiceNumber: {
+    label: "Numero fattura",
+    description: "Numero della fattura di studio, anno e progressivo.",
+    example: "2026/1",
+  },
+  invoiceDate: {
+    label: "Data fattura",
+    description: "Data di emissione della fattura.",
+    example: "29/09/2026",
+  },
+  invoiceTotal: {
+    label: "Totale fattura",
+    description: "Totale della fattura.",
+    example: "80.00",
+  },
+  invoiceLines: {
+    label: "Righe fattura",
+    description: "Elenco delle prestazioni, una per riga, con quantità e importo.",
+    example: "Igiene × 1 80.00",
+  },
 } satisfies Record<string, PlaceholderCopy>;
 
 function define(keys: readonly string[]): PlaceholderDefinition[] {
@@ -160,6 +180,10 @@ export const EMAIL_PLACEHOLDER_KEYS = [
   "websiteUrl",
   "button",
   "customNote",
+  "invoiceNumber",
+  "invoiceDate",
+  "invoiceTotal",
+  "invoiceLines",
 ] as const;
 
 export const MESSAGE_PLACEHOLDER_KEYS = [
@@ -224,6 +248,10 @@ export const previewData: Record<string, string> = {
   clinicName: "Studio Agovino & Angrisano",
   websiteUrl: "https://sorrisosplendente.com",
   customNote: "Ricorda di arrivare 10 minuti prima.",
+  invoiceNumber: "2026/1",
+  invoiceDate: "29/09/2026",
+  invoiceTotal: "80.00",
+  invoiceLines: "Igiene × 1 80.00",
 };
 
 export function insertPlaceholderToken(value: string, start: number, end: number, key: string) {

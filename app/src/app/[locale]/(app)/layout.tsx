@@ -110,8 +110,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       : null;
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="relative z-40 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/85">
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 print:bg-white print:text-black">
+      <header className="relative z-40 border-b border-zinc-200 bg-white/80 backdrop-blur print:hidden dark:border-zinc-800 dark:bg-zinc-950/85">
         {isImpersonating && user ? (
           <div className="border-b border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/60">
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-2 text-sm text-amber-900 dark:text-amber-100">
@@ -182,10 +182,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-6xl px-6 py-8 print:max-w-none print:px-0 print:py-0">{children}</main>
       <AppStartRedirect />
-      <SiteFooter version={version} deployedAt={deployedAt} displayTimeZone={displayTimeZone} showDocs />
-      {activeUpdate && !dismissed ? <StaffFeatureUpdateDialog update={activeUpdate} /> : null}
+      <div className="print:hidden">
+        <SiteFooter version={version} deployedAt={deployedAt} displayTimeZone={displayTimeZone} showDocs />
+      </div>
+      {activeUpdate && !dismissed ? (
+        <div className="print:hidden">
+          <StaffFeatureUpdateDialog update={activeUpdate} />
+        </div>
+      ) : null}
     </div>
   );
 }

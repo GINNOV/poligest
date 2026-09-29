@@ -15,6 +15,13 @@ const TILES = [
     description: "Traccia appuntamento per appuntamento il flusso di cassa. Gestisci preventivi, incassi e residui del paziente.",
   },
   {
+    href: "/finanza/fatture",
+    src: "/tiles/accounting.png",
+    alt: "Fatture",
+    title: "Fatture",
+    description: "Emetti una fattura di studio dalle righe dei preventivi. Stampala o inviala al paziente.",
+  },
+  {
     href: "/finanza/spese",
     src: "/tiles/materiali_spese_ufficio.png",
     alt: "Materiali e spese ufficio",

@@ -77,6 +77,8 @@ async function resetSystem(formData: FormData) {
     await tx.auditLog.deleteMany();
     await tx.quickNotesPaymentSync.deleteMany();
     await tx.patientPayment.deleteMany();
+    await tx.invoiceLine.deleteMany();
+    await tx.invoice.deleteMany();
     await tx.quoteItem.deleteMany();
     await tx.quote.deleteMany();
     await tx.medicalCertificate.deleteMany();
@@ -445,6 +447,8 @@ async function importData(formData: FormData) {
     await tx.auditLog.deleteMany();
     await tx.quickNotesPaymentSync.deleteMany();
     await tx.patientPayment.deleteMany();
+    await tx.invoiceLine.deleteMany();
+    await tx.invoice.deleteMany();
     await tx.quoteItem.deleteMany();
     await tx.quote.deleteMany();
     await tx.stockMovement.deleteMany();

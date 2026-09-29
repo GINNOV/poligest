@@ -67,7 +67,7 @@ export const defaultEmailTemplates: EmailTemplateSeed[] = [
     category: "Billing",
     subject: "La tua fattura è disponibile",
     body:
-      "Ciao {{patientName}},\n\nLa tua fattura è pronta.\n\n{{button}}\n\nGrazie,\n{{clinicName}}.",
+      "Ciao {{patientName}},\n\nla fattura {{invoiceNumber}} del {{invoiceDate}} è pronta.\n\n{{invoiceLines}}\n\nTotale: {{invoiceTotal}}\n\nGrazie,\n{{clinicName}}",
     buttonColor: "#16a34a",
   },
 ];

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   quote: { findMany: vi.fn(), deleteMany: vi.fn() },
+  invoiceLine: { deleteMany: vi.fn() },
+  invoice: { deleteMany: vi.fn() },
   patientPayment: { deleteMany: vi.fn() },
   quoteItem: { deleteMany: vi.fn() },
   appointmentReminder: { deleteMany: vi.fn() },
@@ -44,6 +46,12 @@ describe("deletePatientWithRelations", () => {
     });
     expect(mocks.quoteItem.deleteMany).toHaveBeenCalledWith({
       where: { quoteId: { in: ["quote-1"] } },
+    });
+    expect(mocks.invoiceLine.deleteMany).toHaveBeenCalledWith({
+      where: { invoice: { patientId: "patient-1" } },
+    });
+    expect(mocks.invoice.deleteMany).toHaveBeenCalledWith({
+      where: { patientId: "patient-1" },
     });
     expect(mocks.patient.delete).toHaveBeenCalledWith({
       where: { id: "patient-1" },

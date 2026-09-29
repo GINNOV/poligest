@@ -3,6 +3,7 @@
 import { useTransition, useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { isRedirectError } from "@/lib/utils";
 
 type Props = {
   action: (formData: FormData) => Promise<void>;
@@ -69,6 +70,7 @@ export function ConfirmButton({
         }
         await action(formData);
       } catch (error) {
+        if (isRedirectError(error)) throw error;
         console.error("Action failed:", error);
         alert(error instanceof Error ? error.message : "Si è verificato un errore inaspettato.");
       }

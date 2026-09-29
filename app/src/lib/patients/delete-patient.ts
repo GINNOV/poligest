@@ -7,6 +7,13 @@ export async function deletePatientWithRelations(
   patientId: string,
   client: DbClient = prisma,
 ) {
+  await client.invoiceLine.deleteMany({
+    where: { invoice: { patientId } },
+  });
+  await client.invoice.deleteMany({
+    where: { patientId },
+  });
+
   const quotes = await client.quote.findMany({
     where: { patientId },
     select: { id: true },
