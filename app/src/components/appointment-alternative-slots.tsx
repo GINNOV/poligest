@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { slotDurationClass } from "@/components/appointment-duration-chips";
 import { computeAppointmentDurationMinutes } from "@/lib/appointments/find-alternative-slots";
 import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
 
@@ -16,7 +17,6 @@ type Props = {
   startsAt: string;
   endsAt: string;
   browseDate: string;
-  onBrowseDateChange: (date: string) => void;
   displayTimeZone?: string;
   onSelectSlot: (slot: { startsAt: string; endsAt: string }) => void;
   findFirstToken?: number;
@@ -29,7 +29,6 @@ export function AppointmentAlternativeSlots({
   startsAt,
   endsAt,
   browseDate,
-  onBrowseDateChange,
   displayTimeZone = "Europe/Rome",
   onSelectSlot,
   findFirstToken = 0,
@@ -49,28 +48,6 @@ export function AppointmentAlternativeSlots({
     () => computeAppointmentDurationMinutes(startsAt, endsAt, displayTimeZone),
     [startsAt, endsAt, displayTimeZone],
   );
-
-  const quickDates = useMemo(() => {
-    const base = browseDate || formatDateInputValueInTimeZone(new Date(), displayTimeZone);
-    const [year, month, day] = base.split("-").map(Number);
-    const anchor = new Date(year, month - 1, day);
-    const formatter = new Intl.DateTimeFormat("it-IT", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-
-    return [1, 2, 7].map((offset) => {
-      const next = new Date(anchor);
-      next.setDate(next.getDate() + offset);
-      const value = formatDateInputValueInTimeZone(next, displayTimeZone);
-      return {
-        value,
-        label: offset === 1 ? "Domani" : offset === 2 ? "+2g" : "+1sett",
-        hint: formatter.format(next),
-      };
-    });
-  }, [browseDate, displayTimeZone]);
 
   const fetchSlots = async (params: URLSearchParams) => {
     const response = await fetch(`/api/appointments/alternative-slots?${params.toString()}`);
@@ -123,26 +100,6 @@ export function AppointmentAlternativeSlots({
   const applySlot = (slot: AlternativeSlot, message: string) => {
     onSelectSlot({ startsAt: slot.startsAtLocal, endsAt: slot.endsAtLocal });
     setAppliedSlotMessage(message);
-  };
-
-  const slotDurationClass = (isSelected: boolean) => {
-    if (isSelected) {
-      if (durationMinutes <= 20) {
-        return "border-sky-500 bg-sky-100 text-sky-900 dark:border-sky-500 dark:bg-sky-950/50 dark:text-sky-100";
-      }
-      if (durationMinutes <= 45) {
-        return "border-emerald-500 bg-emerald-100 text-emerald-900 dark:border-emerald-500 dark:bg-emerald-950/50 dark:text-emerald-100";
-      }
-      return "border-violet-500 bg-violet-100 text-violet-900 dark:border-violet-500 dark:bg-violet-950/50 dark:text-violet-100";
-    }
-
-    if (durationMinutes <= 20) {
-      return "border-sky-200 bg-white text-sky-800 hover:border-sky-300 hover:bg-sky-50 dark:border-sky-900/50 dark:bg-zinc-950 dark:text-sky-200 dark:hover:bg-sky-950/30";
-    }
-    if (durationMinutes <= 45) {
-      return "border-emerald-200 bg-white text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-zinc-950 dark:text-emerald-200 dark:hover:bg-emerald-950/30";
-    }
-    return "border-violet-200 bg-white text-violet-800 hover:border-violet-300 hover:bg-violet-50 dark:border-violet-900/50 dark:bg-zinc-950 dark:text-violet-200 dark:hover:bg-violet-950/30";
   };
 
   const handleFindFirst = async () => {
@@ -209,33 +166,10 @@ export function AppointmentAlternativeSlots({
     return () => window.clearTimeout(timer);
   }, [variant, isOpen, doctorId, browseDate, durationMinutes, appointmentId, displayTimeZone]);
 
-  const quickDateButtons = (
-    <>
-      {quickDates.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          title={option.hint}
-          onClick={() => {
-            skipAutoSearch.current = false;
-            onBrowseDateChange(option.value);
-          }}
-          className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:border-sky-300 dark:border-sky-800 dark:bg-zinc-950 dark:text-sky-200"
-        >
-          {option.label}
-        </button>
-      ))}
-      {loading ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
-      {loadingFirst ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Primo slot...</span> : null}
-    </>
-  );
+  const searching = loading || loadingFirst;
 
   const panelContent = (
     <div className="space-y-3">
-      {variant === "collapsible" ? (
-        <div className="flex flex-wrap items-center gap-2">{quickDateButtons}</div>
-      ) : null}
-
       {hasSearched ? (
         blockedReason ? (
           <p className="text-sm text-amber-700 dark:text-amber-300">{blockedReason}</p>
@@ -257,7 +191,7 @@ export function AppointmentAlternativeSlots({
                     key={`${slot.startsAtLocal}-${slot.endsAtLocal}`}
                     type="button"
                     onClick={() => applySlot(slot, "Slot applicato ai campi sopra.")}
-                    className={`shrink-0 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:shrink ${slotDurationClass(isSelected)}`}
+                    className={`shrink-0 rounded-xl border px-3 py-2 text-sm font-semibold transition sm:shrink ${slotDurationClass(durationMinutes, isSelected)}`}
                   >
                     {slot.label}
                   </button>
@@ -272,7 +206,7 @@ export function AppointmentAlternativeSlots({
 
   if (variant === "collapsible") {
     return (
-      <div className="col-span-full rounded-2xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
+      <div className="col-span-full rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
         <button
           type="button"
           onClick={() => setIsOpen((open) => !open)}
@@ -294,10 +228,10 @@ export function AppointmentAlternativeSlots({
   }
 
   return (
-    <div className="col-span-full rounded-2xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
+    <div className="col-span-full rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
-        {quickDateButtons}
+        {searching ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
       </div>
       <div className="mt-3">{panelContent}</div>
     </div>

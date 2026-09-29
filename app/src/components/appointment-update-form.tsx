@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AppointmentAlternativeSlots } from "@/components/appointment-alternative-slots";
+import { AppointmentDayPicker } from "@/components/appointment-day-picker";
 import { AppointmentDurationChips } from "@/components/appointment-duration-chips";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { PatientSearchCombobox } from "@/components/patient-search-combobox";
@@ -15,7 +16,7 @@ import {
   composeDateTimeLocal,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
-import { EuropeanDateField, EuropeanTimeField } from "@/components/european-datetime-field";
+import { EuropeanTimeField } from "@/components/european-datetime-field";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -265,8 +266,8 @@ export function AppointmentUpdateForm({
       </div>
 
       <div className={activeTab === "reschedule" ? "contents" : "hidden"}>
-        <div className="col-span-full grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_auto] sm:items-end">
-          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <div className="col-span-full flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex min-w-0 flex-1 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold">Medico assegnato</span>
             <select
               value={doctorId}
@@ -282,16 +283,6 @@ export function AppointmentUpdateForm({
             </select>
           </label>
 
-          <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
-            <span className="font-bold text-rose-600 dark:text-rose-500">Giorno</span>
-            <EuropeanDateField
-              value={visitDate}
-              onChange={updateVisitDate}
-              className={fieldClassName}
-              required
-            />
-          </label>
-
           <button
             type="button"
             onClick={() => setFindFirstToken((token) => token + 1)}
@@ -300,6 +291,12 @@ export function AppointmentUpdateForm({
             Primo slot libero
           </button>
         </div>
+
+        <AppointmentDayPicker
+          value={visitDate}
+          onChange={updateVisitDate}
+          timeZone={displayTimeZone}
+        />
 
         <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
@@ -331,7 +328,6 @@ export function AppointmentUpdateForm({
           startsAt={startsAt}
           endsAt={endsAt}
           browseDate={visitDate}
-          onBrowseDateChange={updateVisitDate}
           displayTimeZone={displayTimeZone}
           variant="inline"
           findFirstToken={findFirstToken}
