@@ -149,19 +149,6 @@ async function main() {
     },
   });
 
-  const doctor =
-    (await prisma.doctor.findFirst({
-      where: { userId: manager.id },
-    })) ||
-    (await prisma.doctor.create({
-      data: {
-        userId: manager.id,
-        fullName: "Dr. Responsabile",
-        specialty: "Odontoiatria",
-        color: "#059669",
-      },
-    }));
-
   const patient =
     (await prisma.patient.findFirst({
       where: { email: "paziente.demo@poligest.local" },
@@ -200,19 +187,6 @@ async function main() {
       moduleId: privacyModule.id,
       status: "GRANTED",
       channel: "firmato",
-    },
-  });
-
-  await prisma.appointment.create({
-    data: {
-      title: "Visita di controllo",
-      status: "CONFIRMED",
-      serviceType: "Controllo",
-      startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      endsAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
-      patientId: patient.id,
-      doctorId: doctor.id,
-      notes: "Appuntamento di esempio per agenda.",
     },
   });
 
@@ -255,7 +229,6 @@ async function main() {
       description: "Materiale di consumo",
       amount: new Prisma.Decimal("125.00"),
       occurredAt: new Date(),
-      doctorId: doctor.id,
       userId: manager.id,
     },
   });
