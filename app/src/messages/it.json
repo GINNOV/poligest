@@ -173,6 +173,8 @@
     "statusActive": "Attivo",
     "statusDisabled": "Disabilitato",
     "toggle": "Attiva/Disattiva",
+    "activate": "Attiva",
+    "deactivate": "Disattiva",
     "updateRole": "Aggiorna ruolo",
     "sendResetLink": "Invia reset password",
     "sendResetConfirm": "Inviare il link di reset password a questo utente?",

@@ -846,20 +846,20 @@ export default async function AdminUsersPage({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                      <div className={user.id === admin.id || !user.isActive ? "hidden" : "block"}>
+                      <div className={user.id === admin.id || !user.isActive ? "hidden" : "contents"}>
                         <ConfirmButton
                           action={startImpersonation}
                           name="userId"
                           value={user.id}
                           confirmMessage={t("impersonateConfirm")}
-                          variant="secondary"
+                          variant="outline"
                           size="xs"
-                          className="gap-2"
+                          className="h-8 w-8 p-0 text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900"
+                          title={t("impersonate")}
                         >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
-                          {t("impersonate")}
                         </ConfirmButton>
                       </div>
                       <ConfirmButton
@@ -867,11 +867,12 @@ export default async function AdminUsersPage({
                         name="userId"
                         value={user.id}
                         confirmMessage={t("sendResetConfirm")}
-                        variant="ghost"
+                        variant="outline"
                         size="xs"
                         className="h-8 w-8 p-0"
+                        title={t("sendResetLink")}
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                         </svg>
                       </ConfirmButton>
@@ -879,17 +880,17 @@ export default async function AdminUsersPage({
                         action={setUserStatus}
                         data={{ userId: user.id, active: (!user.isActive).toString() }}
                         confirmMessage={t("toggleStatusConfirm")}
-                        variant="ghost"
+                        variant="outline"
                         size="xs"
-                        className={`h-8 w-8 p-0 ${user.isActive ? "text-amber-600 hover:text-amber-700 hover:bg-amber-50" : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"}`}
-                        title={t("toggle")}
+                        className={`h-8 w-8 p-0 ${user.isActive ? "text-amber-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700" : "text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"}`}
+                        title={user.isActive ? t("deactivate") : t("activate")}
                       >
                         {user.isActive ? (
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                           </svg>
                         ) : (
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         )}
@@ -899,11 +900,12 @@ export default async function AdminUsersPage({
                         name="userId"
                         value={user.id}
                         confirmMessage={t("deleteConfirm")}
-                        variant="ghost"
+                        variant="outline"
                         size="xs"
-                        className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                        className="h-8 w-8 p-0 text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
+                        title={t("delete")}
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </ConfirmButton>

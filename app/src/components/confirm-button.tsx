@@ -2,6 +2,7 @@
 
 import { useTransition, useState, useEffect } from "react";
 import { Button } from "./ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type Props = {
   action: (formData: FormData) => Promise<void>;
@@ -12,7 +13,7 @@ type Props = {
   children: React.ReactNode;
   className?: string;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "black" | "destructive" | "destructive-outline";
-  size?: "default" | "sm" | "xs" | "lg";
+  size?: "default" | "sm" | "xs" | "lg" | "icon";
   formId?: string;
   name?: string;
   value?: string;
@@ -74,19 +75,30 @@ export function ConfirmButton({
     });
   };
 
+  const button = (
+    <Button
+      type="button"
+      onClick={() => setShowConfirm(true)}
+      loading={isPending}
+      className={className}
+      variant={variant}
+      size={size}
+      aria-label={title}
+    >
+      {children}
+    </Button>
+  );
+
   return (
     <>
-      <Button
-        type="button"
-        onClick={() => setShowConfirm(true)}
-        loading={isPending}
-        className={className}
-        variant={variant}
-        size={size}
-        title={title}
-      >
-        {children}
-      </Button>
+      {title ? (
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="top">{title}</TooltipContent>
+        </Tooltip>
+      ) : (
+        button
+      )}
 
       {showConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 px-4">
