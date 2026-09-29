@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { APP_BRAND_NAME } from "@/lib/brand";
 
 export function createPageMetadata(title: string): Metadata {
   return { title };
@@ -78,5 +79,5 @@ export const PAGE_TITLES = {
   nuovoCertificato: "Nuovo certificato",
   stampaCertificato: "Stampa certificato",
   pazienteNonTrovato: "Paziente non trovato",
-  home: "SORRIDI",
+  home: APP_BRAND_NAME,
 } as const;

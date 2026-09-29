@@ -1,6 +1,6 @@
-# Manuale SORRIDI
+# Manuale SORRISO
 
-Questo manuale spiega come usare SORRIDI nelle attivita di tutti i giorni, con istruzioni semplici e pratiche.
+Questo manuale spiega come usare SORRISO nelle attivita di tutti i giorni, con istruzioni semplici e pratiche.
 
 L'app e pensata per accompagnare il lavoro dello studio in questo ordine:
 

@@ -1,6 +1,6 @@
 # Accesso e Uso di Base
 
-Questa pagina serve a chi sta iniziando a usare SORRIDI.
+Questa pagina serve a chi sta iniziando a usare SORRISO.
 
 ## Come entrare
 

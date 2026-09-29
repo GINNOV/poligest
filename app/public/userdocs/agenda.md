@@ -1,6 +1,6 @@
 # Agenda e Calendario
 
-In SORRIDI la sezione **Agenda** e divisa in due parti:
+In SORRISO la sezione **Agenda** e divisa in due parti:
 
 - **APPUNTAMENTI ESISTENTI**
 - **CALENDARIO MEDICI**
@@ -42,7 +42,7 @@ Se hai anche l'email, inseriscila subito: tornera utile per richiami e promemori
 
 ## Cosa succede se c'e un conflitto
 
-Se il medico ha gia un appuntamento in quello stesso orario, SORRIDI mostra un avviso e non salva.
+Se il medico ha gia un appuntamento in quello stesso orario, SORRISO mostra un avviso e non salva.
 
 In questo caso:
 

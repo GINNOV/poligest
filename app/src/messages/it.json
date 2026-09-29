@@ -45,7 +45,7 @@
     }
   },
   "app": {
-    "brand": "SORRIDI",
+    "brand": "SORRISO",
     "dashboard": "Dashboard",
     "agenda": "Agenda",
     "calendar": "Calendario",
@@ -245,7 +245,7 @@
   "anamnesisSave": "Aggiorna"
   },
   "login": {
-    "title": "Accesso a SORRIDI",
+    "title": "Accesso a SORRISO",
     "subtitle": "Inserisci le credenziali per continuare.",
     "email": "Email",
     "password": "Password",

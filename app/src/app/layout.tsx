@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { APP_BRAND_NAME } from "@/lib/brand";
 import { getThemeInitScript } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -18,17 +19,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://sorrisosplendente.com"),
   title: {
-    template: "%s | SORRIDI",
-    default: "SORRIDI",
+    template: `%s | ${APP_BRAND_NAME}`,
+    default: APP_BRAND_NAME,
   },
   description:
     "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
   openGraph: {
-    title: "SORRIDI",
+    title: APP_BRAND_NAME,
     description:
       "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
     url: "https://sorrisosplendente.com",
-    siteName: "SORRIDI",
+    siteName: APP_BRAND_NAME,
     locale: "it_IT",
     type: "website",
     images: [
@@ -36,13 +37,13 @@ export const metadata: Metadata = {
         url: "/logo/studio_agovinoangrisano_logo.png",
         width: 2208,
         height: 1920,
-        alt: "SORRIDI - Studio Agovino & Angrisano",
+        alt: `${APP_BRAND_NAME} - Studio Agovino & Angrisano`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SORRIDI",
+    title: APP_BRAND_NAME,
     description:
       "Gestione clinica centralizzata: agenda, cartelle, magazzino e finanza.",
     images: ["/logo/studio_agovinoangrisano_logo.png"],

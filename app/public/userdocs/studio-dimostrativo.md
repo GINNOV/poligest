@@ -1,6 +1,6 @@
 # Studio dimostrativo
 
-Lo studio dimostrativo è una copia finta di SORRIDI. Serve per far vedere il programma o per provare i passaggi senza toccare i pazienti, gli appuntamenti e i conti dello studio vero.
+Lo studio dimostrativo è una copia finta di SORRISO. Serve per far vedere il programma o per provare i passaggi senza toccare i pazienti, gli appuntamenti e i conti dello studio vero.
 
 I due studi non si mischiano. Dall'account dimostrativo non si vedono i dati veri. Dagli account dello studio non si vedono i pazienti e gli appuntamenti dimostrativi.
 
@@ -39,7 +39,7 @@ Con **Admin** puoi aprire tutte le voci di **Amministrazione**: utenti, medici, 
 
 ## Messaggi, SMS e WhatsApp
 
-Puoi premere i pulsanti di invio e di prova. SORRIDI segna il messaggio come inviato nello studio dimostrativo e non lo manda davvero. Nessun paziente viene contattato.
+Puoi premere i pulsanti di invio e di prova. SORRISO segna il messaggio come inviato nello studio dimostrativo e non lo manda davvero. Nessun paziente viene contattato.
 
 ## Ripristinare i dati di partenza
 
