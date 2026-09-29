@@ -270,20 +270,6 @@ export function CalendarMonthView({
     setSelectedAppointment(null);
   }
 
-  useEffect(() => {
-    if (!selectedDate && !selectedAppointment) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" || event.key === "Esc") {
-        event.preventDefault();
-        event.stopPropagation();
-        setSelectedDate(null);
-        setSelectedAppointment(null);
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selectedDate, selectedAppointment]);
-
   return (
     <>
       <div className="grid grid-cols-7 gap-2 text-[11px] font-semibold uppercase text-zinc-500 dark:text-zinc-400">
@@ -435,10 +421,10 @@ export function CalendarMonthView({
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-10"
           role="dialog"
           aria-modal="true"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setSelectedDate(null);
-              setSelectedAppointment(null);
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Esc") {
+              event.preventDefault();
+              event.stopPropagation();
             }
           }}
         >

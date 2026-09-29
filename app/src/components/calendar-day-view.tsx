@@ -484,15 +484,27 @@ export function CalendarDayView({
 
       {/* Create Modal */}
       {createSlot ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Esc") {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }}
+        >
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
-            <button
-              type="button"
-              onClick={() => setCreateSlot(null)}
-              className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-            >
-              ✕
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setCreateSlot(null)}
+                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              >
+                Chiudi
+              </button>
+            </div>
             <AppointmentCreateForm
               patients={patients}
               doctors={doctors}
@@ -514,15 +526,27 @@ export function CalendarDayView({
 
       {/* Edit Modal */}
       {editingAppointment ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Esc") {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          }}
+        >
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
-            <button
-              type="button"
-              onClick={() => setSelectedAppointment(null)}
-              className="absolute right-4 top-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-            >
-              ✕
-            </button>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedAppointment(null)}
+                className="rounded-full border border-zinc-200 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-emerald-500 dark:hover:text-emerald-300"
+              >
+                Chiudi
+              </button>
+            </div>
             <div className="space-y-3">
               <AppointmentUpdateForm
                 appointment={{

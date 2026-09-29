@@ -172,7 +172,7 @@ export function AppointmentCreateForm({
     if (!patientId || !title || !startsAt || !endsAt) {
       setError(
         !patientId
-          ? "Seleziona un paziente o Nuovo Paziente nella scheda Dettagli prima di salvare."
+          ? "Seleziona un paziente o Nuovo Paziente nella scheda Dettagli Paziente prima di salvare."
           : "Dati mancanti: compila i campi obbligatori."
       );
       return;
@@ -291,7 +291,7 @@ export function AppointmentCreateForm({
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
           }`}
         >
-          Dettagli
+          Dettagli Paziente
         </button>
       </div>
 
@@ -376,13 +376,24 @@ export function AppointmentCreateForm({
           <button
             type="button"
             className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
-              durationMinutes <= 20
+              durationMinutes > 10 && durationMinutes <= 20
                 ? "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-950/40 dark:text-sky-100"
                 : "border-zinc-200 text-zinc-700 hover:border-sky-300 hover:text-sky-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-sky-500 dark:hover:text-sky-300"
             }`}
             onClick={() => setEndFromStart(15)}
           >
             15m
+          </button>
+          <button
+            type="button"
+            className={`h-9 rounded-full border px-3 text-xs font-semibold transition ${
+              durationMinutes <= 10
+                ? "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                : "border-zinc-200 text-zinc-700 hover:border-amber-300 hover:text-amber-700 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-amber-500 dark:hover:text-amber-300"
+            }`}
+            onClick={() => setEndFromStart(5)}
+          >
+            5m
           </button>
         </div>
       </div>
