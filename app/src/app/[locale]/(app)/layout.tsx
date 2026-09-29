@@ -12,70 +12,13 @@ import { type FeatureId, getRoleFeatureAccess } from "@/lib/feature-access";
 import { StaffFeatureUpdateDialog } from "@/components/staff-feature-update-dialog";
 import { HelpButton, type Instruction } from "@/components/help-button";
 import { MobileNav } from "@/components/mobile-nav";
-import { logAudit } from "@/lib/audit";
 import { getOptionalPrismaModel } from "@/lib/prisma-models";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { StopImpersonationButton } from "@/components/stop-impersonation-button";
 import { AppStartRedirect } from "@/components/app-start-redirect";
 import { getPracticeTimeZone } from "@/lib/practice-settings";
 import { getUserDisplayTimeZone } from "@/lib/user-display-time-zone.server";
-async function stopImpersonation() {
-  "use server";
-
-  const store = await cookies();
-  const current = store.get("impersonateUserId")?.value;
-  const adminId = store.get("impersonateAdminId")?.value ?? null;
-  const { prisma } = await import("@/lib/prisma");
-  const admin = adminId
-    ? await prisma.user.findUnique({ where: { id: adminId }, select: { id: true, role: true } })
-    : null;
-  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
-
-  const originalAccess = store.get("impersonateAdminAccess")?.value;
-  const originalRefresh = store.get("impersonateAdminRefresh")?.value;
-
-  if (projectId) {
-    if (originalAccess) {
-      store.set(`stack-access-${projectId}`, originalAccess, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 6,
-      });
-    } else {
-      store.delete(`stack-access-${projectId}`);
-    }
-
-    if (originalRefresh) {
-      store.set(`stack-refresh-${projectId}`, originalRefresh, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 6,
-      });
-    } else {
-      store.delete(`stack-refresh-${projectId}`);
-    }
-  }
-
-  store.delete("impersonateUserId");
-  store.delete("impersonateAdminId");
-  store.delete("impersonateAdminAccess");
-  store.delete("impersonateAdminRefresh");
-
-  if (current) {
-    await logAudit(admin?.role === Role.ADMIN ? admin : null, {
-      action: "admin.user.stop_impersonation",
-      entity: "User",
-      entityId: current,
-    });
-  }
-
-  redirect("/dashboard");
-}
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -178,11 +121,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 </span>
                 <span className="text-xs text-amber-800 dark:text-amber-200">Stai navigando come questo utente.</span>
               </div>
-              <form action={stopImpersonation}>
-                <button className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-100 dark:hover:bg-amber-900/70">
-                  Termina impersonazione
-                </button>
-              </form>
+              <StopImpersonationButton
+                label="Termina impersonazione"
+                nextHref="/dashboard"
+                className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:opacity-60 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-100 dark:hover:bg-amber-900/70"
+              />
             </div>
           </div>
         ) : null}

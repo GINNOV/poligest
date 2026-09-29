@@ -22,6 +22,8 @@ import {
   ensureStackUserCanReceivePasswordReset,
   resolvePasswordResetCallbackUrl,
 } from "@/lib/admin/stack-password-reset";
+import { beginImpersonationSession } from "@/lib/impersonation-session";
+import { StopImpersonationButton } from "@/components/stop-impersonation-button";
 
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
@@ -362,55 +364,27 @@ async function startImpersonation(formData: FormData) {
   );
 
   const store = await cookies();
-  const currentAccess = store.get(`stack-access-${projectId}`)?.value;
-  const currentRefresh = store.get(`stack-refresh-${projectId}`)?.value;
-
-  if (currentAccess) {
-    store.set("impersonateAdminAccess", currentAccess, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 6,
-    });
-  }
-  if (currentRefresh) {
-    store.set("impersonateAdminRefresh", currentRefresh, {
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 6,
-    });
-  }
+  const secure = process.env.NODE_ENV === "production";
+  beginImpersonationSession(store, {
+    projectId,
+    refreshToken,
+    accessToken,
+    secure,
+  });
 
   store.set("impersonateUserId", target.id, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 60 * 60, // 1 hour
   });
   store.set("impersonateAdminId", admin.id, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure,
     maxAge: 60 * 60, // 1 hour
-  });
-  store.set(`stack-access-${projectId}`, accessToken, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 6,
-  });
-  store.set(`stack-refresh-${projectId}`, refreshToken, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 6,
   });
 
   await logAudit(admin, {
@@ -486,59 +460,6 @@ async function sendPasswordResetLink(formData: FormData) {
   url.searchParams.set("resetSent", "1");
   url.searchParams.set("resetEmail", user.email);
   redirect(`${url.pathname}?${url.searchParams.toString()}`);
-}
-
-async function stopImpersonation() {
-  "use server";
-
-  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
-  const store = await cookies();
-  const current = store.get("impersonateUserId")?.value;
-  const projectId = process.env.NEXT_PUBLIC_STACK_PROJECT_ID;
-
-  const originalAccess = store.get("impersonateAdminAccess")?.value;
-  const originalRefresh = store.get("impersonateAdminRefresh")?.value;
-
-  if (projectId) {
-    if (originalAccess) {
-      store.set(`stack-access-${projectId}`, originalAccess, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 6,
-      });
-    } else {
-      store.delete(`stack-access-${projectId}`);
-    }
-
-    if (originalRefresh) {
-      store.set(`stack-refresh-${projectId}`, originalRefresh, {
-        path: "/",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 6,
-      });
-    } else {
-      store.delete(`stack-refresh-${projectId}`);
-    }
-  }
-
-  store.delete("impersonateUserId");
-  store.delete("impersonateAdminId");
-  store.delete("impersonateAdminAccess");
-  store.delete("impersonateAdminRefresh");
-
-  if (current) {
-    await logAudit(admin, {
-      action: "admin.user.stop_impersonation",
-      entity: "User",
-      entityId: current,
-    });
-  }
-
-  revalidatePath("/");
 }
 
 export const metadata = createPageMetadata(PAGE_TITLES.utenti);
@@ -709,11 +630,13 @@ export default async function AdminUsersPage({
               </p>
             </div>
           </div>
-          <form action={stopImpersonation}>
-            <Button type="submit" size="sm" variant="outline" className="bg-amber-600 border-amber-600 text-white hover:bg-amber-700 hover:border-amber-700 font-bold">
-              {t("exit")}
-            </Button>
-          </form>
+          <StopImpersonationButton
+            label={t("exit")}
+            nextHref="/admin/utenti"
+            variant="outline"
+            size="sm"
+            className="bg-amber-600 border-amber-600 text-white hover:bg-amber-700 hover:border-amber-700 font-bold"
+          />
         </div>
       )}
 
