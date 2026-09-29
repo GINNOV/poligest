@@ -2,12 +2,12 @@
 
 In SORRISO la sezione **Agenda** e divisa in due parti:
 
-- **APPUNTAMENTI ESISTENTI**
-- **CALENDARIO MEDICI**
+- **ELENCO APPUNTAMENTI**
+- **CALENDARIO APPUNTAMENTI**
 
 Usa la prima per controllare e aggiornare quello che e gia prenotato. Usa la seconda per vedere il calendario completo e inserire nuovi appuntamenti.
 
-## Quando usare "CALENDARIO MEDICI"
+## Quando usare "CALENDARIO APPUNTAMENTI"
 
 Apri questa schermata quando devi:
 
@@ -18,7 +18,7 @@ Apri questa schermata quando devi:
 
 ## Come creare un appuntamento
 
-1. Apri `Agenda` > `CALENDARIO MEDICI`.
+1. Apri `Agenda` > `CALENDARIO APPUNTAMENTI`.
 2. Scegli il giorno.
 3. Premi sullo spazio orario libero oppure usa il modulo di creazione.
 4. Seleziona il paziente.

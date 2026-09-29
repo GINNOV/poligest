@@ -174,7 +174,7 @@ export default async function AgendaPage({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">APPUNTAMENTI ESISTENTI</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">ELENCO APPUNTAMENTI</h2>
         {successMessage ? (
           <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
             {successMessage}

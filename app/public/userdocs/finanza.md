@@ -11,13 +11,13 @@ La sezione **Finanza** raccoglie tutto quello che riguarda:
 
 Dentro `Finanza` trovi:
 
-- **Pagamenti Pazienti**
-- **Materiali e Spese ufficio**
-- **Pagamenti medici**
-- **Report Giornaliero**
-- **Report Mensile**
-- **Report Uscite**
-- **Report Medici**
+- **PAGAMENTI PAZIENTI**
+- **MATERIALI E SPESE UFFICIO**
+- **PAGAMENTI MEDICI**
+- **REPORT GIORNALIERO**
+- **REPORT MENSILE**
+- **REPORT USCITE**
+- **REPORT MEDICI**
 
 ## Pagamenti pazienti
 

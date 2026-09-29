@@ -4,12 +4,12 @@ La sezione **Pazienti** serve per creare, cercare e aggiornare la scheda complet
 
 Le due voci principali sono:
 
-- **Nuovo paziente**
-- **Lista pazienti**
+- **NUOVO PAZIENTE**
+- **LISTA PAZIENTI**
 
 ## Creare un nuovo paziente
 
-Vai in `Pazienti` > `Nuovo paziente`.
+Vai in `Pazienti` > `NUOVO PAZIENTE`.
 
 Compila prima i dati essenziali:
 
@@ -24,7 +24,7 @@ Più i dati sono completi, più diventano semplici richiami, consensi e contatti
 
 ## Cercare un paziente esistente
 
-Vai in `Pazienti` > `Lista pazienti`.
+Vai in `Pazienti` > `LISTA PAZIENTI`.
 
 Usa la ricerca per:
 

@@ -685,7 +685,7 @@ export default async function CalendarPage({
                 </span>
               </>
             ) : (
-              "Calendario medici"
+              "CALENDARIO APPUNTAMENTI"
             )}
           </h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">

@@ -38,14 +38,14 @@ export default async function PazientiPage({
             <div className="relative aspect-[2066/1446] overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-900">
               <Image
                 src={`/tiles/new_patient.png?v=${TILE_IMAGE_VERSION}`}
-                alt="Nuovo paziente"
+                alt="NUOVO PAZIENTE"
                 fill
                 sizes="(min-width: 1024px) 320px, 100vw"
                 className="object-contain"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Nuovo paziente</h2>
+              <h2 className="text-lg font-semibold uppercase text-emerald-900 dark:text-emerald-300">NUOVO PAZIENTE</h2>
               <p className="text-sm text-emerald-800 dark:text-emerald-400">
                 Crea una nuova scheda paziente con consensi e dati clinici iniziali.
               </p>
@@ -61,14 +61,14 @@ export default async function PazientiPage({
             <div className="relative aspect-[2066/1446] overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-900">
               <Image
                 src={`/tiles/patient_list.png?v=${TILE_IMAGE_VERSION}`}
-                alt="Lista pazienti"
+                alt="LISTA PAZIENTI"
                 fill
                 sizes="(min-width: 1024px) 320px, 100vw"
                 className="object-contain"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Lista pazienti</h2>
+              <h2 className="text-lg font-semibold uppercase text-emerald-900 dark:text-emerald-300">LISTA PAZIENTI</h2>
               <p className="text-sm text-emerald-800 dark:text-emerald-400">
                 Cerca pazienti esistenti. Aggiorna il diario clinico e altre informazioni.
               </p>
@@ -84,14 +84,14 @@ export default async function PazientiPage({
             <div className="relative aspect-[2468/1728] overflow-hidden rounded-xl border border-amber-100 bg-white dark:border-amber-900/40 dark:bg-zinc-900">
               <Image
                 src={`/tiles/duplicate_patients.png?v=${TILE_IMAGE_VERSION}`}
-                alt="Cerca duplicati"
+                alt="CERCA DUPLICATI"
                 fill
                 sizes="(min-width: 1280px) 320px, (min-width: 768px) 40vw, 100vw"
                 className="object-cover object-center"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-amber-950 dark:text-amber-200">Cerca duplicati</h2>
+              <h2 className="text-lg font-semibold uppercase text-amber-950 dark:text-amber-200">CERCA DUPLICATI</h2>
               <p className="text-sm text-amber-900 dark:text-amber-300">
                 Controlla schede che potrebbero riferirsi allo stesso paziente prima di lavorare sui dati clinici.
               </p>
@@ -107,14 +107,14 @@ export default async function PazientiPage({
             <div className="relative aspect-[2066/1446] overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-emerald-900/40 dark:bg-zinc-900">
               <Image
                 src={`/tiles/certificates.png?v=${TILE_IMAGE_VERSION}`}
-                alt="Certificati"
+                alt="CERTIFICATI"
                 fill
                 sizes="(min-width: 1024px) 320px, 100vw"
                 className="object-contain"
               />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-emerald-900 dark:text-emerald-300">Certificati</h2>
+              <h2 className="text-lg font-semibold uppercase text-emerald-900 dark:text-emerald-300">CERTIFICATI</h2>
               <p className="text-sm text-emerald-800 dark:text-emerald-400">
                 Emetti e gestisci certificati di malattia, riposo lavorativo o per assicurazioni con firma digitale.
               </p>
