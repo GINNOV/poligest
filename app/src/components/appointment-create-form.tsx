@@ -329,20 +329,19 @@ export function AppointmentCreateForm({
         value={visitDate}
         onChange={updateVisitDate}
         timeZone={displayTimeZone}
+        trailing={<AppointmentDurationChips durationMinutes={durationMinutes} onSelect={setEndFromStart} />}
       />
 
-      <div className="col-span-full flex flex-wrap items-end gap-4">
-        <div className="flex min-w-60 flex-1 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+      <div className="col-span-full flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
           <AppointmentTimeField value={startTime} onChange={updateStartTime} />
         </div>
 
-        <div className="flex min-w-60 flex-1 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <div className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
           <AppointmentTimeField value={endTime} onChange={updateEndTime} />
         </div>
-
-        <AppointmentDurationChips durationMinutes={durationMinutes} onSelect={setEndFromStart} />
       </div>
 
       <AppointmentAlternativeSlots
