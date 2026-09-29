@@ -28,6 +28,8 @@ describe("instruction categories", () => {
 
   it("infers category from path patterns", () => {
     expect(inferInstructionCategoryFromPath("/dashboard")).toBe("GIORNATA");
+    expect(inferInstructionCategoryFromPath("/calendar/*")).toBe("AGENDA");
+    expect(inferInstructionCategoryFromPath("/agenda")).toBe("AGENDA");
     expect(inferInstructionCategoryFromPath("/pazienti/*")).toBe("PAZIENTI");
     expect(inferInstructionCategoryFromPath("/magazzino")).toBe("MAGAZZINO");
     expect(inferInstructionCategoryFromPath("/magazzino/prodotti")).toBe(

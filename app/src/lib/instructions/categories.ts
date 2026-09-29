@@ -93,7 +93,7 @@ export function inferInstructionCategoryFromPath(
 ): InstructionCategoryId {
   const p = pathPattern.trim().toLowerCase();
   if (p === "/dashboard" || p === "/dashboard/*") return "GIORNATA";
-  if (p.includes("/agenda")) return "AGENDA";
+  if (p.includes("/agenda") || p.includes("/calendar")) return "AGENDA";
   if (p.includes("/pazienti")) return "PAZIENTI";
   if (p.includes("/richiami")) return "RICHIAMI";
   if (p.includes("/magazzino")) return "MAGAZZINO";

@@ -176,5 +176,36 @@ describe("instructions / match", () => {
       const result = pickBestInstruction(candidates, "/pazienti/999", Role.ADMIN);
       expect(result?.id).toBe("1");
     });
+
+    it("keeps an exact sibling page ahead of a patient-chart wildcard", () => {
+      const pages: InstructionMatchInput[] = [
+        {
+          id: "scheda",
+          pathPattern: "/pazienti/*",
+          role: null,
+          isActive: true,
+          updatedAt: mockDate,
+        },
+        {
+          id: "lista",
+          pathPattern: "/pazienti/lista",
+          role: null,
+          isActive: true,
+          updatedAt: mockDate,
+        },
+        {
+          id: "duplicati",
+          pathPattern: "/pazienti/duplicati",
+          role: null,
+          isActive: true,
+          updatedAt: mockDate,
+        },
+      ];
+      expect(pickBestInstruction(pages, "/pazienti/lista", Role.SECRETARY)?.id).toBe("lista");
+      expect(pickBestInstruction(pages, "/pazienti/duplicati", Role.SECRETARY)?.id).toBe(
+        "duplicati",
+      );
+      expect(pickBestInstruction(pages, "/pazienti/cm123", Role.SECRETARY)?.id).toBe("scheda");
+    });
   });
 });

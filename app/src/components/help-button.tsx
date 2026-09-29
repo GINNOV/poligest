@@ -42,6 +42,12 @@ type Props = {
   userId: string;
 };
 
+function openStepIndex(orderedIds: string[], completedIds: string[]): number {
+  const next = currentStepIndex(orderedIds, completedIds);
+  if (orderedIds.length === 0) return 0;
+  return next >= orderedIds.length ? orderedIds.length - 1 : next;
+}
+
 function StepYoutubeEmbed({ url }: { readonly url?: string | null }) {
   const videoId = url ? extractYoutubeVideoId(url) : null;
   if (!videoId) return null;
@@ -73,8 +79,13 @@ function InstructionPanel({
   onClose: () => void;
 }) {
   const orderedIds = useMemo(() => instruction.steps.map((s) => s.id), [instruction.steps]);
-  const [completedIds, setCompletedIds] = useState<string[]>(() =>
-    reconcileProgress(loadProgress(userId, instruction.id).completedStepIds, orderedIds),
+  const initialCompleted = reconcileProgress(
+    loadProgress(userId, instruction.id).completedStepIds,
+    orderedIds,
+  );
+  const [completedIds, setCompletedIds] = useState<string[]>(initialCompleted);
+  const [selectedIndex, setSelectedIndex] = useState(() =>
+    openStepIndex(orderedIds, initialCompleted),
   );
   const [collapsed, setCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -82,10 +93,13 @@ function InstructionPanel({
   const syncKey = `${userId}:${instruction.id}:${orderedIds.join(",")}`;
   const [seenKey, setSeenKey] = useState(syncKey);
   if (seenKey !== syncKey) {
-    setSeenKey(syncKey);
-    setCompletedIds(
-      reconcileProgress(loadProgress(userId, instruction.id).completedStepIds, orderedIds),
+    const nextCompleted = reconcileProgress(
+      loadProgress(userId, instruction.id).completedStepIds,
+      orderedIds,
     );
+    setSeenKey(syncKey);
+    setCompletedIds(nextCompleted);
+    setSelectedIndex(openStepIndex(orderedIds, nextCompleted));
     setCollapsed(false);
   }
 
@@ -103,7 +117,6 @@ function InstructionPanel({
   const stepIndex = currentStepIndex(orderedIds, completedIds);
   const total = instruction.steps.length;
   const allDone = total > 0 && stepIndex >= total;
-  const current = !allDone ? instruction.steps[stepIndex] : null;
 
   useEffect(() => {
     if (collapsed) return;
@@ -111,7 +124,7 @@ function InstructionPanel({
       currentStepRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [stepIndex, collapsed, instruction.id]);
+  }, [selectedIndex, collapsed, instruction.id]);
 
   function persist(ids: string[]) {
     setCompletedIds(ids);
@@ -119,13 +132,17 @@ function InstructionPanel({
   }
 
   function markComplete() {
-    if (!current || completedIds.includes(current.id)) return;
-    persist([...completedIds, current.id]);
+    const step = instruction.steps[selectedIndex];
+    if (!step || completedIds.includes(step.id)) return;
+    const nextCompleted = [...completedIds, step.id];
+    persist(nextCompleted);
+    setSelectedIndex(openStepIndex(orderedIds, nextCompleted));
   }
 
   function restart() {
     clearProgress(userId, instruction.id);
     setCompletedIds([]);
+    setSelectedIndex(0);
     setCollapsed(false);
     scrollRef.current?.scrollTo({ top: 0 });
   }
@@ -153,7 +170,7 @@ function InstructionPanel({
               {instruction.title}
             </span>
             <span className="text-xs text-zinc-500 dark:text-zinc-400">
-              {allDone ? "Completata" : `Passaggio ${Math.min(stepIndex + 1, total)}/${total}`}
+              {allDone ? "Completata" : `Passaggio ${Math.min(selectedIndex + 1, total)}/${total}`}
             </span>
           </span>
           <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Espandi</span>
@@ -201,16 +218,13 @@ function InstructionPanel({
         <ol className="relative">
           {instruction.steps.map((step, index) => {
             const done = completedIds.includes(step.id);
-            const isCurrent = !allDone && index === stepIndex;
-            const isFuture = !done && !isCurrent;
+            const isOpen = index === selectedIndex;
             return (
               <li
                 key={step.id}
-                ref={isCurrent ? currentStepRef : undefined}
-                className={`relative flex gap-3 pb-5 transition-[filter,opacity] duration-200 last:pb-0 ${
-                  isFuture ? "pointer-events-none select-none opacity-40 blur-[1.5px]" : ""
-                }`}
-                aria-current={isCurrent ? "step" : undefined}
+                ref={isOpen ? currentStepRef : undefined}
+                className="relative flex gap-3 pb-5 last:pb-0"
+                aria-current={isOpen ? "step" : undefined}
               >
                 {index < instruction.steps.length - 1 ? (
                   <span
@@ -224,7 +238,7 @@ function InstructionPanel({
                   className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                     done
                       ? "bg-emerald-600 text-white"
-                      : isCurrent
+                      : isOpen
                         ? "bg-white text-zinc-900 ring-2 ring-emerald-600 dark:bg-zinc-950 dark:text-zinc-50"
                         : "bg-zinc-50 text-zinc-500 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:ring-zinc-800"
                   }`}
@@ -238,41 +252,45 @@ function InstructionPanel({
                   )}
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
-                  <div
-                    className={`text-[11px] font-semibold tracking-wider ${
-                      done
-                        ? "text-emerald-700 line-through dark:text-emerald-300"
-                        : isCurrent
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIndex(index)}
+                    className="block w-full rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-emerald-600/40"
+                  >
+                    <div
+                      className={`text-[11px] font-semibold tracking-wider ${
+                        isOpen
                           ? "text-zinc-900 dark:text-zinc-50"
-                          : "text-zinc-500 dark:text-zinc-400"
-                    }`}
-                  >
-                    PASSAGGIO {index + 1}
-                  </div>
-                  <div
-                    className={`mt-0.5 text-sm font-medium ${
-                      done
-                        ? "text-zinc-500 line-through dark:text-zinc-400"
-                        : isFuture
-                          ? "text-zinc-500 dark:text-zinc-400"
-                          : "text-zinc-800 dark:text-zinc-100"
-                    }`}
-                  >
-                    {step.title}
-                  </div>
-                  {isCurrent ? (
+                          : done
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : "text-zinc-500 dark:text-zinc-400"
+                      }`}
+                    >
+                      PASSAGGIO {index + 1}
+                    </div>
+                    <div
+                      className={`mt-0.5 text-sm font-medium ${
+                        isOpen ? "text-zinc-800 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-200"
+                      }`}
+                    >
+                      {step.title}
+                    </div>
+                  </button>
+                  {isOpen ? (
                     <div className="mt-2">
                       <StepMarkdown content={step.content} />
                       <StepYoutubeEmbed url={step.youtubeUrl} />
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={markComplete}
-                          className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/40"
-                        >
-                          Segna come completato
-                        </button>
-                      </div>
+                      {done ? null : (
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={markComplete}
+                            className="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-600/40"
+                          >
+                            Segna come completato
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : null}
                 </div>
