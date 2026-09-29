@@ -175,7 +175,7 @@ export function AppointmentCreateForm({
     if (!patientId || !title || !startsAt || !endsAt) {
       setError(
         !patientId
-          ? "Seleziona un paziente o Nuovo Paziente nella scheda Dettagli Paziente prima di salvare."
+          ? "Seleziona un paziente o Nuovo Paziente nella scheda DETTAGLI PAZIENTE prima di salvare."
           : "Dati mancanti: compila i campi obbligatori."
       );
       return;
@@ -283,7 +283,7 @@ export function AppointmentCreateForm({
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
           }`}
         >
-          Orario
+          🕐 ORARIO
         </button>
         <button
           type="button"
@@ -294,7 +294,7 @@ export function AppointmentCreateForm({
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
           }`}
         >
-          Dettagli Paziente
+          👤 DETTAGLI PAZIENTE
         </button>
       </div>
 

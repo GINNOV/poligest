@@ -228,12 +228,14 @@ export function AppointmentAlternativeSlots({
   }
 
   return (
-    <div className="col-span-full rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
+    <div className="col-span-full space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
+        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">SLOT LIBERI</p>
         {searching ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
       </div>
-      <div className="mt-3">{panelContent}</div>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
+        {panelContent}
+      </div>
     </div>
   );
 }

@@ -24,8 +24,8 @@ export function AppointmentTimeField({ value = "", onChange, required }: Props) 
 
   return (
     <div className="flex flex-nowrap items-end gap-2">
-      <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-        Ora
+      <label>
+        <span className="sr-only">Ora</span>
         <select
           required={required}
           value={hour ?? ""}
@@ -41,8 +41,8 @@ export function AppointmentTimeField({ value = "", onChange, required }: Props) 
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-        Minuti
+      <label>
+        <span className="sr-only">Minuti</span>
         <select
           required={required}
           value={minute ?? ""}

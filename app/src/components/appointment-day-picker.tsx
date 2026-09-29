@@ -34,9 +34,9 @@ export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome"
 
   return (
     <div className="col-span-full space-y-3">
-      <div>
+      <div className="flex flex-wrap items-baseline gap-3">
         <p className="text-sm font-bold text-rose-600 dark:text-rose-500">Giorno</p>
-        <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+        <p className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
           {describeVisitDay(selected, today)}
         </p>
       </div>
