@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { ConfirmButton } from "@/components/confirm-button";
 import { Button } from "@/components/ui/button";
-import { getRandomAvatarUrl } from "@/lib/avatars";
+import { getRandomAvatarUrl, resolveProfileAvatarUrl } from "@/lib/avatars";
 import { sendStaffWelcomeEmail } from "@/lib/welcome-email";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
@@ -585,6 +585,7 @@ export default async function AdminUsersPage({
         createdAt: true,
         lastLoginAt: true,
         avatarUrl: true,
+        gender: true,
         isDemo: true,
         doctor: { select: { id: true } },
       },
@@ -692,7 +693,10 @@ export default async function AdminUsersPage({
               <img
                 key={u.id}
                 className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-zinc-950"
-                src={u.avatarUrl || `https://ui-avatars.com/api/?name=${u.name || u.email}&background=random`}
+                src={
+                  resolveProfileAvatarUrl({ avatarUrl: u.avatarUrl, gender: u.gender }) ||
+                  `https://ui-avatars.com/api/?name=${u.name || u.email}&background=random`
+                }
                 alt={u.name || u.email}
               />
             ))}
@@ -849,7 +853,10 @@ export default async function AdminUsersPage({
                       <div className="relative">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={user.avatarUrl || `https://ui-avatars.com/api/?name=${user.name || user.email}&background=random`}
+                          src={
+                            resolveProfileAvatarUrl({ avatarUrl: user.avatarUrl, gender: user.gender }) ||
+                            `https://ui-avatars.com/api/?name=${user.name || user.email}&background=random`
+                          }
                           alt={user.name || user.email}
                           className="h-12 w-12 rounded-full border border-zinc-100 object-cover dark:border-zinc-800"
                         />

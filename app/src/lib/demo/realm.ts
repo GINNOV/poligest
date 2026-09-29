@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { Prisma, Role } from "@prisma/client";
+import { Prisma, Role, type Gender } from "@prisma/client";
 import { getOptionalStackServerApp } from "@/lib/stack-app";
 import { demoPrisma, livePrisma } from "@/lib/prisma-client";
 import { canImpersonateTarget } from "@/lib/demo/guard";
@@ -12,6 +12,7 @@ export type DemoAccount = {
   role: Role;
   locale: string;
   avatarUrl: string | null;
+  gender: Gender;
   isDemo: boolean;
   personalPin: string | null;
 };
@@ -23,6 +24,7 @@ const accountSelect = {
   role: true,
   locale: true,
   avatarUrl: true,
+  gender: true,
   isDemo: true,
   personalPin: true,
 } as const;

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getStackSignInUrl } from "@/lib/stack-app";
-import { getRandomAvatarUrl } from "@/lib/avatars";
+import { getRandomAvatarUrl, resolveProfileAvatarUrl } from "@/lib/avatars";
 import { normalizePersonName } from "@/lib/name";
 import { Prisma, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
@@ -37,6 +37,7 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     role: true,
     locale: true,
     avatarUrl: true,
+    gender: true,
     isDemo: true,
   } as const;
   const dbUser = email ? await prisma.user.findUnique({
@@ -58,7 +59,7 @@ async function getSmokeTestUserFromDatabase(): Promise<AppUser | null> {
     name: dbUser.name,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
-    avatarUrl: dbUser.avatarUrl,
+    avatarUrl: resolveProfileAvatarUrl({ avatarUrl: dbUser.avatarUrl, gender: dbUser.gender }),
     stackUserId: `smoke:${dbUser.id}`,
     isDemo: dbUser.isDemo,
     impersonatedFrom: null,
@@ -155,6 +156,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
           role: true,
           locale: true,
           avatarUrl: true,
+          gender: true,
           isDemo: true,
           personalPin: true,
         },
@@ -170,6 +172,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
             role: true,
             locale: true,
             avatarUrl: true,
+            gender: true,
             isDemo: true,
             personalPin: true,
           },
@@ -219,7 +222,7 @@ const getUserFromStack = cache(async (allowImpersonation = true): Promise<AppUse
     name: dbUser.name ?? resolved.displayName ?? dbUser.email,
     role: dbUser.role,
     locale: dbUser.locale ?? "it",
-    avatarUrl: dbUser.avatarUrl ?? null,
+    avatarUrl: resolveProfileAvatarUrl({ avatarUrl: dbUser.avatarUrl, gender: dbUser.gender }),
     stackUserId: resolved.stackUserId,
     isDemo: dbUser.isDemo,
     impersonatedFrom: resolved.impersonatedFrom,
