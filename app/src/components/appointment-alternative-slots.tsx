@@ -228,12 +228,9 @@ export function AppointmentAlternativeSlots({
   }
 
   return (
-    <div className="col-span-full space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">SLOT LIBERI</p>
-        {searching ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
-      </div>
+    <div className="col-span-full">
       <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-950">
+        {searching ? <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</p> : null}
         {panelContent}
       </div>
     </div>

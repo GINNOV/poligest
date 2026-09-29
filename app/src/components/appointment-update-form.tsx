@@ -299,11 +299,15 @@ export function AppointmentUpdateForm({
           trailing={<AppointmentDurationChips durationMinutes={durationMinutes} onSelect={setEndFromStart} />}
         />
 
-        <div className="col-span-full flex flex-wrap items-end justify-between gap-4">
+        <div className="col-span-full grid grid-cols-1 items-end gap-4 sm:grid-cols-[auto_minmax(8rem,1fr)_auto]">
           <div className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
             <AppointmentTimeField value={startTime} onChange={updateStartTime} required />
           </div>
+
+          <p className="flex h-11 items-center justify-center text-sm font-semibold text-sky-900 dark:text-sky-100">
+            SLOT LIBERI
+          </p>
 
           <div className="flex flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
             <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
