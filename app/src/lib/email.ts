@@ -16,8 +16,15 @@ function resolveEmailFromAddress() {
 
 const defaultFrom = resolveEmailFromAddress();
 
+export type EmailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
+
 export type EmailDeliveryOptions = {
   bcc?: string | string[];
+  attachments?: EmailAttachment[];
 };
 
 async function deliverEmail(
@@ -43,6 +50,15 @@ async function deliverEmail(
     text: body,
     html,
     ...(options?.bcc ? { bcc: options.bcc } : {}),
+    ...(options?.attachments?.length
+      ? {
+          attachments: options.attachments.map((attachment) => ({
+            filename: attachment.filename,
+            content: attachment.content,
+            contentType: attachment.contentType ?? "application/pdf",
+          })),
+        }
+      : {}),
   });
 
   if (result.error) {

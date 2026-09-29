@@ -5,6 +5,7 @@ import { Role } from "@prisma/client";
 import { requireUser } from "@/lib/auth";
 import { DEFAULT_CLINIC_NAME } from "@/lib/brand";
 import { ConfirmButton } from "@/components/confirm-button";
+import { InvoiceEmailButton } from "@/components/invoice-email-button";
 import { PrintButton } from "@/components/print-button";
 import { Button } from "@/components/ui/button";
 import { emailInvoiceAction, voidInvoiceAction } from "@/lib/finance/invoice-actions";
@@ -37,7 +38,7 @@ export default async function InvoiceDocumentPage({
     where: { id: invoiceId },
     include: {
       lines: { orderBy: { createdAt: "asc" } },
-      patient: { select: { email: true } },
+      patient: { select: { firstName: true, lastName: true, email: true } },
     },
   });
   if (!invoice) notFound();
@@ -45,6 +46,7 @@ export default async function InvoiceDocumentPage({
   const number = formatInvoiceNumber(invoice.year, invoice.number);
   const issued = invoice.status === "ISSUED";
   const email = invoice.patient.email?.trim() ?? "";
+  const patientName = `${invoice.patient.lastName} ${invoice.patient.firstName}`.trim() || invoice.patientName;
   const total = Number(invoice.total.toString());
 
   return (
@@ -95,7 +97,7 @@ export default async function InvoiceDocumentPage({
         ) : null}
         {query.sent ? (
           <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 print:hidden">
-            Fattura inviata a {email}.
+            Fattura inviata a {email}, con il PDF in allegato.
           </p>
         ) : null}
         {!issued ? (
@@ -160,17 +162,13 @@ export default async function InvoiceDocumentPage({
         </p>
 
         {issued ? (
-          <form action={emailInvoiceAction} className="space-y-2 print:hidden">
-            <input type="hidden" name="invoiceId" value={invoice.id} />
-            <Button type="submit" variant="secondary" disabled={!email}>
-              Invia al paziente
-            </Button>
-            {!email ? (
-              <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                Aggiungi un&apos;email in anagrafica per inviare la fattura.
-              </p>
-            ) : null}
-          </form>
+          <InvoiceEmailButton
+            action={emailInvoiceAction}
+            invoiceId={invoice.id}
+            invoiceNumber={number}
+            patientName={patientName}
+            email={email}
+          />
         ) : null}
       </div>
     </div>

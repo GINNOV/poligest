@@ -1,6 +1,7 @@
 export const DEFAULT_INVOICE_EMAIL_BODY = `Ciao {{patientName}},
 
 la fattura {{invoiceNumber}} del {{invoiceDate}} è pronta.
+La fattura è allegata in PDF.
 
 {{invoiceLines}}
 
@@ -153,6 +154,14 @@ export function formatInvoiceLines(
   return lines
     .map((line) => `${line.serviceName} × ${line.quantity} ${line.total.toFixed(2)}`)
     .join("\n");
+}
+
+export function invoicePdfFilename(invoiceNumber: string) {
+  return `Fattura-${invoiceNumber.replaceAll("/", "-")}.pdf`;
+}
+
+export function invoiceSendConfirmMessage(invoiceNumber: string, patientName: string, email: string) {
+  return `Confermi di inviare la fattura ${invoiceNumber} a ${patientName} all'indirizzo ${email}? La fattura è allegata in PDF.`;
 }
 
 export function resolveInvoiceEmailBody(storedBody: string) {

@@ -1,15 +1,20 @@
 "use server";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { Role } from "@prisma/client";
+import sharp from "sharp";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { DEFAULT_CLINIC_NAME } from "@/lib/brand";
 import { sendEmailTemplate, getEmailTemplateByName } from "@/lib/email-templates";
+import { renderStudioInvoicePdf } from "@/lib/finance/invoice-pdf";
 import {
   formatInvoiceLines,
   formatInvoiceNumber,
+  invoicePdfFilename,
   resolveInvoiceEmailBody,
 } from "@/lib/finance/invoices";
 import { InvoiceIssueError, issueStudioInvoice, voidStudioInvoice } from "@/lib/finance/issue-invoice";
@@ -100,6 +105,26 @@ export async function emailInvoiceAction(formData: FormData) {
     const overrideBody = resolveInvoiceEmailBody(template?.body ?? "");
     const timeZone = await getPracticeTimeZone();
     const number = formatInvoiceNumber(invoice.year, invoice.number);
+    const issueDate = formatDateInDisplayTimeZone(invoice.issuedAt, { dateStyle: "short" }, timeZone);
+    const logoPng = await readFile(path.join(process.cwd(), "public/logo/studio_agovinoangrisano_logo.png"))
+      .then((file) => sharp(file).resize({ height: 96, withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer())
+      .catch(() => null);
+    const pdf = await renderStudioInvoicePdf({
+      clinicName: DEFAULT_CLINIC_NAME,
+      invoiceNumber: number,
+      issueDate,
+      patientName: invoice.patientName,
+      patientTaxId: invoice.patientTaxId,
+      total: Number(invoice.total.toString()).toFixed(2),
+      logoPng,
+      lines: invoice.lines.map((line) => ({
+        serviceName: line.serviceName,
+        quantity: line.quantity,
+        price: Number(line.price.toString()).toFixed(2),
+        total: Number(line.total.toString()).toFixed(2),
+        serviceDate: formatDateInDisplayTimeZone(line.serviceDate, { dateStyle: "short" }, timeZone),
+      })),
+    });
     await sendEmailTemplate({
       to: email,
       templateName: "invoice-ready",
@@ -107,7 +132,7 @@ export async function emailInvoiceAction(formData: FormData) {
         patientName: invoice.patientName,
         clinicName: DEFAULT_CLINIC_NAME,
         invoiceNumber: number,
-        invoiceDate: formatDateInDisplayTimeZone(invoice.issuedAt, { dateStyle: "short" }, timeZone),
+        invoiceDate: issueDate,
         invoiceTotal: Number(invoice.total.toString()).toFixed(2),
         invoiceLines: formatInvoiceLines(
           invoice.lines.map((line) => ({
@@ -118,6 +143,13 @@ export async function emailInvoiceAction(formData: FormData) {
         ),
       },
       override: overrideBody ? { body: overrideBody } : undefined,
+      attachments: [
+        {
+          filename: invoicePdfFilename(number),
+          content: Buffer.from(pdf),
+          contentType: "application/pdf",
+        },
+      ],
     });
     await logAudit(user, {
       action: "finance.invoice.emailed",

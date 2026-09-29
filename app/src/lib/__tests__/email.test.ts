@@ -46,6 +46,20 @@ describe("email rendering contract", () => {
     expect(payload.html).not.toMatch(/<li[\s>]/i);
   });
 
+  it("passes a PDF attachment through to the provider", async () => {
+    const { sendEmailWithHtml } = await import("@/lib/email");
+    const content = Buffer.from("%PDF-1.4");
+
+    await sendEmailWithHtml("patient@example.com", "Fattura", "In allegato", "<p>In allegato</p>", {
+      attachments: [{ filename: "Fattura-2026-1.pdf", content, contentType: "application/pdf" }],
+    });
+
+    expect(sendMock).toHaveBeenCalledOnce();
+    expect(sendMock.mock.calls[0][0].attachments).toEqual([
+      { filename: "Fattura-2026-1.pdf", content, contentType: "application/pdf" },
+    ]);
+  });
+
   it("materializeTransactionalEmail renders HTML and plain-text bodies", async () => {
     const { materializeTransactionalEmail, buildTransactionalButton } = await import(
       "@/lib/email-template-utils"

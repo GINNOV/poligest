@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   billableLines,
   formatInvoiceLines,
+  invoicePdfFilename,
+  invoiceSendConfirmMessage,
   formatInvoiceNumber,
   invoiceYear,
   nextInvoiceNumber,
@@ -102,5 +104,12 @@ describe("studio invoices", () => {
     ).toBe("Igiene × 2 80.00");
     expect(resolveInvoiceEmailBody("Ciao {{invoiceLines}}")).toBeNull();
     expect(resolveInvoiceEmailBody("La tua fattura è pronta.")).toContain("{{invoiceLines}}");
+  });
+
+  it("names the invoice, the patient, and the address in the send confirmation", () => {
+    expect(invoicePdfFilename("2026/1")).toBe("Fattura-2026-1.pdf");
+    expect(invoiceSendConfirmMessage("2026/1", "Rossi Maria", "maria@example.com")).toBe(
+      "Confermi di inviare la fattura 2026/1 a Rossi Maria all'indirizzo maria@example.com? La fattura è allegata in PDF.",
+    );
   });
 });

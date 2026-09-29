@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { sendEmailWithHtml } from "@/lib/email";
+import { sendEmailWithHtml, type EmailAttachment } from "@/lib/email";
+import { DEFAULT_INVOICE_EMAIL_BODY } from "@/lib/finance/invoices";
 import { placeholderCatalog, previewData } from "@/lib/placeholder-data";
 import {
   buildTransactionalButton,
@@ -66,8 +67,7 @@ export const defaultEmailTemplates: EmailTemplateSeed[] = [
     description: "Avviso che la fattura è disponibile.",
     category: "Billing",
     subject: "La tua fattura è disponibile",
-    body:
-      "Ciao {{patientName}},\n\nla fattura {{invoiceNumber}} del {{invoiceDate}} è pronta.\n\n{{invoiceLines}}\n\nTotale: {{invoiceTotal}}\n\nGrazie,\n{{clinicName}}",
+    body: DEFAULT_INVOICE_EMAIL_BODY,
     buttonColor: "#16a34a",
   },
 ];
@@ -153,6 +153,7 @@ export async function sendEmailTemplate(params: {
   templateName: string;
   data: Record<string, string>;
   override?: { subject?: string; body?: string; buttonColor?: string | null };
+  attachments?: EmailAttachment[];
 }) {
   const template = await getEmailTemplateByName(params.templateName);
   if (!template) throw new Error("Template email non trovato");
@@ -175,6 +176,7 @@ export async function sendEmailTemplate(params: {
     materialized.subject,
     materialized.body,
     materialized.html,
+    params.attachments?.length ? { attachments: params.attachments } : undefined,
   );
 }
 
