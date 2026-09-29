@@ -209,26 +209,32 @@ export function AppointmentAlternativeSlots({
     return () => window.clearTimeout(timer);
   }, [variant, isOpen, doctorId, browseDate, durationMinutes, appointmentId, displayTimeZone]);
 
+  const quickDateButtons = (
+    <>
+      {quickDates.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          title={option.hint}
+          onClick={() => {
+            skipAutoSearch.current = false;
+            onBrowseDateChange(option.value);
+          }}
+          className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-semibold text-sky-800 transition hover:border-sky-300 dark:border-sky-800 dark:bg-zinc-950 dark:text-sky-200"
+        >
+          {option.label}
+        </button>
+      ))}
+      {loading ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
+      {loadingFirst ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Primo slot...</span> : null}
+    </>
+  );
+
   const panelContent = (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {quickDates.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            title={option.hint}
-            onClick={() => {
-              skipAutoSearch.current = false;
-              onBrowseDateChange(option.value);
-            }}
-            className="rounded-full border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-800 transition hover:border-sky-300 dark:border-sky-800 dark:bg-zinc-950 dark:text-sky-200"
-          >
-            {option.label}
-          </button>
-        ))}
-        {loading ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Ricerca...</span> : null}
-        {loadingFirst ? <span className="text-xs text-zinc-500 dark:text-zinc-400">Primo slot...</span> : null}
-      </div>
+      {variant === "collapsible" ? (
+        <div className="flex flex-wrap items-center gap-2">{quickDateButtons}</div>
+      ) : null}
 
       {hasSearched ? (
         blockedReason ? (
@@ -289,7 +295,10 @@ export function AppointmentAlternativeSlots({
 
   return (
     <div className="col-span-full rounded-2xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-sky-950/20">
-      <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-semibold text-sky-900 dark:text-sky-100">Slot liberi</p>
+        {quickDateButtons}
+      </div>
       <div className="mt-3">{panelContent}</div>
     </div>
   );
