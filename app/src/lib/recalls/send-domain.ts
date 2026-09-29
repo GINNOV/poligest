@@ -6,7 +6,12 @@ import {
   replacePlaceholders,
   resolveTransactionalSiteOrigin,
 } from "@/lib/email-template-utils";
-import { previewData } from "@/lib/placeholder-data";
+import {
+  APPOINTMENT_REMINDER_PLACEHOLDER_KEYS,
+  RECALL_PLACEHOLDER_KEYS,
+  placeholderValues,
+  previewData,
+} from "@/lib/placeholder-data";
 import { DEFAULT_PRACTICE_TIME_ZONE } from "@/lib/practice-time-zone";
 import { addDaysInTimeZone, formatDateInTimeZone, setTimeOfDayInTimeZone } from "@/lib/time-zone";
 
@@ -195,7 +200,7 @@ export function buildRecallDeliveryPlan(params: {
     subjectSource,
     bodySource,
     template: params.template,
-    placeholderData: {
+    placeholderData: placeholderValues(RECALL_PLACEHOLDER_KEYS, {
       patientName,
       patientFirstName: params.patient.firstName ?? "",
       patientLastName: params.patient.lastName ?? "",
@@ -203,7 +208,7 @@ export function buildRecallDeliveryPlan(params: {
       clinicName: previewData.clinicName,
       websiteUrl: resolveTransactionalSiteOrigin(),
       customNote: "",
-    },
+    }),
   });
 
   return {
@@ -239,7 +244,7 @@ export function buildAppointmentReminderDeliveryPlan(params: {
     bodySource,
     template: params.template,
     templateName: "appointment-reminder",
-    placeholderData: {
+    placeholderData: placeholderValues(APPOINTMENT_REMINDER_PLACEHOLDER_KEYS, {
       patientName,
       appointmentDate: formatDateInTimeZone(
         params.appointment.startsAt,
@@ -255,7 +260,7 @@ export function buildAppointmentReminderDeliveryPlan(params: {
       clinicName: previewData.clinicName,
       websiteUrl: resolveTransactionalSiteOrigin(),
       customNote: "",
-    },
+    }),
   });
 
   return {

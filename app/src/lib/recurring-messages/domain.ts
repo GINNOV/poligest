@@ -1,5 +1,6 @@
 import { RecurringMessageKind, RecurringMessageStatus } from "@prisma/client";
 import { APP_BRAND_NAME } from "@/lib/brand";
+import { RECURRING_PLACEHOLDER_KEYS, placeholderValues } from "@/lib/placeholder-data";
 import {
   RECURRING_MESSAGE_DEFAULTS,
   applyTemplate,
@@ -149,12 +150,12 @@ export function buildRecurringCandidates(params: {
           scheduledFor,
           eventDate: holiday.date,
           dedupeKey: `holiday:${holiday.key}:${holiday.date.getUTCFullYear()}:${patient.id}`,
-          templateVars: {
+          templateVars: placeholderValues(RECURRING_PLACEHOLDER_KEYS.HOLIDAY, {
             firstName: patient.firstName,
             lastName: patient.lastName,
             holidayName: holiday.name,
             holidayDate: formatDate(holiday.date, timeZone),
-          },
+          }),
           subject: holidayConfig.subject,
           body: holidayConfig.body,
         });
@@ -178,13 +179,13 @@ export function buildRecurringCandidates(params: {
           scheduledFor,
           eventDate: closure.startsAt,
           dedupeKey: `closure:${closure.id}:${patient.id}`,
-          templateVars: {
+          templateVars: placeholderValues(RECURRING_PLACEHOLDER_KEYS.CLOSURE, {
             firstName: patient.firstName,
             lastName: patient.lastName,
             closureTitle,
             closureStart: formatDate(closure.startsAt, timeZone),
             closureEnd: formatDate(closure.endsAt, timeZone),
-          },
+          }),
           subject: closureConfig.subject,
           body: closureConfig.body,
         });
@@ -207,11 +208,11 @@ export function buildRecurringCandidates(params: {
         scheduledFor,
         eventDate: birthdayThisYear,
         dedupeKey: `birthday:${birthdayThisYear.getFullYear()}:${patient.id}`,
-        templateVars: {
+        templateVars: placeholderValues(RECURRING_PLACEHOLDER_KEYS.BIRTHDAY, {
           firstName: patient.firstName,
           lastName: patient.lastName,
           birthdayDate: formatDate(birthdayThisYear, timeZone),
-        },
+        }),
         subject: birthdayConfig.subject,
         body: birthdayConfig.body,
       });

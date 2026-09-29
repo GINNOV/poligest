@@ -5,6 +5,8 @@ import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { Role } from "@prisma/client";
 import { RECURRING_MESSAGE_DEFAULTS } from "@/lib/recurring-messages";
+import { recurringPlaceholders, type RecurringPlaceholderKind } from "@/lib/placeholder-data";
+import { PlaceholderSelect } from "@/components/placeholder-select";
 import { updateRecurringConfig } from "@/app/[locale]/(app)/richiami/actions";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 
@@ -94,9 +96,13 @@ export default async function RichiamiRicorrentiPage() {
                     />
                   </label>
                 ) : null}
+                <div className="mt-3">
+                  <PlaceholderSelect placeholders={recurringPlaceholders(config.kind as RecurringPlaceholderKind)} />
+                </div>
                 <label className="mt-3 flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Oggetto email</span>
                   <input
+                    data-placeholder-target=""
                     name="subject"
                     defaultValue={config.subject}
                     required
@@ -106,6 +112,7 @@ export default async function RichiamiRicorrentiPage() {
                 <label className="mt-3 flex flex-col gap-2">
                   <span className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400">Messaggio</span>
                   <textarea
+                    data-placeholder-target=""
                     name="body"
                     defaultValue={config.body}
                     required
