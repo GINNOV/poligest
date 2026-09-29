@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Gender } from "@prisma/client";
 import { deleteMedicalCertificateAction } from "@/lib/patients/actions/certificates-actions";
+import { ConfirmButton } from "@/components/confirm-button";
 import { PatientAvatar } from "@/components/patient-avatar";
 
 export interface CertificateListItem {
@@ -213,20 +214,19 @@ export function CertificatesTable({ certificates, canDelete = false }: Certifica
               </Link>
 
               {canDelete ? (
-                <form action={deleteMedicalCertificateAction}>
-                  <input type="hidden" name="certificateId" value={cert.id} />
-                  <button
-                    type="submit"
-                    onClick={(e) => {
-                      if (!confirm("Sei sicuro di voler eliminare questo certificato?")) {
-                        e.preventDefault();
-                      }
-                    }}
-                    className="text-[11px] font-medium text-rose-600 hover:text-rose-700 hover:underline dark:text-rose-400"
-                  >
-                    Elimina
-                  </button>
-                </form>
+                <ConfirmButton
+                  action={deleteMedicalCertificateAction}
+                  name="certificateId"
+                  value={cert.id}
+                  confirmTitle="Elimina certificato"
+                  confirmMessage="Sei sicuro di voler eliminare questo certificato?"
+                  confirmText="Elimina"
+                  variant="ghost"
+                  size="xs"
+                  className="h-auto px-2 text-[11px] font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                >
+                  Elimina
+                </ConfirmButton>
               ) : null}
             </div>
           </div>

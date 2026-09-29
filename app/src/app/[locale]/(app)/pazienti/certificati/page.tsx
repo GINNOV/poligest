@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+import { prisma } from "@/lib/prisma";
 import { getCertificatesList } from "@/lib/patients/actions/certificates-actions";
 import {
   CertificatesTable,
@@ -23,11 +24,15 @@ export default async function CertificatesPage({
   const canDelete = user.role === Role.ADMIN || user.role === Role.MANAGER;
 
   const resolved = await searchParams;
-  const search = typeof resolved.search === "string" ? resolved.search : undefined;
+  const patientId = typeof resolved.patientId === "string" ? resolved.patientId.trim() : "";
   const type = typeof resolved.type === "string" ? resolved.type : undefined;
+  const patients = await prisma.patient.findMany({
+    select: { id: true, firstName: true, lastName: true, phone: true, taxId: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
 
   const certificates = (await getCertificatesList({
-    search,
+    patientId: patientId || undefined,
     type,
   })) as unknown as CertificateListItem[];
 
@@ -105,7 +110,16 @@ export default async function CertificatesPage({
       </div>
 
       {/* Filters and Search */}
-      <CertificatesFilters />
+      <CertificatesFilters
+        patients={patients.map((patient) => ({
+          id: patient.id,
+          fullName: `${patient.lastName} ${patient.firstName}`.trim(),
+          phone: patient.phone,
+          taxId: patient.taxId,
+        }))}
+        patientId={patientId}
+        type={type}
+      />
 
       {/* Certificates List */}
       <CertificatesTable certificates={certificates} canDelete={canDelete} />

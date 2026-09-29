@@ -13,6 +13,7 @@ import {
 } from "@/lib/patients/actions/certificates-actions";
 import { CertificateSignature } from "./certificate-signature";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { PatientSearchCombobox } from "@/components/patient-search-combobox";
 
 export interface PatientOption {
   id: string;
@@ -66,7 +67,6 @@ export function CertificateForm({
 }: CertificateFormProps) {
   const router = useRouter();
   const [selectedPatientId, setSelectedPatientId] = useState<string>(initialPatientId || "");
-  const [patientSearch, setPatientSearch] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(
     initialDoctorId || (doctors.length === 1 ? doctors[0].id : "")
   );
@@ -115,19 +115,6 @@ export function CertificateForm({
   const selectedPatient = useMemo(() => {
     return patients.find((p) => p.id === selectedPatientId);
   }, [patients, selectedPatientId]);
-
-  const filteredPatients = useMemo(() => {
-    if (!patientSearch.trim()) return patients.slice(0, 30);
-    const query = patientSearch.toLowerCase();
-    return patients
-      .filter(
-        (p) =>
-          p.lastName.toLowerCase().includes(query) ||
-          p.firstName.toLowerCase().includes(query) ||
-          (p.taxId && p.taxId.toLowerCase().includes(query))
-      )
-      .slice(0, 30);
-  }, [patients, patientSearch]);
 
   // Derived content computed during render (idiomatic React, avoiding setState in useEffect)
   const defaultInterpolatedContent = useMemo(() => {
@@ -259,34 +246,22 @@ export function CertificateForm({
           </div>
 
           {!initialPatientId ? (
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={patientSearch}
-                onChange={(e) => setPatientSearch(e.target.value)}
-                placeholder="Cerca per cognome, nome o codice fiscale..."
-                className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:ring-emerald-900"
-              />
-              <select
-                name="patientId"
-                value={selectedPatientId}
-                onChange={(e) => {
-                  setSelectedPatientId(e.target.value);
-                  setManualContent(null);
-                }}
-                required
-                className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:ring-emerald-900"
-              >
-                <option value="" disabled>
-                  -- Seleziona un paziente --
-                </option>
-                {filteredPatients.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.lastName} {p.firstName} {p.taxId ? `(${p.taxId})` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <PatientSearchCombobox
+              name="patientId"
+              patients={patients.map((patient) => ({
+                id: patient.id,
+                fullName: `${patient.lastName} ${patient.firstName}`.trim(),
+                phone: patient.phone,
+                taxId: patient.taxId,
+              }))}
+              defaultValue={selectedPatientId}
+              placeholder="Cerca per cognome e nome"
+              className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base font-semibold text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40"
+              onSelect={(id) => {
+                if (id) setManualContent(null);
+                setSelectedPatientId(id);
+              }}
+            />
           ) : (
             <input type="hidden" name="patientId" value={selectedPatientId} />
           )}
