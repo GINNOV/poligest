@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-  addCalendarDays,
-  dayWindowStart,
+  ITALIAN_MONTHS,
+  appointmentDateParts,
+  appointmentYearOptions,
+  composeAppointmentDate,
+  daysInMonth,
   describeVisitDay,
-  parseLooseAppointmentDate,
-  visitDayChoices,
 } from "@/lib/appointments/day-picker";
 import { formatDateInputValueInTimeZone } from "@/lib/user-display-time-zone";
 
@@ -16,27 +16,18 @@ type Props = {
   timeZone?: string;
 };
 
+const selectClass =
+  "h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40";
+
 export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome" }: Props) {
   const today = formatDateInputValueInTimeZone(new Date(), timeZone);
-  const [windowStart, setWindowStart] = useState(() => dayWindowStart(value || today, today));
-  const [typed, setTyped] = useState("");
   const selected = value || today;
-  const days = visitDayChoices(windowStart, today);
-  const earliest = addCalendarDays(today, -14);
-  const latest = addCalendarDays(today, 84);
+  const parts = appointmentDateParts(selected) ?? appointmentDateParts(today);
+  if (!parts) return null;
 
-  useEffect(() => {
-    if (!value) return;
-    setWindowStart((current) => {
-      const end = addCalendarDays(current, 6);
-      if (value >= current && value <= end) return current;
-      return dayWindowStart(value, today);
-    });
-  }, [value, today]);
-
-  const choose = (isoDate: string) => {
-    setTyped("");
-    onChange(isoDate);
+  const commit = (year: number, month: number, day: number) => {
+    const next = composeAppointmentDate(year, month, day);
+    if (next) onChange(next);
   };
 
   return (
@@ -48,67 +39,66 @@ export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome"
         </p>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {days.map((day) => {
-          const isSelected = day.iso === selected;
-          return (
-            <button
-              key={day.iso}
-              type="button"
-              aria-pressed={isSelected}
-              onClick={() => choose(day.iso)}
-              className={`flex h-20 w-16 shrink-0 flex-col items-center justify-center rounded-2xl border text-center transition ${
-                isSelected
-                  ? "border-emerald-700 bg-emerald-600 text-white"
-                  : "border-zinc-300 bg-white text-zinc-900 hover:border-emerald-400 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-50"
-              }`}
-            >
-              <span className={`text-xs font-semibold ${isSelected ? "text-emerald-50" : "text-zinc-500 dark:text-zinc-400"}`}>
-                {day.name}
-              </span>
-              <span className="text-xl font-bold leading-6">{day.dayNumber}</span>
-              <span className={`text-xs ${isSelected ? "text-emerald-50" : "text-zinc-500 dark:text-zinc-400"}`}>
-                {day.month}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          Giorno
+          <select
+            value={parts.day}
+            onChange={(event) => commit(parts.year, parts.month, Number(event.target.value))}
+            className={`${selectClass} w-[5.25rem]`}
+          >
+            {Array.from({ length: daysInMonth(parts.year, parts.month) }, (_, index) => index + 1).map((day) => (
+              <option key={day} value={day}>
+                {day}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={windowStart <= earliest}
-          onClick={() => setWindowStart((current) => addCalendarDays(current, -7))}
-          className="h-10 rounded-full border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-        >
-          Settimana prima
-        </button>
-        <button
-          type="button"
-          disabled={windowStart >= latest}
-          onClick={() => setWindowStart((current) => addCalendarDays(current, 7))}
-          className="h-10 rounded-full border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 disabled:opacity-40 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-        >
-          Settimana dopo
-        </button>
-        <label className="flex min-w-40 flex-1 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
-          <span className="shrink-0">Altra data</span>
+        <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          Mese
+          <select
+            value={parts.month}
+            onChange={(event) => commit(parts.year, Number(event.target.value), parts.day)}
+            className={`${selectClass} min-w-36`}
+          >
+            {ITALIAN_MONTHS.map((name, index) => (
+              <option key={name} value={index + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+          Anno
+          <select
+            value={parts.year}
+            onChange={(event) => commit(Number(event.target.value), parts.month, parts.day)}
+            className={`${selectClass} w-[6.5rem]`}
+          >
+            {appointmentYearOptions(today, selected).map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200">
+          <span className="sr-only">Apri il calendario</span>
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M3 10h18M8 3v4M16 3v4" />
+          </svg>
           <input
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            spellCheck={false}
+            type="date"
             lang="it-IT"
-            placeholder="15/10"
-            value={typed}
+            value={selected}
             onChange={(event) => {
-              const next = event.target.value;
-              setTyped(next);
-              const parsed = parseLooseAppointmentDate(next, today);
-              if (parsed) onChange(parsed);
+              if (event.target.value) onChange(event.target.value);
             }}
-            className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none focus:border-emerald-400 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            className="absolute inset-0 cursor-pointer opacity-0"
           />
         </label>
       </div>

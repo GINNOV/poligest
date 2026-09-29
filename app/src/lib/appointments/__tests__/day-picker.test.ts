@@ -1,33 +1,31 @@
 import { describe, expect, it } from "vitest";
 import {
   addCalendarDays,
-  dayWindowStart,
+  appointmentDateParts,
+  appointmentYearOptions,
+  composeAppointmentDate,
+  daysInMonth,
   describeVisitDay,
-  parseLooseAppointmentDate,
-  visitDayChoices,
 } from "@/lib/appointments/day-picker";
 
 const today = "2026-09-29";
 
-describe("appointment day picker", () => {
-  it("names today and tomorrow, then the weekday", () => {
-    const days = visitDayChoices(today, today, 3);
-    expect(days.map((day) => day.name)).toEqual(["Oggi", "Domani", "gio"]);
-    expect(days[0]).toMatchObject({ iso: "2026-09-29", dayNumber: "29", month: "set" });
-    expect(days[2].iso).toBe("2026-10-01");
+describe("appointment day lists", () => {
+  it("splits a visit day into day, month, and year", () => {
+    expect(appointmentDateParts("2026-09-29")).toEqual({ year: 2026, month: 9, day: 29 });
+    expect(appointmentDateParts("2026-02-31")).toBeNull();
   });
 
-  it("keeps the coming week in view when the visit is soon", () => {
-    expect(dayWindowStart("2026-10-02", today)).toBe(today);
-    expect(dayWindowStart("2026-10-20", today)).toBe("2026-10-20");
-    expect(dayWindowStart("2026-09-20", today)).toBe("2026-09-20");
+  it("moves 31 January back to the last day of February", () => {
+    expect(daysInMonth(2026, 2)).toBe(28);
+    expect(daysInMonth(2024, 2)).toBe(29);
+    expect(composeAppointmentDate(2026, 2, 31)).toBe("2026-02-28");
+    expect(composeAppointmentDate(2024, 2, 31)).toBe("2024-02-29");
   });
 
-  it("reads a day and month without a year", () => {
-    expect(parseLooseAppointmentDate("15/10", today)).toBe("2026-10-15");
-    expect(parseLooseAppointmentDate("15/01", today)).toBe("2027-01-15");
-    expect(parseLooseAppointmentDate("30/09/2026", today)).toBe("2026-09-30");
-    expect(parseLooseAppointmentDate("domani", today)).toBeNull();
+  it("offers the current year by default and keeps an older visit year", () => {
+    expect(appointmentYearOptions(today, today)).toEqual([2025, 2026, 2027, 2028]);
+    expect(appointmentYearOptions(today, "2020-03-01")).toContain(2020);
   });
 
   it("says the chosen day in a full sentence", () => {
