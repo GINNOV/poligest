@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   ITALIAN_MONTHS,
   appointmentDateParts,
@@ -14,12 +15,13 @@ type Props = {
   value: string;
   onChange: (isoDate: string) => void;
   timeZone?: string;
+  trailing?: ReactNode;
 };
 
 const selectClass =
   "h-11 rounded-xl border border-zinc-200 bg-white px-3 text-base text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-900/40";
 
-export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome" }: Props) {
+export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome", trailing }: Props) {
   const today = formatDateInputValueInTimeZone(new Date(), timeZone);
   const selected = value || today;
   const parts = appointmentDateParts(selected) ?? appointmentDateParts(today);
@@ -39,6 +41,7 @@ export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome"
         </p>
       </div>
 
+      <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
           Giorno
@@ -101,6 +104,8 @@ export function AppointmentDayPicker({ value, onChange, timeZone = "Europe/Rome"
             className="absolute inset-0 cursor-pointer opacity-0"
           />
         </label>
+      </div>
+      {trailing}
       </div>
     </div>
   );
