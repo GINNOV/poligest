@@ -8,6 +8,7 @@ import { requireFeatureAccess } from "@/lib/feature-access";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import { PrintButton } from "@/components/print-button";
 import { createPageMetadata, PAGE_TITLES } from "@/lib/page-metadata";
+import { CERTIFICATE_PLACE } from "@/lib/certificates/templates";
 
 export const metadata = createPageMetadata(PAGE_TITLES.stampaCertificato);
 
@@ -82,7 +83,7 @@ export default async function CertificatePrintPage({
                 Studio Medico Odontoiatrico
               </h1>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Dott. Agovino & Angrisano · San Valentino Torio (SA)
+                Dott. Agovino & Angrisano · {CERTIFICATE_PLACE}
               </p>
             </div>
           </div>

@@ -960,7 +960,7 @@ model MedicalCertificate {
   prognosisDays     Int?
   startDate         DateTime?
   endDate           DateTime?
-  place             String    @default("San Valentino Torio (SA)")
+  place             String    @default("STRIANO (SA)")
   issuedAt          DateTime  @default(now())
   signatureUrl      String?   @db.Text
   signedAt          DateTime?

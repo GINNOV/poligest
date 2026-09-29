@@ -1,3 +1,5 @@
+export const CERTIFICATE_PLACE = "STRIANO (SA)";
+
 export type CertificateType =
   | "WORK_INCAPACITY" // Riposo lavorativo / Malattia
   | "ATTENDANCE" // Presenza per cure
@@ -97,6 +99,6 @@ export function interpolateCertificateTemplate(
   result = result.replace(/\{\{startTime\}\}/g, params.startTime || "09:00");
   result = result.replace(/\{\{endTime\}\}/g, params.endTime || "10:30");
   result = result.replace(/\{\{doctorName\}\}/g, params.doctorName || "—");
-  result = result.replace(/\{\{place\}\}/g, params.place || "San Valentino Torio (SA)");
+  result = result.replace(/\{\{place\}\}/g, params.place || CERTIFICATE_PLACE);
   return result;
 }

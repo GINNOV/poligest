@@ -36,15 +36,20 @@ export default async function NewCertificatePage({
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
-  // Fetch doctors
-  const doctors = await prisma.doctor.findMany({
-    select: {
-      id: true,
-      fullName: true,
-      specialty: true,
-    },
-    orderBy: { fullName: "asc" },
-  });
+  const [doctors, linkedDoctor] = await Promise.all([
+    prisma.doctor.findMany({
+      select: {
+        id: true,
+        fullName: true,
+        specialty: true,
+      },
+      orderBy: { fullName: "asc" },
+    }),
+    prisma.doctor.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    }),
+  ]);
 
   let rootCertificate = null;
   if (rootIdParam) {
@@ -116,8 +121,7 @@ export default async function NewCertificatePage({
         }))}
         doctors={doctors}
         initialPatientId={initialPatientId}
-        initialDoctorId={rootCertificate?.doctorId || undefined}
-        currentUserName={user.name || undefined}
+        initialDoctorId={rootCertificate?.doctorId || linkedDoctor?.id || undefined}
         rootCertificateId={rootCertificate ? rootCertificate.id : undefined}
         initialData={initialData}
       />

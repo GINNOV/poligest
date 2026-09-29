@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { requireFeatureAccess } from "@/lib/feature-access";
 import { logAudit } from "@/lib/audit";
 import { ASSISTANT_ROLE } from "@/lib/roles";
+import { CERTIFICATE_PLACE } from "@/lib/certificates/templates";
 
 const STAFF_ROLES = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY] as const;
 
@@ -70,21 +71,18 @@ export async function saveMedicalCertificateAction(
     }
 
     const doctorId = (formData.get("doctorId") as string)?.trim() || null;
-    let doctorName = (formData.get("doctorName") as string)?.trim();
-
-    if (doctorId && !doctorName) {
-      const doctor = await prisma.doctor.findUnique({
-        where: { id: doctorId },
-        select: { fullName: true },
-      });
-      if (doctor) {
-        doctorName = doctor.fullName;
-      }
+    if (!doctorId) {
+      return { error: "Seleziona il medico emittente." };
     }
 
-    if (!doctorName) {
-      doctorName = user.name || "Dott. Agovino & Angrisano";
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: { fullName: true },
+    });
+    if (!doctor) {
+      return { error: "Medico non trovato." };
     }
+    const doctorName = doctor.fullName;
 
     const type = (formData.get("type") as string)?.trim() || "WORK_INCAPACITY";
     const title =
@@ -105,7 +103,7 @@ export async function saveMedicalCertificateAction(
     const startDate = startDateRaw ? new Date(`${startDateRaw}T12:00:00.000Z`) : null;
     const endDate = endDateRaw ? new Date(`${endDateRaw}T12:00:00.000Z`) : null;
 
-    const place = (formData.get("place") as string)?.trim() || "San Valentino Torio (SA)";
+    const place = (formData.get("place") as string)?.trim() || CERTIFICATE_PLACE;
     const issuedAtRaw = formData.get("issuedAt") as string;
     const issuedAt = issuedAtRaw ? new Date(`${issuedAtRaw}T12:00:00.000Z`) : new Date();
 

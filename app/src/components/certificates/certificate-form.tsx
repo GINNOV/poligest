@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CERTIFICATE_PLACE,
   CERTIFICATE_TEMPLATES,
   type CertificateType,
   interpolateCertificateTemplate,
@@ -37,7 +38,6 @@ interface CertificateFormProps {
   doctors: DoctorOption[];
   initialPatientId?: string;
   initialDoctorId?: string;
-  currentUserName?: string;
   // For new versioning
   rootCertificateId?: string;
   initialData?: {
@@ -61,7 +61,6 @@ export function CertificateForm({
   doctors,
   initialPatientId,
   initialDoctorId,
-  currentUserName,
   rootCertificateId,
   initialData,
 }: CertificateFormProps) {
@@ -70,9 +69,8 @@ export function CertificateForm({
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>(
     initialDoctorId || (doctors.length === 1 ? doctors[0].id : "")
   );
-  const [doctorNameInput, setDoctorNameInput] = useState<string>(
-    doctors.find((d) => d.id === initialDoctorId)?.fullName || currentUserName || ""
-  );
+  const selectedDoctor = doctors.find((doctor) => doctor.id === selectedDoctorId);
+  const doctorNameInput = selectedDoctor?.fullName ?? "";
 
   const [certType, setCertType] = useState<CertificateType>(
     initialData?.type || "WORK_INCAPACITY"
@@ -102,7 +100,7 @@ export function CertificateForm({
   );
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:30");
-  const [place, setPlace] = useState(initialData?.place || "San Valentino Torio (SA)");
+  const [place, setPlace] = useState(initialData?.place || CERTIFICATE_PLACE);
   const [issuedAt, setIssuedAt] = useState(todayStr);
 
   const [manualContent, setManualContent] = useState<string | null>(initialData?.content || null);
@@ -140,7 +138,7 @@ export function CertificateForm({
       endDate: endDate ? new Date(endDate).toLocaleDateString("it-IT") : undefined,
       startTime,
       endTime,
-      doctorName: doctorNameInput || "Dott. Agovino & Angrisano",
+      doctorName: doctorNameInput || "—",
       place,
     });
   }, [
@@ -305,14 +303,11 @@ export function CertificateForm({
               <select
                 name="doctorId"
                 value={selectedDoctorId}
-                onChange={(e) => {
-                  setSelectedDoctorId(e.target.value);
-                  const doc = doctors.find((d) => d.id === e.target.value);
-                  if (doc) setDoctorNameInput(doc.fullName);
-                }}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
+                required
                 className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
               >
-                <option value="">-- Seleziona o digita nome --</option>
+                <option value="">-- Seleziona medico --</option>
                 {doctors.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.fullName} {d.specialty ? `(${d.specialty})` : ""}
@@ -327,10 +322,10 @@ export function CertificateForm({
                 type="text"
                 name="doctorName"
                 value={doctorNameInput}
-                onChange={(e) => setDoctorNameInput(e.target.value)}
-                placeholder="Dott. Mario Rossi"
+                readOnly
+                placeholder="Seleziona il medico"
                 required
-                className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                className="h-10 rounded-lg border border-zinc-200 bg-zinc-50 px-3 text-sm text-zinc-900 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </label>
           </div>
