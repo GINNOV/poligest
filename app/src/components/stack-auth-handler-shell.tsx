@@ -91,7 +91,7 @@ export function StackAuthHandlerShell({
                   <p
                     className={
                       isStaff
-                        ? "text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400"
+                        ? "text-[11px] font-medium uppercase tracking-[0.14em] text-slate-300"
                         : "text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-800/80 dark:text-slate-400"
                     }
                   >
@@ -160,7 +160,7 @@ export function StackAuthHandlerShell({
                     <StackAuthHandlerContent isStaff={isStaff} />
                   </div>
 
-                  <p className={isStaff ? "text-xs text-slate-500" : "text-xs text-zinc-500 dark:text-slate-400"}>
+                  <p className={isStaff ? "text-xs text-slate-200" : "text-xs text-zinc-500 dark:text-slate-400"}>
                     {isStaff
                       ? "Solo per il team interno. Usa Google o il codice inviato via email."
                       : "Rimani su sorrisosplendente.com durante l'accesso per evitare errori."}
@@ -171,7 +171,7 @@ export function StackAuthHandlerShell({
           </div>
         </main>
 
-        <div className={isStaff ? "[&_footer]:border-slate-800 [&_footer]:bg-slate-950/90 [&_footer]:text-slate-400 [&_footer_a]:text-cyan-300 [&_footer_span]:text-slate-300" : ""}>
+        <div className={isStaff ? "[&_footer]:!border-slate-800 [&_footer]:!bg-slate-950/90 [&_footer]:!text-slate-300 [&_footer_a]:!text-cyan-300 [&_footer_span]:!text-slate-100" : ""}>
           <SiteFooter
             version={version}
             deployedAt={deployedAt}

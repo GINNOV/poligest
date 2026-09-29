@@ -102,6 +102,14 @@ test("keeps staff credential fields readable on the dark sign-in form", async ({
     MINIMUM_NORMAL_TEXT_CONTRAST,
   );
   await expect(page.getByText("Password dimenticata?")).toHaveCSS("color", "rgb(34, 211, 238)");
+  await expect(page.getByText("Accedi con le credenziali che hai già impostato.")).toHaveCSS(
+    "color",
+    "rgb(226, 232, 240)",
+  );
+  await expect(page.getByText("Solo per il team interno. Usa Google o il codice inviato via email.")).toHaveCSS(
+    "color",
+    "rgb(226, 232, 240)",
+  );
 });
 
 test("keeps a pasted staff login code in separate characters", async ({ page }) => {
@@ -152,4 +160,10 @@ test("keeps a pasted staff login code in separate characters", async ({ page }) 
 
   const slots = page.locator("[data-input-otp-container] > div").first().locator(":scope > div");
   await expect(slots).toHaveText(["A", "B", "C", "1", "2", ""]);
+  await expect(slots.first()).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(page.getByText("Inserisci il codice ricevuto via email")).toHaveCSS("color", "rgb(248, 250, 252)");
+  await expect(page.getByText("Ricevi un codice monouso nella tua casella di posta.")).toHaveCSS(
+    "color",
+    "rgb(226, 232, 240)",
+  );
 });

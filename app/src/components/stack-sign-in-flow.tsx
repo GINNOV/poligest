@@ -58,7 +58,7 @@ function SignUpLink({ isStaff }: { isStaff: boolean }) {
   if (!project.config.signUpEnabled) return null;
 
   return (
-    <p className={`mt-6 text-center text-sm ${isStaff ? "text-slate-400" : "text-zinc-600 dark:text-slate-400"}`}>
+    <p className={`mt-6 text-center text-sm ${isStaff ? "text-slate-200" : "text-zinc-600 dark:text-slate-400"}`}>
       Non hai un account?{" "}
       <button
         type="button"
@@ -91,7 +91,7 @@ function MethodPicker({
     : "group flex w-full flex-col items-start gap-1 rounded-xl border border-emerald-100 bg-white px-4 py-3.5 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-slate-600 dark:bg-slate-800/80 dark:hover:border-emerald-700";
 
   const titleClass = isStaff ? "text-sm font-semibold text-slate-100" : "text-sm font-semibold text-zinc-900 dark:text-slate-100";
-  const descClass = isStaff ? "text-xs text-slate-400" : "text-xs text-zinc-500 dark:text-slate-400";
+  const descClass = isStaff ? "text-xs text-slate-200" : "text-xs text-zinc-500 dark:text-slate-400";
 
   return (
     <div className="space-y-4">
@@ -99,7 +99,7 @@ function MethodPicker({
         <h2 className={isStaff ? "text-xl font-semibold text-slate-100" : "text-xl font-semibold text-zinc-900 dark:text-slate-100"}>
           Come vuoi accedere?
         </h2>
-        <p className={isStaff ? "text-sm text-slate-400" : "text-sm text-zinc-600 dark:text-slate-400"}>
+        <p className={isStaff ? "text-sm text-slate-200" : "text-sm text-zinc-600 dark:text-slate-400"}>
           Scegli il metodo più comodo per te.
         </p>
       </div>
@@ -150,7 +150,7 @@ function MethodForm({
         <h2 className={isStaff ? "text-xl font-semibold text-slate-100" : "text-xl font-semibold text-zinc-900 dark:text-slate-100"}>
           {option.label}
         </h2>
-        <p className={isStaff ? "text-sm text-slate-400" : "text-sm text-zinc-600 dark:text-slate-400"}>
+        <p className={isStaff ? "text-sm text-slate-200" : "text-sm text-zinc-600 dark:text-slate-400"}>
           {option.description}
         </p>
       </div>
@@ -233,7 +233,7 @@ export function StackSignInFlow({ isStaff }: { isStaff: boolean }) {
 
   if (options.length === 0) {
     return (
-      <p className={isStaff ? "text-center text-sm text-slate-400" : "text-center text-sm text-zinc-600 dark:text-slate-400"}>
+      <p className={isStaff ? "text-center text-sm text-slate-200" : "text-center text-sm text-zinc-600 dark:text-slate-400"}>
         Nessun metodo di accesso è attualmente disponibile. Contatta l&apos;assistenza.
       </p>
     );

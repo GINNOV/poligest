@@ -62,6 +62,7 @@ body {
   }
 
   .stack-auth-surface--staff {
+    color: #f8fafc;
     color-scheme: dark;
     @apply rounded-2xl border border-slate-700/80 bg-slate-950/70 p-5 shadow-[0_24px_60px_-28px_rgba(8,145,178,0.2)] backdrop-blur sm:p-6;
   }
@@ -149,7 +150,38 @@ body {
 
   /* The one-time-code field must stay invisible. input-otp draws each
      character in its own box and squeezes the real text with negative
-     letter-spacing; a forced color stacks a pasted code on the first box. */
+     letter-spacing; a forced color stacks a pasted code on the first box.
+     The boxes themselves inherit the page text color, which is dark, so
+     the drawn characters and the prompt above them need an explicit light color. */
+  .stack-auth-surface--staff [data-input-otp-container] {
+    color: #f8fafc;
+  }
+
+  .stack-auth-surface--staff [data-input-otp-container] .bg-foreground {
+    background-color: #f8fafc !important;
+  }
+
+  .stack-auth-surface--staff .text-black {
+    color: #f8fafc !important;
+  }
+
+  /* Stack paints several lines with fixed zinc/gray utilities. Those ignore
+     the staff theme and stay near-black on the navy card. */
+  .stack-auth-surface--staff :is(
+    .text-zinc-500,
+    .text-zinc-600,
+    .text-zinc-700,
+    .text-zinc-800,
+    .text-gray-500,
+    .text-gray-600,
+    .text-gray-700,
+    .text-neutral-500,
+    .text-neutral-600,
+    .text-slate-500,
+    .text-slate-600
+  ) {
+    color: #e2e8f0 !important;
+  }
   .stack-auth-surface--staff .stack-scope input:not([data-input-otp]),
   .stack-auth-surface--staff input.stack-scope:not([data-input-otp]) {
     background-color: hsl(var(--secondary)) !important;

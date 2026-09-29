@@ -37,7 +37,7 @@ export function StackAuthHandlerContent({ isStaff }: { isStaff: boolean }) {
   return (
     <Suspense
       fallback={
-        <p className={isStaff ? "text-sm text-slate-400" : "text-sm text-zinc-500 dark:text-slate-400"}>
+        <p className={isStaff ? "text-sm text-slate-200" : "text-sm text-zinc-500 dark:text-slate-400"}>
           Caricamento accesso...
         </p>
       }
