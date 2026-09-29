@@ -10,7 +10,7 @@ import { requireUser } from "@/lib/auth";
 import { reportError } from "@/lib/error-reporting";
 import { Prisma, Role } from "@prisma/client";
 import { cookies } from "next/headers";
-import { getStackServerApp } from "@/lib/stack-app";
+import { getOptionalStackServerApp, getStackServerApp } from "@/lib/stack-app";
 import { redirect } from "next/navigation";
 import { ResetLinkBanner } from "@/components/reset-link-banner";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -20,7 +20,12 @@ import { sendStaffWelcomeEmail } from "@/lib/welcome-email";
 import { ASSISTANT_ROLE } from "@/lib/roles";
 import {
   ensureStackUserCanReceivePasswordReset,
+  ensureVerifiedStackUser,
+  italianStackAccessMessage,
+  loadStackAccessByEmail,
   resolvePasswordResetCallbackUrl,
+  type StackAccessState,
+  type StackPasswordResetApp,
 } from "@/lib/admin/stack-password-reset";
 import { beginImpersonationSession } from "@/lib/impersonation-session";
 import { StopImpersonationButton } from "@/components/stop-impersonation-button";
@@ -28,41 +33,15 @@ import { StopImpersonationButton } from "@/components/stop-impersonation-button"
 const roles: Role[] = [Role.ADMIN, Role.MANAGER, ASSISTANT_ROLE, Role.SECRETARY, Role.PATIENT];
 
 async function resolveStackUserIdByEmail(email: string, displayName?: string | null) {
-  const stackServerApp = getStackServerApp();
-  const normalized = email.trim().toLowerCase();
-  const result = await stackServerApp.listUsers({
-    query: normalized,
-    limit: 50,
-    includeRestricted: true,
-    includeAnonymous: true,
-  });
-  const users = Array.isArray(result) ? result : [];
-  const match =
-    users.find((u) => (u.primaryEmail ?? "").toLowerCase() === normalized) ??
-    users.find((u) => (u.primaryEmail ?? "").toLowerCase().includes(normalized)) ??
-    null;
-  if (match?.id) {
-    return match.id as string;
+  const stackUser = await ensureVerifiedStackUser(
+    getStackServerApp() as unknown as StackPasswordResetApp,
+    email,
+    displayName,
+  );
+  if (!stackUser.id) {
+    throw new Error("Impossibile preparare l'accesso per l'impersonificazione.");
   }
-  const fallback = await stackServerApp.listUsers({
-    limit: 100,
-    includeRestricted: true,
-    includeAnonymous: true,
-  });
-  const fallbackUsers = Array.isArray(fallback) ? fallback : [];
-  const fallbackMatch = fallbackUsers.find((u) => (u.primaryEmail ?? "").toLowerCase() === normalized);
-  if (fallbackMatch?.id) {
-    return fallbackMatch.id as string;
-  }
-  const created = await stackServerApp.createUser({
-    primaryEmail: normalized,
-    primaryEmailVerified: false,
-    displayName: displayName ?? normalized.split("@")[0],
-  });
-  if (!created?.id) {
-    throw new Error("Impossibile creare l'utente Stack per impersonificazione.");
-  }
-  return created.id as string;
+  return stackUser.id;
 }
 
 async function upsertUser(formData: FormData) {
@@ -431,14 +410,7 @@ async function sendPasswordResetLink(formData: FormData) {
       throw new Error(message);
     }
   } catch (err) {
-    const stackMessage =
-      err && typeof err === "object"
-        ? (err as { humanReadableMessage?: string; message?: string }).humanReadableMessage ??
-          (err as { message?: string }).message
-        : null;
-    const message =
-      stackMessage?.trim() ||
-      "Impossibile inviare il link: verifica che l'utente abbia un'email valida.";
+    const message = italianStackAccessMessage(user.email, err);
     await reportError({
       message: "Errore invio link reset password",
       source: "admin.reset_password",
@@ -459,6 +431,49 @@ async function sendPasswordResetLink(formData: FormData) {
   const url = new URL(returnToRaw, "http://localhost");
   url.searchParams.set("resetSent", "1");
   url.searchParams.set("resetEmail", user.email);
+  redirect(`${url.pathname}?${url.searchParams.toString()}`);
+}
+
+async function repairStackAccess(formData: FormData) {
+  "use server";
+
+  const admin = await requireUser([Role.ADMIN], { allowImpersonation: false });
+  const userId = (formData.get("userId") as string)?.trim();
+  const returnToRaw = (formData.get("returnTo") as string) || "/admin/utenti";
+  if (!userId) throw new Error("Utente non valido");
+
+  const user = await livePrisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, isDemo: true },
+  });
+  if (!user?.email) throw new Error("Email utente non valida");
+  if (admin.isDemo && !user.isDemo) {
+    throw new Error("Lo studio dimostrativo non può modificare gli accessi dello studio.");
+  }
+
+  try {
+    await ensureVerifiedStackUser(getStackServerApp() as unknown as StackPasswordResetApp, user.email, user.name);
+  } catch (error) {
+    await reportError({
+      message: "Errore sistemazione accesso",
+      source: "admin.user.repair_stack_access",
+      path: "/admin/utenti",
+      context: { userId: user.id, email: user.email },
+      error,
+      actor: { id: admin.id, role: admin.role },
+    });
+    throw new Error(italianStackAccessMessage(user.email, error));
+  }
+
+  await logAudit(admin, {
+    action: "admin.user.repair_stack_access",
+    entity: "User",
+    entityId: user.id,
+  });
+
+  const url = new URL(returnToRaw, "http://localhost");
+  url.searchParams.set("accessFixed", "1");
+  url.searchParams.set("accessEmail", user.email);
   redirect(`${url.pathname}?${url.searchParams.toString()}`);
 }
 
@@ -497,6 +512,17 @@ export default async function AdminUsersPage({
         ? roleParam[0]?.trim()
         : "";
   const roleFilter = roles.includes(roleValue as Role) ? (roleValue as Role) : undefined;
+  const accessStates: StackAccessState[] = ["verified", "unverified", "missing", "unknown"];
+  const accessParam = params.access;
+  const accessValue =
+    typeof accessParam === "string"
+      ? accessParam.trim()
+      : Array.isArray(accessParam)
+        ? accessParam[0]?.trim()
+        : "";
+  const accessFilter = accessStates.includes(accessValue as StackAccessState)
+    ? (accessValue as StackAccessState)
+    : undefined;
   const resetSentParam = params.resetSent;
   const resetEmailParam = params.resetEmail;
   const resetSent =
@@ -511,10 +537,25 @@ export default async function AdminUsersPage({
       : Array.isArray(resetEmailParam)
         ? resetEmailParam[0]
         : "";
+  const accessFixedParam = params.accessFixed;
+  const accessEmailParam = params.accessEmail;
+  const accessFixed =
+    typeof accessFixedParam === "string"
+      ? accessFixedParam === "1"
+      : Array.isArray(accessFixedParam)
+        ? accessFixedParam[0] === "1"
+        : false;
+  const accessEmail =
+    typeof accessEmailParam === "string"
+      ? accessEmailParam
+      : Array.isArray(accessEmailParam)
+        ? accessEmailParam[0]
+        : "";
 
   const queryParams = new URLSearchParams();
   if (query) queryParams.set("q", query);
   if (roleFilter) queryParams.set("role", roleFilter);
+  if (accessFilter) queryParams.set("access", accessFilter);
 
   const whereConditions: Prisma.UserWhereInput[] = [];
   if (roleFilter) whereConditions.push({ role: roleFilter });
@@ -553,6 +594,43 @@ export default async function AdminUsersPage({
       select: { id: true, fullName: true },
     }),
   ]);
+  const stackApp = getOptionalStackServerApp();
+  let stackAccess = new Map<string, StackAccessState>();
+  if (stackApp) {
+    try {
+      stackAccess = await loadStackAccessByEmail(
+        stackApp as unknown as StackPasswordResetApp,
+        users.map((listedUser) => listedUser.email),
+      );
+    } catch {
+      stackAccess = new Map();
+    }
+  }
+  const utentiReturnTo = queryParams.size > 0 ? `/admin/utenti?${queryParams.toString()}` : "/admin/utenti";
+  const accessStateFor = (email: string) => stackAccess.get(email.trim().toLowerCase());
+  const resolvedAccess = (email: string): StackAccessState => accessStateFor(email) ?? "unknown";
+  const accessLabelFor = (email: string) => {
+    const state = resolvedAccess(email);
+    if (state === "verified") return t("stackAccessVerified");
+    if (state === "unverified") return t("stackAccessUnverified");
+    if (state === "missing") return t("stackAccessMissing");
+    return t("stackAccessUnknown");
+  };
+  const accessCounts: Record<StackAccessState, number> = {
+    verified: 0,
+    unverified: 0,
+    missing: 0,
+    unknown: 0,
+  };
+  if (stackApp) {
+    for (const listedUser of users) {
+      accessCounts[resolvedAccess(listedUser.email)] += 1;
+    }
+  }
+  const visibleUsers =
+    stackApp && accessFilter
+      ? users.filter((listedUser) => resolvedAccess(listedUser.email) === accessFilter)
+      : users;
 
   const roleLabels: Record<Role, string> = {
     [Role.ADMIN]: "Admin",
@@ -568,6 +646,24 @@ export default async function AdminUsersPage({
     [Role.ASSISTANT]: "bg-teal-50 text-teal-700 border-teal-100 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/50",
     [Role.SECRETARY]: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50",
     [Role.PATIENT]: "bg-zinc-50 text-zinc-700 border-zinc-100 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-800",
+  };
+
+  const accessBadgeStyles: Record<StackAccessState, string> = {
+    verified:
+      "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50",
+    unverified:
+      "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-900/50",
+    missing:
+      "bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-800",
+    unknown:
+      "bg-zinc-50 text-zinc-600 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-800",
+  };
+
+  const accessFilterLabels: Record<StackAccessState, string> = {
+    verified: t("stackAccessVerified"),
+    unverified: t("stackAccessUnverified"),
+    missing: t("stackAccessMissing"),
+    unknown: t("stackAccessUnknown"),
   };
 
   return (
@@ -591,7 +687,7 @@ export default async function AdminUsersPage({
 
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2 overflow-hidden">
-            {users.slice(0, 5).map((u) => (
+            {visibleUsers.slice(0, 5).map((u) => (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
                 key={u.id}
@@ -600,14 +696,14 @@ export default async function AdminUsersPage({
                 alt={u.name || u.email}
               />
             ))}
-            {users.length > 5 && (
+            {visibleUsers.length > 5 && (
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-bold text-zinc-500 ring-2 ring-white dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-950">
-                +{users.length - 5}
+                +{visibleUsers.length - 5}
               </div>
             )}
           </div>
           <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            {users.length} {t("usersList").toLowerCase()}
+            {visibleUsers.length} {t("usersList").toLowerCase()}
           </div>
         </div>
       </div>
@@ -649,13 +745,21 @@ export default async function AdminUsersPage({
           />
         </div>
       )}
+      {accessFixed && (
+        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+          <ResetLinkBanner
+            title={t("stackAccessFixedTitle")}
+            body={t("stackAccessFixedBody", { email: accessEmail || "—" })}
+          />
+        </div>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Left Column: User List */}
         <div className="lg:col-span-8 space-y-6">
           <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 sm:flex-row sm:items-center">
-            <form method="get" action="/admin/utenti" className="flex flex-1 items-center gap-2 px-2">
+            <form method="get" action="/admin/utenti" className="flex flex-1 flex-wrap items-center gap-2 px-2">
               <div className="relative flex-1">
                 <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -681,6 +785,23 @@ export default async function AdminUsersPage({
                   </option>
                 ))}
               </select>
+              {stackApp ? (
+                <select
+                  name="access"
+                  defaultValue={accessFilter ?? ""}
+                  aria-label={t("stackAccessAll")}
+                  className="h-10 max-w-full border-none bg-transparent text-xs font-semibold text-zinc-700 outline-none focus:ring-0 dark:text-zinc-300"
+                >
+                  <option value="">
+                    {t("stackAccessAll")} ({users.length})
+                  </option>
+                  {accessStates.map((state) => (
+                    <option key={state} value={state}>
+                      {accessFilterLabels[state]} ({accessCounts[state]})
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               <Button
                 type="submit"
                 size="xs"
@@ -691,7 +812,7 @@ export default async function AdminUsersPage({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </Button>
-              {(query || roleFilter) && (
+              {(query || roleFilter || accessFilter) && (
                 <Button
                   asChild
                   variant="ghost"
@@ -707,7 +828,7 @@ export default async function AdminUsersPage({
           </div>
 
           <div className="space-y-4">
-            {users.length === 0 ? (
+            {visibleUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-zinc-200 py-12 dark:border-zinc-800">
                 <div className="rounded-full bg-zinc-50 p-3 dark:bg-zinc-900">
                   <svg className="h-6 w-6 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -718,7 +839,7 @@ export default async function AdminUsersPage({
                 <p className="mt-1 text-xs text-zinc-500">Prova a cambiare i filtri di ricerca</p>
               </div>
             ) : (
-              users.map((user) => (
+              visibleUsers.map((user) => (
                 <div
                   key={user.id}
                   className="group relative flex flex-col gap-6 rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-emerald-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-900/50"
@@ -747,6 +868,13 @@ export default async function AdminUsersPage({
                               Demo
                             </span>
                           ) : null}
+                          {stackApp ? (
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${accessBadgeStyles[resolvedAccess(user.email)]}`}
+                            >
+                              {accessLabelFor(user.email)}
+                            </span>
+                          ) : null}
                         </div>
                         <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
                           {user.email}
@@ -769,6 +897,19 @@ export default async function AdminUsersPage({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      {stackApp && accessStateFor(user.email) !== "verified" ? (
+                        <ConfirmButton
+                          action={repairStackAccess}
+                          name="userId"
+                          value={user.id}
+                          data={{ returnTo: utentiReturnTo }}
+                          confirmMessage={t("repairStackAccessConfirm")}
+                          variant="outline"
+                          size="xs"
+                        >
+                          {t("repairStackAccess")}
+                        </ConfirmButton>
+                      ) : null}
                       <div className={user.id === admin.id || !user.isActive ? "hidden" : "contents"}>
                         <ConfirmButton
                           action={startImpersonation}

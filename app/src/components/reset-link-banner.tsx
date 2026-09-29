@@ -17,12 +17,18 @@ export function ResetLinkBanner({ title, body, delayMs = 5000 }: Props) {
 
   useEffect(() => {
     const params = new URLSearchParams(searchParamString);
-    const hasResetParams = params.has("resetSent") || params.has("resetEmail");
+    const hasResetParams =
+      params.has("resetSent") ||
+      params.has("resetEmail") ||
+      params.has("accessFixed") ||
+      params.has("accessEmail");
     if (!hasResetParams) return;
 
     const timer = window.setTimeout(() => {
       params.delete("resetSent");
       params.delete("resetEmail");
+      params.delete("accessFixed");
+      params.delete("accessEmail");
       const next = params.toString();
       router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
     }, delayMs);
