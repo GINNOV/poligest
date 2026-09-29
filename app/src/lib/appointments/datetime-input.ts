@@ -54,6 +54,18 @@ export function formatEuropeanTime(value: string) {
   return parseEuropeanTime(value) ?? "";
 }
 
+export const APPOINTMENT_MINUTE_STEP = 5;
+
+/** Five-minute choices, plus the current minute when a visit is not on that grid. */
+export function appointmentMinuteOptions(selectedMinute: number | null) {
+  const minutes = new Set<number>();
+  for (let minute = 0; minute < 60; minute += APPOINTMENT_MINUTE_STEP) minutes.add(minute);
+  if (selectedMinute !== null && selectedMinute >= 0 && selectedMinute <= 59) {
+    minutes.add(selectedMinute);
+  }
+  return [...minutes].sort((left, right) => left - right);
+}
+
 /** Accepts `H:mm`, `HH:mm`, `HH.mm`, or `HHmm`. */
 export function parseEuropeanTime(value: string) {
   const trimmed = value.trim();

@@ -19,11 +19,11 @@ Apri questa schermata quando devi:
 ## Come creare un appuntamento
 
 1. Apri `Agenda` > `CALENDARIO APPUNTAMENTI`.
-2. Scegli il giorno.
+2. Scegli il giorno dagli elenchi Giorno, Mese e Anno. L'anno parte gia impostato. Il pulsante calendario accanto apre il calendario.
 3. Premi sullo spazio orario libero oppure usa il modulo di creazione.
 4. Seleziona il paziente.
 5. Scegli titolo e servizio.
-6. Controlla ora di inizio e fine.
+6. Controlla ora di inizio e fine. Ora e minuti sono due elenchi separati. Il pulsante orologio accanto apre l'orologio.
 7. Seleziona il medico.
 8. Aggiungi eventuali note.
 9. Salva.

@@ -7,6 +7,7 @@ import {
   formatEuropeanTime,
   parseEuropeanDate,
   parseEuropeanTime,
+  appointmentMinuteOptions,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
 
@@ -42,6 +43,12 @@ describe("datetime-input", () => {
     expect(parseEuropeanTime("14.30")).toBe("14:30");
     expect(parseEuropeanTime("2:30 PM")).toBeNull();
     expect(parseEuropeanTime("24:00")).toBeNull();
+  });
+
+  it("lists minutes in five-minute steps and keeps an off-grid minute", () => {
+    expect(appointmentMinuteOptions(null)).toEqual([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
+    expect(appointmentMinuteOptions(7)).toContain(7);
+    expect(appointmentMinuteOptions(7)).toContain(0);
   });
 
   it("formats appointment slot summaries", () => {

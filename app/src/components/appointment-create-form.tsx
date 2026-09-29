@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { AppointmentAlternativeSlots } from "@/components/appointment-alternative-slots";
 import { AppointmentDayPicker } from "@/components/appointment-day-picker";
 import { AppointmentDurationChips } from "@/components/appointment-duration-chips";
+import { AppointmentTimeField } from "@/components/appointment-time-field";
 import { FormSubmitButton } from "@/components/form-submit-button";
 import { ConflictDialog } from "@/components/conflict-dialog";
 import { UnsavedChangesGuard } from "@/components/unsaved-changes-guard";
@@ -19,7 +20,7 @@ import {
   composeDateTimeLocal,
   splitDateTimeLocal,
 } from "@/lib/appointments/datetime-input";
-import { EuropeanDateField, EuropeanTimeField } from "@/components/european-datetime-field";
+import { EuropeanDateField } from "@/components/european-datetime-field";
 import {
   computeSchedulingWarning,
   type AvailabilityWindow,
@@ -330,24 +331,16 @@ export function AppointmentCreateForm({
         timeZone={displayTimeZone}
       />
 
-      <div className="col-span-full grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+      <div className="col-span-full flex flex-wrap items-end gap-4">
+        <div className="flex min-w-60 flex-1 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Inizio visita</span>
-          <EuropeanTimeField
-            value={startTime}
-            onChange={updateStartTime}
-            className={fieldClassName}
-          />
-        </label>
+          <AppointmentTimeField value={startTime} onChange={updateStartTime} />
+        </div>
 
-        <label className="flex min-w-0 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
+        <div className="flex min-w-60 flex-1 flex-col gap-2 text-sm font-normal text-zinc-800 dark:text-zinc-200">
           <span className="font-bold text-rose-600 dark:text-rose-500">Fine visita</span>
-          <EuropeanTimeField
-            value={endTime}
-            onChange={updateEndTime}
-            className={fieldClassName}
-          />
-        </label>
+          <AppointmentTimeField value={endTime} onChange={updateEndTime} />
+        </div>
 
         <AppointmentDurationChips durationMinutes={durationMinutes} onSelect={setEndFromStart} />
       </div>
